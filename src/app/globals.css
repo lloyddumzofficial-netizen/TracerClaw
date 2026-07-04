@@ -1,34 +1,21 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg-app: #1e1e1e;       /* Outer application background */
+  --bg-panel: #2d2d2d;     /* Tool panels */
+  --bg-canvas: #161616;    /* Workspace canvas */
+  --bg-hover: #3e3e3e;     /* Hover state for buttons/items */
+  --bg-active: #4a4a4a;    /* Active selected item */
+  
+  --border: #424242;       /* Panel borders */
+  --border-light: #555555; /* Input borders */
+  
+  --accent: #ffcc00;       /* DESAYNBRO Yellow (sparingly) */
+  --accent-text: #000000;
+  
+  --text-primary: #cccccc; /* Off-white for less eye strain */
+  --text-bright: #ffffff;  /* Pure white for headings/active */
+  --text-muted: #888888;   /* Disabled or secondary text */
+  
+  --radius: 2px;           /* Sharp professional corners */
 }
 
 * {
@@ -37,13 +24,344 @@ body {
   margin: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+html, body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px; /* Smaller, professional desktop font size */
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* TOP MENU BAR (Like File, Edit, View) */
+.menu-bar {
+  height: 28px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.menu-item {
+  padding: 4px 10px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-bright);
+}
+
+.brand-title {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* CONTROL BAR (Below Menu) */
+.control-bar {
+  height: 40px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid #111;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.mode-tabs {
+  display: flex;
+  height: 100%;
+}
+
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 100%;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  transition: 0.1s;
+}
+
+.mode-tab:hover {
+  color: var(--text-primary);
+  background-color: rgba(255,255,255,0.02);
+}
+
+.mode-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background-color: rgba(255,255,255,0.05);
+}
+
+/* MAIN WORKSPACE */
+.main-workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* LEFT TOOLBAR (Vertical Strip) */
+.toolbar-vertical {
+  width: 44px;
+  background-color: var(--bg-panel);
+  border-right: 1px solid #111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 4px;
+}
+
+.tool-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.tool-icon:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.tool-icon.active {
+  background-color: #1a1a1a;
+  border-color: #000;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  color: var(--text-bright);
+}
+
+/* CANVAS AREA */
+.canvas-area {
+  flex: 1;
+  background-color: var(--bg-canvas);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 40px;
+}
+
+/* Document Tab (e.g. Untitled-1.jpg) */
+.document-tab {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: var(--bg-panel);
+  padding: 6px 20px;
+  border-bottom: 1px solid #111;
+  border-right: 1px solid #111;
+  font-size: 11px;
+  color: var(--text-primary);
+  border-bottom-right-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+/* Artboard / Image Container */
+.artboard {
+  position: relative;
+  background-color: #ffffff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkerboard {
+  background-image: 
+    linear-gradient(45deg, #ccc 25%, transparent 25%), 
+    linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #ccc 75%), 
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+.artboard img, .artboard svg {
+  max-width: 100%;
+  max-height: 85vh;
+  display: block;
+}
+
+/* Empty State / Dropzone */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  gap: 12px;
+}
+
+.empty-state h3 {
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.btn-browse {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-browse:hover {
+  background: var(--bg-hover);
+  color: var(--text-bright);
+}
+
+/* RIGHT PROPERTIES PANEL */
+.properties-panel {
+  width: 280px;
+  background-color: var(--bg-panel);
+  border-left: 1px solid #111;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header {
+  padding: 8px 12px;
+  background-color: var(--bg-hover);
+  border-bottom: 1px solid #111;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.section-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Form Controls */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.custom-select {
+  width: 100%;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-light);
+  color: var(--text-bright);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  appearance: none;
+  cursor: pointer;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Action Buttons */
+.btn-primary {
+  width: 100%;
+  background-color: #3e3e3e;
+  color: var(--text-bright);
+  border: 1px solid var(--border-light);
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: #666;
+}
+
+.btn-primary.highlight {
+  background-color: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-primary.highlight:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Information Console (Bottom of panel) */
+.console-area {
+  flex: 1;
+  background-color: #1a1a1a;
+  border-top: 1px solid #111;
+  padding: 10px;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow-y: auto;
+}
+
+.console-msg {
+  margin-bottom: 4px;
+}
+
+.console-msg.success {
+  color: #4ade80;
 }
