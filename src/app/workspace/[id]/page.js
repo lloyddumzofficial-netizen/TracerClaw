@@ -174,8 +174,16 @@ export default function Workspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: project.id, step: 1 })
       });
+      if (!res1.ok) {
+        const isJson = res1.headers.get("content-type")?.includes("application/json");
+        if (isJson) {
+          const errData = await res1.json();
+          throw new Error(errData.error || `Error ${res1.status}`);
+        } else {
+          throw new Error(res1.status === 504 ? "504 Timeout" : `Server Error ${res1.status}`);
+        }
+      }
       const data1 = await res1.json();
-      if (!res1.ok) throw new Error(data1.error);
       
       setProject(prev => ({ ...prev, generated_image_url: data1.generated_image_url }));
       setConsoleLogs(prev => [...prev, { text: "[Success] Image Extracted by DesaynVision™!", type: "success" }]);
@@ -188,8 +196,16 @@ export default function Workspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: project.id, step: 2 })
       });
+      if (!res2.ok) {
+        const isJson = res2.headers.get("content-type")?.includes("application/json");
+        if (isJson) {
+          const errData = await res2.json();
+          throw new Error(errData.error || `Error ${res2.status}`);
+        } else {
+          throw new Error(res2.status === 504 ? "504 Timeout" : `Server Error ${res2.status}`);
+        }
+      }
       const data2 = await res2.json();
-      if (!res2.ok) throw new Error(data2.error);
 
       setProject(prev => ({ ...prev, upscaled_image_url: data2.upscaled_image_url }));
       setConsoleLogs(prev => [...prev, { text: "[Success] Upscale Complete!", type: "success" }]);
@@ -202,8 +218,16 @@ export default function Workspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: project.id, step: 3 })
       });
+      if (!res3.ok) {
+        const isJson = res3.headers.get("content-type")?.includes("application/json");
+        if (isJson) {
+          const errData = await res3.json();
+          throw new Error(errData.error || `Error ${res3.status}`);
+        } else {
+          throw new Error(res3.status === 504 ? "504 Timeout" : `Server Error ${res3.status}`);
+        }
+      }
       const data3 = await res3.json();
-      if (!res3.ok) throw new Error(data3.error);
 
       setSvgResult({ url: data3.svg_url });
       setProject(prev => ({ ...prev, svg_url: data3.svg_url }));
