@@ -85,11 +85,10 @@ export async function POST(request) {
 
     if (step === 1) {
       // ==========================================
-      // STAGE 1: GEMINI 3 PRO IMAGE -> RASTER PNG
+      // STAGE 1: GEMINI VISION + RECRAFT GENERATION
       // ==========================================
-      console.log(`[API Step 1] Generating Image with Gemini 3 Pro for Project ${projectId}...`);
-      const model = genAI.getGenerativeModel({ model: "gemini-3-pro-image" });
-
+      console.log(`[API Step 1] Analyzing Image with Gemini 1.5 Flash for Project ${projectId}...`);
+      
       let base64Image;
       let mimeType = "image/png";
 
@@ -105,72 +104,60 @@ export async function POST(request) {
         mimeType = imageResponse.headers.get("content-type") || "image/png";
       }
 
-      let prompt = "";
-      if (project.trace_type === 'logo') {
-        prompt = `You are an elite vectorization specialist AI. Recreate this logo or sketch perfectly. 
-CRITICAL RULES:
-1. PURE QUALITY: Output a high-contrast, flat raster image with ultra-crisp edges.
-2. CLEANUP: Remove all sketch lines, noise, background gradients, and artifacts.
-3. GEOMETRY: Ensure perfect symmetry and smooth curves. Use solid flat colors only. 
-4. SVG-READY: The output must look like a perfectly finished, professional digital vector logo.`;
-      } else {
-        prompt = `You are a master Sublimation & Graphic Pattern Extractor. Extract the EXACT flat graphic from the t-shirt mockup.
-CRITICAL RULES (FOLLOW STRICTLY):
-1. NO TEXT OR LOGOS (EXTREMELY IMPORTANT): YOU MUST DELETE AND ERASE ALL LETTERS, NUMBERS, WORDS, TYPOGRAPHY, "TEAM NAME", "00", LOGOS, OR WATERMARKS. IF THERE IS TEXT IN THE ORIGINAL IMAGE, DO NOT DRAW IT. SEAMLESSLY CLONE THE SURROUNDING BACKGROUND/PATTERN INSTEAD. FAILURE TO REMOVE TEXT IS UNACCEPTABLE.
-2. EXACT COLOR MATCHING (CRITICAL): You MUST preserve the EXACT original colors, hues, and gradients. Do NOT change the color palette. If the original image has bright orange/yellow gradients, your output MUST have those exact same colors. Do not grayscale or alter the vibrancy.
-3. PIXEL-PERFECT CLONING: Copy every texture, honeycomb, splatter, or intricate geometric pattern exactly. DO NOT simplify.
-4. ABSOLUTE FLATTENING: Remove all folds, wrinkles, highlights, shadows, and fabric textures. Return ONLY the pure 2D digital artwork.
-Output the purest, highest-quality flattened design possible with ZERO TEXT and EXACT ORIGINAL COLORS.`;
-      }
-
-      let result;
-      let retries = 3;
-      for (let i = 0; i < retries; i++) {
-        try {
-          result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { data: base64Image, mimeType } }] }],
-            generationConfig: {
-              temperature: 0.1, // Near zero temperature for strict instruction adherence and zero hallucinations
-              topP: 0.8,
-              topK: 10
-            }
-          });
-          break; // Success, exit retry loop
-        } catch (genErr) {
-          if (i === retries - 1) throw genErr; // Throw if last retry fails
-          console.warn(`[Gemini API] Attempt ${i + 1} failed, retrying...`, genErr.message);
-          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // 1s, 2s backoff
-        }
-      }
+      // 1. GEMINI VISION ANALYSIS (Fast & Reliable)
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      // Extract the generated image
-      const parts = result.response.candidates[0].content.parts;
-      const imagePart = parts.find(p => p.inlineData && p.inlineData.mimeType.startsWith('image/'));
-      
-      let generatedImageBuffer;
-      let generatedMimeType = "image/png";
-      let generatedExt = "png";
-      if (imagePart) {
-        generatedImageBuffer = Buffer.from(imagePart.inlineData.data, "base64");
-        generatedMimeType = imagePart.inlineData.mimeType || "image/png";
-        generatedExt = generatedMimeType.split("/")[1] || "png";
-        if (generatedExt === "jpeg") generatedExt = "jpg";
-      } else {
-        // Fallback: If it outputs a text URL instead (some SDKs do this for Imagen)
-        const textResp = result.response.text();
-        if (textResp.startsWith("http")) {
-           const imgRes = await fetch(textResp);
-           const arrBuf = await imgRes.arrayBuffer();
-           generatedImageBuffer = Buffer.from(arrBuf);
-        } else {
-           throw new Error("Gemini did not return a generated image. Check gemini-3-pro-image SDK support.");
-        }
+      const visionPrompt = `Analyze this image and describe the main subject/logo in exact visual detail. 
+Ignore the background entirely (assume it will be removed). Ignore any text or watermarks. 
+Output ONLY a highly descriptive prompt that an image generator can use to perfectly recreate this flat digital graphic. Keep it under 40 words.`;
+
+      let geminiAnalysis = "";
+      try {
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: visionPrompt }, { inlineData: { data: base64Image, mimeType } }] }]
+        });
+        geminiAnalysis = result.response.text().trim();
+        console.log(`[Gemini Analysis]: ${geminiAnalysis}`);
+      } catch (genErr) {
+        console.warn(`[Gemini API Failed]: ${genErr.message}. Falling back to default prompt.`);
+        geminiAnalysis = "A clean, flat digital graphic illustration of the uploaded subject, perfectly isolated.";
       }
 
-      const cfRasterFileName = `projects/${projectId}/generated_flat_${Date.now()}.${generatedExt}`;
-      const finalRasterUrl = await uploadToR2(generatedImageBuffer, cfRasterFileName, generatedMimeType);
+      // 2. RECRAFT RASTER GENERATION
+      console.log(`[API Step 1] Generating Pristine Graphic using Recraft...`);
+      const recraftRes = await fetch("https://external.api.recraft.ai/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}`
+        },
+        body: JSON.stringify({
+          prompt: `${geminiAnalysis}. Pure flat digital 2D vector style art, solid colors, clean edges, white background. NO TEXT, NO WATERMARKS.`,
+          style: "vector_illustration",
+          size: "1024x1024"
+        })
+      });
 
-      await adminSupabase.from('projects').update({ generated_image_url: finalRasterUrl, ai_prompt: null }).eq('id', projectId);
+      if (!recraftRes.ok) {
+        const errText = await recraftRes.text();
+        throw new Error(`Recraft Generation Failed: ${errText}`);
+      }
+
+      const recraftData = await recraftRes.json();
+      const generatedImageUrl = recraftData.data[0].url;
+
+      // Download from Recraft and upload to R2
+      const imgRes = await fetch(generatedImageUrl);
+      const arrBuf = await imgRes.arrayBuffer();
+      const generatedImageBuffer = Buffer.from(arrBuf);
+      
+      const cfRasterFileName = `projects/${projectId}/generated_flat_${Date.now()}.png`;
+      const finalRasterUrl = await uploadToR2(generatedImageBuffer, cfRasterFileName, "image/png");
+
+      await adminSupabase.from('projects').update({ 
+        generated_image_url: finalRasterUrl, 
+        ai_prompt: geminiAnalysis 
+      }).eq('id', projectId);
 
       return NextResponse.json({ success: true, step: 1, generated_image_url: finalRasterUrl });
     }
