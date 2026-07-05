@@ -284,6 +284,19 @@ export default function StartScreen() {
           </div>
         )}
 
+        {/* HOW TO USE / DEMO VIDEO SECTION */}
+        <div className="demo-section" style={{ marginTop: '40px', width: '100%', textAlign: 'center' }}>
+          <h3 style={{ color: '#666', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>How to Use DesaynClaw</h3>
+          <video 
+            src="/demo.mp4" 
+            autoPlay 
+            muted 
+            loop 
+            playsInline 
+            style={{ width: '100%', maxWidth: '600px', borderRadius: '12px', border: '1px solid #222', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }} 
+          />
+        </div>
+
       </div>
 
       {showModal && (
@@ -651,12 +664,14 @@ export default function StartScreen() {
 
       <style jsx>{`
         .start-screen-container {
-          min-height: 100vh;
+          height: 100vh;
+          overflow-y: auto;
           background-color: #262626;
           color: #d5d5d5;
           display: flex;
-          align-items: center;
-          justify-content: center;
+          flex-direction: column;
+          padding: 60px 20px;
+          box-sizing: border-box;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .start-center-box {
@@ -665,6 +680,7 @@ export default function StartScreen() {
           align-items: center;
           width: 100%;
           max-width: 800px;
+          margin: auto;
         }
         .start-logo {
           display: flex;
