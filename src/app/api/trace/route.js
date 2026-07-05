@@ -1,98 +1,280 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { uploadToR2 } from "@/lib/cloudflare";
+import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const recraftApiKey = process.env.RECRAFT_API_KEY;
+export const maxDuration = 60; 
 
-export const maxDuration = 60; // Allow more time for generation
+const adminSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const RECRAFT_API_KEY = process.env.RECRAFT_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function POST(request) {
-  if (!geminiApiKey || !recraftApiKey) {
-    return NextResponse.json(
-      { error: "API keys are not configured properly in .env.local" },
-      { status: 500 }
-    );
-  }
-
+  let projectId;
   try {
-    const formData = await request.formData();
-    const imageFile = formData.get("image");
+    const body = await request.json();
+    projectId = body.projectId;
+    const { step, croppedBase64 } = body;
 
-    if (!imageFile) {
-      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    if (!projectId || !step) {
+      return NextResponse.json({ error: "Missing required fields (projectId, step)" }, { status: 400 });
     }
 
-    // 1. Process with Gemini Direct (Google AI Studio)
-    console.log("Analyzing directly with Google Gemini 1.5 Pro...");
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64Image = buffer.toString("base64");
+    // ALWAYS use adminSupabase to fetch project — regular client has RLS
+    // and may return null user_id if session is missing on server side
+    const { data: project, error: projError } = await adminSupabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
 
-    const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-
-    const prompt = `
-      You are an expert AI tracing and vectorization engine. Analyze this reference image provided by the user very carefully.
-      Your goal is to instruct an image generator to re-trace this EXACT image.
-      You must maintain 95% accuracy to the original shapes, layout, and composition. 
-      Convert the design into a beautiful, high-quality, flat vector illustration.
-      Provide a highly detailed, concise prompt describing the exact geometric shapes, positioning, intended solid colors, and the overall flat style to ensure the final output is a perfect, clean, and stunning flat image.
-      Output ONLY the prompt text, nothing else.
-    `;
-
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: imageFile.type,
-        },
-      },
-    ]);
-
-    const geminiGeneratedPrompt = result.response.text().trim();
-    console.log("Direct Google Prompt generated:", geminiGeneratedPrompt);
-
-    // 2. Process with Recraft (Image-to-Image Generation)
-    console.log("Generating vector with Recraft...");
-    const recraftPayload = {
-      prompt: geminiGeneratedPrompt,
-      style: "vector_illustration",
-      image: `data:${imageFile.type};base64,${base64Image}`
-    };
-
-    const recraftResponse = await fetch("https://external.api.recraft.ai/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${recraftApiKey}`
-      },
-      body: JSON.stringify(recraftPayload)
-    });
-
-    if (!recraftResponse.ok) {
-      const errorText = await recraftResponse.text();
-      console.error("Recraft API Error:", errorText);
-      return NextResponse.json({ error: "Failed to generate image from Recraft", details: errorText }, { status: recraftResponse.status });
+    if (projError || !project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const recraftData = await recraftResponse.json();
-    
-    // The response has { data: [{ url: "..." }] }
-    const imageUrl = recraftData.data[0].url;
-    console.log("Recraft Generation Successful:", imageUrl);
+    // HARD BLOCK: project must belong to a real user
+    if (!project.user_id) {
+      return NextResponse.json({ error: "Project has no owner. Please re-upload your image." }, { status: 403 });
+    }
 
-    return NextResponse.json({ 
-      success: true, 
-      prompt: geminiGeneratedPrompt,
-      imageUrl: imageUrl 
-    });
+    // ============================================================
+    // ATOMIC CREDIT DEDUCTION — Step 1 ONLY, MANDATORY check
+    // project.user_id is guaranteed non-null from check above.
+    // ============================================================
+    if (step === 1) {
+      const { data: profile, error: profileErr } = await adminSupabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', project.user_id)
+        .single();
+
+      if (profileErr || !profile) {
+        console.error('[Billing] Could not fetch profile:', profileErr);
+        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+      }
+
+      if (profile.credits <= 0) {
+        console.log(`[Billing] BLOCKED: User ${project.user_id} has ${profile.credits} credits.`);
+        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+      }
+
+      // DEDUCT IMMEDIATELY — optimistic lock prevents double-spend
+      const { error: deductErr, count } = await adminSupabase
+        .from('profiles')
+        .update({ credits: profile.credits - 1 })
+        .eq('id', project.user_id)
+        .eq('credits', profile.credits) // only succeeds if credits haven't changed
+        .select();
+
+      if (deductErr) {
+        console.error('[Billing] Deduction SQL error:', deductErr);
+        return NextResponse.json({ error: "Credit deduction failed, please try again." }, { status: 500 });
+      }
+
+      // Mark the project as deducted so refunds are authorized
+      await adminSupabase.from('projects').update({ credit_deducted: true }).eq('id', projectId);
+
+      console.log(`[Billing] ✅ DEDUCTED 1 credit from ${project.user_id}. Now: ${profile.credits - 1}`);
+    }
+
+    if (step === 1) {
+      // ==========================================
+      // STAGE 1: GEMINI 3 PRO IMAGE -> RASTER PNG
+      // ==========================================
+      console.log(`[API Step 1] Generating Image with Gemini 3 Pro for Project ${projectId}...`);
+      const model = genAI.getGenerativeModel({ model: "gemini-3-pro-image" });
+
+      let base64Image;
+      let mimeType = "image/png";
+
+      if (croppedBase64) {
+        const split = croppedBase64.split(",");
+        base64Image = split[1];
+        mimeType = split[0].split(":")[1].split(";")[0];
+      } else {
+        const imageResponse = await fetch(project.original_image_url);
+        if (!imageResponse.ok) throw new Error("Failed to fetch image from URL");
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        base64Image = Buffer.from(arrayBuffer).toString("base64");
+        mimeType = imageResponse.headers.get("content-type") || "image/png";
+      }
+
+      let prompt = "";
+      if (project.trace_type === 'logo') {
+        prompt = `You are an elite vectorization specialist AI. Recreate this logo or sketch perfectly. 
+CRITICAL RULES:
+1. PURE QUALITY: Output a high-contrast, flat raster image with ultra-crisp edges.
+2. CLEANUP: Remove all sketch lines, noise, background gradients, and artifacts.
+3. GEOMETRY: Ensure perfect symmetry and smooth curves. Use solid flat colors only. 
+4. SVG-READY: The output must look like a perfectly finished, professional digital vector logo.`;
+      } else {
+        prompt = `You are a master Sublimation & Graphic Pattern Extractor. Extract the EXACT flat graphic from the t-shirt mockup.
+CRITICAL RULES (FOLLOW STRICTLY):
+1. PIXEL-PERFECT CLONING: Copy every texture, honeycomb, splatter, or intricate geometric pattern exactly. DO NOT simplify.
+2. TEXT & WATERMARK ERASURE: Remove ALL typography, watermarks, and logos. Seamlessly clone the surrounding pattern to fill the gaps.
+3. ABSOLUTE FLATTENING: Remove all folds, wrinkles, highlights, and fabric textures. Return ONLY the pure 2D digital artwork.
+4. CMYK OPTIMIZED: Enhance the colors to be vibrant, rich, and ready for sublimation printing. Ensure edges are anti-aliased and clean.
+Output the purest, highest-quality flattened design possible.`;
+      }
+
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { data: base64Image, mimeType } }] }],
+        generationConfig: {
+          temperature: 0.1, // Near zero temperature for strict instruction adherence and zero hallucinations
+          topP: 0.8,
+          topK: 10
+        }
+      });
+      
+      // Extract the generated image
+      const parts = result.response.candidates[0].content.parts;
+      const imagePart = parts.find(p => p.inlineData && p.inlineData.mimeType.startsWith('image/'));
+      
+      let generatedImageBuffer;
+      let generatedMimeType = "image/png";
+      let generatedExt = "png";
+      if (imagePart) {
+        generatedImageBuffer = Buffer.from(imagePart.inlineData.data, "base64");
+        generatedMimeType = imagePart.inlineData.mimeType || "image/png";
+        generatedExt = generatedMimeType.split("/")[1] || "png";
+        if (generatedExt === "jpeg") generatedExt = "jpg";
+      } else {
+        // Fallback: If it outputs a text URL instead (some SDKs do this for Imagen)
+        const textResp = result.response.text();
+        if (textResp.startsWith("http")) {
+           const imgRes = await fetch(textResp);
+           const arrBuf = await imgRes.arrayBuffer();
+           generatedImageBuffer = Buffer.from(arrBuf);
+        } else {
+           throw new Error("Gemini did not return a generated image. Check gemini-3-pro-image SDK support.");
+        }
+      }
+
+      const cfRasterFileName = `projects/${projectId}/generated_flat_${Date.now()}.${generatedExt}`;
+      const finalRasterUrl = await uploadToR2(generatedImageBuffer, cfRasterFileName, generatedMimeType);
+
+      // Update DB (Clear ai_prompt since we don't use it anymore)
+      await supabase.from('projects').update({ generated_image_url: finalRasterUrl, ai_prompt: null }).eq('id', projectId);
+
+      return NextResponse.json({ success: true, step: 1, generated_image_url: finalRasterUrl });
+    }
+
+    if (step === 2) {
+      // ==========================================
+      // STAGE 2: CRISP UPSCALE THE RASTER IMAGE (RECRAFT)
+      // ==========================================
+      console.log(`[API Step 2] Running Recraft Crisp Upscale for Project ${projectId}...`);
+      if (!project.generated_image_url) throw new Error("No generated raster image found for Step 2");
+
+      const rasterImgRes = await fetch(project.generated_image_url);
+      if (!rasterImgRes.ok) throw new Error("Failed to fetch generated image from R2");
+      const rasterImgBuffer = Buffer.from(await rasterImgRes.arrayBuffer());
+
+      const upscaleFormData = new FormData();
+      const ext = project.generated_image_url.split('.').pop();
+      const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : 'image/png';
+      const blob = new Blob([rasterImgBuffer], { type: mime });
+      upscaleFormData.append('file', blob, `image.${ext}`);
+
+      const recraftUpscaleRes = await fetch("https://external.api.recraft.ai/v1/images/crispUpscale", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${RECRAFT_API_KEY}` },
+        body: upscaleFormData
+      });
+
+      if (!recraftUpscaleRes.ok) {
+        const errText = await recraftUpscaleRes.text();
+        throw new Error(`Upscaling failed: ${errText}`);
+      }
+
+      const upscaleData = await recraftUpscaleRes.json();
+      const upscaledUrl = upscaleData.image.url;
+
+      // Download and save to R2
+      const upscaledImgRes = await fetch(upscaledUrl);
+      const upscaledImgBuffer = Buffer.from(await upscaledImgRes.arrayBuffer());
+      const cfUpscaledFileName = `projects/${projectId}/upscaled_${Date.now()}.${ext}`;
+      const finalUpscaledUrl = await uploadToR2(upscaledImgBuffer, cfUpscaledFileName, mime);
+
+      await supabase.from('projects').update({ upscaled_image_url: finalUpscaledUrl }).eq('id', projectId);
+
+      return NextResponse.json({ success: true, step: 2, upscaled_image_url: finalUpscaledUrl });
+    }
+
+    if (step === 3) {
+      // ==========================================
+      // STAGE 3: VECTORIZE THE UPSCALED IMAGE (RECRAFT)
+      // ==========================================
+      console.log(`[API Step 3] Running Recraft Vectorizer for Project ${projectId}...`);
+      if (!project.upscaled_image_url) throw new Error("No upscaled image found for Step 3");
+
+      const rasterImgRes = await fetch(project.upscaled_image_url);
+      if (!rasterImgRes.ok) throw new Error("Failed to fetch upscaled image from R2");
+      const rawBuffer = Buffer.from(await rasterImgRes.arrayBuffer());
+
+      // Compress image to stay under Recraft's ~8MB size limit
+      const sharp = (await import('sharp')).default;
+      const compressedBuffer = await sharp(rawBuffer)
+        .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      console.log(`[API Step 3] Original: ${rawBuffer.length} bytes → Compressed: ${compressedBuffer.length} bytes`);
+
+      const vectorizeFormData = new FormData();
+      const blob = new Blob([compressedBuffer], { type: 'image/jpeg' });
+      vectorizeFormData.append('image', blob, 'image.jpg');
+      vectorizeFormData.append('model', 'recraftv4_1_pro_vector');
+
+      const recraftVectorRes = await fetch("https://external.api.recraft.ai/v1/images/vectorize", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${RECRAFT_API_KEY}` },
+        body: vectorizeFormData
+      });
+
+      if (!recraftVectorRes.ok) {
+        const errText = await recraftVectorRes.text();
+        throw new Error(`Vectorization failed: ${errText}`);
+      }
+
+      const vectorData = await recraftVectorRes.json();
+      const vectorUrl = vectorData.image.url;
+
+      const svgRes = await fetch(vectorUrl);
+      const svgBuffer = Buffer.from(await svgRes.arrayBuffer());
+      const cfSvgFileName = `projects/${projectId}/vector_${Date.now()}.svg`;
+      const finalSvgUrl = await uploadToR2(svgBuffer, cfSvgFileName, "image/svg+xml");
+
+      await supabase.from('projects').update({ svg_url: finalSvgUrl }).eq('id', projectId);
+
+      console.log(`[Billing] Step 3 complete. Credit was already deducted in Step 1.`);
+
+      return NextResponse.json({ success: true, step: 3, svg_url: finalSvgUrl });
+    }
+
+    return NextResponse.json({ error: "Invalid step parameter" }, { status: 400 });
 
   } catch (error) {
-    console.error("Error in trace route:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
-      { status: 500 }
-    );
+    console.error(`[Trace API Error]:`, error);
+    
+    // Attempt automatic refund on server-side failure
+    try {
+      if (typeof projectId !== 'undefined' && projectId) {
+        const { data: proj } = await adminSupabase.from('projects').select('user_id').eq('id', projectId).single();
+        if (proj && proj.user_id) {
+          await adminSupabase.rpc('refund_credit', { target_user_id: proj.user_id, target_project_id: projectId });
+          console.log(`[Billing] 🔄 Refund executed for project ${projectId} due to error`);
+        }
+      }
+    } catch (refundErr) {
+      console.error(`[Billing] Failed to process automatic refund:`, refundErr);
+    }
+
+    return NextResponse.json({ error: error.message || "Failed to process trace step" }, { status: 500 });
   }
 }
