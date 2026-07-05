@@ -85,10 +85,11 @@ export async function POST(request) {
 
     if (step === 1) {
       // ==========================================
-      // STAGE 1: GEMINI VISION + RECRAFT GENERATION
+      // STAGE 1: GEMINI 3 PRO IMAGE -> RASTER PNG
       // ==========================================
-      console.log(`[API Step 1] Analyzing Image with Gemini 1.5 Flash for Project ${projectId}...`);
-      
+      console.log(`[API Step 1] Generating Image with Gemini 3 Pro for Project ${projectId}...`);
+      const model = genAI.getGenerativeModel({ model: "gemini-3-pro-image" });
+
       let base64Image;
       let mimeType = "image/png";
 
@@ -104,63 +105,8 @@ export async function POST(request) {
         mimeType = imageResponse.headers.get("content-type") || "image/png";
       }
 
-      // 1. GEMINI VISION ANALYSIS (Fast & Reliable)
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const visionPrompt = `Analyze this image and describe the main subject/logo in exact visual detail. 
-Ignore the background entirely (assume it will be removed). Ignore any text or watermarks. 
-Output ONLY a highly descriptive prompt that an image generator can use to perfectly recreate this flat digital graphic. Keep it under 40 words.`;
-
-      let geminiAnalysis = "";
-      try {
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: visionPrompt }, { inlineData: { data: base64Image, mimeType } }] }]
-        });
-        geminiAnalysis = result.response.text().trim();
-        console.log(`[Gemini Analysis]: ${geminiAnalysis}`);
-      } catch (genErr) {
-        console.warn(`[Gemini API Failed]: ${genErr.message}. Falling back to default prompt.`);
-        geminiAnalysis = "A clean, flat digital graphic illustration of the uploaded subject, perfectly isolated.";
-      }
-
-      // 2. RECRAFT RASTER GENERATION
-      console.log(`[API Step 1] Generating Pristine Graphic using Recraft...`);
-      const recraftRes = await fetch("https://external.api.recraft.ai/v1/images/generations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${RECRAFT_API_KEY}`
-        },
-        body: JSON.stringify({
-          prompt: `${geminiAnalysis}. Pure flat digital 2D vector style art, solid colors, clean edges, white background. NO TEXT, NO WATERMARKS.`,
-          style: "vector_illustration",
-          size: "1024x1024"
-        })
-      });
-
-      if (!recraftRes.ok) {
-        const errText = await recraftRes.text();
-        throw new Error(`Recraft Generation Failed: ${errText}`);
-      }
-
-      const recraftData = await recraftRes.json();
-      const generatedImageUrl = recraftData.data[0].url;
-
-      // Download from Recraft and upload to R2
-      const imgRes = await fetch(generatedImageUrl);
-      const arrBuf = await imgRes.arrayBuffer();
-      const generatedImageBuffer = Buffer.from(arrBuf);
-      
-      const cfRasterFileName = `projects/${projectId}/generated_flat_${Date.now()}.png`;
-      const finalRasterUrl = await uploadToR2(generatedImageBuffer, cfRasterFileName, "image/png");
-
-      await adminSupabase.from('projects').update({ 
-        generated_image_url: finalRasterUrl, 
-        ai_prompt: geminiAnalysis 
-      }).eq('id', projectId);
-
-      return NextResponse.json({ success: true, step: 1, generated_image_url: finalRasterUrl });
-    }
+      let prompt = "";
+      if (project.trace_type === 'logo') {
         prompt = `You are an elite vectorization specialist AI. Recreate this logo or sketch perfectly. 
 CRITICAL RULES:
 1. PURE QUALITY: Output a high-contrast, flat raster image with ultra-crisp edges.
@@ -224,11 +170,11 @@ Output the purest, highest-quality flattened design possible with ZERO TEXT and 
       const cfRasterFileName = `projects/${projectId}/generated_flat_${Date.now()}.${generatedExt}`;
       const finalRasterUrl = await uploadToR2(generatedImageBuffer, cfRasterFileName, generatedMimeType);
 
-      // Update DB (Clear ai_prompt since we don't use it anymore)
-      await supabase.from('projects').update({ generated_image_url: finalRasterUrl, ai_prompt: null }).eq('id', projectId);
+      await adminSupabase.from('projects').update({ generated_image_url: finalRasterUrl, ai_prompt: null }).eq('id', projectId);
 
       return NextResponse.json({ success: true, step: 1, generated_image_url: finalRasterUrl });
     }
+
 
     if (step === 2) {
       // ==========================================
