@@ -108,21 +108,62 @@ export async function POST(request) {
 
       let prompt = "";
       if (project.trace_type === 'logo') {
-        prompt = `You are an elite vectorization specialist AI. Recreate this logo or sketch perfectly. 
-CRITICAL RULES:
-1. PURE QUALITY: Output a high-contrast, flat raster image with ultra-crisp edges.
-2. CLEANUP: Remove all sketch lines, noise, background gradients, and artifacts.
-3. GEOMETRY: Ensure perfect symmetry and smooth curves. Use solid flat colors only. 
-4. SVG-READY: The output must look like a perfectly finished, professional digital vector logo.`;
-      } else {
-        prompt = `You are an elite 'Magic Eraser' and 'Content-Aware Fill' AI. Do NOT redraw, recreate, or reimagine the image. Your ONLY job is to erase the foreground elements and seamlessly patch the holes.
+        prompt = `You are DesaynVision™, a world-class logo reconstruction AI built for professional print shops. Your mission is to transform this rough/low-quality logo into a PERFECT, print-ready digital master.
 
-CRITICAL DIRECTIVES:
-1. PRESERVE THE ORIGINAL EXACTLY: You MUST keep 95% of the image exactly, 100% identical to the original. Do not move, resize, or alter the existing paint splatters, gradients, or background graphics.
-2. ERASE ALL TEXT AND LOGOS: Identify all text, typography, letters, numbers, and chest logos in the image. You must erase them completely.
-3. INPAINT / CONTENT-AWARE FILL: Where you erased the text/logos, seamlessly fill in those blank spots by extending the surrounding background texture (e.g., paint splatters, halftone dots, solid colors).
-4. NO APPAREL SHAPES: Erase the collar, sleeves, and necklines. Fill those edges with the background pattern so the final output is a perfect rectangle graphic.
-5. NO REDRAWING: I repeat, do not generate a "similar" background. It must be the EXACT SAME background, just with the text removed and the holes patched.`;
+THINK STEP BY STEP:
+Step 1: Analyze the logo's geometry — identify all shapes, curves, symmetry axes, and color regions.
+Step 2: Identify and remove all noise, sketch lines, paper texture, background gradients, JPEG artifacts, and compression damage.
+Step 3: Reconstruct every shape with mathematically perfect curves and razor-sharp edges.
+Step 4: Output a flawless, ultra-clean raster image ready for vector conversion.
+
+ABSOLUTE RULES:
+- COLORS: Use only flat, solid fills. No gradients unless the original logo explicitly has them. Match the original palette with 100% accuracy using the exact hex values.
+- EDGES: Every curve must be buttery smooth. Every corner must be pixel-perfect. Zero aliasing, zero blur.
+- SYMMETRY: If any part of the logo is symmetrical, enforce PERFECT mathematical symmetry. If a circle is slightly oval, make it a perfect circle.
+- TEXT IN LOGOS: If the logo contains text/wordmark, reproduce it with perfect kerning, consistent weight, and sharp edges. Do NOT change the font or style.
+- BACKGROUND: Output on a pure transparent or pure white background. Zero noise.
+- ASPECT RATIO: Maintain the exact original proportions. Do not stretch or squash.
+- DETAIL LEVEL: This must look like it was created by a senior graphic designer in Adobe Illustrator — not by an AI. The quality bar is PROFESSIONAL PRINT at 300 DPI.
+
+WHAT FAILURE LOOKS LIKE (AVOID THESE):
+❌ Blurry or soft edges
+❌ Colors that don't match the original
+❌ Asymmetric shapes that should be symmetric
+❌ Added decorations, shadows, or effects not in the original
+❌ Missing small details like dots, lines, or thin strokes`;
+      } else {
+        prompt = `You are DesaynVision™, an elite AI that performs surgical 'Content-Aware Fill' on garment designs. You are NOT a creative AI. You are a RESTORATION AI. Your job is pixel-perfect preservation with surgical text removal.
+
+THINK STEP BY STEP BEFORE GENERATING:
+Step 1: FREEZE the entire image in your memory. Every paint splatter, every gradient transition, every halftone dot, every scratch mark — memorize their EXACT positions, sizes, angles, and colors.
+Step 2: IDENTIFY all foreground elements that must be erased: text, typography, team names, numbers, chest logos, sponsor logos, brand emblems, collar, neckline, sleeves.
+Step 3: For each erased region, look at the pixels IMMEDIATELY surrounding the hole. Extend those surrounding textures inward to seamlessly patch the gap.
+Step 4: Extend the background pattern to fill the rectangular canvas edge-to-edge. No clothing silhouette should remain.
+
+ABSOLUTE RULES:
+- PIXEL-PERFECT PRESERVATION: Every paint splatter, gradient, scratch mark, and design element that is NOT text/logo must remain in its EXACT original position, at its EXACT original size, with its EXACT original color. If you move even one splatter by 5 pixels, you have FAILED.
+- SURGICAL TEXT REMOVAL: Erase ALL text, numbers, and logos. The erased areas must be filled using Content-Aware Fill logic — sample the nearest surrounding pixels and blend seamlessly.
+- COLOR FIDELITY: The output color palette must be a 100% match to the input. If the original has cyan (#00BCD4), your output must have the EXACT same cyan. Do not shift hues, do not change saturation.
+- RECTANGULAR OUTPUT: The final image must be a perfect rectangle. Remove all clothing shapes (collar, sleeves, seams). Fill those edge areas by extending the background pattern.
+- FLAT 2D ONLY: Remove all 3D fabric artifacts — folds, wrinkles, shadows, highlights, cloth texture. The output should look like the flat digital artwork BEFORE it was printed on fabric.
+- HALFTONE & TEXTURE PRESERVATION: If the original has halftone dots, grunge textures, or distress patterns, they must be preserved EXACTLY. Do not smooth them out or simplify them.
+- SEAMLESS INPAINTING: The areas where text was removed must be INVISIBLE. A human should not be able to tell where the text used to be.
+- EDGE-TO-EDGE COVERAGE: The pattern/design must extend fully to all 4 edges of the image with no borders, margins, or empty space.
+
+WHAT FAILURE LOOKS LIKE (AVOID THESE):
+❌ Paint splatters in different positions than the original
+❌ Background that looks "similar" but is clearly redrawn from scratch
+❌ Visible patches or color mismatches where text was removed
+❌ Any remaining text, letters, numbers, or logo fragments
+❌ Collar, sleeve, or neckline shapes visible in the output
+❌ Smoothed-out textures that were originally rough/grungy
+❌ Changed color palette or shifted hues
+
+WHAT SUCCESS LOOKS LIKE:
+✅ If you overlay the original and output, 95%+ of pixels match perfectly
+✅ Text areas are seamlessly filled — invisible to the human eye
+✅ Colors are identical to the original
+✅ Output is a clean rectangle with pattern extending to all edges`;
       }
 
       let result;
@@ -133,9 +174,9 @@ CRITICAL DIRECTIVES:
           const genPromise = model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { data: base64Image, mimeType } }] }],
             generationConfig: {
-              temperature: 0.1, // Near zero temperature for strict instruction adherence and zero hallucinations
-              topP: 0.8,
-              topK: 10
+              temperature: 0.05,
+              topP: 0.7,
+              topK: 5
             }
           });
           

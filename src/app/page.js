@@ -1202,7 +1202,7 @@ export default function StartScreen() {
                   
                   {/* Original Image (Background) */}
                   <img 
-                    src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/8f085577-22e7-4448-b2ed-fe6d45c50d53/cropped_1783258409642.jpeg" 
+                    src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1783338326367_crop_1783338342234.jpg" 
                     alt="Original" 
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
@@ -1210,7 +1210,7 @@ export default function StartScreen() {
                   
                   {/* Vectorized SVG (Clipped Foreground) */}
                   <img 
-                    src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/8f085577-22e7-4448-b2ed-fe6d45c50d53/vector_1783258451276.svg" 
+                    src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/bdf18f96-9332-44c3-8b77-e82917acbffa/vector_1783338385589.svg" 
                     alt="Vector" 
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `polygon(0 0, ${sampleSliderPos}% 0, ${sampleSliderPos}% 100%, 0 100%)`, zIndex: 2 }} 
                   />
@@ -1238,8 +1238,9 @@ export default function StartScreen() {
                   
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', color: '#fff', fontWeight: 'bold' }}>Vintage Skull Graphic (Auto-Traced)</div>
+                  <div style={{ fontSize: '14px', color: '#fff', fontWeight: 'bold' }}>EMPOWER Custom Jersey (Auto-Traced)</div>
                   <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Slide to compare the original photo vs. the extracted vector SVG.</div>
+
                 </div>
               </div>
 
