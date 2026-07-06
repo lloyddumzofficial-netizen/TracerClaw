@@ -25,7 +25,8 @@ export default function Workspace() {
   
   // --- Pan / Zoom: pure refs — ZERO React re-renders during interaction ---
   const canvasAreaRef = useRef(null);    // the scrollable canvas container
-  const pipelineRef = useRef(null);     // the transformed pipeline div
+  const panRef = useRef(null);          // outer wrapper: handles translate only
+  const pipelineRef = useRef(null);     // inner div: handles zoom (CSS zoom = crisp re-render)
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -71,30 +72,56 @@ export default function Workspace() {
     });
   };
 
-  // Helper: apply transform to DOM without React re-render
+  // Helper: apply transform to DOM without React re-render.
+  // IMPORTANT: Pan uses CSS transform (translate only) on an outer wrapper.
+  //            Zoom uses CSS `zoom` on the inner pipeline — this forces the
+  //            browser to re-render at the new scale so images stay crisp
+  //            instead of being blurry GPU-texture upscales.
   const applyTransform = useCallback((t, animated = false) => {
-    const el = pipelineRef.current;
-    if (!el) return;
+    const pan = panRef.current;
+    const pipeline = pipelineRef.current;
+    if (!pan || !pipeline) return;
+
     if (animated) {
-      el.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      setTimeout(() => { if (pipelineRef.current) pipelineRef.current.style.transition = ''; }, 380);
+      pan.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      pipeline.style.transition = 'zoom 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      setTimeout(() => {
+        if (panRef.current) panRef.current.style.transition = '';
+        if (pipelineRef.current) pipelineRef.current.style.transition = '';
+      }, 380);
     } else {
-      el.style.transition = '';
+      pan.style.transition = '';
+      pipeline.style.transition = '';
     }
-    el.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.scale})`;
+
+    // Translate on the outer pan wrapper
+    pan.style.transform = `translate(${t.x}px, ${t.y}px)`;
+    // Zoom on the inner pipeline — crisp re-render, not texture upscale
+    pipeline.style.zoom = t.scale;
     transformRef.current = t;
   }, []);
 
   // Fit pipeline to canvas on load / reset
+  // NOTE: CSS zoom affects scrollWidth/scrollHeight, so we reset zoom to 1
+  //       before measuring the pipeline's natural size.
   const fitToScreen = useCallback((animated = true) => {
     const canvas = canvasAreaRef.current;
     const pipeline = pipelineRef.current;
-    if (!canvas || !pipeline) return;
-    pipeline.style.transition = ''; // measure without transition
+    const pan = panRef.current;
+    if (!canvas || !pipeline || !pan) return;
+
+    // Reset zoom & transition temporarily so we can measure natural size
+    pipeline.style.transition = '';
+    pipeline.style.zoom = 1;
+    pan.style.transition = '';
+    pan.style.transform = 'translate(0px, 0px)';
+
+    // Read natural (un-zoomed) dimensions
     const cw = canvas.clientWidth;
     const ch = canvas.clientHeight;
     const pw = pipeline.scrollWidth;
     const ph = pipeline.scrollHeight;
+
     const scaleX = (cw - 80) / pw;
     const scaleY = (ch - 80) / ph;
     const scale = Math.min(Math.max(0.2, Math.min(scaleX, scaleY)), 1);
@@ -155,8 +182,14 @@ export default function Workspace() {
         const canvas = canvasAreaRef.current;
         const pipeline = pipelineRef.current;
         if (!canvas || !pipeline) return;
-        const x = (canvas.clientWidth - pipeline.scrollWidth) / 2;
-        const y = (canvas.clientHeight - pipeline.scrollHeight) / 2;
+        // Measure at zoom=1 to get natural size
+        const savedZoom = pipeline.style.zoom;
+        pipeline.style.zoom = 1;
+        const pw = pipeline.scrollWidth;
+        const ph = pipeline.scrollHeight;
+        pipeline.style.zoom = savedZoom;
+        const x = (canvas.clientWidth - pw) / 2;
+        const y = (canvas.clientHeight - ph) / 2;
         applyTransform({ x, y, scale: 1 }, true);
       }
     };
@@ -624,13 +657,25 @@ export default function Workspace() {
               <h3>Loading Document...</h3>
             </div>
           ) : (
+            /* Pan wrapper: translate only — no scale here */
+            <div
+              ref={panRef}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transformOrigin: '0 0',
+                willChange: 'transform',
+              }}
+            >
+            {/* Zoom wrapper: CSS zoom causes crisp browser re-render vs blurry GPU upscale */}
             <div 
               ref={pipelineRef}
               className="pipeline-container"
               style={{
-                transform: 'translate(0px, 0px) scale(1)',
+                zoom: 1,
+                willChange: 'zoom',
                 transformOrigin: '0 0',
-                willChange: 'transform'
               }}
             >
               
@@ -769,6 +814,9 @@ export default function Workspace() {
                 </div>
               </div>
 
+            {/* end zoom wrapper */}
+            </div>
+            {/* end pan wrapper */}
             </div>
           )}
         </div>

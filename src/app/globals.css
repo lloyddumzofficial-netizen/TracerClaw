@@ -181,6 +181,9 @@ html, body {
   width: 100%;
   height: 100%;
   padding: 40px;
+  /* Ensure sharp compositing on GPU layer */
+  transform-style: flat;
+  backface-visibility: hidden;
 }
 
 .node-card {
@@ -236,6 +239,10 @@ html, body {
   object-fit: contain;
   /* Smooth fade-in when image loads */
   animation: imgFadeIn 0.5s ease;
+  /* Prevent blurriness when the canvas is zoomed in via CSS transform.
+     The browser will use its highest-quality upscaling algorithm. */
+  image-rendering: high-quality;
+  image-rendering: -webkit-optimize-contrast; /* Safari fallback */
 }
 
 @keyframes imgFadeIn {
