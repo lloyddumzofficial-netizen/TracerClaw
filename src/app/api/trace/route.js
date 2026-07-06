@@ -85,10 +85,10 @@ export async function POST(request) {
 
     if (step === 1) {
       // ==========================================
-      // STAGE 1: GEMINI 3.1 FLASH IMAGE -> RASTER PNG
+      // STAGE 1: GEMINI 3 PRO IMAGE -> RASTER PNG
       // ==========================================
-      console.log(`[API Step 1] Generating Image with Gemini 3.1 Flash for Project ${projectId}...`);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-image" });
+      console.log(`[API Step 1] Generating Image with Gemini 3 Pro Image for Project ${projectId}...`);
+      const model = genAI.getGenerativeModel({ model: "gemini-3-pro-image" });
 
       let base64Image;
       let mimeType = "image/png";
