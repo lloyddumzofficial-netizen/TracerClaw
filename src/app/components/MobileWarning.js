@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { MonitorX } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function MobileWarning() {
   const [isMobile, setIsMobile] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -20,6 +22,7 @@ export default function MobileWarning() {
   }, []);
 
   if (!isMobile) return null;
+  if (pathname === "/mobile") return null;
 
   return (
     <div style={{
