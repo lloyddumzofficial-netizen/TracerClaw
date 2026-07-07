@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -28,7 +28,7 @@ export async function getUploadUrl(fileName, contentType) {
   
   return {
     uploadUrl: signedUrl,
-    publicUrl: `${publicUrl}/${fileName}`
+    publicUrl: `${publicUrl}/${fileName}`,
   };
 }
 
@@ -48,17 +48,13 @@ export async function uploadToR2(buffer, fileName, contentType) {
 export async function deleteFromR2(fileUrl) {
   if (!fileUrl) return;
   try {
-    // Extract the file key from the URL (everything after the publicUrl)
+    // Extract the file key from the URL (everything after the publicUrl prefix)
     const fileKey = fileUrl.replace(`${publicUrl}/`, '');
-    
-    const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
     const command = new DeleteObjectCommand({
       Bucket: bucketName,
       Key: fileKey,
     });
-    
     await s3Client.send(command);
-    console.log(`Deleted ${fileKey} from R2`);
   } catch (error) {
     console.error("Error deleting from R2:", error);
   }

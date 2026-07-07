@@ -1,5 +1,9 @@
+import { Outfit } from "next/font/google";
 import { ToastContainer } from "@/components/Toast";
+import MobileWarning from "./components/MobileWarning";
 import "./globals.css";
+
+const outfit = Outfit({ subsets: ["latin"], display: "swap" });
 
 export const metadata = {
   title: "DESAYNBRO Auto-Tracer",
@@ -9,7 +13,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body className={outfit.className}>
+        <MobileWarning />
         {children}
         <ToastContainer />
       </body>

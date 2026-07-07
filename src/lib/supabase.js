@@ -4,24 +4,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Strict Singleton Pattern for Next.js Serverless/HMR environments
+// Singleton Pattern — caches clients on the global object across ALL environments
+// (including Vercel production serverless warm instances) to prevent DB connection exhaustion.
 const globalForSupabase = globalThis;
 
 export const supabase =
-  globalForSupabase.supabaseClient ||
-  createClient(supabaseUrl, supabaseAnonKey);
+  globalForSupabase._supabaseClient ??
+  (globalForSupabase._supabaseClient = createClient(supabaseUrl, supabaseAnonKey));
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForSupabase.supabaseClient = supabase;
-}
-
-// Export a singleton for Admin/Service Role actions as well
 export const adminSupabase =
-  globalForSupabase.adminSupabaseClient ||
-  (supabaseServiceKey 
-    ? createClient(supabaseUrl, supabaseServiceKey) 
+  globalForSupabase._adminSupabaseClient ??
+  (globalForSupabase._adminSupabaseClient = supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
     : null);
-
-if (process.env.NODE_ENV !== 'production' && adminSupabase) {
-  globalForSupabase.adminSupabaseClient = adminSupabase;
-}

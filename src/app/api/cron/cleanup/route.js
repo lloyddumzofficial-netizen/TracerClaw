@@ -19,14 +19,14 @@ export async function GET(request) {
   }
 
   try {
-    // 1. Fetch projects older than 3 days
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // 1. Fetch projects older than 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const { data: oldProjects, error: fetchErr } = await adminSupabase
       .from('projects')
       .select('*')
-      .lt('created_at', threeDaysAgo.toISOString());
+      .lt('created_at', sevenDaysAgo.toISOString());
 
     if (fetchErr) throw fetchErr;
 

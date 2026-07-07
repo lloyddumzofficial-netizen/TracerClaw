@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
-import { supabase, adminSupabase } from "@/lib/supabase";
+import { adminSupabase } from "@/lib/supabase";
 
-export const maxDuration = 60; 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const RECRAFT_API_KEY = process.env.RECRAFT_API_KEY;
 
@@ -11,6 +12,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     projectId = body.projectId;
+    const colors = body.colors || "auto";
 
     if (!projectId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -29,30 +31,41 @@ export async function POST(request) {
     // ==========================================
     // STAGE 3: VECTORIZE THE UPSCALED IMAGE (RECRAFT)
     // ==========================================
-    console.log(`[API Step 3] Running Recraft Vectorizer for Project ${projectId}...`);
     if (!project.upscaled_image_url) throw new Error("No upscaled image found for Step 3");
 
     const rasterImgRes = await fetch(project.upscaled_image_url);
     if (!rasterImgRes.ok) throw new Error("Failed to fetch upscaled image from R2");
     const rawBuffer = Buffer.from(await rasterImgRes.arrayBuffer());
 
-    // Convert image to lossless PNG to prevent JPEG compression artifacts during vectorization
+    // Convert image to lossless PNG and apply Color Reduction (Shadow Killer) if requested
     const sharp = (await import('sharp')).default;
-    const compressedBuffer = await sharp(rawBuffer)
-      .resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true })
-      .png({ effort: 7 })
-      .toBuffer();
-    console.log(`[API Step 3] Original: ${rawBuffer.length} bytes → PNG Compressed: ${compressedBuffer.length} bytes`);
+    let sharpInstance = sharp(rawBuffer).resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true });
+    
+    // EXTREME SHARPENING FOR LOGOS: If it's a logo, stretch contrast and sharpen heavily 
+    // to ensure text and circles have pixel-perfect borders before vectorization.
+    if (project.trace_type === 'logo') {
+      sharpInstance = sharpInstance
+        .normalize() // Stretch contrast to pure blacks and whites where applicable
+        .sharpen({ sigma: 1.5, m1: 1, m2: 2, x1: 2, y2: 10, y3: 20 }); // Aggressive unsharp mask to fix any remaining blur
+    }
 
-    const vectorizeFormData = new FormData();
+    let compressedBuffer;
+    if (colors && colors !== "auto") {
+      const colorLimit = parseInt(colors, 10);
+      compressedBuffer = await sharpInstance.png({ palette: true, colors: colorLimit, effort: 7 }).toBuffer();
+    } else {
+      compressedBuffer = await sharpInstance.png({ effort: 7 }).toBuffer();
+    }
+
     const blob = new Blob([compressedBuffer], { type: 'image/png' });
+    const vectorizeFormData = new FormData();
     vectorizeFormData.append('image', blob, 'image.png');
 
     const recraftVectorRes = await fetch("https://external.api.recraft.ai/v1/images/vectorize", {
       method: "POST",
       headers: { "Authorization": `Bearer ${RECRAFT_API_KEY}` },
       body: vectorizeFormData,
-      signal: AbortSignal.timeout(55000)
+      signal: AbortSignal.timeout(55000),
     });
 
     if (!recraftVectorRes.ok) {
@@ -70,24 +83,21 @@ export async function POST(request) {
 
     await adminSupabase.from('projects').update({ svg_url: finalSvgUrl }).eq('id', projectId);
 
-    console.log(`[Billing] Step 3 complete. Credit was already deducted in Step 1.`);
-
     return NextResponse.json({ success: true, step: 3, svg_url: finalSvgUrl });
 
   } catch (error) {
-    console.error(`[Trace API Error]:`, error);
+    console.error(`[Trace Step 3 Error]:`, error.message);
     
     // Attempt automatic refund on server-side failure
     try {
-      if (typeof projectId !== 'undefined' && projectId) {
+      if (projectId) {
         const { data: proj } = await adminSupabase.from('projects').select('user_id').eq('id', projectId).single();
-        if (proj && proj.user_id) {
+        if (proj?.user_id) {
           await adminSupabase.rpc('refund_credit', { target_user_id: proj.user_id, target_project_id: projectId });
-          console.log(`[Billing] 🔄 Refund executed for project ${projectId} due to error`);
         }
       }
     } catch (refundErr) {
-      console.error(`[Billing] Failed to process automatic refund:`, refundErr);
+      console.error(`[Billing] Refund failed:`, refundErr.message);
     }
 
     return NextResponse.json({ error: error.message || "Failed to process trace step" }, { status: 500 });
