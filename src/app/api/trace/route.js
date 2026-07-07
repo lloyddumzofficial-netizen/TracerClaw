@@ -99,67 +99,62 @@ export async function POST(request) {
 
       let prompt = "";
       if (project.trace_type === 'logo') {
-        prompt = `You are DesaynVision™, a world-class logo reconstruction AI built for professional print shops. Your mission is to transform this rough, blurred, or low-quality logo into a PERFECT, print-ready digital master.
+        prompt = `You are DesaynVision™, a world-class logo reconstruction AI built for professional print shops. Your mission is to transform this raw photo into a PERFECT, print-ready 2D digital master.
 
-CRITICAL INSTRUCTIONS FOR GEOMETRY AND TEXT:
-- PERFECT SHAPES: If a shape is meant to be a circle, output a MATHEMATICALLY PERFECT CIRCLE. Fix all wobbles, dents, and asymmetries.
-- TYPOGRAPHY & TEXT: You must preserve and restore ANY text exactly as written. If letters are blurred, reconstruct their sharp edges, corners, and perfect kerning. Do not alter the spelling or font style.
-- EXTREME SHARPNESS: If the input is pixelated or blurred, use your AI to infer and reconstruct the sharp, crisp boundary of every single element. Every pixel must be deliberate and detailed.
+CRITICAL INSTRUCTIONS FOR GEOMETRY AND PERSPECTIVE (THE "OBLONG" FIX):
+- PERSPECTIVE UNWARPING: The input is likely a photo taken from a mobile phone at a slanted angle. If a shape is clearly intended to be a perfect circle but appears "oblong" or "skewed" due to the camera angle, YOU MUST UNWARP IT. Output a MATHEMATICALLY PERFECT CIRCLE. 
+- TRUE GEOMETRY: If it's a square, make it a perfect square. Fix all perspective distortions, wobbles, dents, and asymmetries caused by camera lenses or folded paper/fabric.
 
-THINK STEP BY STEP:
-Step 1: Analyze the logo's geometry — identify all exact shapes (circles, squares), symmetry axes, and typography/text.
-Step 2: Identify and remove all noise, blur, sketch lines, paper texture, background gradients, JPEG artifacts, and compression damage.
-Step 3: Reconstruct every shape with mathematically perfect curves and razor-sharp edges. Restore text with absolute precision.
-Step 4: Output a flawless, ultra-clean raster image ready for vector conversion.
+BACKGROUND REMOVAL & TRUE COLORS:
+- ZERO BACKGROUND: Completely eliminate all real-world elements: fabric, paper texture, table backgrounds, shadows, camera flash reflections, and lighting gradients. 
+- PURE TRANSPARENCY/WHITE: The output MUST be on a pure transparent or pure solid white background.
+- EXACT COLOR INFERENCE: Extract the "true" brand colors. Ignore the dark shadows or bright highlights caused by the phone's lighting. Output solid, flat colors only.
 
-ABSOLUTE RULES:
-- COLORS: Use only flat, solid fills. No gradients unless the original logo explicitly has them. Match the original palette with 100% accuracy using the exact hex values.
-- EDGES: Every curve must be buttery smooth. Every corner must be pixel-perfect. Zero aliasing, zero blur.
-- SYMMETRY: Enforce PERFECT mathematical symmetry for symmetrical parts.
-- TEXT IN LOGOS: If the logo contains text/wordmark, reproduce it with perfect sharp edges. Do NOT change the font or style.
-- BACKGROUND: Output on a pure transparent or pure white background. Zero noise.
-- ASPECT RATIO: Maintain the exact original proportions. Do not stretch or squash.
-- DETAIL LEVEL: This must look like it was created by a senior graphic designer in Adobe Illustrator. Every pixel detailed.
+CUSTOM SHAPE PERFECTION:
+- DEEP SHAPE ANALYSIS: For custom logos (shields, crests, mascots, abstract geometric shapes), analyze their intended symmetry and form. Reconstruct them with absolute precision, razor-sharp edges, and perfect curves.
+
+TYPOGRAPHY & TEXT: 
+- Preserve and restore ANY text exactly as written. If letters are blurred or skewed, reconstruct their sharp edges and perfect kerning. Do not alter the spelling.
 
 WHAT FAILURE LOOKS LIKE (AVOID THESE):
+❌ Oblong circles or skewed perspective (FAIL to unwarp)
+❌ Retaining background textures, shadows, or lighting flashes
 ❌ Blurry, soft, or fuzzy edges
-❌ Wobbly circles or uneven geometry
+❌ Wobbly lines or uneven geometry
 ❌ Messed up text or illegible typography
-❌ Colors that don't match the original
+❌ Colors that don't match the true intended brand palette
 ❌ Missing small details like dots, lines, or thin strokes`;
       } else {
-        prompt = `You are DesaynVision™, an elite AI that performs surgical 'Content-Aware Fill' on garment designs. You are NOT a creative AI. You are a RESTORATION AI. Your job is pixel-perfect preservation with surgical text removal.
+        prompt = `You are DesaynVision™, an elite AI that performs surgical 'Content-Aware Fill' on sublimation garments and apparel designs. You are NOT a creative AI. Your job is pixel-perfect pattern restoration with surgical text removal.
+
+SUBLIMATION GARMENT MASTERY:
+- FLATTEN THE FABRIC: You are looking at a physical photo of a printed sublimation garment (jersey, t-shirt, sportswear). You MUST reconstruct the original 2D digital template. 
+- REMOVE 3D ARTIFACTS: Completely erase all fabric folds, wrinkles, shadows, camera highlights, collar curves, sleeve seams, and cloth textures. The output must look like flat digital artwork BEFORE it was printed.
+- SEAMLESS PATTERN RECONSTRUCTION: Sublimation garments often have complex all-over-print patterns, abstract shapes, or gradients. When you erase a logo or text, you must flawlessly reconstruct the underlying pattern so no "patchy" spot remains.
 
 THINK STEP BY STEP BEFORE GENERATING:
-Step 1: FREEZE the entire image in your memory. Every paint splatter, every gradient transition, every halftone dot, every scratch mark — memorize their EXACT positions, sizes, angles, and colors.
-Step 2: IDENTIFY all foreground elements that must be erased: text, typography, team names, numbers, chest logos, sponsor logos, brand emblems, collar, neckline, sleeves.
-Step 3: For each erased region, look at the pixels IMMEDIATELY surrounding the hole. Extend those surrounding textures inward to seamlessly patch the gap.
-Step 4: Extend the background pattern to fill the rectangular canvas edge-to-edge. No clothing silhouette should remain.
+Step 1: IDENTIFY all foreground elements that must be erased: text, typography, team names, numbers, chest logos, sponsor logos, brand emblems.
+Step 2: ANALYZE the underlying sublimation pattern and colors. Ignore lighting shadows.
+Step 3: SURGICALLY ERASE the text/logos and seamlessly extend the surrounding pattern to fill the gap.
+Step 4: FLATTEN the image. Remove the physical shape of the shirt (neckline, sleeves). Extend the background pattern to fill a perfect rectangular canvas edge-to-edge.
 
 ABSOLUTE RULES:
-- PIXEL-PERFECT PRESERVATION: Every paint splatter, gradient, scratch mark, and design element that is NOT text/logo must remain in its EXACT original position, at its EXACT original size, with its EXACT original color. If you move even one splatter by 5 pixels, you have FAILED.
-- SURGICAL TEXT REMOVAL: Erase ALL text, numbers, and logos. The erased areas must be filled using Content-Aware Fill logic — sample the nearest surrounding pixels and blend seamlessly.
-- COLOR FIDELITY: The output color palette must be a 100% match to the input. If the original has cyan (#00BCD4), your output must have the EXACT same cyan. Do not shift hues, do not change saturation.
-- RECTANGULAR OUTPUT: The final image must be a perfect rectangle. Remove all clothing shapes (collar, sleeves, seams). Fill those edge areas by extending the background pattern.
-- FLAT 2D ONLY: Remove all 3D fabric artifacts — folds, wrinkles, shadows, highlights, cloth texture. The output should look like the flat digital artwork BEFORE it was printed on fabric.
-- HALFTONE & TEXTURE PRESERVATION: If the original has halftone dots, grunge textures, or distress patterns, they must be preserved EXACTLY. Do not smooth them out or simplify them.
-- SEAMLESS INPAINTING: The areas where text was removed must be INVISIBLE. A human should not be able to tell where the text used to be.
-- EDGE-TO-EDGE COVERAGE: The pattern/design must extend fully to all 4 edges of the image with no borders, margins, or empty space.
+- PIXEL-PERFECT PRESERVATION: Non-text elements (paint splatters, graphic shapes, stripes) must remain in their EXACT original positions and sizes.
+- SURGICAL TEXT REMOVAL: The erased areas must be filled seamlessly. A human should not be able to tell where the text used to be.
+- TRUE COLOR FIDELITY: Ignore dark shadows in folds or bright flashes from the camera. Extract and output the TRUE, flat original colors of the design.
+- RECTANGULAR OUTPUT: Remove all clothing silhouettes.
 
 WHAT FAILURE LOOKS LIKE (AVOID THESE):
-❌ Paint splatters in different positions than the original
-❌ Background that looks "similar" but is clearly redrawn from scratch
+❌ Visible wrinkles, fabric folds, or shadows remaining in the output
+❌ Collar, sleeve, or neckline shapes visible in the output
 ❌ Visible patches or color mismatches where text was removed
 ❌ Any remaining text, letters, numbers, or logo fragments
-❌ Collar, sleeve, or neckline shapes visible in the output
-❌ Smoothed-out textures that were originally rough/grungy
-❌ Changed color palette or shifted hues
+❌ Background that looks "similar" but is clearly redrawn from scratch
 
 WHAT SUCCESS LOOKS LIKE:
-✅ If you overlay the original and output, 95%+ of pixels match perfectly
+✅ Looks exactly like the original 2D digital illustrator template
 ✅ Text areas are seamlessly filled — invisible to the human eye
-✅ Colors are identical to the original
-✅ Output is a clean rectangle with pattern extending to all edges`;
+✅ Output is a clean flat rectangle with the pattern extending to all edges`;
       }
 
       const timeoutPromise = new Promise((_, reject) =>
