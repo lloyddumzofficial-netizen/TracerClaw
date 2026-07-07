@@ -97,6 +97,8 @@ export async function POST(request) {
       base64Image = Buffer.from(arrayBuffer).toString("base64");
       mimeType = imageResponse.headers.get("content-type") || "image/png";
 
+      let prompt = "";
+      if (project.trace_type === 'logo') {
         prompt = `You are DesaynVision™, a world-class logo reconstruction AI built for professional print shops. Your mission is to transform this rough, blurred, or low-quality logo into a PERFECT, print-ready digital master.
 
 CRITICAL INSTRUCTIONS FOR GEOMETRY AND TEXT:

@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Camera, Upload, CheckCircle2, Loader2, Image as ImageIcon } from "lucide-react";
 
-export default function MobileUpload() {
+function MobileUploadContent() {
   const searchParams = useSearchParams();
   const syncSessionId = searchParams.get("sync");
-  const [status, setStatus] = useState("idle"); // idle | uploading | success | error
+  const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const fileInputRef = useRef(null);
 
@@ -26,7 +26,6 @@ export default function MobileUpload() {
     try {
       setStatus("uploading");
       
-      // 1. Get presigned URL via our new route
       const res = await fetch("/api/upload-mobile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,7 +42,6 @@ export default function MobileUpload() {
 
       const { uploadUrl, fileUrl } = await res.json();
 
-      // 2. Upload file to R2 directly
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
@@ -54,7 +52,6 @@ export default function MobileUpload() {
         throw new Error("Failed to upload image to cloud storage");
       }
 
-      // 3. Send Supabase Broadcast to the PC
       const channel = supabase.channel(`mobile_sync_${syncSessionId}`);
       await channel.send({
         type: "broadcast",
@@ -62,9 +59,7 @@ export default function MobileUpload() {
         payload: { imageUrl: fileUrl }
       });
       
-      // We don't really need to listen, but we clean up anyway
       await supabase.removeChannel(channel);
-
       setStatus("success");
     } catch (err) {
       console.error(err);
@@ -84,14 +79,11 @@ export default function MobileUpload() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", display: "flex", flexDirection: "column", padding: "24px" }}>
-      
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "40px", marginTop: "20px" }}>
         <img src="/nav bar logo.png" alt="DesaynClaw Logo" style={{ height: "32px", width: "auto" }} />
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        
         {status === "idle" && (
           <div style={{ textAlign: "center", width: "100%" }}>
             <h1 style={{ fontSize: "28px", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.5px" }}>Take a Photo</h1>
@@ -206,10 +198,8 @@ export default function MobileUpload() {
             </button>
           </div>
         )}
-
       </div>
 
-      {/* Hidden file input */}
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -219,5 +209,13 @@ export default function MobileUpload() {
         style={{ display: "none" }} 
       />
     </div>
+  );
+}
+
+export default function MobileUpload() {
+  return (
+    <Suspense fallback={<div style={{ height: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="animate-spin" color="#FFD700" size={32} /></div>}>
+      <MobileUploadContent />
+    </Suspense>
   );
 }
