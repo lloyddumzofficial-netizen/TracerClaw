@@ -202,21 +202,29 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const hasShownSvgAlert = useRef(false);
   const [showSvgAlert, setShowSvgAlert] = useState(false);
 
-  // Auto-switch tabs when new stages complete
+  // Auto-switch tabs when new stages complete OR start
   useEffect(() => {
-    // Default to image preview instead of vector
-    if (project?.upscaled_image_url) setActiveTab("upscaled");
-    else if (project?.generated_image_url) setActiveTab("generated");
-    else if (project?.svg_url) setActiveTab("svg");
+    // Proactive switching during active tracing
+    if (traceState === "step1") setActiveTab("generated");
+    else if (traceState === "step2") setActiveTab("upscaled");
+    else if (traceState === "step3") setActiveTab("svg");
+    // Fallback/initial load state
+    else if (traceState === "idle") {
+      if (project?.upscaled_image_url) setActiveTab("upscaled");
+      else if (project?.generated_image_url) setActiveTab("generated");
+      else if (project?.svg_url) setActiveTab("svg");
+    }
+  }, [traceState, project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
 
-    // Show educational alert for the SVG tab if it's ready but we aren't viewing it
+  // Separate effect for the SVG educational alert
+  useEffect(() => {
     if (project?.svg_url && !hasShownSvgAlert.current && activeTab !== "svg") {
       setShowSvgAlert(true);
       hasShownSvgAlert.current = true;
       const t = setTimeout(() => setShowSvgAlert(false), 12000);
       return () => clearTimeout(t);
     }
-  }, [project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
+  }, [project?.svg_url, activeTab]);
 
   const renderStatus = () => {
     if (traceState !== "idle") {
