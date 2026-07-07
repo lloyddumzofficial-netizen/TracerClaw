@@ -388,6 +388,10 @@ html, body {
   to { transform: rotate(360deg); }
 }
 
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 .placeholder-node {
   display: flex;
   align-items: center;
