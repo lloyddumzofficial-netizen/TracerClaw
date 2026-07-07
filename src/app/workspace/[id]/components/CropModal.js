@@ -117,17 +117,18 @@ const CropModal = memo(function CropModal({
 
         <div style={{ display: "flex", gap: "20px", flex: 1, minHeight: 0, flexDirection: "row" }}>
           {/* Left Column: The Cropper */}
-          <div style={{ flex: "1 1 65%", overflow: "auto", backgroundColor: "#0f0f0f", border: "1px solid #2a2a2a", borderRadius: "8px", display: "flex", justifyContent: "center", padding: "20px", minHeight: "400px" }}>
+          <div style={{ flex: "1 1 65%", backgroundColor: "#0f0f0f", border: "1px solid #2a2a2a", borderRadius: "8px", display: "flex", justifyContent: "center", alignItems: "center", padding: "16px", minHeight: "400px", overflow: "hidden" }}>
             <ReactCrop
               crop={crop}
               onChange={c => { setCrop(c); setCropError(""); }}
               onComplete={c => setCompletedCrop(c)}
+              style={{ display: "flex", justifyContent: "center", alignItems: "center", maxWidth: "100%", maxHeight: "100%" }}
             >
               <img
                 ref={imgRef}
                 src={`/api/proxy-image?url=${encodeURIComponent(project.original_image_url)}`}
                 alt="Crop source"
-                style={{ maxHeight: "60vh", width: "auto" }}
+                style={{ maxHeight: "65vh", maxWidth: "100%", objectFit: "contain", display: "block", margin: "0 auto" }}
                 crossOrigin="anonymous"
                 onLoad={e => { imgRef.current = e.currentTarget; }}
               />

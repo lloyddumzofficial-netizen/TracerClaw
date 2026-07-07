@@ -361,8 +361,8 @@ export default function StartScreen() {
               <label htmlFor="aiEnhance" style={{ fontSize: "14px", color: "#ccc", cursor: "pointer" }}><strong>Enhance image with AI</strong> (Removes noise)</label>
             </div>
             
-            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ background: "#FFD700", color: "#000", border: "none", fontSize: "18px", padding: "16px 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontWeight: "bold" }}>
-              {isUploading ? <><Monitor size={20} className="animate-pulse" /> Uploading...</> : <><Monitor size={20} /> Upload Images</>}
+            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ background: "#2d2d2d", color: "#e0e0e0", border: "1px solid #424242", borderRadius: "8px", fontSize: "16px", padding: "16px 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontWeight: "500", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#3e3e3e"} onMouseLeave={(e) => e.currentTarget.style.background = "#2d2d2d"}>
+              {isUploading ? <><Monitor size={18} className="animate-pulse" /> Uploading...</> : <><Monitor size={18} /> Upload Images</>}
             </button>
             <div style={{ marginTop: "15px", color: "#888", fontSize: "14px" }}>or drop an image</div>
           </div>
