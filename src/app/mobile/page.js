@@ -40,7 +40,7 @@ function MobileUploadContent() {
         throw new Error("Failed to get upload URL");
       }
 
-      const { uploadUrl, fileUrl } = await res.json();
+      const { uploadUrl, publicUrl } = await res.json();
 
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
@@ -56,7 +56,7 @@ function MobileUploadContent() {
       await channel.send({
         type: "broadcast",
         event: "image_uploaded",
-        payload: { imageUrl: fileUrl }
+        payload: { imageUrl: publicUrl }
       });
       
       await supabase.removeChannel(channel);
