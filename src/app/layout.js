@@ -10,12 +10,22 @@ export const metadata = {
   description: "Automated AI vector tracing tool for apparel designers",
 };
 
+import MaintenanceScreen from "./components/MaintenanceScreen";
+
+const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={outfit.className}>
-        <MobileWarning />
-        {children}
+        {isMaintenance ? (
+          <MaintenanceScreen />
+        ) : (
+          <>
+            <MobileWarning />
+            {children}
+          </>
+        )}
         <ToastContainer />
       </body>
     </html>

@@ -19,8 +19,9 @@ export async function POST(request) {
         { 
           name: projectName, 
           original_image_url: fileUrl,
-          trace_type: traceType,
-          user_id: userId || null
+          trace_type: traceType.startsWith('mockup') ? 'mockup' : 'logo',
+          user_id: userId || null,
+          ai_prompt: traceType === 'mockup_erase' ? 'ERASE_LOGOS' : (traceType === 'mockup_preserve' ? 'PRESERVE_LOGOS' : null)
         }
       ])
       .select('id')

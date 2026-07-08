@@ -94,8 +94,18 @@ export async function POST(request) {
       const imageResponse = await fetch(sourceUrl);
       if (!imageResponse.ok) throw new Error("Failed to fetch source image");
       const arrayBuffer = await imageResponse.arrayBuffer();
-      base64Image = Buffer.from(arrayBuffer).toString("base64");
-      mimeType = imageResponse.headers.get("content-type") || "image/png";
+      const rawBuffer = Buffer.from(arrayBuffer);
+      
+      // Compress image to prevent Gemini Timeout for massive files
+      // MAX 1024x1024 to ensure processing finishes well under Google's 300s load balancer timeout
+      const sharp = (await import('sharp')).default;
+      const compressedBuffer = await sharp(rawBuffer)
+        .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+        
+      base64Image = compressedBuffer.toString("base64");
+      mimeType = "image/jpeg";
 
       let prompt = "";
       if (project.trace_type === 'logo') {
@@ -124,34 +134,61 @@ WHAT SUCCESS LOOKS LIKE:
 ✅ A 1:1 exact pixel-perfect HD restoration of the original logo.
 ✅ All metallic reflections, gradients, and stylized fonts are perfectly preserved.`;
       } else {
-        prompt = `You are DesaynVision™, an elite AI that performs surgical 'Content-Aware Fill' on sublimation garments and apparel designs. You are NOT a creative AI. Your job is pixel-perfect pattern restoration with surgical text removal.
+        if (project.ai_prompt === 'ERASE_LOGOS') {
+          prompt = `You are DesaynVision™, an elite AI that performs surgical 'Content-Aware Fill' on sublimation garments and apparel designs. You are NOT a creative AI. Your job is pixel-perfect pattern restoration with surgical text removal.
 
 CRITICAL INSTRUCTIONS - AVOID THE SHIRT SHAPE:
 - RECTANGULAR EDGE-TO-EDGE CANVAS: You MUST COMPLETELY IGNORE the physical shape of the shirt. DO NOT output a torso shape, do not output sleeves, collars, or armholes. 
-- FULL BLEED PATTERN: The output MUST be a perfect, solid rectangular canvas filled edge-to-edge with the background pattern. Extend all lines, shapes, and textures infinitely to the borders of the rectangular image.
+- FULL BLEED PATTERN: The output MUST be a perfect, solid rectangular canvas filled edge-to-edge with the background pattern and design elements. Extend all lines, shapes, and textures infinitely to the borders of the rectangular image.
 
-SURGICAL TEXT REMOVAL & 99% ACCURACY:
-- Identify and SURGICALLY ERASE all text, typography, chest logos, and sponsor names.
-- Flawlessly reconstruct the underlying pattern to fill the gap. A human should not be able to tell where the text used to be. 
-- Maintain 99% accuracy to the original geometry, angles, and layout of the background design.
+SURGICAL TEXT AND LOGO REMOVAL (MANDATORY):
+- Identify and SURGICALLY ERASE all typography, text, numbers, sponsors, chest logos, and watermarks. NO TEXT OR LOGOS ARE ALLOWED.
+- FLAWLESS RECONSTRUCTION: After erasing the text/logo, you MUST flawlessly reconstruct the underlying background pattern to fill the gap. A human should not be able to tell where the text used to be. It must be 98% accurate to the original pattern colors and shapes.
 
 CLEAN VECTOR-LIKE AESTHETICS (NO NOISE/DOTS):
 - SOLID COLORS ONLY: Convert all messy, pixelated, or noisy textures into clean, solid, flat colors.
 - NO HALFTONES OR SPECKLES: Completely eliminate any "dot patterns" (puntik-puntik), camera noise, artifacts, or print speckles.
-- SMOOTH GRADIENTS: If there is a gradient, make it a perfectly smooth, clean, digital gradient without banding or noise.
-- FLATTEN THE FABRIC: Erase all 3D fabric folds, wrinkles, shadows, camera highlights, and cloth textures.
+- FLATTEN THE FABRIC: Erase all 3D fabric folds, wrinkles, shadows, camera highlights, and cloth textures while keeping the artwork perfectly flat.
+
+WHAT FAILURE LOOKS LIKE (AVOID THESE):
+❌ The output looks like the shape of a shirt, torso, or garment.
+❌ Any text, numbers, names, or logos remaining in the final image.
+❌ Blurry smudges where the text used to be (must be perfectly reconstructed pattern).
+❌ Noisy dot patterns, speckles, or muddy textures.
+
+WHAT SUCCESS LOOKS LIKE:
+✅ A perfect, solid rectangle filled ONLY with the design pattern, completely devoid of text/logos.
+✅ Clean, solid shapes with razor-sharp edges and flawless background reconstruction.`;
+        } else {
+          prompt = `You are DesaynVision™, an elite AI that performs professional garment flattening and design extraction. You are NOT a creative AI. Your job is pixel-perfect design preservation.
+
+CRITICAL INSTRUCTIONS - AVOID THE SHIRT SHAPE:
+- RECTANGULAR EDGE-TO-EDGE CANVAS: You MUST COMPLETELY IGNORE the physical shape of the shirt. DO NOT output a torso shape, do not output sleeves, collars, or armholes. 
+- FULL BLEED PATTERN: The output MUST be a perfect, solid rectangular canvas filled edge-to-edge with the background pattern and design elements. Extend all lines, shapes, and textures infinitely to the borders of the rectangular image.
+
+CRITICAL INSTRUCTION - STRICT 1:1 REPLICATION:
+- DO NOT REDRAW OR REINTERPRET: You are strictly forbidden from changing the shape, style, or layout of ANY element, logo, or mascot. 
+- 100% EXACT ACCURACY: You must output a mathematically exact replica of all logos and designs present on the shirt.
+
+TYPOGRAPHY & TEXT PRESERVATION:
+- EXACT FONT PRESERVATION: Never change the font. Preserve every single stylized edge, cut, and serif of the text exactly as shown.
+- DO NOT HALLUCINATE: Copy the exact letters (e.g. "TEAM SALAKOT", "NINJA HOME BOYS"). Do not make it look handwritten or messy.
+
+CLEAN VECTOR-LIKE AESTHETICS (NO NOISE/DOTS):
+- SOLID COLORS ONLY: Convert all messy, pixelated, or noisy textures into clean, solid, flat colors.
+- NO HALFTONES OR SPECKLES: Completely eliminate any "dot patterns" (puntik-puntik), camera noise, artifacts, or print speckles.
+- FLATTEN THE FABRIC: Erase all 3D fabric folds, wrinkles, shadows, camera highlights, and cloth textures while keeping the artwork perfectly flat.
 
 WHAT FAILURE LOOKS LIKE (AVOID THESE):
 ❌ The output looks like the shape of a shirt, torso, or garment.
 ❌ Visible wrinkles, fabric folds, or shadows remaining.
 ❌ Noisy dot patterns, speckles, or muddy textures.
-❌ Visible patches or color mismatches where text was removed.
-❌ Any remaining text, letters, numbers, or logo fragments.
+❌ ERASING OR REMOVING the main text, logos, or typography. 
 
 WHAT SUCCESS LOOKS LIKE:
-✅ A perfect, solid rectangle filled with the design pattern.
-✅ Clean, solid shapes with razor-sharp edges and smooth gradients.
-✅ Text areas are seamlessly filled — invisible to the human eye.`;
+✅ A perfect, solid rectangle filled with the design pattern and ALL original artwork/logos preserved.
+✅ Clean, solid shapes with razor-sharp edges and smooth gradients.`;
+        }
       }
 
       let result;
@@ -160,7 +197,7 @@ WHAT SUCCESS LOOKS LIKE:
         let timeoutId;
         try {
           const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error("Gemini API Timeout (300s) - The AI is taking too long to generate the image.")), 300000);
+            timeoutId = setTimeout(() => reject(new Error("Gemini API Timeout (600s) - The AI is performing a complex surgical erase and taking too long.")), 600000);
           });
           const genPromise = model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { data: base64Image, mimeType } }] }],
@@ -226,32 +263,10 @@ WHAT SUCCESS LOOKS LIKE:
       // ==========================================
       if (!project.generated_image_url) throw new Error("No generated raster image found for Step 2");
 
-      const rasterImgRes = await fetch(project.generated_image_url);
-      if (!rasterImgRes.ok) throw new Error("Failed to fetch generated image from R2");
-      const rasterImgBuffer = Buffer.from(await rasterImgRes.arrayBuffer());
-
-      const ext = project.generated_image_url.split('.').pop();
-      const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : 'image/png';
-      const blob = new Blob([rasterImgBuffer], { type: mime });
-      const upscaleFormData = new FormData();
-      upscaleFormData.append('file', blob, `image.${ext}`);
-
-      const recraftUpscaleRes = await fetch("https://external.api.recraft.ai/v1/images/crispUpscale", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${RECRAFT_API_KEY}` },
-        body: upscaleFormData,
-        signal: AbortSignal.timeout(120000),
-      });
-
-      if (!recraftUpscaleRes.ok) {
-        const errText = await recraftUpscaleRes.text();
-        throw new Error(`Upscaling failed: ${errText}`);
-      }
-
-      const upscaleData = await recraftUpscaleRes.json();
-      const upscaledUrl = upscaleData.image.url;
-
-      return NextResponse.json({ success: true, step: 2, fileUrl: upscaledUrl, mimeType: mime });
+      // TEMPORARILY BYPASSED TO DOUBLE THE SPEED OF THE TOOL
+      // Since Gemini now generates 1536px images and Recraft Vectorize handles smoothing natively,
+      // the upscale step is redundant and adds 15-20 seconds of unnecessary waiting time.
+      return NextResponse.json({ success: true, step: 2, fileUrl: project.generated_image_url, mimeType: "image/png" });
     }
 
     return NextResponse.json({ error: "Invalid step parameter" }, { status: 400 });
@@ -262,9 +277,15 @@ WHAT SUCCESS LOOKS LIKE:
     // Attempt automatic refund on server-side failure
     try {
       if (projectId) {
-        const { data: proj } = await adminSupabase.from('projects').select('user_id').eq('id', projectId).single();
-        if (proj?.user_id) {
-          await adminSupabase.rpc('refund_credit', { target_user_id: proj.user_id, target_project_id: projectId });
+        const { data: proj } = await adminSupabase.from('projects').select('user_id, generated_image_url').eq('id', projectId).single();
+        if (proj?.user_id && proj.generated_image_url !== 'REFUNDED') {
+          const { data: profile } = await adminSupabase.from('profiles').select('credits').eq('id', proj.user_id).single();
+          if (profile) {
+            // Refund the credit
+            await adminSupabase.from('profiles').update({ credits: profile.credits + 1 }).eq('id', proj.user_id);
+            // Mark as refunded to prevent duplicate refunds
+            await adminSupabase.from('projects').update({ generated_image_url: 'REFUNDED' }).eq('id', projectId);
+          }
         }
       }
     } catch (refundErr) {

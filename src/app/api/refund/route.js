@@ -27,16 +27,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Call the secure RPC to refund the user
-    // The RPC will ONLY refund if credit_deducted = true AND refunded = false
-    const { error: refundErr } = await adminSupabase.rpc('refund_credit', { 
-      target_user_id: user.id, 
-      target_project_id: projectId 
-    });
-
-    if (refundErr) {
-      console.error(`[Refund API] Failed to refund project ${projectId}:`, refundErr);
-      return NextResponse.json({ error: "Refund failed" }, { status: 500 });
+    // Manual refund since RPC doesn't exist and DB cannot be migrated easily
+    const { data: proj } = await adminSupabase.from('projects').select('generated_image_url').eq('id', projectId).single();
+    if (proj && proj.generated_image_url !== 'REFUNDED') {
+      const { data: profile } = await adminSupabase.from('profiles').select('credits').eq('id', user.id).single();
+      if (profile) {
+        await adminSupabase.from('profiles').update({ credits: profile.credits + 1 }).eq('id', user.id);
+        await adminSupabase.from('projects').update({ generated_image_url: 'REFUNDED' }).eq('id', projectId);
+      }
+    } else {
+      console.log(`[Refund API] Project ${projectId} already refunded or invalid.`);
     }
 
     console.log(`[Refund API] ✅ Successfully processed refund for project ${projectId} (User: ${user.id})`);

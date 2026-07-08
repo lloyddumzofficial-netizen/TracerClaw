@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2 } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Table2, Scan } from "lucide-react";
 import { toast } from "@/components/Toast";
 import "./globals.css";
 import "./home.css";
@@ -44,7 +44,7 @@ export default function StartScreen() {
   
   // ─── Modal Specific State ───────────────────────────────────────────────────
   const [modalProjectName, setModalProjectName] = useState("Untitled Design");
-  const [modalTraceType, setModalTraceType] = useState("mockup");
+  const [modalTraceType, setModalTraceType] = useState("mockup_erase");
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -333,15 +333,18 @@ export default function StartScreen() {
             </p>
           </div>
           
-          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
-            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } setShowModal(true); }} disabled={isUploading} style={{display: "flex", alignItems: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "10px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "500", transition: "all 0.2s"}}>
-              {isUploading ? <><Monitor size={15} className="animate-pulse" /> Creating...</> : <><FilePlus size={15} /> New Project</>}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "20px", flexWrap: "nowrap", justifyContent: "space-between", width: "100%", overflowX: "auto" }}>
+            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } setShowModal(true); }} disabled={isUploading} style={{flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap"}}>
+              {isUploading ? <><Monitor size={14} className="animate-pulse" /> Creating...</> : <><FilePlus size={14} /> New Project</>}
             </button>
-            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{display: "flex", alignItems: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "10px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "500", transition: "all 0.2s"}}>
-              {isUploading ? <><Monitor size={15} className="animate-pulse" /> Uploading...</> : <><Monitor size={15} /> Open From Computer</>}
+            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap"}}>
+              {isUploading ? <><Monitor size={14} className="animate-pulse" /> Uploading...</> : <><Monitor size={14} /> Open PC</>}
             </button>
-            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } setShowQrModal(true); }} disabled={isUploading} style={{display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,215,0,0.1)", color: "#FFD700", border: "1px solid rgba(255,215,0,0.3)", padding: "10px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", transition: "all 0.2s"}}>
-              <Monitor size={15} /> Scan with Phone
+            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } setShowQrModal(true); }} disabled={isUploading} style={{flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap"}}>
+              <Scan size={14} /> Scan Phone
+            </button>
+            <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { handleLogin(); return; } router.push('/ocr'); }} disabled={isUploading} style={{flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap"}}>
+              <Table2 size={14} /> Extract CSV
             </button>
           </div>
 

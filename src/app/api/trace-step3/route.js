@@ -91,9 +91,13 @@ export async function POST(request) {
     // Attempt automatic refund on server-side failure
     try {
       if (projectId) {
-        const { data: proj } = await adminSupabase.from('projects').select('user_id').eq('id', projectId).single();
-        if (proj?.user_id) {
-          await adminSupabase.rpc('refund_credit', { target_user_id: proj.user_id, target_project_id: projectId });
+        const { data: proj } = await adminSupabase.from('projects').select('user_id, generated_image_url').eq('id', projectId).single();
+        if (proj?.user_id && proj.generated_image_url !== 'REFUNDED') {
+          const { data: profile } = await adminSupabase.from('profiles').select('credits').eq('id', proj.user_id).single();
+          if (profile) {
+            await adminSupabase.from('profiles').update({ credits: profile.credits + 1 }).eq('id', proj.user_id);
+            await adminSupabase.from('projects').update({ generated_image_url: 'REFUNDED' }).eq('id', projectId);
+          }
         }
       }
     } catch (refundErr) {
