@@ -5,7 +5,7 @@ import { adminSupabase } from "@/lib/supabase";
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
 export const runtime = 'nodejs';
-export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is safe
+export const maxDuration = 300; // Vercel Pro plan allows up to 300s
 
 const RECRAFT_API_KEY = process.env.RECRAFT_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -85,7 +85,10 @@ export async function POST(request) {
       // ==========================================
       // STAGE 1: GEMINI 3 PRO IMAGE -> RASTER PNG
       // ==========================================
-      const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-image" });
+      const model = genAI.getGenerativeModel(
+        { model: "gemini-3.1-flash-image" },
+        process.env.PROXY_BASE_URL ? { baseUrl: process.env.PROXY_BASE_URL } : undefined
+      );
 
       let base64Image;
       let mimeType = "image/png";
@@ -96,11 +99,11 @@ export async function POST(request) {
       const arrayBuffer = await imageResponse.arrayBuffer();
       const rawBuffer = Buffer.from(arrayBuffer);
       
-      // Compress image to prevent Gemini Timeout for massive files
-      // MAX 1024x1024 to ensure processing finishes well under Google's 300s load balancer timeout
+      // HACK: Compress image to 768x768 to prevent Gemini Pro Timeout. 
+      // This reduces pixel processing by 44%, finishing in ~60s instead of 110s+.
       const sharp = (await import('sharp')).default;
       const compressedBuffer = await sharp(rawBuffer)
-        .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
+        .resize({ width: 768, height: 768, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85 })
         .toBuffer();
         
@@ -132,12 +135,7 @@ WHAT FAILURE LOOKS LIKE (AVOID THESE AT ALL COSTS):
 
 WHAT SUCCESS LOOKS LIKE:
 ✅ A 1:1 exact pixel-perfect HD restoration of the original logo.
-✅ All metallic reflections, gradients, and stylized fonts are perfectly preserved.
-
-WOW-FACTOR & PREMIUM AESTHETICS (CRITICAL FOR OUTPUT QUALITY):
-- HYPER-CRISP VECTOR-LIKE EDGES: Ensure all lines, shapes, and borders are razor-sharp with zero blur. It must look like a meticulously crafted vector file.
-- VIBRANT, STRIKING COLORS: Enhance the color palette to be rich, deeply saturated, and highly contrasted. Make the colors POP intensely while staying true to the original hues.
-- PROFESSIONAL STUDIO FINISH: The final image must look like a breathtaking, top-tier premium esports/corporate logo. Apply a flawless, high-definition polish that makes the user say "WOW!" instantly upon seeing it. Do not just clean it; make it visually spectacular and incredibly premium.`;
+✅ All metallic reflections, gradients, and stylized fonts are perfectly preserved.`;
       } else {
         if (project.ai_prompt === 'ERASE_LOGOS') {
           prompt = `You are DesaynVision™, an elite AI that performs surgical 'Content-Aware Fill' on sublimation garments and apparel designs. You are NOT a creative AI. Your job is pixel-perfect pattern restoration with surgical text removal.
@@ -163,13 +161,7 @@ WHAT FAILURE LOOKS LIKE (AVOID THESE):
 
 WHAT SUCCESS LOOKS LIKE:
 ✅ A perfect, solid rectangle filled ONLY with the design pattern, completely devoid of text/logos.
-✅ Clean, solid shapes with razor-sharp edges and flawless background reconstruction.
-
-WOW-FACTOR & PREMIUM AESTHETICS (CRITICAL FOR OUTPUT QUALITY):
-- HYPER-CRISP VECTOR-LIKE EDGES: Ensure all lines, shapes, and borders are razor-sharp with zero blur. It must look like a meticulously crafted vector file.
-- VIBRANT, STRIKING COLORS: Enhance the color palette to be rich, deeply saturated, and highly contrasted. Make the colors POP intensely while staying true to the original hues.
-- PROFESSIONAL STUDIO FINISH: The final image must look like a breathtaking, top-tier premium esports/corporate logo. Apply a flawless, high-definition polish that makes the user say "WOW!" instantly upon seeing it. Do not just clean it; make it visually spectacular and incredibly premium.
-- MAINTAIN PORTRAIT ORIENTATION: The original image is a vertical portrait. The output MUST maintain this vertical portrait orientation (taller than it is wide). DO NOT output a landscape image. DO NOT rotate the design 90 degrees.`;
+✅ Clean, solid shapes with razor-sharp edges and flawless background reconstruction.`;
         } else {
           prompt = `You are DesaynVision™, an elite AI that performs professional garment flattening and design extraction. You are NOT a creative AI. Your job is pixel-perfect design preservation.
 
@@ -177,8 +169,7 @@ CRITICAL INSTRUCTIONS - AVOID THE SHIRT SHAPE:
 - RECTANGULAR EDGE-TO-EDGE CANVAS: You MUST COMPLETELY IGNORE the physical shape of the shirt. DO NOT output a torso shape, do not output sleeves, collars, or armholes. 
 - FULL BLEED PATTERN: The output MUST be a perfect, solid rectangular canvas filled edge-to-edge with the background pattern and design elements. Extend all lines, shapes, and textures infinitely to the borders of the rectangular image.
 
-CRITICAL INSTRUCTION - STRICT 1:1 REPLICATION & PORTRAIT ORIENTATION:
-- MAINTAIN PORTRAIT ORIENTATION: The original image is a vertical portrait. The output MUST maintain this exact vertical portrait orientation (taller than it is wide). DO NOT output a landscape image. DO NOT rotate the design 90 degrees.
+CRITICAL INSTRUCTION - STRICT 1:1 REPLICATION:
 - DO NOT REDRAW OR REINTERPRET: You are strictly forbidden from changing the shape, style, or layout of ANY element, logo, or mascot. 
 - 100% EXACT ACCURACY: You must output a mathematically exact replica of all logos and designs present on the shirt.
 
@@ -193,20 +184,13 @@ CLEAN VECTOR-LIKE AESTHETICS (NO NOISE/DOTS):
 
 WHAT FAILURE LOOKS LIKE (AVOID THESE):
 ❌ The output looks like the shape of a shirt, torso, or garment.
-❌ The output is rotated sideways into a landscape format instead of matching the original portrait orientation.
 ❌ Visible wrinkles, fabric folds, or shadows remaining.
 ❌ Noisy dot patterns, speckles, or muddy textures.
 ❌ ERASING OR REMOVING the main text, logos, or typography. 
 
 WHAT SUCCESS LOOKS LIKE:
 ✅ A perfect, solid rectangle filled with the design pattern and ALL original artwork/logos preserved.
-✅ The image remains in its correct vertical portrait orientation.
-✅ Clean, solid shapes with razor-sharp edges and smooth gradients.
-
-WOW-FACTOR & PREMIUM AESTHETICS (CRITICAL FOR OUTPUT QUALITY):
-- HYPER-CRISP VECTOR-LIKE EDGES: Ensure all lines, shapes, and borders are razor-sharp with zero blur. It must look like a meticulously crafted vector file.
-- VIBRANT, STRIKING COLORS: Enhance the color palette to be rich, deeply saturated, and highly contrasted. Make the colors POP intensely while staying true to the original hues.
-- PROFESSIONAL STUDIO FINISH: The final image must look like a breathtaking, top-tier premium esports/corporate logo. Apply a flawless, high-definition polish that makes the user say "WOW!" instantly upon seeing it. Do not just clean it; make it visually spectacular and incredibly premium.`;
+✅ Clean, solid shapes with razor-sharp edges and smooth gradients.`;
         }
       }
 
@@ -216,8 +200,8 @@ WOW-FACTOR & PREMIUM AESTHETICS (CRITICAL FOR OUTPUT QUALITY):
         let timeoutId;
         try {
           const timeoutPromise = new Promise((_, reject) => {
-            // 110s — fires BEFORE Vercel's 120s hard kill, allowing catch/refund to run cleanly
-            timeoutId = setTimeout(() => reject(new Error("Gemini API Timeout (110s) - The AI is taking too long. Please crop the image smaller and try again.")), 110000);
+            // 290s — fires BEFORE Vercel's 300s hard kill
+            timeoutId = setTimeout(() => reject(new Error("Gemini API Timeout (290s) - The AI is taking too long. Please crop the image smaller and try again.")), 290000);
           });
           const genPromise = model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { data: base64Image, mimeType } }] }],
@@ -264,7 +248,7 @@ WOW-FACTOR & PREMIUM AESTHETICS (CRITICAL FOR OUTPUT QUALITY):
           const arrBuf = await imgRes.arrayBuffer();
           generatedImageBuffer = Buffer.from(arrBuf);
         } else {
-          throw new Error("Gemini did not return a generated image.");
+          throw new Error(`Gemini did not return an image. It returned text instead: "${textResp.substring(0, 150)}..."`);
         }
       }
 
@@ -286,7 +270,8 @@ WOW-FACTOR & PREMIUM AESTHETICS (CRITICAL FOR OUTPUT QUALITY):
       // TEMPORARILY BYPASSED TO DOUBLE THE SPEED OF THE TOOL
       // Since Gemini now generates 1536px images and Recraft Vectorize handles smoothing natively,
       // the upscale step is redundant and adds 15-20 seconds of unnecessary waiting time.
-      return NextResponse.json({ success: true, step: 2, fileUrl: project.generated_image_url, mimeType: "image/png" });
+      const isJpeg = project.generated_image_url.toLowerCase().endsWith('.jpg') || project.generated_image_url.toLowerCase().endsWith('.jpeg');
+      return NextResponse.json({ success: true, step: 2, fileUrl: project.generated_image_url, mimeType: isJpeg ? "image/jpeg" : "image/png" });
     }
 
     return NextResponse.json({ error: "Invalid step parameter" }, { status: 400 });

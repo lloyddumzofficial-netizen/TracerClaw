@@ -101,6 +101,7 @@ export default function Workspace() {
   const forceDownload = useCallback(async (url, filename) => {
     try {
       const response = await fetch(url);
+      if (!response.ok) throw new Error("Fetch failed");
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -140,7 +141,8 @@ export default function Workspace() {
 
       for (const item of urls) {
         try {
-          const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(item.url)}`);
+          const res = await fetch(`/api/proxy?url=${encodeURIComponent(item.url)}`);
+          if (!res.ok) throw new Error("Failed to fetch proxy");
           zip.file(item.name, await res.blob());
         } catch {
           // Skip failed file — don't abort the whole zip

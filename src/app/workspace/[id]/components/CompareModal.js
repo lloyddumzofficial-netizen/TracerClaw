@@ -50,73 +50,88 @@ const CompareModal = memo(function CompareModal({
 
         {/* Slider Compare Area */}
         <div
-          id="compare-container"
           style={{
-            position: "relative", width: "100%", height: "500px",
-            overflow: "hidden", cursor: "ew-resize", userSelect: "none",
+            position: "relative", width: "100%", display: "flex", justifyContent: "center",
             background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px",
-          }}
-          onMouseDown={(e) => {
-            isDraggingCompare.current = true;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const pct = ((e.clientX - rect.left) / rect.width) * 100;
-            const overlayImg = document.getElementById("compare-overlay-img");
-            const sliderLine = document.getElementById("compare-slider-line");
-            if (overlayImg) overlayImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
-            if (sliderLine) sliderLine.style.left = `${pct}%`;
+            padding: "20px 0"
           }}
         >
-          {/* AFTER layer — full container */}
-          <img
-            draggable={false}
-            src={project.svg_url}
-            alt="Vector"
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "contain", borderRadius: "4px", pointerEvents: "none" }}
-          />
-
-          {/* BEFORE layer — clipped from LEFT to sliderPosition */}
           <div
-            id="compare-overlay-img"
+            id="compare-container"
             style={{
-              position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
-              clipPath: "inset(0 50% 0 0)",
-              background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px",
-              willChange: "clip-path",
-              transform: "translateZ(0)",
+              position: "relative",
+              overflow: "hidden", cursor: "ew-resize", userSelect: "none",
+              boxShadow: "0 0 20px rgba(0,0,0,0.5)",
+              maxWidth: "100%",
+            }}
+            onMouseDown={(e) => {
+              isDraggingCompare.current = true;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pct = ((e.clientX - rect.left) / rect.width) * 100;
+              const overlayImg = document.getElementById("compare-overlay-img");
+              const sliderLine = document.getElementById("compare-slider-line");
+              if (overlayImg) overlayImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+              if (sliderLine) sliderLine.style.left = `${pct}%`;
             }}
           >
+            {/* INVISIBLE PLACEHOLDER to dictate the exact aspect ratio of the original image */}
+            <img 
+              src={project.original_image_url} 
+              style={{ display: "block", maxHeight: "60vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }} 
+              alt="" 
+            />
+
+            {/* AFTER layer — stretched to fill the original aspect ratio */}
             <img
               draggable={false}
-              src={project.original_image_url}
-              alt="Original"
-              style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "4px", pointerEvents: "none" }}
+              src={project.svg_url}
+              alt="Vector"
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
             />
-          </div>
 
-          {/* Slider Line */}
-          <div
-            id="compare-slider-line"
-            style={{
-              position: "absolute", top: 0, bottom: 0, left: "50%",
-              width: "2px", background: "#555",
-              transform: "translateX(-50%) translateZ(0)", pointerEvents: "none", willChange: "left",
-            }}
-          >
-            <div style={{
-              position: "absolute", top: "50%", left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "36px", height: "36px", background: "#333", borderRadius: "50%",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 0 12px rgba(0,0,0,0.5)", border: "1px solid #555", gap: "1px",
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+            {/* BEFORE layer — stretched to fill */}
+            <div
+              id="compare-overlay-img"
+              style={{
+                position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+                clipPath: "inset(0 50% 0 0)",
+                willChange: "clip-path",
+                transform: "translateZ(0)",
+              }}
+            >
+              <img
+                draggable={false}
+                src={project.original_image_url}
+                alt="Original"
+                style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
+              />
             </div>
-          </div>
 
-          {/* Labels */}
-          <div style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>ORIGINAL (BEFORE)</div>
-          <div style={{ position: "absolute", bottom: "14px", right: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>VECTOR (AFTER)</div>
+            {/* Slider Line */}
+            <div
+              id="compare-slider-line"
+              style={{
+                position: "absolute", top: 0, bottom: 0, left: "50%",
+                width: "2px", background: "#555",
+                transform: "translateX(-50%) translateZ(0)", pointerEvents: "none", willChange: "left",
+              }}
+            >
+              <div style={{
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "36px", height: "36px", background: "#333", borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 0 12px rgba(0,0,0,0.5)", border: "1px solid #555", gap: "1px",
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              </div>
+            </div>
+
+            {/* Labels */}
+            <div style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>ORIGINAL (BEFORE)</div>
+            <div style={{ position: "absolute", bottom: "14px", right: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>VECTOR (AFTER)</div>
+          </div>
         </div>
 
         {/* Download actions */}

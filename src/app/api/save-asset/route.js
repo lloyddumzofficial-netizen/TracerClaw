@@ -64,7 +64,7 @@ export async function POST(request) {
 
     if (step === 2) {
       const fileName = `projects/${projectId}/upscaled_${Date.now()}.${ext}`;
-      const finalUrl = await uploadToR2(buffer, fileName, "image/png");
+      const finalUrl = await uploadToR2(buffer, fileName, finalMimeType);
       await adminSupabase.from('projects').update({ upscaled_image_url: finalUrl }).eq('id', projectId);
       return NextResponse.json({ success: true, url: finalUrl });
     }

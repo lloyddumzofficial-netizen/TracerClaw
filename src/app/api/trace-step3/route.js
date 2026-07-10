@@ -92,7 +92,25 @@ export async function POST(request) {
     const vectorUrl = vectorData.image.url;
 
     const svgRes = await fetch(vectorUrl);
-    const svgBuffer = Buffer.from(await svgRes.arrayBuffer());
+    let svgText = await svgRes.text();
+
+    // --- FIX FOR ADOBE ILLUSTRATOR "INVALID SVG" ERROR ---
+    // 1. Remove markdown backticks if AI accidentally included them
+    svgText = svgText.replace(/^```(xml|svg)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    
+    // 2. Remove anything before the <svg> tag (like invalid <?xml ... ?> declarations)
+    const svgStartMatch = svgText.match(/<svg[\s\S]*?>/i);
+    if (svgStartMatch) {
+      const startIndex = svgText.indexOf(svgStartMatch[0]);
+      svgText = svgText.substring(startIndex);
+    }
+
+    // 3. Ensure xmlns is present
+    if (!svgText.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svgText = svgText.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const svgBuffer = Buffer.from(svgText, 'utf8');
     const cfSvgFileName = `projects/${projectId}/vector_${Date.now()}.svg`;
     const finalSvgUrl = await uploadToR2(svgBuffer, cfSvgFileName, "image/svg+xml");
 

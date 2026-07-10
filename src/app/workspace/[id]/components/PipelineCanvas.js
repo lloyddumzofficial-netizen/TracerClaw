@@ -99,7 +99,7 @@ const PipelineCanvas = memo(function PipelineCanvas({
         <NodeCard
           title="DesaynVision™ Neural Extractor v3.0"
           icon={<Brain size={12} />}
-          footerLeft="Gemini 3.1 Flash"
+          footerLeft="Gemini 3 Pro"
           showInput
           showOutput
           isDimmed={!project.generated_image_url && traceState === "idle"}
