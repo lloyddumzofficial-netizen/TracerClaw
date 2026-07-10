@@ -207,6 +207,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       }
 
       logToConsole(`[Error] ${displayMsg}`, "error");
+      setTraceState("idle");
       return { success: false };
     }
   }, [project, traceState, userCredits, setUserCredits, setProject, supabase, onNoCredits, logToConsole, clearConsole]);

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminSupabase } from "@/lib/supabase";
+import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { fetchWithRetry } from "@/lib/fetchWithRetry";
+import { validateUrlForSSRF } from "@/lib/ssrf";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -87,14 +89,37 @@ export async function POST(request) {
       let mimeType = "image/png";
 
       const sourceUrl = croppedImageUrl || project.original_image_url;
+      if (!(await validateUrlForSSRF(sourceUrl))) {
+        return NextResponse.json({ error: "Invalid or unauthorized image URL" }, { status: 400 });
+      }
       const imageResponse = await fetch(sourceUrl);
       if (!imageResponse.ok) throw new Error("Failed to fetch source image");
       const arrayBuffer = await imageResponse.arrayBuffer();
       const rawBuffer = Buffer.from(arrayBuffer);
       
-      // Compress image to prevent Gemini Timeout for massive files
-      // MAX 1024x1024 to ensure processing finishes well under Google's 300s load balancer timeout
       const sharp = (await import('sharp')).default;
+      const metadata = await sharp(rawBuffer).metadata();
+      
+      // Calculate closest aspect ratio for fal.ai Nano Banana Pro
+      let targetAspectRatio = "auto";
+      if (metadata && metadata.width && metadata.height) {
+         const ratio = metadata.width / metadata.height;
+         const allowedRatios = {
+             "21:9": 21/9, "16:9": 16/9, "3:2": 3/2, "4:3": 4/3, "5:4": 5/4,
+             "1:1": 1/1, "4:5": 4/5, "3:4": 3/4, "2:3": 2/3, "9:16": 9/16
+         };
+         let minDiff = Infinity;
+         for (const [str, val] of Object.entries(allowedRatios)) {
+             const diff = Math.abs(ratio - val);
+             if (diff < minDiff) {
+                 minDiff = diff;
+                 targetAspectRatio = str;
+             }
+         }
+      }
+      
+      // Compress image to prevent timeouts for massive files
+      // MAX 1024x1024 to ensure processing finishes well under Google's 300s load balancer timeout
       const compressedBuffer = await sharp(rawBuffer)
         .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85 })
@@ -123,9 +148,9 @@ CRITICAL RULES:
 2. RECTANGULAR CANVAS ONLY: The output must be a pure, solid rectangle filled edge-to-edge with the background pattern.
 3. EXTEND THE DESIGN: Extend all lines, shapes, and stripes infinitely to the absolute edges of the image.
 
-SURGICAL TEXT AND LOGO REMOVAL (MANDATORY):
-- Identify and SURGICALLY ERASE all typography, text, numbers, sponsors, chest logos, and watermarks. NO TEXT OR LOGOS ARE ALLOWED.
-- Flawlessly reconstruct the underlying background pattern (the blue and gold stripes) to fill the gaps where the text used to be.
+TEXT AND LOGO REMOVAL:
+- Please remove all typography, text, numbers, sponsors, and chest logos.
+- Flawlessly reconstruct the underlying background pattern (the stripes and shapes) to fill the gaps where the text used to be.
 
 Convert all textures into clean, solid, flat vector-like colors. Erase all 3D fabric folds and wrinkles.`;
         } else {
@@ -148,74 +173,64 @@ STRICT 1:1 REPLICATION:
       let geminiThinking = "Generated via OpenRouter Gemini 3.1 Flash Image";
 
       try {
-        console.log("[API Step 1] Generating image with OpenRouter (gemini-3.1-flash-image)...");
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json"
+        if (!process.env.FAL_KEY) {
+          throw new Error("FAL_KEY is missing in environment variables. Please add it to your .env file.");
+        }
+
+        const { fal } = await import("@fal-ai/client");
+        
+        let finalImageUrl = sourceUrl;
+        
+        // Sometimes the URL is passed as /api/proxy?url=https%3A%2F%2F...
+        // Or http://localhost:3000/api/proxy?url=https%3A%2F%2F...
+        // First we decode it so the inner URL becomes readable:
+        finalImageUrl = decodeURIComponent(finalImageUrl);
+        
+        // Now find the LAST occurrence of http:// or https:// (which will be the actual Cloudflare URL)
+        const httpMatches = finalImageUrl.match(/https?:\/\/[^\s"']+/g);
+        if (httpMatches && httpMatches.length > 0) {
+          finalImageUrl = httpMatches[httpMatches.length - 1];
+        }
+
+        console.log("[fal.ai Input URL]:", finalImageUrl);
+
+        console.log("[API Step 1] Generating image with fal.ai (nano-banana-pro/edit)...");
+        
+        const result = await fal.subscribe("fal-ai/nano-banana-pro/edit", {
+          input: {
+            image_urls: [finalImageUrl],
+            prompt: prompt,
+            aspect_ratio: targetAspectRatio
           },
-          body: JSON.stringify({
-            model: "google/gemini-3.1-flash-image",
-            provider: {
-              order: ["Google AI Studio"]
-            },
-            messages: [
-              {
-                role: "system",
-                content: prompt
-              },
-              {
-                role: "user",
-                content: [
-                  { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-                  { type: "text", text: "Please process this image according to your system instructions. Do not write text, output the image directly." }
-                ]
-              }
-            ]
-          })
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === "IN_PROGRESS") {
+              update.logs.map((log) => log.message).forEach(console.log);
+            }
+          },
         });
 
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`OpenRouter API error: ${response.status} ${errText}`);
+        console.log("[fal.ai RAW Response]:", JSON.stringify(result, null, 2));
+
+        if (!result || !result.data || !result.data.images || result.data.images.length === 0) {
+           throw new Error("fal.ai did not return a valid image URL. Response: " + JSON.stringify(result));
         }
 
-        const data = await response.json();
+        const outputUrl = result.data.images[0].url;
+        const imgRes = await fetch(outputUrl);
+        if (!imgRes.ok) throw new Error("Failed to download generated image from fal.ai URL");
         
-        console.log("[OpenRouter RAW Response]:", JSON.stringify(data, null, 2));
-
-        const message = data.choices?.[0]?.message;
-        
-        if (message?.images?.[0]?.image_url?.url) {
-           // Direct Base64 data URL from OpenRouter's native image response
-           const dataUrl = message.images[0].image_url.url;
-           const base64Data = dataUrl.split(',')[1];
-           const mimeMatch = dataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,/);
-           if (mimeMatch) {
-             generatedMimeType = mimeMatch[1];
-           }
-           generatedImageBuffer = Buffer.from(base64Data, 'base64');
-        } else if (message?.content) {
-           // Markdown URL in content
-           const content = message.content;
-           const urlMatch = content.match(/https?:\/\/[^\s)"]+/);
-           if (!urlMatch) {
-             throw new Error(`OpenRouter did not return a valid image URL. Response: ${content.substring(0, 100)}`);
-           }
-           const outputUrl = urlMatch[0];
-           const imgRes = await fetch(outputUrl);
-           if (!imgRes.ok) throw new Error("Failed to download generated image from OpenRouter URL");
-           const arrBuf = await imgRes.arrayBuffer();
-           generatedImageBuffer = Buffer.from(arrBuf);
-        } else {
-           console.error("[OpenRouter Empty Content]:", data);
-           throw new Error("OpenRouter returned empty content. You might be out of credits, or the image hit a safety filter. Check terminal logs.");
-        }
+        const arrBuf = await imgRes.arrayBuffer();
+        generatedImageBuffer = Buffer.from(arrBuf);
+        generatedMimeType = result.data.images[0].content_type || "image/jpeg";
+        geminiThinking = "Generated via fal.ai Nano Banana Pro Edit";
 
       } catch (err) {
-        console.error("[OpenRouter Error]:", err);
-        throw new Error(err.message || "Failed to generate image with OpenRouter");
+        console.error("[fal.ai Error]:", err);
+        if (err.body && err.body.detail) {
+          console.error("[fal.ai Error Detail]:", JSON.stringify(err.body.detail, null, 2));
+        }
+        throw new Error(err.message || "Failed to generate image with fal.ai");
       }
 
       return NextResponse.json({
@@ -247,15 +262,15 @@ STRICT 1:1 REPLICATION:
     // Attempt automatic refund on server-side failure
     try {
       if (projectId) {
-        const { data: proj } = await adminSupabase.from('projects').select('user_id, generated_image_url').eq('id', projectId).single();
-        if (proj?.user_id && proj.generated_image_url !== 'REFUNDED') {
-          const { data: profile } = await adminSupabase.from('profiles').select('credits').eq('id', proj.user_id).single();
-          if (profile) {
-            // Refund the credit
-            await adminSupabase.from('profiles').update({ credits: profile.credits + 1 }).eq('id', proj.user_id);
-            // Mark as refunded to prevent duplicate refunds
-            await adminSupabase.from('projects').update({ generated_image_url: 'REFUNDED' }).eq('id', projectId);
-          }
+        const { data: updatedProj } = await adminSupabase
+          .from('projects')
+          .update({ generated_image_url: 'REFUNDED' })
+          .eq('id', projectId)
+          .neq('generated_image_url', 'REFUNDED')
+          .select('user_id');
+
+        if (updatedProj && updatedProj.length > 0) {
+           await safeRefundCredit(updatedProj[0].user_id);
         }
       }
     } catch (refundErr) {

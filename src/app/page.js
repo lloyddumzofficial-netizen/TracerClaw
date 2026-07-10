@@ -25,6 +25,7 @@ import EduSection from "./components/EduSection";
 import TraceIcon from "./components/TraceIcon";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
 import PromoModal from "./components/PromoModal";
+import AIDisclaimerModal from "./components/AIDisclaimerModal";
 import QRCode from "react-qr-code";
 
 export default function StartScreen() {
@@ -585,6 +586,9 @@ export default function StartScreen() {
 
       {/* Promo Popup */}
       <PromoModal onBuyClick={() => window.open('https://m.me/105884602605306', '_blank')} />
+
+      {/* AI Guidelines Popup */}
+      <AIDisclaimerModal />
     </div>
   );
 }

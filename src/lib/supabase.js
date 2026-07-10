@@ -19,3 +19,30 @@ export const adminSupabase =
         auth: { persistSession: false, autoRefreshToken: false },
       })
     : null);
+
+// Atomic credit refund using optimistic locking retry loop
+export async function safeRefundCredit(userId) {
+  let retries = 3;
+  while (retries > 0) {
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', userId)
+      .single();
+      
+    if (!profile) return false;
+    
+    const { error: updateErr, data: updatedData } = await adminSupabase
+      .from('profiles')
+      .update({ credits: profile.credits + 1 })
+      .eq('id', userId)
+      .eq('credits', profile.credits)
+      .select();
+      
+    if (!updateErr && updatedData && updatedData.length > 0) {
+      return true; // Success
+    }
+    retries--;
+  }
+  return false;
+}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
-import { adminSupabase } from "@/lib/supabase";
+import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { fetchWithRetry } from "@/lib/fetchWithRetry";
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -23,6 +24,13 @@ export async function POST(request) {
     const body = await request.json();
     projectId = body.projectId;
     const colors = body.colors || "auto";
+
+    if (colors !== "auto") {
+      const colorLimit = parseInt(colors, 10);
+      if (isNaN(colorLimit) || colorLimit < 2 || colorLimit > 256) {
+        return NextResponse.json({ error: "Invalid colors parameter. Must be between 2 and 256." }, { status: 400 });
+      }
+    }
 
     if (!projectId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -67,16 +75,17 @@ export async function POST(request) {
     let compressedBuffer;
     if (colors && colors !== "auto") {
       const colorLimit = parseInt(colors, 10);
-      compressedBuffer = await sharpInstance.png({ palette: true, colors: colorLimit, effort: 7 }).toBuffer();
+      compressedBuffer = await sharpInstance.png({ palette: true, colors: colorLimit, effort: 1 }).toBuffer();
     } else {
-      compressedBuffer = await sharpInstance.png({ effort: 7 }).toBuffer();
+      // effort: 1 dramatically speeds up PNG compression (from ~10s to ~1s) at the cost of slightly larger file size
+      compressedBuffer = await sharpInstance.png({ effort: 1 }).toBuffer();
     }
 
     const blob = new Blob([compressedBuffer], { type: 'image/png' });
     const vectorizeFormData = new FormData();
     vectorizeFormData.append('image', blob, 'image.png');
 
-    const recraftVectorRes = await fetch("https://external.api.recraft.ai/v1/images/vectorize", {
+    const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
       method: "POST",
       headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
       body: vectorizeFormData,
@@ -124,13 +133,15 @@ export async function POST(request) {
     // Attempt automatic refund on server-side failure
     try {
       if (projectId) {
-        const { data: proj } = await adminSupabase.from('projects').select('user_id, generated_image_url').eq('id', projectId).single();
-        if (proj?.user_id && proj.generated_image_url !== 'REFUNDED') {
-          const { data: profile } = await adminSupabase.from('profiles').select('credits').eq('id', proj.user_id).single();
-          if (profile) {
-            await adminSupabase.from('profiles').update({ credits: profile.credits + 1 }).eq('id', proj.user_id);
-            await adminSupabase.from('projects').update({ generated_image_url: 'REFUNDED' }).eq('id', projectId);
-          }
+        const { data: updatedProj } = await adminSupabase
+          .from('projects')
+          .update({ generated_image_url: 'REFUNDED' })
+          .eq('id', projectId)
+          .neq('generated_image_url', 'REFUNDED')
+          .select('user_id');
+          
+        if (updatedProj && updatedProj.length > 0) {
+           await safeRefundCredit(updatedProj[0].user_id);
         }
       }
     } catch (refundErr) {

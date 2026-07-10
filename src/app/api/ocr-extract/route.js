@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from '@supabase/supabase-js';
-
+import { validateUrlForSSRF } from "@/lib/ssrf";
+import { safeRefundCredit } from "@/lib/supabase";
 export async function POST(request) {
   try {
     const formData = await request.formData();
@@ -12,6 +13,10 @@ export async function POST(request) {
         { error: "No image URL provided." },
         { status: 400 }
       );
+    }
+
+    if (!(await validateUrlForSSRF(imageUrl))) {
+      return NextResponse.json({ error: "Invalid or unauthorized image URL (SSRF protection)" }, { status: 400 });
     }
 
     // 1. Auth & Billing Check
@@ -90,7 +95,7 @@ export async function POST(request) {
     } catch (e) {
       console.error("Failed to parse JSON:", responseText);
       // Refund the credit if AI failed to return JSON
-      await adminSupabase.from('profiles').update({ credits: profile.credits }).eq('id', user.id);
+      await safeRefundCredit(user.id);
       return NextResponse.json({ error: "Failed to parse OCR results." }, { status: 500 });
     }
 

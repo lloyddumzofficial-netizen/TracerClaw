@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminSupabase } from "@/lib/supabase";
+import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 
 export async function POST(request) {
   try {
@@ -34,16 +34,15 @@ export async function POST(request) {
       return NextResponse.json({ error: "Project not found or access denied" }, { status: 403 });
     }
 
-    if (proj.generated_image_url !== 'REFUNDED') {
-      const { data: profile } = await adminSupabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-      if (profile) {
-        await adminSupabase.from('profiles').update({ credits: profile.credits + 1 }).eq('id', user.id);
-        await adminSupabase.from('projects').update({ generated_image_url: 'REFUNDED' }).eq('id', projectId);
-      }
+    const { data: updatedProj } = await adminSupabase
+      .from('projects')
+      .update({ generated_image_url: 'REFUNDED' })
+      .eq('id', projectId)
+      .neq('generated_image_url', 'REFUNDED')
+      .select('user_id');
+      
+    if (updatedProj && updatedProj.length > 0) {
+      await safeRefundCredit(user.id);
     } else {
       console.log(`[Refund API] Project ${projectId} already refunded or invalid.`);
     }
