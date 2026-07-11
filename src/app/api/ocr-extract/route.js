@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from '@supabase/supabase-js';
 import { validateUrlForSSRF } from "@/lib/ssrf";
 import { safeRefundCredit } from "@/lib/supabase";
@@ -58,22 +57,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Billing error. Please try again." }, { status: 409 });
     }
 
-    // 2. Process with Gemini 3.1 Pro Preview
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
-
-    const response = await fetch(imageUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString("base64");
-    const mimeType = response.headers.get("content-type") || "image/jpeg";
-    
-    const imagePart = {
-      inlineData: {
-        data: base64Data,
-        mimeType: mimeType,
-      },
-    };
-      
+    // 2. Process with Fal.ai (any-llm/vision via Claude 3.5 Sonnet)
+    // The Gemini API key is dead, so we use the working FAL_KEY to route to a powerful VLM
+    if (!process.env.FAL_KEY) {
+      throw new Error("FAL_KEY is missing in environment variables.");
+    }
+    const { fal } = await import("@fal-ai/client");
 
     const prompt = `
       You are an expert OCR and data extraction system.
@@ -86,11 +75,28 @@ export async function POST(request) {
       5. Do not include markdown formatting or the word \`json\`. Just output the raw JSON array.
     `;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const responseText = result.response.text();
+    const result = await fal.subscribe("fal-ai/any-llm/vision", {
+      input: {
+        model: "anthropic/claude-3.5-sonnet",
+        image_url: imageUrl,
+        prompt: prompt
+      }
+    });
+
+    const responseText = result?.data?.output || "[]";
+    
     let jsonData = [];
     try {
-      let cleanText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+      // Safely extract only the JSON array part in case Claude added conversational text
+      let cleanText = responseText;
+      const match = cleanText.match(/\[[\s\S]*\]/);
+      if (match) {
+        cleanText = match[0];
+      } else {
+        // fallback to basic stripping
+        cleanText = cleanText.replace(/```json/g, "").replace(/```/g, "").trim();
+      }
+      
       jsonData = JSON.parse(cleanText);
     } catch (e) {
       console.error("Failed to parse JSON:", responseText);

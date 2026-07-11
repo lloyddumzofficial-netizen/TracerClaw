@@ -274,46 +274,43 @@ FINISHING:
 
     if (step === 2) {
       // ==========================================
-      // STAGE 2: CRISP UPSCALE WITH RECRAFT (crispUpscale)
-      // Uses the same RECRAFT_API_KEY — no fal.ai needed.
-      // Recraft crispUpscale increases resolution and makes the image
-      // sharper and cleaner, which produces better SVG paths in Step 3.
+      // STAGE 2: 4x UPSCALE WITH fal-ai/esrgan
+      // Reverted to fal.ai for fast pixel-scaling and dashboard logging.
       // ==========================================
       if (!project.generated_image_url) throw new Error("No generated raster image found for Step 2");
-      if (!process.env.RECRAFT_API_KEY) throw new Error("RECRAFT_API_KEY is missing in environment variables.");
+      if (!process.env.FAL_KEY) throw new Error("FAL_KEY is missing in environment variables.");
 
-      // Fetch the generated image and upload as multipart (Recraft crispUpscale requires file upload, not URL)
-      console.log("[API Step 2] Fetching generated image for crispUpscale...");
-      const genImgRes = await fetch(project.generated_image_url);
-      if (!genImgRes.ok) throw new Error("Failed to fetch generated image for crispUpscale");
-      const genImgBuffer = Buffer.from(await genImgRes.arrayBuffer());
+      const { fal } = await import("@fal-ai/client");
 
-      // Recraft crispUpscale: max 10MB, max 16MP, max 4096px per side
-      // Our generated images are ~1280px PNG — well within limits.
-      const crispFormData = new FormData();
-      crispFormData.append('file', new Blob([genImgBuffer], { type: 'image/png' }), 'image.png');
+      // Decode the URL in case it's wrapped in a proxy path
+      let upscaleInputUrl = decodeURIComponent(project.generated_image_url);
+      const httpMatches2 = upscaleInputUrl.match(/https?:\/\/[^\s"']+/g);
+      if (httpMatches2 && httpMatches2.length > 0) {
+        upscaleInputUrl = httpMatches2[httpMatches2.length - 1];
+      }
 
-      console.log("[API Step 2] Sending to Recraft crispUpscale...");
-      const crispRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/crispUpscale", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
-        body: crispFormData,
-        signal: AbortSignal.timeout(90000), // 90s — upscale can take time
+      console.log("[API Step 2] Upscaling with fal-ai/esrgan (4x)...");
+      console.log("[fal.ai ESRGAN Input URL]:", upscaleInputUrl);
+
+      const esrganResult = await fal.subscribe("fal-ai/esrgan", {
+        input: {
+          image_url: upscaleInputUrl,
+          scale: 4,
+          face_enhance: false, // jerseys have no faces — skip face enhancement
+        },
+        logs: true,
       });
 
-      if (!crispRes.ok) {
-        const errText = await crispRes.text();
-        throw new Error(`Recraft crispUpscale failed: ${errText}`);
+      console.log("[fal.ai ESRGAN RAW Response]:", JSON.stringify(esrganResult?.data, null, 2));
+
+      if (!esrganResult || !esrganResult.data || !esrganResult.data.image || !esrganResult.data.image.url) {
+        throw new Error("fal-ai/esrgan did not return a valid image URL. Response: " + JSON.stringify(esrganResult));
       }
 
-      const crispData = await crispRes.json();
-      console.log("[Recraft crispUpscale response]:", JSON.stringify(crispData, null, 2));
+      const upscaledUrl = esrganResult.data.image.url;
+      const upscaledMimeType = esrganResult.data.image.content_type || "image/png";
 
-      if (!crispData?.image?.url) {
-        throw new Error("Recraft crispUpscale did not return a valid image URL. Response: " + JSON.stringify(crispData));
-      }
-
-      return NextResponse.json({ success: true, step: 2, fileUrl: crispData.image.url, mimeType: crispData.image.content_type || "image/png" });
+      return NextResponse.json({ success: true, step: 2, fileUrl: upscaledUrl, mimeType: upscaledMimeType });
     }
 
     return NextResponse.json({ error: "Invalid step parameter" }, { status: 400 });
