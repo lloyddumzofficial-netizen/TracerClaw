@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
+import { segmentSvgLayers } from "@/lib/svgSegmenter";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
@@ -127,6 +128,33 @@ export async function POST(request) {
     if (!svgText.includes('xmlns="http://www.w3.org/2000/svg"')) {
       svgText = svgText.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
+
+    // ─── Semantic Layer Grouping ──────────────────────────────────────────────
+    // Post-processes the SVG to wrap paths in named <g id="layer-..."> groups.
+    // Uses Gemini Flash vision on the ORIGINAL image (not the generated one) so
+    // that layer classification is based on the user's actual design intent.
+    // COMPLETELY NON-FATAL: falls back to saving the original SVG on any error.
+    // ─────────────────────────────────────────────────────────────────────────
+    try {
+      // Fetch the original (pre-AI) image to give Gemini context about the design
+      const originalImgRes = await fetch(project.original_image_url);
+      if (originalImgRes.ok) {
+        const originalImgBuf = Buffer.from(await originalImgRes.arrayBuffer());
+        const originalBase64 = originalImgBuf.toString('base64');
+        const originalMime = originalImgRes.headers.get('content-type') || 'image/png';
+
+        // Map project trace type to a context hint for Gemini
+        const traceTypeHint = project.trace_type === 'logo' ? 'logo' : 'jersey';
+
+        svgText = await segmentSvgLayers(svgText, originalBase64, originalMime, traceTypeHint);
+      } else {
+        console.warn('[Step 3] Could not fetch original image for segmentation — skipping');
+      }
+    } catch (segErr) {
+      console.warn('[Step 3] Segmentation error (non-fatal):', segErr.message);
+      // svgText remains unchanged — safe to continue
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const svgBuffer = Buffer.from(svgText, 'utf8');
     const cfSvgFileName = `projects/${projectId}/vector_${Date.now()}.svg`;

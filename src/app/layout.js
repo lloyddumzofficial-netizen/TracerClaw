@@ -1,6 +1,7 @@
 import { Outfit } from "next/font/google";
 import { ToastContainer } from "@/components/Toast";
 import MobileWarning from "./components/MobileWarning";
+import CookieConsent from "./components/CookieConsent";
 import "./globals.css";
 
 const outfit = Outfit({ subsets: ["latin"], display: "swap" });
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
             {children}
           </>
         )}
+        <CookieConsent />
         <ToastContainer />
       </body>
     </html>

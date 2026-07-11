@@ -591,11 +591,11 @@ export default function StartScreen() {
         </div>
         
         <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
-          <a href="#" className="footer-link">Privacy Policy</a>
-          <a href="#" className="footer-link">Terms of Service</a>
+          <a href="/privacy" className="footer-link">Privacy Policy</a>
+          <a href="/terms" className="footer-link">Terms of Service</a>
           <a href="#" className="footer-link">Cookie Policy</a>
-          <a href="#" className="footer-link">FAQ</a>
-          <a href="#" className="footer-link">API</a>
+          <a href="/privacy" className="footer-link">FAQ</a>
+          <a href="/refunds" className="footer-link">Refund Policy</a>
           <a href="#" className="footer-link">Contact</a>
         </div>
       </footer>

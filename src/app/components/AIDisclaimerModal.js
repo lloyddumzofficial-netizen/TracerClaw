@@ -43,7 +43,7 @@ export default function AIDisclaimerModal() {
           fontSize: '28px', fontWeight: '300', margin: '0 0 24px 0', color: '#fff',
           letterSpacing: '-0.5px'
         }}>
-          AI is a <span style={{ color: '#FFD700', fontWeight: '400' }}>Tool</span>, Not a Replacement
+          Data Privacy & <span style={{ color: '#FFD700', fontWeight: '400' }}>Protection</span>
         </h2>
         
         {/* Highlighted Quote */}
@@ -63,30 +63,30 @@ export default function AIDisclaimerModal() {
             letterSpacing: '0.5px',
             textTransform: 'uppercase'
           }}>
-            AI creates images.<br/>
-            <span style={{ color: '#FFD700' }}>Designers create meaning.</span>
+            We respect your privacy.<br/>
+            <span style={{ color: '#FFD700' }}>You own your data.</span>
           </h3>
         </div>
         
         <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '48px' }}>
           <div>
-            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '500', marginBottom: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>1. Augment, Don't Automate</div>
+            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '500', marginBottom: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>1. No Data Harvesting</div>
             <div style={{ color: '#aaa', fontSize: '14px', fontWeight: '300', lineHeight: '1.7' }}>
-              DesaynClaw's AI is built to assist and speed up your workflow. It is not designed to do the creative thinking for you.
+              We do not permanently store, sell, or share your uploaded images. Furthermore, your personal files are never used to train our AI models.
             </div>
           </div>
           <div style={{ height: '1px', background: '#222', width: '100%' }}></div>
           <div>
-            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '500', marginBottom: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>2. Avoid Plagiarism</div>
+            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '500', marginBottom: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>2. Temporary Processing</div>
             <div style={{ color: '#aaa', fontSize: '14px', fontWeight: '300', lineHeight: '1.7' }}>
-              Use the AI to trace, enhance, and extract, but always apply your own creative touch. Lazy generation without human input is discouraged.
+              Your files are kept in our secure cloud solely for the duration of the conversion process. Once completed, they are automatically purged from our servers.
             </div>
           </div>
           <div style={{ height: '1px', background: '#222', width: '100%' }}></div>
           <div>
-            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '500', marginBottom: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>3. The Human Element</div>
+            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '500', marginBottom: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>3. 100% Copyright Ownership</div>
             <div style={{ color: '#aaa', fontSize: '14px', fontWeight: '300', lineHeight: '1.7' }}>
-              True design requires emotion, context, and human ingenuity. AI can never replace the soul and intuition of a real human designer.
+              You retain all intellectual property and copyright to your original uploads and the resulting vectors. We claim no ownership over your work.
             </div>
           </div>
         </div>

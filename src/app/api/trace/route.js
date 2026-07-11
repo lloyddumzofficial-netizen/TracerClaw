@@ -11,6 +11,18 @@ export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is sa
 export async function POST(request) {
   let projectId;
   try {
+    // ─── Auth: verify caller identity server-side ─────────────────────────────
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.replace('Bearer ', '').trim();
+    const { data: { user }, error: authError } = await adminSupabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const body = await request.json();
     projectId = body.projectId;
     const { step, croppedImageUrl } = body;
@@ -19,16 +31,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing required fields (projectId, step)" }, { status: 400 });
     }
 
-    // ALWAYS use adminSupabase to fetch project — regular client has RLS
-    // and may return null user_id if session is missing on server side
+    // Fetch project AND verify ownership in one query — prevents IDOR attacks
     const { data: project, error: projError } = await adminSupabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
+      .eq('user_id', user.id) // ← ownership check: users can only trace their own projects
       .single();
 
     if (projError || !project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
     }
 
     // HARD BLOCK: project must belong to a real user
@@ -382,6 +394,10 @@ FINISHING:
       console.error(`[Billing] Refund failed:`, refundErr.message);
     }
 
-    return NextResponse.json({ error: error.message || "Failed to process trace step" }, { status: 500 });
+    // Never expose raw internal error messages (API keys, stack traces) to the client
+    const safeMessage = error.message?.includes('FAL') || error.message?.includes('fal') || error.message?.includes('API')
+      ? 'AI processing failed. Your credit has been refunded automatically.'
+      : (error.message || 'Failed to process trace step');
+    return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }

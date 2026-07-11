@@ -23,6 +23,14 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing required fields (projectId, croppedImageUrl)" }, { status: 400 });
     }
 
+    // Security: validate that croppedImageUrl is from our own R2 bucket only
+    // This prevents URL injection attacks where arbitrary URLs get stored in the DB
+    const ALLOWED_URL_PREFIX = process.env.CLOUDFLARE_PUBLIC_URL;
+    if (!ALLOWED_URL_PREFIX || !croppedImageUrl.startsWith(ALLOWED_URL_PREFIX)) {
+      console.warn(`[Crop API] Blocked attempt to store unauthorized URL: ${croppedImageUrl}`);
+      return NextResponse.json({ error: "Invalid image URL: must be from our storage." }, { status: 400 });
+    }
+
     // Update project in Supabase — only if the user owns it
     const { error } = await adminSupabase
       .from('projects')

@@ -17,7 +17,8 @@ export async function POST(request) {
     const token = authHeader.replace('Bearer ', '').trim();
 
     const { data: { user }, error: authErr } = await adminSupabase.auth.getUser(token);
-    if (authErr || !user || user.email !== 'lloyddumzofficial@gmail.com') {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (authErr || !user || user.email !== adminEmail) {
       return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
     }
 
