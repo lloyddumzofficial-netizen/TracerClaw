@@ -4,7 +4,7 @@ import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
 
 export async function POST(request) {
   let projectId;
@@ -52,7 +52,10 @@ export async function POST(request) {
     }
 
     // ==========================================
-    // STAGE 3: VECTORIZE THE UPSCALED IMAGE (RECRAFT)
+    // STAGE 3: VECTORIZE WITH RECRAFT (SVG only)
+    // The image is already upscaled by ESRGAN in Step 2.
+    // Here we only convert to lossless PNG and apply optional Shadow Killer
+    // color reduction before handing off to Recraft vectorize.
     // ==========================================
     if (!project.upscaled_image_url) throw new Error("No upscaled image found for Step 3");
 
@@ -60,16 +63,22 @@ export async function POST(request) {
     if (!rasterImgRes.ok) throw new Error("Failed to fetch upscaled image from R2");
     const rawBuffer = Buffer.from(await rasterImgRes.arrayBuffer());
 
-    // Convert image to lossless PNG and apply Color Reduction (Shadow Killer) if requested
+    // ─── Step 3 Pre-processing ────────────────────────────────────────────────
+    // Recraft crispUpscale (Step 2) already sharpened and enhanced the image.
+    // Here we only resize to 2048px max (Recraft vectorize has a 4096px hard limit,
+    // and smaller inputs process faster without sacrificing SVG path quality)
+    // and convert to lossless PNG for clean color data.
+    // NO aggressive contrast/normalize/sharpen — that caused the high-contrast SVG problem.
+    // ─────────────────────────────────────────────────────────────────────────
     const sharp = (await import('sharp')).default;
-    let sharpInstance = sharp(rawBuffer).resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true });
-    
-    // EXTREME SHARPENING FOR LOGOS: stretch contrast and sharpen heavily
-    // to ensure text and circles have pixel-perfect borders before vectorization.
+    let sharpInstance = sharp(rawBuffer)
+      .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true });
+
+    // Light sharpening for logos only: text and circular outlines benefit from
+    // slightly crisper pixel edges before tracing, but we keep it gentle.
     if (project.trace_type === 'logo') {
       sharpInstance = sharpInstance
-        .normalize() // Stretch contrast to pure blacks and whites where applicable
-        .sharpen({ sigma: 1.5, m1: 1, m2: 2, x1: 2, y2: 10, y3: 20 }); // Aggressive unsharp mask
+        .sharpen({ sigma: 1.0, m1: 0.5, m2: 1.5, x1: 2, y2: 8, y3: 15 });
     }
 
     let compressedBuffer;
@@ -77,7 +86,6 @@ export async function POST(request) {
       const colorLimit = parseInt(colors, 10);
       compressedBuffer = await sharpInstance.png({ palette: true, colors: colorLimit, effort: 1 }).toBuffer();
     } else {
-      // effort: 1 dramatically speeds up PNG compression (from ~10s to ~1s) at the cost of slightly larger file size
       compressedBuffer = await sharpInstance.png({ effort: 1 }).toBuffer();
     }
 
@@ -85,11 +93,12 @@ export async function POST(request) {
     const vectorizeFormData = new FormData();
     vectorizeFormData.append('image', blob, 'image.png');
 
+    console.log("[Step 3] Sending to Recraft vectorize (RECRAFT_API_KEY)...");
     const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
       method: "POST",
       headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
       body: vectorizeFormData,
-      signal: AbortSignal.timeout(55000),
+      signal: AbortSignal.timeout(110000), // 110s — large images need time to upload + process
     });
 
     if (!recraftVectorRes.ok) {

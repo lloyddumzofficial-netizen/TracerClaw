@@ -118,53 +118,83 @@ export async function POST(request) {
          }
       }
       
-      // Compress image to prevent timeouts for massive files
-      // MAX 1024x1024 to ensure processing finishes well under Google's 300s load balancer timeout
+      // Use lossless PNG at 1280px — higher quality preserves geometric shape details
+      // better than lossy JPEG for pattern/layout accuracy during vectorization.
       const compressedBuffer = await sharp(rawBuffer)
-        .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
+        .resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true })
+        .png({ effort: 3, compressionLevel: 6 })
         .toBuffer();
         
       base64Image = compressedBuffer.toString("base64");
       let prompt = "";
       if (project) {
         if (project.ai_prompt === 'FLATTEN') {
-          prompt = `A perfectly flat, 2D rectangular vector pattern wallpaper. DO NOT DRAW A SHIRT.
-          
-CRITICAL RULES:
-1. NO CLOTHING SHAPES: You are forbidden from drawing a torso, neck hole, collar, shoulders, or sleeves. 
-2. RECTANGULAR CANVAS ONLY: The output must be a pure, solid rectangle filled edge-to-edge with the background pattern and design elements.
-3. EXTEND THE DESIGN: Extend all lines, shapes, and stripes infinitely to the absolute edges of the image. 
+          prompt = `Transform this jersey/shirt design into a perfectly flat, 2D rectangular vector-ready wallpaper. DO NOT DRAW A SHIRT OR CLOTHING SILHOUETTE.
 
-STRICT 1:1 REPLICATION:
-- Output a mathematically exact replica of all logos and designs present.
-- EXACT FONT PRESERVATION: Never change the font. 
-- Convert all textures into clean, solid, flat vector-like colors. Erase all 3D fabric folds and wrinkles.`;
+OUTPUT REQUIREMENTS:
+- The canvas must be a pure rectangle filled completely edge-to-edge.
+- Extend every stripe, gradient, polygon, and geometric shape to bleed off all four edges.
+- Remove the shirt/jersey shape — output ONLY the raw design pattern.
+
+SHAPE & LAYOUT ACCURACY — THIS IS THE MOST IMPORTANT RULE:
+- REPLICATE EVERY SINGLE SHAPE with its EXACT position, size, angle, and proportion as seen in the reference image. Do NOT move, scale, rotate, add, or remove any shape.
+- Every polygon, triangle, hexagon, diagonal stripe, curved line, dot-grid, or geometric element must appear in the EXACT same location relative to the canvas as it appears on the reference shirt.
+- If a stripe runs from bottom-left to top-right at 45°, keep it at exactly 45°. Do not change any angle.
+- If a hexagon grid covers the upper-right, it must cover the upper-right of the output — not be moved or resized.
+- Preserve the EXACT color of every region. Use solid, flat colors — no gradients unless the original has gradients.
+- Do NOT invent new shapes, new stripes, or new patterns. ONLY replicate what exists.
+
+TEXT, NUMBERS, NAMES, AND LOGOS:
+- DO NOT remove logos, chest badges, or text that are part of the design — replicate them as flat vector-style artwork.
+- Remove player name/number placeholder text ONLY if they are clearly generic placeholders (e.g. "NAME", "00").
+
+FINISHING:
+- Flatten all 3D fabric folds, wrinkles, and shadows into clean, solid flat colors.
+- The result should look like a clean flat-lay pattern ready for screen printing.`;
         } else if (project.ai_prompt === 'ERASE_LOGOS') {
-          prompt = `A perfectly flat, 2D rectangular vector pattern wallpaper. DO NOT DRAW A SHIRT.
-          
-CRITICAL RULES:
-1. NO CLOTHING SHAPES: You are forbidden from drawing a torso, neck hole, collar, shoulders, or sleeves.
-2. RECTANGULAR CANVAS ONLY: The output must be a pure, solid rectangle filled edge-to-edge with the background pattern.
-3. EXTEND THE DESIGN: Extend all lines, shapes, and stripes infinitely to the absolute edges of the image.
+          prompt = `Transform this jersey/shirt design into a perfectly flat, 2D rectangular vector-ready wallpaper with all text and logos removed. DO NOT DRAW A SHIRT OR CLOTHING SILHOUETTE.
+
+OUTPUT REQUIREMENTS:
+- The canvas must be a pure rectangle filled completely edge-to-edge.
+- Extend every stripe, gradient, polygon, and geometric shape to bleed off all four edges.
+- Remove the shirt/jersey shape — output ONLY the raw design pattern.
+
+SHAPE & LAYOUT ACCURACY — THIS IS THE MOST IMPORTANT RULE:
+- REPLICATE EVERY SINGLE SHAPE with its EXACT position, size, angle, and proportion as seen in the reference image. Do NOT move, scale, rotate, add, or remove any geometric shape.
+- Every polygon, triangle, hexagon, diagonal stripe, curved line, dot-grid, or geometric element must appear in the EXACT same location as in the reference.
+- Preserve the EXACT color of every region. Use solid, flat colors.
+- Do NOT invent new shapes, new stripes, or new patterns. ONLY replicate what exists.
 
 TEXT AND LOGO REMOVAL:
-- Please remove all typography, text, numbers, sponsors, and chest logos.
-- Flawlessly reconstruct the underlying background pattern (the stripes and shapes) to fill the gaps where the text used to be.
+- REMOVE all typography, player names, numbers, sponsor logos, and chest badges.
+- Flawlessly reconstruct the underlying background pattern beneath removed elements — continue the stripes/shapes seamlessly as if the text was never there.
 
-Convert all textures into clean, solid, flat vector-like colors. Erase all 3D fabric folds and wrinkles.`;
+FINISHING:
+- Flatten all 3D fabric folds, wrinkles, and shadows into clean, solid flat colors.
+- The result should look like a clean flat-lay pattern ready for screen printing.`;
         } else {
-          prompt = `A perfectly flat, 2D rectangular vector pattern wallpaper. DO NOT DRAW A SHIRT.
-          
-CRITICAL RULES:
-1. NO CLOTHING SHAPES: You are forbidden from drawing a torso, neck hole, collar, shoulders, or sleeves. 
-2. RECTANGULAR CANVAS ONLY: The output must be a pure, solid rectangle filled edge-to-edge with the background pattern and design elements.
-3. EXTEND THE DESIGN: Extend all lines, shapes, and stripes infinitely to the absolute edges of the image. 
+          prompt = `Transform this jersey/shirt design into a perfectly flat, 2D rectangular vector-ready wallpaper. DO NOT DRAW A SHIRT OR CLOTHING SILHOUETTE.
 
-STRICT 1:1 REPLICATION:
-- Output a mathematically exact replica of all logos and designs present.
-- EXACT FONT PRESERVATION: Never change the font. 
-- Convert all textures into clean, solid, flat vector-like colors. Erase all 3D fabric folds and wrinkles.`;
+OUTPUT REQUIREMENTS:
+- The canvas must be a pure rectangle filled completely edge-to-edge.
+- Extend every stripe, gradient, polygon, and geometric shape to bleed off all four edges.
+- Remove the shirt/jersey shape — output ONLY the raw design pattern.
+
+SHAPE & LAYOUT ACCURACY — THIS IS THE MOST IMPORTANT RULE:
+- REPLICATE EVERY SINGLE SHAPE with its EXACT position, size, angle, and proportion as seen in the reference image. Do NOT move, scale, rotate, add, or remove any shape.
+- Every polygon, triangle, hexagon, diagonal stripe, curved line, dot-grid, or geometric element must appear in the EXACT same location relative to the canvas as it appears on the reference shirt.
+- If a stripe runs from bottom-left to top-right at 45°, keep it at exactly 45°. Do not change any angle.
+- If a hexagon grid covers the upper-right, it must cover the upper-right of the output — not be moved or resized.
+- Preserve the EXACT color of every region. Use solid, flat colors — no gradients unless the original has gradients.
+- Do NOT invent new shapes, new stripes, or new patterns. ONLY replicate what exists.
+
+TEXT, NUMBERS, NAMES, AND LOGOS:
+- DO NOT replicate player names, jersey numbers, or personal name placeholders (e.g. "NAME", "POSITION", "00"). Leave those areas as background pattern only.
+- DO replicate team logos, chest badges, and design-integrated graphics that are part of the pattern.
+
+FINISHING:
+- Flatten all 3D fabric folds, wrinkles, and shadows into clean, solid flat colors.
+- The result should look like a clean flat-lay pattern ready for screen printing.`;
         }
       }
 
@@ -244,14 +274,46 @@ STRICT 1:1 REPLICATION:
 
     if (step === 2) {
       // ==========================================
-      // STAGE 2: CRISP UPSCALE THE RASTER IMAGE (RECRAFT)
+      // STAGE 2: CRISP UPSCALE WITH RECRAFT (crispUpscale)
+      // Uses the same RECRAFT_API_KEY — no fal.ai needed.
+      // Recraft crispUpscale increases resolution and makes the image
+      // sharper and cleaner, which produces better SVG paths in Step 3.
       // ==========================================
       if (!project.generated_image_url) throw new Error("No generated raster image found for Step 2");
+      if (!process.env.RECRAFT_API_KEY) throw new Error("RECRAFT_API_KEY is missing in environment variables.");
 
-      // TEMPORARILY BYPASSED TO DOUBLE THE SPEED OF THE TOOL
-      // Since Gemini now generates 1536px images and Recraft Vectorize handles smoothing natively,
-      // the upscale step is redundant and adds 15-20 seconds of unnecessary waiting time.
-      return NextResponse.json({ success: true, step: 2, fileUrl: project.generated_image_url, mimeType: "image/png" });
+      // Fetch the generated image and upload as multipart (Recraft crispUpscale requires file upload, not URL)
+      console.log("[API Step 2] Fetching generated image for crispUpscale...");
+      const genImgRes = await fetch(project.generated_image_url);
+      if (!genImgRes.ok) throw new Error("Failed to fetch generated image for crispUpscale");
+      const genImgBuffer = Buffer.from(await genImgRes.arrayBuffer());
+
+      // Recraft crispUpscale: max 10MB, max 16MP, max 4096px per side
+      // Our generated images are ~1280px PNG — well within limits.
+      const crispFormData = new FormData();
+      crispFormData.append('file', new Blob([genImgBuffer], { type: 'image/png' }), 'image.png');
+
+      console.log("[API Step 2] Sending to Recraft crispUpscale...");
+      const crispRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/crispUpscale", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
+        body: crispFormData,
+        signal: AbortSignal.timeout(90000), // 90s — upscale can take time
+      });
+
+      if (!crispRes.ok) {
+        const errText = await crispRes.text();
+        throw new Error(`Recraft crispUpscale failed: ${errText}`);
+      }
+
+      const crispData = await crispRes.json();
+      console.log("[Recraft crispUpscale response]:", JSON.stringify(crispData, null, 2));
+
+      if (!crispData?.image?.url) {
+        throw new Error("Recraft crispUpscale did not return a valid image URL. Response: " + JSON.stringify(crispData));
+      }
+
+      return NextResponse.json({ success: true, step: 2, fileUrl: crispData.image.url, mimeType: crispData.image.content_type || "image/png" });
     }
 
     return NextResponse.json({ error: "Invalid step parameter" }, { status: 400 });

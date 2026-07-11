@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local test scripts (may contain API keys — never commit these)
+test-*.js
+test-*.mjs
+test_*.js
+test_*.mjs
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
