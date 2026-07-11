@@ -69,7 +69,10 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       const res1 = await fetch("/api/trace", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify({ projectId: project.id, step: 1 }),
       });
 
@@ -111,7 +114,10 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       const res2 = await fetch("/api/trace", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify({ projectId: project.id, step: 2 }),
       });
 
