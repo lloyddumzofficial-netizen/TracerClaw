@@ -197,7 +197,6 @@ export default function BgRemoverPage() {
           <Home size={16} /> HOME
         </button>
         <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <img src="/nav bar logo.png" alt="DESAYNCLAW" style={{ height: "20px" }} />
           <h1 style={{ fontSize: "16px", fontWeight: "700", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>BACKGROUND REMOVER</h1>
         </div>
         <div style={{ width: "200px", display: "flex", justifyContent: "flex-end", gap: "16px", alignItems: "center" }}>
@@ -218,27 +217,11 @@ export default function BgRemoverPage() {
             display: "flex", 
             alignItems: "center", 
             justifyContent: "center", 
-            background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px",
+            background: "#111",
             position: "relative",
             overflow: "hidden"
           }}
         >
-          {/* Zoom Controls */}
-          <div style={{ position: "absolute", top: "16px", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "4px", background: "#111", border: "1px solid #333", borderRadius: "8px", padding: "4px", zIndex: 100 }}>
-            <button onClick={() => setZoom(z => Math.max(0.25, z - 0.25))} style={{ background: "none", border: "none", color: "#ccc", cursor: "pointer", padding: "6px", borderRadius: "4px", display: "flex", alignItems: "center" }} onMouseOver={e => e.currentTarget.style.background="#222"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
-              <ZoomOut size={14} />
-            </button>
-            <span style={{ fontSize: "12px", color: "#FFD700", width: "45px", textAlign: "center", fontWeight: "bold" }}>{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(5, z + 0.25))} style={{ background: "none", border: "none", color: "#ccc", cursor: "pointer", padding: "6px", borderRadius: "4px", display: "flex", alignItems: "center" }} onMouseOver={e => e.currentTarget.style.background="#222"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
-              <ZoomIn size={14} />
-            </button>
-            <div style={{ width: "1px", height: "14px", background: "#333", margin: "0 4px" }} />
-            <button onClick={() => setZoom(1)} style={{ background: "none", border: "none", color: "#ccc", cursor: "pointer", padding: "6px", borderRadius: "4px", display: "flex", alignItems: "center", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }} onMouseOver={e => e.currentTarget.style.background="#222"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
-              <Maximize size={12} style={{ marginRight: "4px" }}/> FIT
-            </button>
-            <span style={{ color: "#666", fontSize: "10px", marginLeft: "8px", marginRight: "8px", whiteSpace: "nowrap" }}>Tip: Scroll to Zoom</span>
-          </div>
-
           <div 
             ref={scrollContainerRef}
             style={{ 
@@ -249,12 +232,10 @@ export default function BgRemoverPage() {
           >
             <div 
               style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: "center center",
-                transition: "transform 0.1s ease-out",
+                zoom: zoom,
+                transition: "zoom 0.1s ease-out",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                willChange: "transform",
-                position: "relative"
+                position: "relative", minWidth: "100%", minHeight: "100%"
               }}
               onMouseMove={(e) => {
                 if (!isDraggingCompare.current || !isCompleted) return;
@@ -291,7 +272,7 @@ export default function BgRemoverPage() {
                   src={project.original_image_url} 
                   alt="Original" 
                   draggable={false}
-                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }} 
+                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)", background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px" }} 
                 />
               ) : (
                 // BEFORE/AFTER SLIDER VIEW
@@ -302,6 +283,7 @@ export default function BgRemoverPage() {
                     overflow: "hidden", cursor: "ew-resize", userSelect: "none",
                     boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
                     maxWidth: "90%",
+                    background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px"
                   }}
                   onMouseDown={(e) => {
                     isDraggingCompare.current = true;

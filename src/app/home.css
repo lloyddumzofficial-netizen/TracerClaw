@@ -102,29 +102,33 @@
           overflow: hidden;
           cursor: pointer;
           border: 1px solid #444;
-          transition: border-color 0.2s;
+          transition: border-color 0.2s ease;
         }
         .recent-card:hover {
           border-color: #FFD700;
         }
         .recent-thumb {
-          height: 100px;
-          background-color: #222;
+          height: 130px;
+          background-color: #1a1a1a;
           background-size: cover;
           background-position: center;
+          border-bottom: 1px solid #444;
         }
         .recent-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 10px;
+          padding: 10px 12px;
+          background: #2a2a2a;
         }
         .recent-name {
-          font-size: 12px;
+          font-size: 13px;
+          font-weight: 500;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           flex-grow: 1;
+          color: #e0e0e0;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
@@ -136,12 +140,15 @@
           border: none;
           color: #888;
           cursor: pointer;
-          padding: 2px;
+          padding: 4px;
           border-radius: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.2s;
         }
         .dots-btn:hover {
-          color: #fff;
-          background: #444;
+          color: #FFD700;
         }
         .dropdown-menu {
           position: absolute;
@@ -371,7 +378,7 @@
           max-width: 1200px;
           margin: 0 auto 40px auto;
           gap: 40px;
-          align-items: center;
+          align-items: stretch;
         }
         .hero-left {
           flex: 1;
@@ -402,6 +409,7 @@
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           transition: all 0.2s;
         }
         .hero-upload-box:hover {

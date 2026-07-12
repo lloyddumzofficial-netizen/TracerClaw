@@ -37,7 +37,7 @@ const CompareModal = memo(function CompareModal({
       onMouseUp={() => { isDraggingCompare.current = false; }}
       onMouseLeave={() => { isDraggingCompare.current = false; }}
     >
-      <div className="modal-content" style={{ maxWidth: "820px", width: "95%", padding: "0", overflow: "hidden" }}>
+      <div className="modal-content" style={{ maxWidth: "1400px", width: "fit-content", padding: "0", overflow: "hidden" }}>
         {/* Header */}
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #2a2a2a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -53,7 +53,7 @@ const CompareModal = memo(function CompareModal({
           style={{
             position: "relative", width: "100%", display: "flex", justifyContent: "center",
             background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px",
-            padding: "20px 0"
+            padding: "0"
           }}
         >
           <div
@@ -75,10 +75,10 @@ const CompareModal = memo(function CompareModal({
             }}
           >
             {/* INVISIBLE PLACEHOLDER to dictate the exact aspect ratio of the original image */}
-            <img 
-              src={project.original_image_url} 
-              style={{ display: "block", maxHeight: "60vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }} 
-              alt="" 
+            <img
+              src={project.original_image_url}
+              style={{ display: "block", height: "80vh", width: "auto", maxWidth: "85vw", objectFit: "contain", opacity: 0, pointerEvents: "none" }}
+              alt=""
             />
 
             {/* AFTER layer — stretched to fill the original aspect ratio */}

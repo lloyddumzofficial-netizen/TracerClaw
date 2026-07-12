@@ -250,7 +250,6 @@ export default function Workspace() {
           <Home size={16} /> HOME
         </button>
         <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <img src="/nav bar logo.png" alt="DESAYNCLAW" style={{ height: "20px", filter: "opacity(0.8)" }} />
           <h1 style={{ fontSize: "14px", fontWeight: "600", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>WORKSPACE</h1>
         </div>
         <div style={{ width: "200px", display: "flex", justifyContent: "flex-end", gap: "16px", alignItems: "center" }}>

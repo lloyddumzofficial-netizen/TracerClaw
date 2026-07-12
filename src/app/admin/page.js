@@ -27,10 +27,10 @@ export default function AdminDashboard() {
   };
   const COST_PER_GENERATION = 2; // Estimated PHP cost per generation
 
-  const supabase = createBrowserClient(
+  const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  ));
 
   useEffect(() => {
     const checkAdmin = async () => {

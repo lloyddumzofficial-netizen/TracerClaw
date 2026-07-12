@@ -5,7 +5,7 @@ export default function AIDisclaimerModal() {
   const [timeLeft, setTimeLeft] = useState(5);
 
   useEffect(() => {
-    const hasSeen = sessionStorage.getItem('ai_disclaimer_seen');
+    const hasSeen = localStorage.getItem('ai_disclaimer_seen');
     if (!hasSeen) {
       setShow(true);
     }
@@ -21,7 +21,7 @@ export default function AIDisclaimerModal() {
 
   const handleClose = () => {
     if (timeLeft > 0) return;
-    sessionStorage.setItem('ai_disclaimer_seen', 'true');
+    localStorage.setItem('ai_disclaimer_seen', 'true');
     setShow(false);
   };
 

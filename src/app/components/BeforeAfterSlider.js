@@ -6,10 +6,11 @@ export default function BeforeAfterSlider({ title, rasterUrl, vectorUrl, height 
   const [sliderPosition, setSliderPosition] = useState(50);
 
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ textAlign: 'center', height: '100%' }}>
       
       <div style={{ 
         width: '100%',
+        height: '100%',
         background: '#1a1a1a', 
         border: '1px solid #333', 
         padding: '16px', 
