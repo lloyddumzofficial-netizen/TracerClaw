@@ -259,26 +259,36 @@ export default function UpscalePage() {
               <div className="hero-upload-box"
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                style={{ maxWidth: "500px", width: "100%", padding: "40px 30px" }}
+                style={{ maxWidth: "460px", width: "100%", padding: "32px 24px", borderRadius: "0", border: "1px solid #333" }}
               >
-                <div style={{ display: "flex", gap: "12px", width: "100%", marginBottom: "15px", flexWrap: "nowrap" }}>
-                  <button onClick={() => fileInputRef.current.click()} style={{ flex: 1, background: "#FFD700", color: "#111", border: "none", borderRadius: "8px", fontSize: "14px", padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontWeight: "700", transition: "all 0.2s", cursor: "pointer", whiteSpace: "nowrap" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}>
-                    <Monitor size={16} /> Open PC File
+                <div style={{ display: "flex", gap: "8px", width: "100%", marginBottom: "12px", flexWrap: "nowrap" }}>
+                  <button
+                    onClick={() => fileInputRef.current.click()}
+                    style={{ flex: 1, background: "#FFD700", color: "#111", border: "none", borderRadius: "0", fontSize: "12px", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontWeight: "700", letterSpacing: "0.5px", textTransform: "uppercase", transition: "all 0.2s", cursor: "pointer", whiteSpace: "nowrap" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#e6c200"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#FFD700"; }}
+                  >
+                    <Monitor size={14} /> Open PC File
                   </button>
-                  <button onClick={() => setUploadMode(prev => prev === "qr" ? "file" : "qr")} style={{ flex: 1, background: uploadMode === "qr" ? "rgba(255,215,0,0.1)" : "transparent", color: uploadMode === "qr" ? "#FFD700" : "#e0e0e0", border: uploadMode === "qr" ? "1px solid #FFD700" : "1px solid #555", borderRadius: "8px", fontSize: "14px", padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontWeight: "600", transition: "all 0.2s", cursor: "pointer", whiteSpace: "nowrap" }} onMouseEnter={(e) => { if(uploadMode !== "qr") { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.color = "#FFD700"; } }} onMouseLeave={(e) => { if(uploadMode !== "qr") { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.color = "#e0e0e0"; } }}>
-                    <Scan size={16} /> Scan Phone
+                  <button
+                    onClick={() => setUploadMode(prev => prev === "qr" ? "file" : "qr")}
+                    style={{ flex: 1, background: uploadMode === "qr" ? "rgba(255,215,0,0.08)" : "transparent", color: uploadMode === "qr" ? "#FFD700" : "#999", border: uploadMode === "qr" ? "1px solid #FFD700" : "1px solid #444", borderRadius: "0", fontSize: "12px", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase", transition: "all 0.2s", cursor: "pointer", whiteSpace: "nowrap" }}
+                    onMouseEnter={(e) => { if (uploadMode !== "qr") { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.color = "#FFD700"; } }}
+                    onMouseLeave={(e) => { if (uploadMode !== "qr") { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#999"; } }}
+                  >
+                    <Scan size={14} /> Scan Phone
                   </button>
                 </div>
                 
                 <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelected(e.target.files[0])} accept="image/*" style={{ display: "none" }} />
                 
                 {uploadMode === "qr" ? (
-                  <div style={{ background: "#111", border: "1px solid #333", borderRadius: "8px", padding: "30px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%", animation: "fadeIn 0.3s ease" }}>
-                    <div style={{ background: "#fff", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}><QRCode value={`https://desaynclaw.com/m/${syncSessionId}`} size={140} /></div>
-                    <p style={{ color: "#aaa", margin: 0, fontSize: "13px", textAlign: "center" }}>Scan this QR code with your mobile camera to upload an image directly.</p>
+                  <div style={{ background: "#111", border: "1px solid #333", borderRadius: "0", padding: "24px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+                    <div style={{ background: "#fff", padding: "10px", marginBottom: "14px" }}><QRCode value={`https://desaynclaw.com/m/${syncSessionId}`} size={130} /></div>
+                    <p style={{ color: "#888", margin: 0, fontSize: "12px", textAlign: "center", lineHeight: 1.5 }}>Scan with your mobile camera to upload directly.</p>
                   </div>
                 ) : (
-                  <div style={{ marginTop: "15px", color: "#888", fontSize: "14px", textAlign: "center" }}>or drop an image anywhere here</div>
+                  <div style={{ marginTop: "12px", color: "#555", fontSize: "12px", textAlign: "center" }}>or drop an image anywhere here</div>
                 )}
               </div>
             ) : (
@@ -344,7 +354,7 @@ export default function UpscalePage() {
             </div>
 
             {/* Privacy Notice */}
-            <div style={{ background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: "8px", padding: "12px", marginBottom: "20px", display: "flex", gap: "10px", alignItems: "flex-start" }}>
+            <div style={{ background: "rgba(255,215,0,0.04)", border: "1px solid rgba(255,215,0,0.15)", borderRadius: "0", padding: "12px", marginBottom: "20px", display: "flex", gap: "10px", alignItems: "flex-start" }}>
               <ShieldAlert size={14} color="#FFD700" style={{ flexShrink: 0, marginTop: "2px" }} />
               <div>
                 <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: "700", color: "#FFD700" }}>Privacy First</p>
@@ -353,15 +363,15 @@ export default function UpscalePage() {
             </div>
             
             {recentUpscales.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "30px 0", border: "1px dashed #333", borderRadius: "8px", background: "#111" }}>
+              <div style={{ textAlign: "center", padding: "30px 0", border: "1px dashed #2a2a2a", background: "#111" }}>
                 <Clock size={24} color="#444" style={{ margin: "0 auto 8px" }} />
                 <p style={{ margin: 0, color: "#666", fontSize: "11px" }}>No recent upscales</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {recentUpscales.map(item => (
-                  <div key={item.id} className="history-card" style={{ display: "flex", gap: "12px", padding: "10px", background: "#111", border: "1px solid #2a2a2a", borderRadius: "8px", transition: "all 0.2s", position: "relative" }} onMouseEnter={e => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.background = "#151515"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#111"; }}>
-                    <div style={{ width: "48px", height: "48px", background: "#0a0a0a", border: "1px solid #333", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                  <div key={item.id} className="history-card" style={{ display: "flex", gap: "12px", padding: "10px", background: "#111", border: "1px solid #2a2a2a", borderRadius: "0", transition: "all 0.2s", position: "relative" }} onMouseEnter={e => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.background = "#151515"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#111"; }}>
+                    <div style={{ width: "48px", height: "48px", background: "#0a0a0a", border: "1px solid #333", borderRadius: "0", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
                       <img src={item.generated_image_url || item.original_image_url} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "cover", transition: "transform 0.3s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"} />
                     </div>
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
@@ -372,12 +382,12 @@ export default function UpscalePage() {
                         <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <button 
+                   <button
                       onClick={() => handleDownload(item.generated_image_url)}
                       title="Download Image"
-                      style={{ alignSelf: "center", background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.3)", color: "#FFD700", width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "#FFD700"; e.currentTarget.style.color = "#000"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,215,0,0.1)"; e.currentTarget.style.color = "#FFD700"; }}
+                      style={{ alignSelf: "center", background: "transparent", border: "1px solid #444", color: "#888", width: "28px", height: "28px", borderRadius: "0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.color = "#FFD700"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#888"; }}
                     >
                       <Download size={12} strokeWidth={2.5} />
                     </button>

@@ -146,16 +146,30 @@ export default function StartScreen() {
     };
   }, [user]);
 
-  // Fetch Public Stats
+  // Fetch Public Stats — re-fetch whenever user returns to this tab/page
   useEffect(() => {
-    fetch(`/api/public-stats?t=${Date.now()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setPublicStats({ totalUsers: data.totalUsers, avatars: data.avatars });
-        }
-      })
-      .catch(console.error);
+    const fetchStats = () => {
+      fetch(`/api/public-stats?t=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setPublicStats({ totalUsers: data.totalUsers, avatars: data.avatars });
+          }
+        })
+        .catch(console.error);
+    };
+
+    fetchStats(); // initial load
+
+    // Re-fetch when user switches back to this tab (catches new sign-ups immediately)
+    const handleVisibility = () => { if (document.visibilityState === "visible") fetchStats(); };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", fetchStats);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", fetchStats);
+    };
   }, []);
 
   const fetchCredits = async (userId) => {
