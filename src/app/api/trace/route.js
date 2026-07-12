@@ -86,8 +86,7 @@ export async function POST(request) {
         return NextResponse.json({ error: "Conflict updating credits. Please try again." }, { status: 409 });
       }
 
-      // Mark the project as deducted so refunds are authorized
-      await adminSupabase.from('projects').update({ credit_deducted: true }).eq('id', projectId);
+      // Credit deducted successfully.
     }
 
     if (step === 1) {
@@ -306,10 +305,10 @@ FINISHING:
       // STAGE 2: 4x UPSCALE WITH fal-ai/esrgan
       // ==========================================
       // Fix #7: Verify Step 1 was legitimately completed before allowing upscale
-      if (!project.credit_deducted) {
+      // We verify this by ensuring generated_image_url exists and is not 'REFUNDED'.
+      if (!project.generated_image_url || project.generated_image_url === 'REFUNDED') {
         return NextResponse.json({ error: "Step 1 (Auto-Trace) must be completed before upscaling." }, { status: 403 });
       }
-      if (!project.generated_image_url) throw new Error("No generated raster image found for Step 2");
       if (!process.env.FAL_KEY) throw new Error("FAL_KEY is missing in environment variables.");
 
       const { fal } = await import("@fal-ai/client");

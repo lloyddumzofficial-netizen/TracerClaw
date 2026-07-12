@@ -113,49 +113,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>If image shows front AND back of a shirt, use the Crop Tool to isolate one side, or AI will fail.</span>
           </div>
 
-          {/* BACKGROUND REMOVER BUTTON */}
-          {!project?.svg_url && (
-            <button
-              className="btn-primary"
-              style={{
-                width: "100%",
-                background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)",
-                color: "#fff",
-                border: "1px solid #444",
-                borderRadius: "4px",
-                fontWeight: "700",
-                fontSize: "12px",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                cursor: isBusy ? "not-allowed" : "pointer",
-                opacity: isBusy ? 0.7 : 1,
-                padding: "16px",
-                marginBottom: "16px",
-                transition: "all 0.3s ease",
-                boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "4px"
-              }}
-              onClick={() => {
-                if (isBusy) return;
-                onOpenRemoveBg?.();
-              }}
-              disabled={isBusy}
-              onMouseOver={e => { if(!isBusy) { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(255,215,0,0.15)"; } }}
-              onMouseOut={e => { if(!isBusy) { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)"; } }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#FFD700" }}>
-                <span style={{ fontSize: "16px" }}>✨</span>
-                BACKGROUND REMOVER
-              </div>
-              <span style={{ fontSize: "10px", color: "#888", fontWeight: "500", textTransform: "none", letterSpacing: "0.5px" }}>
-                Perfect for logos & apparel (-1 Credit)
-              </span>
-            </button>
-          )}
-
           {!project?.svg_url && (
             <button
               className="btn-primary"
