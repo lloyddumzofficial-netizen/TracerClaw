@@ -337,15 +337,14 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
         console.log("[fal.ai Input URL]:", finalImageUrl);
 
         // ── PRE-UPSCALE: Feed a sharper reference into nano-banana-pro ────────
-        // aura-sr v2 is highly optimized for flat design files, keeping edges crisp
-        // without adding the photographic noise that other upscalers might introduce.
-        console.log("[API Step 1 Pre-Upscale] Upscaling reference with fal-ai/chrono-edit-lora-gallery/upscaler for better AI input...");
+        // ESRGAN upscales the source image first so nano-banana-pro has a crisp,
+        // high-resolution input — improving flat extraction accuracy.
+        console.log("[API Step 1 Pre-Upscale] Upscaling reference with fal-ai/esrgan for better AI input...");
         let highResInputUrl = finalImageUrl; // safe fallback to original
         try {
-          const preUpscaleResult = await fal.subscribe("fal-ai/chrono-edit-lora-gallery/upscaler", {
+          const preUpscaleResult = await fal.subscribe("fal-ai/esrgan", {
             input: {
               image_url: finalImageUrl,
-              prompt: "jersey fabric pattern, flat design, sublimation print, crisp edges, solid colors",
             },
             logs: true,
           });
@@ -353,12 +352,12 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
           const outputUrl = preUpscaleResult?.data?.image?.url || preUpscaleResult?.data?.image_url;
           if (outputUrl) {
             highResInputUrl = outputUrl;
-            console.log("[Pre-Upscale] ✅ chrono upscaler success! Using upscaled reference:", highResInputUrl);
+            console.log("[Pre-Upscale] ✅ ESRGAN success! Using upscaled reference:", highResInputUrl);
           } else {
-            console.warn("[Pre-Upscale] ⚠️ upscaler returned no URL — falling back to original reference.");
+            console.warn("[Pre-Upscale] ⚠️ ESRGAN returned no URL — falling back to original reference.");
           }
         } catch (preUpscaleErr) {
-          console.warn("[Pre-Upscale] ⚠️ upscaler failed, falling back to original. Error:", preUpscaleErr.message);
+          console.warn("[Pre-Upscale] ⚠️ ESRGAN failed, falling back to original. Error:", preUpscaleErr.message);
           // Do NOT throw — gracefully fall back to original image
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -440,22 +439,21 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
         upscaleInputUrl = httpMatches2[httpMatches2.length - 1];
       }
 
-      console.log("[API Step 2] Upscaling with fal-ai/chrono-edit-lora-gallery/upscaler...");
-      console.log("[fal.ai Upscaler Input URL]:", upscaleInputUrl);
+      console.log("[API Step 2] Upscaling with fal-ai/esrgan...");
+      console.log("[fal.ai ESRGAN Input URL]:", upscaleInputUrl);
 
-      const upscalerResult = await fal.subscribe("fal-ai/chrono-edit-lora-gallery/upscaler", {
+      const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
         input: {
           image_url: upscaleInputUrl,
-          prompt: "flat 2d design, vector style, sharp crisp edges, solid flat colors, professional sublimation print file",
         },
         logs: true,
       });
 
-      console.log("[fal.ai Upscaler RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
+      console.log("[fal.ai ESRGAN RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
 
       const upscaledUrl = upscalerResult?.data?.image?.url || upscalerResult?.data?.image_url;
       if (!upscaledUrl) {
-        throw new Error("fal-ai/chrono-edit-lora-gallery/upscaler did not return a valid image URL. Response: " + JSON.stringify(upscalerResult));
+        throw new Error("fal-ai/esrgan did not return a valid image URL. Response: " + JSON.stringify(upscalerResult));
       }
 
       const upscaledMimeType = upscalerResult?.data?.image?.content_type || "image/png";
