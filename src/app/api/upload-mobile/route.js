@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getUploadUrl } from '@/lib/cloudflare';
+import { adminSupabase } from '@/lib/supabase';
 
 export async function POST(request) {
   try {
+    // ─── Auth: require a valid session — prevents unauthenticated R2 uploads ───
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.replace('Bearer ', '').trim();
+    const { data: { user }, error: authError } = await adminSupabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const { fileName, contentType, syncSessionId } = await request.json();
 
     if (!fileName || !contentType || !syncSessionId) {
@@ -22,7 +35,8 @@ export async function POST(request) {
     }
 
     const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fullFileName = `users/mobile_sync/${syncSessionId}/${Date.now()}_${safeName}`;
+    // Store under user's ID so cleanup cron can attribute files to users
+    const fullFileName = `users/${user.id}/mobile_sync/${syncSessionId}/${Date.now()}_${safeName}`;
 
     const urls = await getUploadUrl(fullFileName, contentType);
 
@@ -33,3 +47,4 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 });
   }
 }
+

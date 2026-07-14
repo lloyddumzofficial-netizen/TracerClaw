@@ -124,6 +124,7 @@ export default function AdminDashboard() {
   const totalRevenue = approvedRequests.reduce((sum, req) => sum + (PLAN_PRICES[req.plan] || 0), 0);
   const totalCost = totalProjects * COST_PER_GENERATION;
   const netProfit = totalRevenue - totalCost;
+  const totalActiveCredits = paidUsers.reduce((sum, u) => sum + (u.credits || 0), 0);
 
   return (
     <div className="start-screen-container">
@@ -148,6 +149,9 @@ export default function AdminDashboard() {
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "12px 24px", borderRadius: "4px", fontSize: "16px", fontWeight: "500", whiteSpace: "nowrap" }}>
             Profit: <strong style={{ color: netProfit < 0 ? '#ff4444' : '#4ade80', fontSize: '18px' }}>₱{netProfit.toLocaleString()}</strong>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "transparent", color: "#d5d5d5", border: "1px solid #5a4a00", padding: "12px 24px", borderRadius: "4px", fontSize: "16px", fontWeight: "500", whiteSpace: "nowrap" }}>
+            Active Credits: <strong style={{ color: '#FFD700', fontSize: '18px' }}>🪙 {totalActiveCredits.toLocaleString()}</strong>
           </div>
           <button className="start-btn" onClick={handleLogout} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px 24px", borderRadius: "4px", fontSize: "16px" }}>
             <LogOut size={16} /> Logout

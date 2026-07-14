@@ -526,37 +526,14 @@ If any difference is detected, continue refining until the reconstruction is vis
 
         console.log("[fal.ai Input URL]:", finalImageUrl);
 
-        // ── PRE-UPSCALE: Feed a sharper reference into nano-banana-pro ────────
-        // ESRGAN upscales the source image first so nano-banana-pro has a crisp,
-        // high-resolution input — improving flat extraction accuracy.
-        console.log("[API Step 1 Pre-Upscale] Upscaling reference with fal-ai/esrgan for better AI input...");
-        let highResInputUrl = finalImageUrl; // safe fallback to original
-        try {
-          const preUpscaleResult = await fal.subscribe("fal-ai/esrgan", {
-            input: {
-              image_url: finalImageUrl,
-            },
-            logs: true,
-          });
-          
-          const outputUrl = preUpscaleResult?.data?.image?.url || preUpscaleResult?.data?.image_url;
-          if (outputUrl) {
-            highResInputUrl = outputUrl;
-            console.log("[Pre-Upscale] ✅ ESRGAN success! Using upscaled reference:", highResInputUrl);
-          } else {
-            console.warn("[Pre-Upscale] ⚠️ ESRGAN returned no URL — falling back to original reference.");
-          }
-        } catch (preUpscaleErr) {
-          console.warn("[Pre-Upscale] ⚠️ ESRGAN failed, falling back to original. Error:", preUpscaleErr.message);
-          // Do NOT throw — gracefully fall back to original image
-        }
-        // ─────────────────────────────────────────────────────────────────────
-
-        console.log("[API Step 1] Generating flat design with fal.ai (nano-banana-pro/edit) on high-res reference...");
+        // ── Step 1: Extract flat design directly using nano-banana-pro/edit ──
+        // Feed original source image directly — no pre-upscale step.
+        // Flow: Extract → Upscale (step 2) → Vectorize (step 3)
+        console.log("[API Step 1] Extracting flat design with fal.ai (nano-banana-pro/edit)...");
         
         const result = await fal.subscribe("fal-ai/nano-banana-pro/edit", {
           input: {
-            image_urls: [highResInputUrl],
+            image_urls: [finalImageUrl],
             prompt: prompt,
             aspect_ratio: targetAspectRatio,
             guidance_scale: 10,          // raised from 7.5 → 10: stronger prompt adherence without deep-frying
@@ -629,23 +606,23 @@ If any difference is detected, continue refining until the reconstruction is vis
         upscaleInputUrl = httpMatches2[httpMatches2.length - 1];
       }
 
-      console.log("[API Step 2] Upscaling with fal-ai/esrgan...");
-      console.log("[ESRGAN Input URL]:", upscaleInputUrl);
+      console.log("[API Step 2] Upscaling with fal-ai/aura-sr...");
+      console.log("[Aura SR Input URL]:", upscaleInputUrl);
 
-      const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
+      const upscalerResult = await fal.subscribe("fal-ai/aura-sr", {
         input: {
           image_url: upscaleInputUrl,
-          scale: 4,        // 4x upscale — maximum resolution boost
-          face_enhance: false, // off — not needed for jersey/logo designs
+          upscaling_factor: 4,          // 4x — aura-sr is cheap enough to do 4x
+          overlapping_tiles: true,      // eliminates seam artifacts between tiles
         },
         logs: true,
       });
 
-      console.log("[ESRGAN RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
+      console.log("[Aura SR RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
 
       const upscaledUrl = upscalerResult?.data?.image?.url || upscalerResult?.data?.image_url;
       if (!upscaledUrl) {
-        throw new Error("fal-ai/esrgan did not return a valid image URL. Response: " + JSON.stringify(upscalerResult));
+        throw new Error("fal-ai/aura-sr did not return a valid image URL. Response: " + JSON.stringify(upscalerResult));
       }
 
       const upscaledMimeType = upscalerResult?.data?.image?.content_type || "image/png";

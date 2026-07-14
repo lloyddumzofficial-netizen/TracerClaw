@@ -47,15 +47,20 @@ export async function uploadToR2(buffer, fileName, contentType) {
 
 export async function deleteFromR2(fileUrl) {
   if (!fileUrl) return;
-  try {
-    // Extract the file key from the URL (everything after the publicUrl prefix)
-    const fileKey = fileUrl.replace(`${publicUrl}/`, '');
-    const command = new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: fileKey,
-    });
-    await s3Client.send(command);
-  } catch (error) {
-    console.error("Error deleting from R2:", error);
+  // Extract the file key from the URL (everything after the publicUrl prefix)
+  const fileKey = fileUrl.replace(`${publicUrl}/`, '');
+  
+  // Guard: if key still looks like a full URL, extraction failed
+  if (fileKey.startsWith('http')) {
+    console.error(`[R2 Delete] Key extraction failed for URL: ${fileUrl}. publicUrl env may be missing or mismatched.`);
+    return;
   }
+
+  console.log(`[R2 Delete] Deleting key: ${fileKey}`);
+  const command = new DeleteObjectCommand({
+    Bucket: bucketName,
+    Key: fileKey,
+  });
+  await s3Client.send(command); // Let errors propagate so callers can handle them
+  console.log(`[R2 Delete] ✅ Deleted: ${fileKey}`);
 }

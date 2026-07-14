@@ -1,7 +1,48 @@
 "use client";
 
-import { memo, useRef } from "react";
+import { memo, useRef, useState, useEffect } from "react";
 import { CheckCircle, X, FolderDown, Download } from "lucide-react";
+
+/** Fetches SVG text and injects inline for reliable cross-browser SVG rendering */
+function InlineSVG({ url, style }) {
+  const [svgHtml, setSvgHtml] = useState(null);
+  useEffect(() => {
+    if (!url) { setSvgHtml(null); return; }
+    setSvgHtml(null);
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        const safe = text
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/\son\w+="[^"]*"/gi, '')
+          .replace(/\son\w+='[^']*'/gi, '');
+        if (safe.includes('<svg')) {
+          const scaled = safe.replace(/<svg([^>]*?)>/i, (_, attrs) => {
+            let clean = attrs;
+            const wMatch = attrs.match(/\swidth=["']([^"']+)["']/i);
+            const hMatch = attrs.match(/\sheight=["']([^"']+)["']/i);
+            const vMatch = attrs.match(/\sviewBox=["']([^"']+)["']/i);
+
+            clean = clean.replace(/\s+width=["'][^"']*["']/gi, '')
+                         .replace(/\s+height=["'][^"']*["']/gi, '');
+
+            if (!vMatch && wMatch && hMatch) {
+              const w = parseFloat(wMatch[1].replace(/px/i, ''));
+              const h = parseFloat(hMatch[1].replace(/px/i, ''));
+              if (!isNaN(w) && !isNaN(h)) {
+                clean += ` viewBox="0 0 ${w} ${h}"`;
+              }
+            }
+            return `<svg${clean} style="width:100%;height:100%;display:block;" preserveAspectRatio="xMidYMid meet">`;
+          });
+          setSvgHtml(scaled);
+        }
+      })
+      .catch(err => console.error('[InlineSVG] fetch failed:', err));
+  }, [url]);
+  if (!svgHtml) return null;
+  return <div style={{ ...style, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svgHtml }} />;
+}
 
 /**
  * CompareModal — Before/After slider comparison modal.
@@ -81,12 +122,10 @@ const CompareModal = memo(function CompareModal({
               alt=""
             />
 
-            {/* AFTER layer — stretched to fill the original aspect ratio */}
-            <img
-              draggable={false}
-              src={project.svg_url}
-              alt="Vector"
-              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
+            {/* AFTER layer — SVG inline (most reliable rendering method) */}
+            <InlineSVG
+              url={project.svg_url ? `/api/proxy?url=${encodeURIComponent(project.svg_url)}` : null}
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
             />
 
             {/* BEFORE layer — stretched to fill */}

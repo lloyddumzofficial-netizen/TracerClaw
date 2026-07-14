@@ -1,8 +1,49 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import { ImageIcon, Brain, Scan, PenTool, Scissors } from "lucide-react";
 import NodeCard from "./NodeCard";
+
+/** Fetches SVG text and injects inline for reliable cross-browser SVG rendering */
+function InlineSVG({ url, style }) {
+  const [svgHtml, setSvgHtml] = useState(null);
+  useEffect(() => {
+    if (!url) { setSvgHtml(null); return; }
+    setSvgHtml(null);
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        const safe = text
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/\son\w+="[^"]*"/gi, '')
+          .replace(/\son\w+='[^']*'/gi, '');
+        if (safe.includes('<svg')) {
+          const scaled = safe.replace(/<svg([^>]*?)>/i, (_, attrs) => {
+            let clean = attrs;
+            const wMatch = attrs.match(/\swidth=["']([^"']+)["']/i);
+            const hMatch = attrs.match(/\sheight=["']([^"']+)["']/i);
+            const vMatch = attrs.match(/\sviewBox=["']([^"']+)["']/i);
+
+            clean = clean.replace(/\s+width=["'][^"']*["']/gi, '')
+                         .replace(/\s+height=["'][^"']*["']/gi, '');
+
+            if (!vMatch && wMatch && hMatch) {
+              const w = parseFloat(wMatch[1].replace(/px/i, ''));
+              const h = parseFloat(hMatch[1].replace(/px/i, ''));
+              if (!isNaN(w) && !isNaN(h)) {
+                clean += ` viewBox="0 0 ${w} ${h}"`;
+              }
+            }
+            return `<svg${clean} style="width:100%;height:100%;display:block;" preserveAspectRatio="xMidYMid meet">`;
+          });
+          setSvgHtml(scaled);
+        }
+      })
+      .catch(err => console.error('[InlineSVG] fetch failed:', err));
+  }, [url]);
+  if (!svgHtml) return null;
+  return <div style={{ ...style, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svgHtml }} />;
+}
 
 /**
  * PipelineCanvas — The scrollable/pannable canvas that renders all 4 pipeline nodes.
@@ -189,12 +230,9 @@ const PipelineCanvas = memo(function PipelineCanvas({
           statusColor={traceState === "step3" ? "var(--accent)" : project.svg_url ? "#4ade80" : "#555"}
         >
           {project.svg_url ? (
-            <img
-              src={proxySvg}
-              alt="Vector"
-              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "4px" }}
-              referrerPolicy="no-referrer"
-              decoding="async"
+            <InlineSVG
+              url={proxySvg}
+              style={{ width: "100%", height: "100%", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
             />
           ) : traceState === "step3" && proxyUpscaled ? (
             <img

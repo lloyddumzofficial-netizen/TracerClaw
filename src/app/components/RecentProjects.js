@@ -91,7 +91,13 @@ const RecentProjects = memo(function RecentProjects({
           <div className="recent-grid">
             {filteredProjects.map(proj => (
               <div key={proj.id} className="recent-card" onClick={() => onNavigate(proj)}>
-                <div className="recent-thumb" style={{backgroundImage: `url(${proj.svg_url || proj.original_image_url})`}}></div>
+              <div className="recent-thumb" style={{
+                  backgroundImage: proj.original_image_url
+                    ? `url(/api/proxy?url=${encodeURIComponent(proj.original_image_url)})`
+                    : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}></div>
                 <div className="recent-info">
                   
                   {editingId === proj.id ? (

@@ -3,6 +3,63 @@
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Scissors, ZoomIn, ZoomOut, Maximize, AlertCircle, Eraser, Loader2 } from "lucide-react";
 
+/**
+ * InlineSVG — Fetches SVG text and injects it directly into the DOM.
+ * More reliable than <img> (content-type issues) or <object> (doesn't reload on data change).
+ */
+function InlineSVG({ url, style }) {
+  const [svgHtml, setSvgHtml] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!url) { setSvgHtml(null); return; }
+    setLoading(true);
+    setSvgHtml(null);
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        // Sanitize: strip script tags + inline event handlers before injection
+        const safe = text
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/\son\w+="[^"]*"/gi, '')
+          .replace(/\son\w+='[^']*'/gi, '');
+        if (safe.includes('<svg')) {
+          // Strip fixed width/height so SVG scales to fit container (Recraft outputs 4096×4096 by default)
+          const scaled = safe.replace(/<svg([^>]*?)>/i, (_, attrs) => {
+            let clean = attrs;
+            const wMatch = attrs.match(/\swidth=["']([^"']+)["']/i);
+            const hMatch = attrs.match(/\sheight=["']([^"']+)["']/i);
+            const vMatch = attrs.match(/\sviewBox=["']([^"']+)["']/i);
+
+            clean = clean.replace(/\s+width=["'][^"']*["']/gi, '')
+                         .replace(/\s+height=["'][^"']*["']/gi, '');
+
+            if (!vMatch && wMatch && hMatch) {
+              const w = parseFloat(wMatch[1].replace(/px/i, ''));
+              const h = parseFloat(hMatch[1].replace(/px/i, ''));
+              if (!isNaN(w) && !isNaN(h)) {
+                clean += ` viewBox="0 0 ${w} ${h}"`;
+              }
+            }
+            return `<svg${clean} style="width:100%;height:100%;display:block;" preserveAspectRatio="xMidYMid meet">`;
+          });
+          setSvgHtml(scaled);
+        }
+      })
+      .catch(err => console.error('[InlineSVG] fetch failed:', err))
+      .finally(() => setLoading(false));
+  }, [url]);
+
+  if (loading) return <div style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 12 }}>Loading SVG...</div>;
+  if (!svgHtml) return null;
+  return (
+    <div
+      style={{ ...style, overflow: 'hidden' }}
+      dangerouslySetInnerHTML={{ __html: svgHtml }}
+    />
+  );
+}
+
 const SplitViewCanvas = memo(function SplitViewCanvas({
   project,
   traceState,
@@ -368,7 +425,10 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               <div style={{ position: "relative", width: `${Math.max(100, zoomLevel * 100)}%`, height: `${Math.max(100, zoomLevel * 100)}%`, minWidth: "100%", minHeight: "100%" }}>
                 <div style={{ position: "absolute", top: "50%", left: "50%", width: `${100 / Math.max(1, zoomLevel)}%`, height: `${100 / Math.max(1, zoomLevel)}%`, transform: `translate(-50%, -50%) scale(${zoomLevel})`, padding: "20px", boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
                   {activeTab === "svg" ? (
-                    <img src={activeUrl} draggable={false} alt="Output" style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain", borderRadius: "2px" }} />
+                    <InlineSVG
+                      url={activeUrl}
+                      style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, borderRadius: "2px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    />
                   ) : (
                     <img src={activeUrl} draggable={false} alt="Output" style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain", borderRadius: "2px" }} />
                   )}

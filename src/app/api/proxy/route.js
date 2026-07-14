@@ -51,10 +51,17 @@ export async function GET(request) {
 
     const buffer = await res.arrayBuffer();
     
+    // Force correct Content-Type for SVG files — R2 sometimes returns
+    // application/octet-stream for .svg which breaks <img> rendering
+    const isSvg = parsedUrl.pathname.toLowerCase().endsWith('.svg');
+    const contentType = isSvg
+      ? 'image/svg+xml'
+      : (res.headers.get('content-type') || 'image/jpeg');
+
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        'Content-Type': res.headers.get('content-type') || 'image/jpeg',
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=86400'
       }
     });
