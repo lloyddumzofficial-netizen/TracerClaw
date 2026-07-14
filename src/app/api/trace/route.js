@@ -198,7 +198,69 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
 - DO NOT mirror, reflect, or symmetrize the design. The output must NOT be left-right symmetric unless the reference design itself is symmetric.
 - If the left side has a pattern and the right side is different — reproduce them differently, exactly as in the reference.
 - DO NOT create a butterfly/kaleidoscope/mirror effect. This is a real design file.
-- Every asymmetric element (logo position, stripe layout, patch placement) must remain asymmetric exactly as in the original.`;
+- Every asymmetric element (logo position, stripe layout, patch placement) must remain asymmetric exactly as in the original.
+
+== STEP 9: EXACT GEOMETRY PRESERVATION — ZERO TOLERANCE ==
+You are now operating as a FORENSIC GEOMETRY ENGINE. Every polygon in the original image has a specific shape. You must preserve it with absolute precision.
+- Preserve every original polygon, every angle, every corner, every cut, every notch, every diagonal, every intersection, every edge, every offset, every taper, every thickness, every spacing, every proportion, every alignment, every symmetry.
+- No approximations. No simplification. No smoothing. No redesign. Zero tolerance for invented geometry.
+
+== STEP 10: EXACT SHAPE MATCHING ==
+- Every visible blue shape must be reconstructed exactly.
+- Every dark navy panel must keep identical borders.
+- Every chevron must match the original width, height, taper, angle, overlap, spacing, offset, clipping, layering, and intersection.
+- Every stripe angle must remain identical.
+- Every lightning cut, triangular notch, zigzag, beveled edge, clipped corner, overlapping panel, hidden continuation, and internal contour must be reproduced.
+- Nothing may be guessed. Nothing may be replaced. Nothing may be stylized.
+
+== STEP 11: FORCE PIXEL ANALYSIS (MANDATORY) ==
+- Inspect the image pixel-by-pixel. Analyze at maximum zoom.
+- Compare neighboring pixels. Trace every color boundary. Follow every edge transition.
+- Reconstruct directly from observed pixels.
+- Never infer missing shapes. Never hallucinate geometry. Never invent symmetry. Never "clean up" irregularities.
+
+== STEP 12: VECTOR TRACE MODE ==
+Behave like Adobe Illustrator Image Trace combined with manual Pen Tool tracing — not like an illustrator, not a concept artist, not a designer.
+- Every path must follow the original image exactly.
+- No artistic interpretation whatsoever.
+
+== STEP 13: CHEVRON RECONSTRUCTION — HIGHEST PRIORITY ==
+The layered V patterns and chevron shapes are the highest priority elements.
+Each chevron must preserve: identical width, identical height, identical taper, identical angle, identical overlap, identical spacing, identical offsets, identical clipping, identical layering, identical intersections.
+- Do not replace with generic V stripes. Each layer is independent and unique.
+
+== STEP 14: MICRO DETAILS — MUST SURVIVE ==
+Preserve all of the following without exception:
+- micro triangles, micro slashes, tiny bevels, tiny chamfers, small clipped corners, micro zigzags, micro offsets, hidden intersections, partial shapes, cropped polygons, thin connectors, tiny angular cuts, subtle breaks, edge discontinuities.
+Every one of these must survive extraction intact.
+
+== STEP 15: COLOR REGION PRESERVATION ==
+- Never merge two adjacent blue regions, even if they appear similar.
+- Never merge similar navy colors. Every color island must remain independent.
+- Every boundary must remain intact.
+- Do not average colors. Do not simplify gradients into flat fills. Keep every distinct region separate.
+
+== STEP 16: TOPOLOGY LOCK ==
+- Preserve the exact topology of the original artwork.
+- The number of visible shapes in the output should remain nearly identical to the original.
+- The hierarchy of overlapping panels must remain identical.
+- Do not reduce complexity. Do not merge polygons. Do not split polygons unless required by the source image.
+
+== STEP 17: STRUCTURAL FIDELITY OVER CLEANLINESS ==
+- Prioritize structural fidelity over visual cleanliness.
+- If the original contains asymmetry, preserve it. If the original contains irregular cuts, preserve them. If the original contains imperfect geometry, preserve it.
+- Never beautify. Never improve. Never redesign. Only reconstruct.
+
+== STEP 18: ANTI-HALLUCINATION — STRICT EVIDENCE ONLY ==
+- If any shape is partially obscured, reconstruct it ONLY from visible evidence in the image.
+- Never fabricate hidden geometry. Never invent missing edges. Never continue lines based on assumptions.
+- Never replace unknown details with generic esports patterns.
+
+== STEP 19: FINAL VALIDATION (MANDATORY BEFORE OUTPUT) ==
+Before producing the final output, internally compare your reconstruction against the original image.
+Verify every single one of the following:
+- overall geometry, every polygon, every stripe, every chevron, every angle, every border, every spacing, every notch, every layer, every color region, every intersection.
+If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original. Only then produce the final output.`;
 
         } else if (project.ai_prompt === 'LOGO_FLATTEN') {
           prompt = `You are a FORENSIC LOGO REPRODUCTION ARTIST. Your task is to create a 100% pixel-accurate, flat vector-ready copy of the logo in this reference image. You are NOT allowed to be creative. You are NOT allowed to simplify, stylize, or interpret. Copy it EXACTLY.
@@ -231,7 +293,56 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
 
 == SHAPE PLACEMENT LOCK ==
 - Divide the logo into a 3x3 grid. Every element must be in the correct grid cell matching the reference.
-- Do NOT drift, shift, or reposition any element. Position accuracy is as important as color accuracy.`;
+- Do NOT drift, shift, or reposition any element. Position accuracy is as important as color accuracy.
+
+== ADDITIONAL: EXACT GEOMETRY PRESERVATION — ZERO TOLERANCE ==
+You are now operating as a FORENSIC GEOMETRY ENGINE. Every polygon in the original image has a specific shape. You must preserve it with absolute precision.
+- Preserve every original polygon, every angle, every corner, every cut, every notch, every diagonal, every intersection, every edge, every offset, every taper, every thickness, every spacing, every proportion, every alignment, every symmetry.
+- No approximations. No simplification. No smoothing. No redesign. Zero tolerance for invented geometry.
+
+== ADDITIONAL: EXACT SHAPE MATCHING ==
+- Every visible shape must be reconstructed exactly as it appears in the reference.
+- Every boundary, border, and outline must keep identical dimensions and angles.
+- Every clipped corner, beveled edge, notch, and internal contour must be reproduced faithfully.
+- Nothing may be guessed. Nothing may be replaced. Nothing may be stylized.
+
+== ADDITIONAL: FORCE PIXEL ANALYSIS (MANDATORY) ==
+- Inspect the image pixel-by-pixel. Analyze at maximum zoom.
+- Compare neighboring pixels. Trace every color boundary. Follow every edge transition.
+- Reconstruct directly from observed pixels.
+- Never infer missing shapes. Never hallucinate geometry. Never invent symmetry. Never "clean up" irregularities.
+
+== ADDITIONAL: VECTOR TRACE MODE ==
+Behave like Adobe Illustrator Image Trace combined with manual Pen Tool tracing — not like an illustrator, not a concept artist, not a designer.
+- Every path must follow the original image exactly. No artistic interpretation whatsoever.
+
+== ADDITIONAL: MICRO DETAILS — MUST SURVIVE ==
+Preserve all of the following without exception:
+- micro details, tiny bevels, tiny chamfers, small clipped corners, micro offsets, hidden intersections, partial shapes, cropped polygons, thin connectors, tiny angular cuts, subtle breaks, edge discontinuities.
+Every one of these must survive extraction intact.
+
+== ADDITIONAL: COLOR REGION PRESERVATION ==
+- Never merge two adjacent regions, even if they appear similar in color.
+- Every color island must remain independent. Every boundary must remain intact.
+- Do not average colors. Keep every distinct region separate.
+
+== ADDITIONAL: TOPOLOGY LOCK ==
+- Preserve the exact topology of the original artwork.
+- The number of visible shapes in the output should remain nearly identical to the original.
+- Do not reduce complexity. Do not merge polygons unless required by the source.
+
+== ADDITIONAL: STRUCTURAL FIDELITY OVER CLEANLINESS ==
+- Prioritize structural fidelity over visual cleanliness.
+- Never beautify. Never improve. Never redesign. Only reconstruct.
+
+== ADDITIONAL: ANTI-HALLUCINATION — STRICT EVIDENCE ONLY ==
+- If any shape is partially obscured, reconstruct it ONLY from visible evidence.
+- Never fabricate hidden geometry. Never invent missing edges. Never replace unknown details with generic patterns.
+
+== ADDITIONAL: FINAL VALIDATION (MANDATORY BEFORE OUTPUT) ==
+Before producing the final output, internally compare your reconstruction against the original image.
+Verify: overall geometry, every polygon, every shape, every angle, every border, every spacing, every notch, every layer, every color region, every intersection.
+If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original.`;
 
         } else {
           prompt = `⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
@@ -306,7 +417,69 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
 - DO NOT mirror, reflect, or symmetrize the design. The output must NOT be left-right symmetric unless the reference design itself is symmetric.
 - If the left side has a pattern and the right side is different — reproduce them differently, exactly as in the reference.
 - DO NOT create a butterfly/kaleidoscope/mirror effect. This is a real sublimation print file, not a reflected pattern.
-- Every asymmetric element (logo position, stripe layout, graphic placement) must remain asymmetric exactly as in the original.`;
+- Every asymmetric element (logo position, stripe layout, graphic placement) must remain asymmetric exactly as in the original.
+
+== STEP 9: EXACT GEOMETRY PRESERVATION — ZERO TOLERANCE ==
+You are now operating as a FORENSIC GEOMETRY ENGINE. Every polygon in the original image has a specific shape. You must preserve it with absolute precision.
+- Preserve every original polygon, every angle, every corner, every cut, every notch, every diagonal, every intersection, every edge, every offset, every taper, every thickness, every spacing, every proportion, every alignment, every symmetry.
+- No approximations. No simplification. No smoothing. No redesign. Zero tolerance for invented geometry.
+
+== STEP 10: EXACT SHAPE MATCHING ==
+- Every visible blue shape must be reconstructed exactly.
+- Every dark navy panel must keep identical borders.
+- Every chevron must match the original width, height, taper, angle, overlap, spacing, offset, clipping, layering, and intersection.
+- Every stripe angle must remain identical.
+- Every lightning cut, triangular notch, zigzag, beveled edge, clipped corner, overlapping panel, hidden continuation, and internal contour must be reproduced.
+- Nothing may be guessed. Nothing may be replaced. Nothing may be stylized.
+
+== STEP 11: FORCE PIXEL ANALYSIS (MANDATORY) ==
+- Inspect the image pixel-by-pixel. Analyze at maximum zoom.
+- Compare neighboring pixels. Trace every color boundary. Follow every edge transition.
+- Reconstruct directly from observed pixels.
+- Never infer missing shapes. Never hallucinate geometry. Never invent symmetry. Never "clean up" irregularities.
+
+== STEP 12: VECTOR TRACE MODE ==
+Behave like Adobe Illustrator Image Trace combined with manual Pen Tool tracing — not like an illustrator, not a concept artist, not a designer.
+- Every path must follow the original image exactly.
+- No artistic interpretation whatsoever.
+
+== STEP 13: CHEVRON RECONSTRUCTION — HIGHEST PRIORITY ==
+The layered V patterns and chevron shapes are the highest priority elements.
+Each chevron must preserve: identical width, identical height, identical taper, identical angle, identical overlap, identical spacing, identical offsets, identical clipping, identical layering, identical intersections.
+- Do not replace with generic V stripes. Each layer is independent and unique.
+
+== STEP 14: MICRO DETAILS — MUST SURVIVE ==
+Preserve all of the following without exception:
+- micro triangles, micro slashes, tiny bevels, tiny chamfers, small clipped corners, micro zigzags, micro offsets, hidden intersections, partial shapes, cropped polygons, thin connectors, tiny angular cuts, subtle breaks, edge discontinuities.
+Every one of these must survive extraction intact.
+
+== STEP 15: COLOR REGION PRESERVATION ==
+- Never merge two adjacent blue regions, even if they appear similar.
+- Never merge similar navy colors. Every color island must remain independent.
+- Every boundary must remain intact.
+- Do not average colors. Do not simplify gradients into flat fills. Keep every distinct region separate.
+
+== STEP 16: TOPOLOGY LOCK ==
+- Preserve the exact topology of the original artwork.
+- The number of visible shapes in the output should remain nearly identical to the original.
+- The hierarchy of overlapping panels must remain identical.
+- Do not reduce complexity. Do not merge polygons. Do not split polygons unless required by the source image.
+
+== STEP 17: STRUCTURAL FIDELITY OVER CLEANLINESS ==
+- Prioritize structural fidelity over visual cleanliness.
+- If the original contains asymmetry, preserve it. If the original contains irregular cuts, preserve them. If the original contains imperfect geometry, preserve it.
+- Never beautify. Never improve. Never redesign. Only reconstruct.
+
+== STEP 18: ANTI-HALLUCINATION — STRICT EVIDENCE ONLY ==
+- If any shape is partially obscured, reconstruct it ONLY from visible evidence in the image.
+- Never fabricate hidden geometry. Never invent missing edges. Never continue lines based on assumptions.
+- Never replace unknown details with generic esports patterns.
+
+== STEP 19: FINAL VALIDATION (MANDATORY BEFORE OUTPUT) ==
+Before producing the final output, internally compare your reconstruction against the original image.
+Verify every single one of the following:
+- overall geometry, every polygon, every stripe, every chevron, every angle, every border, every spacing, every notch, every layer, every color region, every intersection.
+If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original. Only then produce the final output.`;
         }
       }
 
@@ -369,9 +542,9 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
             image_urls: [highResInputUrl],
             prompt: prompt,
             aspect_ratio: targetAspectRatio,
-            guidance_scale: 7.5,         // higher = more prompt-faithful output
+            guidance_scale: 12,          // max prompt adherence — strictly follow instructions
             num_inference_steps: 50,     // more steps = sharper, more accurate reproduction
-            image_strength: 0.40,        // extremely strict adherence to original image (preserves halftones & gradients)
+            image_strength: 0.20,        // LOW = stay very close to source image, minimal hallucination
           },
           logs: true,
           onQueueUpdate: (update) => {
@@ -440,16 +613,18 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
       }
 
       console.log("[API Step 2] Upscaling with fal-ai/esrgan...");
-      console.log("[fal.ai ESRGAN Input URL]:", upscaleInputUrl);
+      console.log("[ESRGAN Input URL]:", upscaleInputUrl);
 
       const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
         input: {
           image_url: upscaleInputUrl,
+          scale: 4,        // 4x upscale — maximum resolution boost
+          face_enhance: false, // off — not needed for jersey/logo designs
         },
         logs: true,
       });
 
-      console.log("[fal.ai ESRGAN RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
+      console.log("[ESRGAN RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
 
       const upscaledUrl = upscalerResult?.data?.image?.url || upscalerResult?.data?.image_url;
       if (!upscaledUrl) {
