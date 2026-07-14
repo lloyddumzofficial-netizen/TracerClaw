@@ -126,9 +126,16 @@ export async function POST(request) {
       let prompt = "";
       if (project) {
         if (project.ai_prompt === 'ERASE_LOGOS') {
-          prompt = `⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
+          prompt = `🔴 CRITICAL REFERENCE LOCK — THIS IS THE MOST IMPORTANT INSTRUCTION:
+You are given an INPUT IMAGE. That input image IS the source of truth. Every color, every shape, every stripe, every pattern in your output MUST be copied EXACTLY from that input image. Do NOT invent. Do NOT approximate. Do NOT be creative. COPY EXACTLY.
+If you deviate from the input image in ANY way — wrong color, wrong stripe angle, wrong shape position, wrong pattern — you have FAILED.
+
+⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
 DO NOT DRAW A SHIRT. DO NOT DRAW A JERSEY SHAPE. DO NOT DRAW A NECKLINE. DO NOT DRAW ARMHOLES. DO NOT DRAW SLEEVES. DO NOT DRAW ANY CLOTHING SILHOUETTE WHATSOEVER.
 Your output canvas is a PLAIN RECTANGLE filled edge-to-edge with design pattern ONLY.
+
+== REFERENCE IMAGE ANALYSIS — DO THIS FIRST, BEFORE ANYTHING ELSE ==
+Step 0 (mandatory): Look at the input image. Count every color. Note every stripe direction and angle. Note every shape. Memorize the exact color of each zone (top-left, top-right, center, bottom-left, bottom-right). You will reproduce ALL of this exactly.
 
 == FINAL OUTPUT STANDARD — THIS IS YOUR TARGET ==
 Your output must look EXACTLY like the flat rectangular source artwork panel shown next to a jersey product mockup image — the kind you see on stock design websites where the jersey photo is on the LEFT and the flat pattern file is on the RIGHT. That flat pattern on the RIGHT is your target output:
@@ -177,10 +184,12 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
 - SUBLIMATION PATTERNS: Reproduce the EXACT SAME sublimation shapes, colors, waves, or geometric polygons. Do not replace them with a generic pattern.
 - Zero tolerance for invented elements: every output pixel must correspond to a real element in the reference image.
 
-== STEP 5: TEXT AND LOGO REMOVAL ==
-- REMOVE all player names, jersey numbers, sponsor logos, and chest badges.
-- Seamlessly continue the background pattern beneath removed text — no white boxes, no blank gaps.
-- The removed areas must be filled with the EXACT pattern that would logically continue underneath.
+== STEP 5: TEXT AND LOGO REMOVAL (ZERO TOLERANCE) ==
+- ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO WORDS, NO LOGOS, NO BADGES.
+- REMOVE ALL player names, team names, jersey numbers, sponsor logos, chest badges, quotes, years, and taglines.
+- Erase them completely and replace them with the BACKGROUND PATTERN that logically continues underneath.
+- There must be ZERO text in the final output.
+- No white boxes, no smudges, no blank gaps. The pattern must flow seamlessly.
 
 == STEP 6: FINISHING ==
 - Flatten all fabric wrinkles, fold shadows, and photographic lighting into clean 2D artwork.
@@ -345,9 +354,16 @@ Verify: overall geometry, every polygon, every shape, every angle, every border,
 If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original.`;
 
         } else {
-          prompt = `⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
+          prompt = `🔴 CRITICAL REFERENCE LOCK — THIS IS THE MOST IMPORTANT INSTRUCTION:
+You are given an INPUT IMAGE. That input image IS the source of truth. Every color, every shape, every stripe, every pattern in your output MUST be copied EXACTLY from that input image. Do NOT invent. Do NOT approximate. Do NOT be creative. COPY EXACTLY.
+If you deviate from the input image in ANY way — wrong color, wrong stripe angle, wrong shape position, wrong pattern — you have FAILED.
+
+⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
 DO NOT DRAW A SHIRT. DO NOT DRAW A JERSEY SHAPE. DO NOT DRAW A NECKLINE. DO NOT DRAW ARMHOLES. DO NOT DRAW SLEEVES. DO NOT DRAW ANY CLOTHING SILHOUETTE WHATSOEVER.
 Your output canvas is a PLAIN RECTANGLE filled edge-to-edge with design pattern ONLY.
+
+== REFERENCE IMAGE ANALYSIS — DO THIS FIRST, BEFORE ANYTHING ELSE ==
+Step 0 (mandatory): Look at the input image. Count every color. Note every stripe direction and angle. Note every shape. Memorize the exact color of each zone (top-left, top-right, center, bottom-left, bottom-right). You will reproduce ALL of this exactly.
 
 == FINAL OUTPUT STANDARD — THIS IS YOUR TARGET ==
 Your output must look EXACTLY like the flat rectangular source artwork panel shown next to a jersey product mockup image — the kind you see on stock design websites where the jersey photo is on the LEFT and the flat pattern file is on the RIGHT. That flat pattern on the RIGHT is your target output:
@@ -397,9 +413,10 @@ Before drawing anything, mentally catalog EVERY design element with surgical pre
 - Zero tolerance for invented elements: every output pixel must correspond to a real element in the reference image.
 
 == STEP 5: TEXT, NUMBERS, AND LOGOS ==
-- DO NOT replicate player names, jersey numbers, or personal name/number placeholders.
-- Fill those areas with the background pattern that logically continues underneath, as if the text was never there.
-- DO replicate team logos, chest crests, and decorative sublimation graphics that are part of the design.
+- STRICT RULE: REMOVE ALL LARGE TEXT, PLAYER NAMES, TEAM NAMES, SPONSOR NAMES, QUOTES, YEARS, AND TAGLINES.
+- DO NOT replicate large text elements that span across the jersey (e.g. big team names, vertical text, year ranges).
+- Fill those areas with the background pattern that logically continues underneath, as if the text was never there. No smudges, no blank gaps.
+- You MAY replicate small team logos or chest crests, but DO NOT include floating large text.
 
 == STEP 6: FINISHING ==
 - Flatten all fabric wrinkles, fold shadows, and photographic lighting into clean 2D artwork.
@@ -542,9 +559,9 @@ If any difference is detected, continue refining until the reconstruction is vis
             image_urls: [highResInputUrl],
             prompt: prompt,
             aspect_ratio: targetAspectRatio,
-            guidance_scale: 7.5,         // reverted to 7.5: 12 caused deep-frying and massive glitches
+            guidance_scale: 10,          // raised from 7.5 → 10: stronger prompt adherence without deep-frying
             num_inference_steps: 50,     // more steps = sharper, more accurate reproduction
-            image_strength: 0.35,        // 0.35 is the sweet spot to preserve geometry without glitching out
+            image_strength: 0.55,        // raised from 0.35 → 0.55: stays closer to reference geometry & colors
           },
           logs: true,
           onQueueUpdate: (update) => {
