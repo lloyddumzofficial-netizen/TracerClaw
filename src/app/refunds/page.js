@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CreditCard, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, AlertCircle, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
 import "../globals.css";
 
 export default function RefundPolicy() {
@@ -107,15 +107,25 @@ export default function RefundPolicy() {
         </Section>
 
         {/* CTA */}
-        <div style={{ background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: "12px", padding: "24px", textAlign: "center" }}>
-          <p style={{ margin: "0 0 16px 0", color: "#ddd" }}>Have a question about a payment or refund?</p>
+        <div style={{ marginTop: "40px", background: "linear-gradient(145deg, #1f1f1f, #151515)", border: "1px solid #333", borderRadius: "16px", padding: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <div style={{ background: "rgba(255,215,0,0.1)", padding: "16px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <MessageCircle size={28} color="#FFD700" />
+            </div>
+            <div>
+              <h3 style={{ margin: "0 0 8px 0", color: "#fff", fontSize: "20px", fontWeight: "700" }}>Still have questions?</h3>
+              <p style={{ margin: 0, color: "#aaa", fontSize: "14px", maxWidth: "400px" }}>Whether it's about a payment, refund, or just how things work, our support team is ready to help you out.</p>
+            </div>
+          </div>
           <a
             href="https://m.me/105884602605306"
             target="_blank"
             rel="noreferrer"
-            style={{ display: "inline-block", background: "#FFD700", color: "#000", padding: "12px 28px", borderRadius: "8px", fontWeight: "700", textDecoration: "none", fontSize: "14px", letterSpacing: "0.5px" }}
+            style={{ display: "flex", alignItems: "center", gap: "10px", background: "#FFD700", color: "#000", padding: "14px 28px", borderRadius: "8px", fontWeight: "700", textDecoration: "none", fontSize: "15px", letterSpacing: "0.5px", transition: "transform 0.2s, box-shadow 0.2s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(255,215,0,0.3)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
           >
-            Contact Us on Facebook
+            <MessageCircle size={18} /> Chat on Facebook
           </a>
         </div>
 

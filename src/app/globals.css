@@ -29,8 +29,6 @@ html, body {
   color: var(--text-primary);
   font-family: var(--font-outfit), monospace;
   font-size: 13px; /* Smaller, professional desktop font size */
-  height: 100vh;
-  overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
@@ -40,6 +38,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 
 /* TOP MENU BAR (Like File, Edit, View) */

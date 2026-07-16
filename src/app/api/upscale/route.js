@@ -54,6 +54,13 @@ export async function POST(request) {
       return NextResponse.json({ error: "Conflict updating credits. Please try again." }, { status: 409 });
     }
 
+    // Log the transaction
+    await adminSupabase.from('credit_logs').insert({
+      user_id: userId,
+      action: 'AI Upscale (4K)',
+      amount: -1
+    });
+
     // Process via fal.ai
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
     const { fal } = await import("@fal-ai/client");

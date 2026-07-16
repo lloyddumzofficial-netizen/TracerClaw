@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useState, useCallback } from "react";
-import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon } from "lucide-react";
+import { memo, useState, useCallback, useEffect } from "react";
+import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock } from "lucide-react";
 import { toast } from "@/components/Toast";
 
 const PLANS = [
@@ -41,11 +41,31 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
   const [form, setForm] = useState({ plan: "pro", txnRef: "", screenshotName: "", screenshotFile: null });
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("plans");
+  const [logs, setLogs] = useState([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "history" && user) {
+      setIsLoadingLogs(true);
+      supabase
+        .from("credit_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .then(({ data, error }) => {
+          if (!error && data) setLogs(data);
+          setIsLoadingLogs(false);
+        });
+    }
+  }, [activeTab, user, supabase]);
 
   const handleClose = useCallback(() => {
     onClose();
     setStep(1);
     setSubmitted(false);
+    setActiveTab("plans");
     setForm({ plan: "pro", txnRef: "", screenshotName: "", screenshotFile: null });
   }, [onClose]);
 
@@ -102,7 +122,7 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
           </div>
           {!submitted && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {[1, 2].map(s => (
+              {activeTab === 'plans' && [1, 2].map(s => (
                 <div key={s} style={{ width: '24px', height: '24px', borderRadius: '50%', background: step >= s ? '#fff' : '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: step >= s ? '#000' : '#888', transition: 'all 0.2s' }}>{s}</div>
               ))}
             </div>
@@ -110,8 +130,56 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
           <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}><X size={16} /></button>
         </div>
 
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', background: '#2a2a2a', borderBottom: '1px solid #444', padding: '0 24px' }}>
+          <button 
+            onClick={() => { setActiveTab('plans'); setStep(1); }} 
+            style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'plans' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'plans' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Package size={16} /> Top-Up Plans
+          </button>
+          <button 
+            onClick={() => { setActiveTab('history'); setStep(1); }} 
+            style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'history' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'history' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <History size={16} /> Token Logs
+          </button>
+        </div>
+
         <div style={{ background: '#262626', padding: '24px' }}>
-          {submitted ? (
+          {activeTab === 'history' ? (
+            <div style={{ minHeight: '300px' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#fff' }}>Token History</h2>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>Tignan ang iyong mga naging transactions at na-consumeng credits. (Logs are auto-deleted after 3 days)</p>
+              </div>
+              
+              {!user ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Please log in to view your token history.</div>
+              ) : isLoadingLogs ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Loading logs...</div>
+              ) : logs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', background: '#2a2a2a', border: '1px dashed #444', borderRadius: '8px' }}>
+                  <Clock size={32} color="#555" style={{ marginBottom: '12px' }} />
+                  <div style={{ color: '#aaa', fontSize: '14px' }}>No transactions found in the last 3 days.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {logs.map((log) => (
+                    <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2a2a2a', padding: '16px', borderRadius: '8px', border: '1px solid #333' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ color: '#fff', fontSize: '14px', fontWeight: '500' }}>{log.action}</span>
+                        <span style={{ color: '#666', fontSize: '12px' }}>{new Date(log.created_at).toLocaleString()}</span>
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: '700', color: log.amount > 0 ? '#4ade80' : '#ef4444' }}>
+                        {log.amount > 0 ? '+' : ''}{log.amount}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : submitted ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
                 <CheckCircle size={48} color="#4ade80" strokeWidth={1.5} />

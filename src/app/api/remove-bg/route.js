@@ -85,6 +85,13 @@ export async function POST(request) {
     // Track that credits were deducted so we can refund on failure
     creditDeducted = true;
 
+    // Log the transaction
+    await adminSupabase.from('credit_logs').insert({
+      user_id: user.id,
+      action: 'Background Removal',
+      amount: -1
+    });
+
     // ============================================================
     // PROCESS WITH FAL.AI (BiRefNet)
     // ============================================================
@@ -170,6 +177,7 @@ export async function POST(request) {
     if (creditDeducted && userId) {
       try {
         await adminSupabase.rpc('increment_credits', { user_id: userId, amount: 1 });
+        await adminSupabase.from('credit_logs').insert({ user_id: userId, action: 'Refund (Error)', amount: 1 });
         console.log(`[Remove BG] Refunded 1 credit to user ${userId} due to processing error.`);
       } catch (refundErr) {
         // Non-fatal: log but don't block the error response

@@ -69,6 +69,13 @@ export async function POST(request) {
         console.error("Failed to update credits:", updateProfileErr);
         return NextResponse.json({ error: "Failed to update credits." }, { status: 500 });
       }
+
+      // Log the transaction
+      await adminSupabase.from('credit_logs').insert({
+        user_id: paymentRequest.user_id,
+        action: 'Top-Up via GCash',
+        amount: creditsToAdd
+      });
     }
 
     // Update the payment request status to approved

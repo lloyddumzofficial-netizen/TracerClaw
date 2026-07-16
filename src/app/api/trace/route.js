@@ -86,6 +86,11 @@ export async function POST(request) {
       }
 
       // Credit deducted successfully.
+      await adminSupabase.from('credit_logs').insert({
+        user_id: project.user_id,
+        action: 'Extract & Vectorize',
+        amount: -1
+      });
     }
 
     if (step === 1) {
