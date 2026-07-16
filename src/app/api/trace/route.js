@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -583,7 +583,7 @@ If any difference is detected, continue refining until the reconstruction is vis
 
         const outputUrl = result.data.images[0].url;
         const { response: imgRes, buffer: generatedBuffer } = await fetchWithSSRFProtection(outputUrl, {
-          allowedHosts: [], // Trusted API response, allow any public host
+          allowedHosts: getAllowedProviderHosts(),
           maxBytes: DEFAULT_MAX_IMAGE_BYTES,
           allowedContentTypes: ['image/'],
         });

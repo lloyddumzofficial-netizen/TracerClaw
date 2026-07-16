@@ -30,6 +30,17 @@ export function getAllowedStorageHosts() {
   return configuredR2Hosts();
 }
 
+export function getAllowedProviderHosts() {
+  return [
+    'fal.media',
+    'v2.fal.media',
+    'v3.fal.media',
+    'queue.fal.run',
+    'storage.googleapis.com',
+    'img.recraft.ai',
+  ];
+}
+
 function isPrivateIP(ip) {
   if (net.isIPv4(ip)) {
     const parts = ip.split('.').map(Number);

@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedStorageHosts, normalizeUserImageUrl } from "@/lib/ssrf";
+import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, normalizeUserImageUrl } from "@/lib/ssrf";
 
 export const maxDuration = 60;
 
-const ALLOWED_REMOTE_HOSTS = [...getAllowedStorageHosts(), 'fal.media', 'v3.fal.media'];
+const ALLOWED_REMOTE_HOSTS = [...getAllowedStorageHosts(), ...getAllowedProviderHosts()];
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/svg+xml'];
 const MAX_JSON_BODY_BYTES = Math.ceil(DEFAULT_MAX_IMAGE_BYTES * 1.4);
 
@@ -79,7 +79,7 @@ export async function POST(request) {
           ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
           : DEFAULT_MAX_IMAGE_BYTES;
       const { response, buffer: remoteBuffer, finalUrl } = await fetchWithSSRFProtection(normalizedFileUrl, {
-        allowedHosts: [], // Allow any public host for trusted provider URLs
+        allowedHosts: ALLOWED_REMOTE_HOSTS,
         maxBytes,
         allowedContentTypes: ['image/', 'application/octet-stream'],
       });

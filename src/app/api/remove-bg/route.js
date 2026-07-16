@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/cloudflare";
-import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { fal } from "@fal-ai/client";
 
 export const runtime = 'nodejs';
@@ -134,7 +134,7 @@ export async function POST(request) {
     // ============================================================
     console.log("[Remove BG] Downloading from Fal to upload to R2...");
     const { response: imageResponse, buffer } = await fetchWithSSRFProtection(transparentImageUrl, {
-      allowedHosts: [], // Trusted API response, allow any public host
+      allowedHosts: getAllowedProviderHosts(),
       maxBytes: DEFAULT_MAX_IMAGE_BYTES,
       allowedContentTypes: ['image/'],
     });
