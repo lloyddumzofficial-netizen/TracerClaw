@@ -5,41 +5,32 @@ export const dynamic = 'force-dynamic'; // Ensures truly real-time updates on ev
 
 export async function GET() {
   try {
-    // Fetch users using the admin SDK
-    const { data, error } = await adminSupabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 500 // Fetch a large batch to ensure we find real avatars
-    });
+    const { count, error } = await adminSupabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true });
 
     if (error) {
       console.error("Failed to fetch user stats", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
     }
 
-    // Sort by created_at descending — newest users first, then take the latest 6
-    let avatars = [...data.users]
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 6)
-      .map(u => {
-        const meta = u.user_metadata || {};
-        let pic = meta.avatar_url || meta.picture;
-        if (!pic) {
-          // If no Google avatar, generate a colored initials avatar based on their name or email
-          const name = meta.name || meta.full_name || u.email || "U";
-          pic = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=150`;
-        }
-        return pic;
-      });
-
-    // Some Supabase versions return 'total' in data, otherwise we fallback
-    const totalUsers = data.total || data.users.length;
+    // Securely fetch real avatars without leaking emails
+    const { data: authData, error: authError } = await adminSupabase.auth.admin.listUsers();
+    let realAvatars = [];
+    
+    if (!authError && authData && authData.users) {
+      realAvatars = authData.users
+        .map(u => u.user_metadata?.avatar_url) // Extract only the avatar string
+        .filter(url => url)                    // Remove nulls/undefined
+        .slice(0, 5);                          // Get only top 5
+    }
 
     return NextResponse.json({
       success: true,
-      totalUsers,
-      avatars
+      totalUsers: count || 0,
+      avatars: realAvatars
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
   }
 }

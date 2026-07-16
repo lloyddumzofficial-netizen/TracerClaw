@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
-import { validateUrlForSSRF } from "@/lib/ssrf";
+import { enforceRateLimit } from "@/lib/rateLimit";
+import { getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 export async function POST(request) {
   let userId;
+  let creditDeducted = false;
   try {
     // Auth
     const authHeader = request.headers.get('authorization');
@@ -20,6 +22,15 @@ export async function POST(request) {
     }
     userId = user.id;
 
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:upscale:user",
+      identifier: userId,
+      max: 3,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
+
     const body = await request.json();
     const { imageUrl } = body;
 
@@ -27,7 +38,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing imageUrl" }, { status: 400 });
     }
 
-    if (!(await validateUrlForSSRF(imageUrl))) {
+    const finalImageUrl = normalizeUserImageUrl(imageUrl, new URL(request.url).origin);
+    if (!isOwnedStorageUrl(finalImageUrl, { userId }) || !(await validateUrlForSSRF(finalImageUrl, { allowedHosts: getAllowedStorageHosts() }))) {
       return NextResponse.json({ error: "Invalid or unauthorized image URL" }, { status: 400 });
     }
 
@@ -53,6 +65,7 @@ export async function POST(request) {
     if (deductErr || !updatedData || updatedData.length === 0) {
       return NextResponse.json({ error: "Conflict updating credits. Please try again." }, { status: 409 });
     }
+    creditDeducted = true;
 
     // Log the transaction
     await adminSupabase.from('credit_logs').insert({
@@ -64,12 +77,6 @@ export async function POST(request) {
     // Process via fal.ai
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
     const { fal } = await import("@fal-ai/client");
-
-    let finalImageUrl = decodeURIComponent(imageUrl);
-    const httpMatches = finalImageUrl.match(/https?:\/\/[^\s"']+/g);
-    if (httpMatches && httpMatches.length > 0) {
-      finalImageUrl = httpMatches[httpMatches.length - 1];
-    }
 
     console.log("[API Upscale] Using fal-ai/clarity-upscaler for high-end upscale on:", finalImageUrl);
 
@@ -100,7 +107,9 @@ export async function POST(request) {
         name: "Clarity Upscale",
         trace_type: "upscale",
         original_image_url: finalImageUrl,
-        generated_image_url: upscaledUrl
+        generated_image_url: upscaledUrl,
+        credit_deducted: true,
+        refunded: false
       });
 
     if (insertErr) {
@@ -111,7 +120,7 @@ export async function POST(request) {
 
   } catch (error) {
     console.error(`[Upscale API Error]:`, error.message);
-    if (userId) {
+    if (creditDeducted && userId) {
       await safeRefundCredit(userId);
     }
     const safeMessage = error.message?.includes('fal') ? 'AI processing failed. Your credit has been refunded.' : (error.message || 'Failed to process upscale');

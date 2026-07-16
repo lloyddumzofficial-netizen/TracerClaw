@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { segmentSvgLayers } from "@/lib/svgSegmenter";
+import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
 
 export async function POST(request) {
   let projectId;
+  let userId;
   try {
     // ─── Auth: verify the caller owns the project ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -20,6 +23,16 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
     }
+    userId = user.id;
+
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:trace-step3:user",
+      identifier: userId,
+      max: 3,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
     // ─────────────────────────────────────────────────────────────────────────
 
     const body = await request.json();
@@ -41,6 +54,7 @@ export async function POST(request) {
       .from('projects')
       .select('*')
       .eq('id', projectId)
+      .eq('user_id', user.id)
       .single();
 
     if (projError || !project) {
@@ -59,10 +73,16 @@ export async function POST(request) {
     // color reduction before handing off to Recraft vectorize.
     // ==========================================
     if (!project.upscaled_image_url) throw new Error("No upscaled image found for Step 3");
+    if (!isOwnedStorageUrl(project.upscaled_image_url, { userId: user.id, projectId }) || !(await validateUrlForSSRF(project.upscaled_image_url, { allowedHosts: getAllowedStorageHosts() }))) {
+      return NextResponse.json({ error: "Invalid or unauthorized upscaled image URL" }, { status: 400 });
+    }
 
-    const rasterImgRes = await fetch(project.upscaled_image_url);
+    const { response: rasterImgRes, buffer: rawBuffer } = await fetchWithSSRFProtection(project.upscaled_image_url, {
+      allowedHosts: getAllowedStorageHosts(),
+      maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+      allowedContentTypes: ['image/', 'application/octet-stream'],
+    });
     if (!rasterImgRes.ok) throw new Error("Failed to fetch upscaled image from R2");
-    const rawBuffer = Buffer.from(await rasterImgRes.arrayBuffer());
 
     // ─── Step 3 Pre-processing ────────────────────────────────────────────────
     // Recraft crispUpscale (Step 2) already sharpened and enhanced the image.
@@ -110,8 +130,13 @@ export async function POST(request) {
     const vectorData = await recraftVectorRes.json();
     const vectorUrl = vectorData.image.url;
 
-    const svgRes = await fetch(vectorUrl);
-    let svgText = await svgRes.text();
+    const { response: svgRes, buffer: svgDownloadBuffer } = await fetchWithSSRFProtection(vectorUrl, {
+      allowedHosts: [],
+      maxBytes: DEFAULT_MAX_SVG_BYTES,
+      allowedContentTypes: ['image/svg+xml', 'text/plain', 'application/octet-stream'],
+    });
+    if (!svgRes.ok) throw new Error("Failed to fetch vectorized SVG");
+    let svgText = svgDownloadBuffer.toString('utf8');
 
     // --- FIX FOR ADOBE ILLUSTRATOR "INVALID SVG" ERROR ---
     // 1. Remove markdown backticks if AI accidentally included them
@@ -137,9 +162,15 @@ export async function POST(request) {
     // ─────────────────────────────────────────────────────────────────────────
     try {
       // Fetch the original (pre-AI) image to give Gemini context about the design
-      const originalImgRes = await fetch(project.original_image_url);
+      if (!isOwnedStorageUrl(project.original_image_url, { userId: user.id, projectId })) {
+        throw new Error('Original image URL is not owned by this user/project');
+      }
+      const { response: originalImgRes, buffer: originalImgBuf } = await fetchWithSSRFProtection(project.original_image_url, {
+        allowedHosts: getAllowedStorageHosts(),
+        maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+        allowedContentTypes: ['image/'],
+      });
       if (originalImgRes.ok) {
-        const originalImgBuf = Buffer.from(await originalImgRes.arrayBuffer());
         const originalBase64 = originalImgBuf.toString('base64');
         const originalMime = originalImgRes.headers.get('content-type') || 'image/png';
 
@@ -160,7 +191,11 @@ export async function POST(request) {
     const cfSvgFileName = `projects/${projectId}/vector_${Date.now()}.svg`;
     const finalSvgUrl = await uploadToR2(svgBuffer, cfSvgFileName, "image/svg+xml");
 
-    await adminSupabase.from('projects').update({ svg_url: finalSvgUrl }).eq('id', projectId);
+    await adminSupabase
+      .from('projects')
+      .update({ svg_url: finalSvgUrl, zip_url: null, zip_signature: null, zip_generated_at: null })
+      .eq('id', projectId)
+      .eq('user_id', user.id);
 
     return NextResponse.json({ success: true, step: 3, svg_url: finalSvgUrl });
 
@@ -172,9 +207,11 @@ export async function POST(request) {
       if (projectId) {
         const { data: updatedProj } = await adminSupabase
           .from('projects')
-          .update({ generated_image_url: 'REFUNDED' })
+          .update({ generated_image_url: 'REFUNDED', refunded: true })
           .eq('id', projectId)
-          .neq('generated_image_url', 'REFUNDED')
+          .eq('user_id', userId)
+          .eq('credit_deducted', true)
+          .eq('refunded', false)
           .select('user_id');
           
         if (updatedProj && updatedProj.length > 0) {

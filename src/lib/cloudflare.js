@@ -45,14 +45,34 @@ export async function uploadToR2(buffer, fileName, contentType) {
   return `${publicUrl}/${fileName}`;
 }
 
-export async function deleteFromR2(fileUrl) {
+export function getR2KeyFromUrl(fileUrl) {
   if (!fileUrl) return;
-  // Extract the file key from the URL (everything after the publicUrl prefix)
-  const fileKey = fileUrl.replace(`${publicUrl}/`, '');
-  
-  // Guard: if key still looks like a full URL, extraction failed
-  if (fileKey.startsWith('http')) {
-    console.error(`[R2 Delete] Key extraction failed for URL: ${fileUrl}. publicUrl env may be missing or mismatched.`);
+  try {
+    const parsedUrl = new URL(fileUrl);
+    const parsedPublicUrl = new URL(publicUrl);
+    if (parsedUrl.origin !== parsedPublicUrl.origin) {
+      return null;
+    }
+    const publicPath = parsedPublicUrl.pathname.replace(/\/$/, '');
+    if (publicPath && !parsedUrl.pathname.startsWith(`${publicPath}/`)) {
+      return null;
+    }
+    const key = decodeURIComponent(parsedUrl.pathname.slice(publicPath.length).replace(/^\//, ''));
+    return key && !key.includes('..') ? key : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteFromR2(fileUrl, options = {}) {
+  const fileKey = getR2KeyFromUrl(fileUrl);
+  if (!fileKey) {
+    console.error(`[R2 Delete] Refusing to delete URL outside configured R2 public URL: ${fileUrl}`);
+    return;
+  }
+
+  if (options.allowedPrefixes?.length && !options.allowedPrefixes.some((prefix) => fileKey.startsWith(prefix))) {
+    console.error(`[R2 Delete] Refusing to delete key outside allowed prefixes: ${fileKey}`);
     return;
   }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { isAllowedStorageUrl, normalizeUserImageUrl } from "@/lib/ssrf";
 
 export async function POST(request) {
   try {
@@ -25,6 +26,11 @@ export async function POST(request) {
       return NextResponse.json({ error: "No image URL provided" }, { status: 400 });
     }
 
+    const normalizedImageUrl = normalizeUserImageUrl(imageUrl, new URL(request.url).origin);
+    if (!isAllowedStorageUrl(normalizedImageUrl, { userId: user.id })) {
+      return NextResponse.json({ error: "Invalid image URL: must be from your upload storage." }, { status: 400 });
+    }
+
     // Fix #4: Sanitize projectName — prevent XSS and oversized DB entries
     const safeName = ((projectName || 'Untitled Project').toString())
       .replace(/<[^>]*>/g, '')  // strip any HTML tags
@@ -38,8 +44,8 @@ export async function POST(request) {
       .insert([
         { 
           name: safeName, 
-          original_image_url: imageUrl,
-          trace_type: traceType === 'bg_remover' ? 'bg_remover' : (traceType.startsWith('mockup') ? 'mockup' : 'logo'),
+          original_image_url: normalizedImageUrl,
+          trace_type: traceType === 'bg_remover' ? 'bg_remover' : (String(traceType || '').startsWith('mockup') ? 'mockup' : 'logo'),
           user_id: user.id,
           ai_prompt: traceType === 'mockup_erase' ? 'ERASE_LOGOS' 
                    : traceType === 'mockup_preserve' ? 'PRESERVE_LOGOS'
@@ -66,4 +72,3 @@ export async function POST(request) {
     );
   }
 }
-

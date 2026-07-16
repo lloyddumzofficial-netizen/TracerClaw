@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/cloudflare";
-import { validateUrlForSSRF } from "@/lib/ssrf";
+import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { fal } from "@fal-ai/client";
 
 export const runtime = 'nodejs';
@@ -44,6 +44,10 @@ export async function POST(request) {
 
     if (!project.original_image_url) {
       return NextResponse.json({ error: "No image found to process" }, { status: 400 });
+    }
+
+    if (!isOwnedStorageUrl(project.original_image_url, { userId: user.id, projectId }) || !(await validateUrlForSSRF(project.original_image_url, { allowedHosts: getAllowedStorageHosts() }))) {
+      return NextResponse.json({ error: "Invalid or unauthorized image URL" }, { status: 400 });
     }
 
     // ─── Fix #1: Re-processing guard ─────────────────────────────────────────
@@ -92,16 +96,17 @@ export async function POST(request) {
       amount: -1
     });
 
+    await adminSupabase
+      .from('projects')
+      .update({ credit_deducted: true })
+      .eq('id', projectId)
+      .eq('user_id', user.id);
+
     // ============================================================
     // PROCESS WITH FAL.AI (BiRefNet)
     // ============================================================
     console.log(`[Remove BG] Sending to Fal.ai BiRefNet for project ${projectId}...`);
     
-    // Ensure the URL is safe
-    if (!(await validateUrlForSSRF(project.original_image_url))) {
-      return NextResponse.json({ error: "Invalid or unauthorized image URL" }, { status: 400 });
-    }
-
     const result = await fal.subscribe("fal-ai/birefnet", {
       input: {
         image_url: project.original_image_url
@@ -128,12 +133,14 @@ export async function POST(request) {
     // DOWNLOAD FROM FAL AND UPLOAD TO R2 (Permanent Storage)
     // ============================================================
     console.log("[Remove BG] Downloading from Fal to upload to R2...");
-    const imageResponse = await fetch(transparentImageUrl);
+    const { response: imageResponse, buffer } = await fetchWithSSRFProtection(transparentImageUrl, {
+      allowedHosts: [], // Trusted API response, allow any public host
+      maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+      allowedContentTypes: ['image/'],
+    });
     if (!imageResponse.ok) throw new Error("Failed to fetch image from Fal.ai");
-    const arrayBuffer = await imageResponse.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    const fileName = `bg-removed-${projectId}-${Date.now()}.png`;
+    const fileName = `projects/${projectId}/bg-removed-${Date.now()}.png`;
     const r2Url = await uploadToR2(buffer, fileName, "image/png");
 
     console.log("[Remove BG] Saved to R2:", r2Url);
@@ -145,19 +152,26 @@ export async function POST(request) {
       ? { 
           generated_image_url: r2Url, 
           upscaled_image_url: null, 
-          svg_url: null 
+          svg_url: null,
+          zip_url: null,
+          zip_signature: null,
+          zip_generated_at: null
         }
       : { 
           original_image_url: r2Url, 
           generated_image_url: null, 
           upscaled_image_url: null, 
-          svg_url: null 
+          svg_url: null,
+          zip_url: null,
+          zip_signature: null,
+          zip_generated_at: null
         };
 
     const { error: updateError } = await adminSupabase
       .from('projects')
       .update(updatePayload)
-      .eq('id', projectId);
+      .eq('id', projectId)
+      .eq('user_id', user.id);
 
     if (updateError) {
       throw new Error("Failed to update project with new image URL");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
-import { validateUrlForSSRF } from "@/lib/ssrf";
+import { enforceRateLimit } from "@/lib/rateLimit";
+import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -9,6 +10,7 @@ export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is sa
 
 export async function POST(request) {
   let projectId;
+  let userId;
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -20,6 +22,16 @@ export async function POST(request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
     }
+    userId = user.id;
+
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:trace:user",
+      identifier: userId,
+      max: 6,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
     // ─────────────────────────────────────────────────────────────────────────
 
     const body = await request.json();
@@ -45,6 +57,23 @@ export async function POST(request) {
     // HARD BLOCK: project must belong to a real user
     if (!project.user_id) {
       return NextResponse.json({ error: "Project has no owner. Please re-upload your image." }, { status: 403 });
+    }
+
+    let sourceUrl;
+    let rawSourceBuffer;
+    if (step === 1) {
+      sourceUrl = normalizeUserImageUrl(croppedImageUrl || project.original_image_url, new URL(request.url).origin);
+      if (!isOwnedStorageUrl(sourceUrl, { userId: user.id, projectId }) || !(await validateUrlForSSRF(sourceUrl, { allowedHosts: getAllowedStorageHosts() }))) {
+        return NextResponse.json({ error: "Invalid or unauthorized image URL" }, { status: 400 });
+      }
+      const sourceFetch = await fetchWithSSRFProtection(sourceUrl, {
+        allowedHosts: getAllowedStorageHosts(),
+        maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+        allowedContentTypes: ['image/'],
+      });
+      if (!sourceFetch.response.ok) throw new Error("Failed to fetch source image");
+      rawSourceBuffer = sourceFetch.buffer;
+      sourceUrl = sourceFetch.finalUrl;
     }
 
     // ============================================================
@@ -91,6 +120,12 @@ export async function POST(request) {
         action: 'Extract & Vectorize',
         amount: -1
       });
+
+      await adminSupabase
+        .from('projects')
+        .update({ credit_deducted: true })
+        .eq('id', projectId)
+        .eq('user_id', user.id);
     }
 
     if (step === 1) {
@@ -98,17 +133,9 @@ export async function POST(request) {
       // STAGE 1: fal.ai ESRGAN → nano-banana-pro
       // ==========================================
 
-      const sourceUrl = croppedImageUrl || project.original_image_url;
-      if (!(await validateUrlForSSRF(sourceUrl))) {
-        return NextResponse.json({ error: "Invalid or unauthorized image URL" }, { status: 400 });
-      }
-
       // Read image metadata to calculate the closest allowed aspect ratio for fal.ai
-      const imageResponse = await fetch(sourceUrl);
-      if (!imageResponse.ok) throw new Error("Failed to fetch source image");
-      const rawBuffer = Buffer.from(await imageResponse.arrayBuffer());
       const sharp = (await import('sharp')).default;
-      const metadata = await sharp(rawBuffer).metadata();
+      const metadata = await sharp(rawSourceBuffer).metadata();
 
       // Calculate closest aspect ratio for fal.ai Nano Banana Pro
       let targetAspectRatio = "auto";
@@ -517,17 +544,6 @@ If any difference is detected, continue refining until the reconstruction is vis
         const { fal } = await import("@fal-ai/client");
         
         let finalImageUrl = sourceUrl;
-        
-        // Sometimes the URL is passed as /api/proxy?url=https%3A%2F%2F...
-        // Or http://localhost:3000/api/proxy?url=https%3A%2F%2F...
-        // First we decode it so the inner URL becomes readable:
-        finalImageUrl = decodeURIComponent(finalImageUrl);
-        
-        // Now find the LAST occurrence of http:// or https:// (which will be the actual Cloudflare URL)
-        const httpMatches = finalImageUrl.match(/https?:\/\/[^\s"']+/g);
-        if (httpMatches && httpMatches.length > 0) {
-          finalImageUrl = httpMatches[httpMatches.length - 1];
-        }
 
         console.log("[fal.ai Input URL]:", finalImageUrl);
 
@@ -560,11 +576,14 @@ If any difference is detected, continue refining until the reconstruction is vis
         }
 
         const outputUrl = result.data.images[0].url;
-        const imgRes = await fetch(outputUrl);
+        const { response: imgRes, buffer: generatedBuffer } = await fetchWithSSRFProtection(outputUrl, {
+          allowedHosts: [], // Trusted API response, allow any public host
+          maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+          allowedContentTypes: ['image/'],
+        });
         if (!imgRes.ok) throw new Error("Failed to download generated image from fal.ai URL");
-        
-        const arrBuf = await imgRes.arrayBuffer();
-        generatedImageBuffer = Buffer.from(arrBuf);
+
+        generatedImageBuffer = generatedBuffer;
         generatedMimeType = result.data.images[0].content_type || "image/jpeg";
         geminiThinking = "Generated via fal.ai Nano Banana Pro Edit";
 
@@ -604,11 +623,9 @@ If any difference is detected, continue refining until the reconstruction is vis
 
       const { fal } = await import("@fal-ai/client");
 
-      // Decode the URL in case it's wrapped in a proxy path
-      let upscaleInputUrl = decodeURIComponent(project.generated_image_url);
-      const httpMatches2 = upscaleInputUrl.match(/https?:\/\/[^\s"']+/g);
-      if (httpMatches2 && httpMatches2.length > 0) {
-        upscaleInputUrl = httpMatches2[httpMatches2.length - 1];
+      const upscaleInputUrl = normalizeUserImageUrl(project.generated_image_url, new URL(request.url).origin);
+      if (!isOwnedStorageUrl(upscaleInputUrl, { userId: user.id, projectId }) || !(await validateUrlForSSRF(upscaleInputUrl, { allowedHosts: getAllowedStorageHosts() }))) {
+        return NextResponse.json({ error: "Invalid or unauthorized generated image URL" }, { status: 400 });
       }
 
       console.log("[API Step 2] Upscaling with fal-ai/aura-sr...");
@@ -644,12 +661,16 @@ If any difference is detected, continue refining until the reconstruction is vis
     // Attempt automatic refund on server-side failure
     try {
       if (projectId) {
-        const { data: updatedProj } = await adminSupabase
+        let refundQuery = adminSupabase
           .from('projects')
-          .update({ generated_image_url: 'REFUNDED' })
+          .update({ generated_image_url: 'REFUNDED', refunded: true })
           .eq('id', projectId)
-          .neq('generated_image_url', 'REFUNDED')
-          .select('user_id');
+          .eq('credit_deducted', true)
+          .eq('refunded', false)
+        if (userId) {
+          refundQuery = refundQuery.eq('user_id', userId);
+        }
+        const { data: updatedProj } = await refundQuery.select('user_id');
 
         if (updatedProj && updatedProj.length > 0) {
            await safeRefundCredit(updatedProj[0].user_id);

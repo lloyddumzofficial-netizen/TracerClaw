@@ -62,7 +62,7 @@ export async function DELETE(request) {
     // 1. Get the project — only if the user owns it
     const { data: project, error: fetchError } = await adminSupabase
       .from('projects')
-      .select('original_image_url, generated_image_url, svg_url, user_id')
+      .select('original_image_url, generated_image_url, upscaled_image_url, svg_url, zip_url, user_id')
       .eq('id', projectId)
       .eq('user_id', user.id) // ownership check
       .single();
@@ -81,14 +81,21 @@ export async function DELETE(request) {
     if (deleteError) throw deleteError;
 
     // 3. Delete files from Cloudflare R2 to save storage costs
+    const allowedPrefixes = [`users/${user.id}/`, `projects/${projectId}/`];
     if (project.original_image_url) {
-      await deleteFromR2(project.original_image_url);
+      await deleteFromR2(project.original_image_url, { allowedPrefixes });
     }
     if (project.generated_image_url && project.generated_image_url !== 'REFUNDED') {
-      await deleteFromR2(project.generated_image_url);
+      await deleteFromR2(project.generated_image_url, { allowedPrefixes });
+    }
+    if (project.upscaled_image_url) {
+      await deleteFromR2(project.upscaled_image_url, { allowedPrefixes });
     }
     if (project.svg_url) {
-      await deleteFromR2(project.svg_url);
+      await deleteFromR2(project.svg_url, { allowedPrefixes });
+    }
+    if (project.zip_url) {
+      await deleteFromR2(project.zip_url, { allowedPrefixes });
     }
 
     return NextResponse.json({ success: true });

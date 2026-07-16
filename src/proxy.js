@@ -8,13 +8,17 @@ import { Redis } from '@upstash/redis';
 // windowMs: same window in ms (used by in-memory fallback)
 // max: max requests per window per IP
 const RATE_LIMIT_CONFIG = {
+  '/api/trace-step3':   { window: '60 s', windowMs: 60_000, max: 6   },
+  '/api/prepare-zip':   { window: '60 s', windowMs: 60_000, max: 10  },
+  '/api/save-asset':    { window: '60 s', windowMs: 60_000, max: 30  },
+  '/api/upscale':       { window: '60 s', windowMs: 60_000, max: 6   },
   '/api/trace':         { window: '60 s', windowMs: 60_000, max: 10  },
-  '/api/upload':        { window: '60 s', windowMs: 60_000, max: 20  },
   '/api/upload-mobile': { window: '60 s', windowMs: 60_000, max: 10  },
+  '/api/upload':        { window: '60 s', windowMs: 60_000, max: 20  },
   '/api/crop':          { window: '60 s', windowMs: 60_000, max: 30  },
   '/api/remove-bg':     { window: '60 s', windowMs: 60_000, max: 10  },
   '/api/refund':        { window: '60 s', windowMs: 60_000, max: 5   },
-  '/api/proxy':         { window: '60 s', windowMs: 60_000, max: 60  },
+  '/api/proxy':         { window: '60 s', windowMs: 60_000, max: 120 },
 };
 
 // ─── In-Memory Fallback ───────────────────────────────────────────────────────
@@ -80,7 +84,7 @@ function getUpstashLimiters() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getRoutePrefix(pathname) {
-  for (const prefix of Object.keys(RATE_LIMIT_CONFIG)) {
+  for (const prefix of Object.keys(RATE_LIMIT_CONFIG).sort((a, b) => b.length - a.length)) {
     if (pathname.startsWith(prefix)) return prefix;
   }
   return null;
@@ -95,7 +99,7 @@ function getClientIP(request) {
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-export async function middleware(request) {
+export async function proxy(request) {
   const url = request.nextUrl;
   const host = request.headers.get('host');
 

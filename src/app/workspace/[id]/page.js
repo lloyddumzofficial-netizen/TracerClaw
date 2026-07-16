@@ -103,21 +103,15 @@ export default function Workspace() {
 
   // ─── Download Handlers ────────────────────────────────────────────────────
   const forceDownload = useCallback(async (url, filename) => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Fetch failed");
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
-    } catch {
-      window.open(url, "_blank");
-    }
+    const link = document.createElement("a");
+    const downloadUrl = new URL(url, window.location.origin);
+    downloadUrl.searchParams.set("download", filename);
+    link.href = downloadUrl.toString();
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }, []);
 
   const handleDownloadSvg = useCallback(async () => {
@@ -137,45 +131,37 @@ export default function Workspace() {
     if (!project?.upscaled_image_url) return;
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(project.upscaled_image_url)}`;
     await forceDownload(proxyUrl, `DesaynClaw_${project.name}_4K.png`);
+    await new Promise(resolve => setTimeout(resolve, 1500));
   }, [project, forceDownload]);
 
   const handleDownloadAll = useCallback(async () => {
     if (!project) return;
-    logToConsole("[System] Zipping all assets...");
+    logToConsole("[System] Preparing ZIP...");
     try {
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-      const urls = [
-        project.original_image_url && { url: project.original_image_url, name: `DesaynClaw_${project.name}_Reference.png` },
-        project.generated_image_url && { url: project.generated_image_url, name: `DesaynClaw_${project.name}_DesaynVision.png` },
-        project.upscaled_image_url && { url: project.upscaled_image_url, name: `DesaynClaw_${project.name}_Upscaled.png` },
-        project.svg_url && { url: project.svg_url, name: `DesaynClaw_${project.name}_Vector.svg` },
-      ].filter(Boolean);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Unauthorized");
 
-      for (const item of urls) {
-        try {
-          const res = await fetch(`/api/proxy?url=${encodeURIComponent(item.url)}`);
-          if (!res.ok) throw new Error("Failed to fetch proxy");
-          zip.file(item.name, await res.blob());
-        } catch {
-          // Skip failed file — don't abort the whole zip
-        }
-      }
+      const res = await fetch("/api/prepare-zip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to prepare ZIP");
 
-      const content = await zip.generateAsync({ type: "blob" });
-      const objectUrl = URL.createObjectURL(content);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `DesaynClaw_${project.name}_AllFiles.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
-      logToConsole("[Success] Downloaded ZIP folder!", "success");
+      await forceDownload(
+        `/api/proxy?url=${encodeURIComponent(data.zipUrl)}`,
+        data.fileName || `DesaynClaw_${project.name}_AllFiles.zip`
+      );
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      logToConsole(data.cached ? "[Success] Cached ZIP download started!" : "[Success] ZIP prepared and download started!", "success");
     } catch (err) {
       logToConsole(`[Error] Failed to zip: ${err.message}`, "error");
     }
-  }, [project, logToConsole]);
+  }, [project, logToConsole, forceDownload]);
 
   // ─── Trace Execution Wrapper ──────────────────────────────────────────────
   const onExecuteTrace = useCallback(async (vectorColors) => {

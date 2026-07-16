@@ -48,7 +48,8 @@ export async function POST(request, { params }) {
         reviewer_name,
         reviewer_avatar
       })
-      .eq("id", projectId);
+      .eq("id", projectId)
+      .eq("user_id", user.id);
 
     if (updateError) {
       console.error("[Review API] Error updating rating:", updateError);

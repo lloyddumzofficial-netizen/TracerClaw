@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { isAllowedStorageUrl } from "@/lib/ssrf";
 
 export const maxDuration = 30;
 
@@ -25,8 +26,7 @@ export async function POST(request) {
 
     // Security: validate that croppedImageUrl is from our own R2 bucket only
     // This prevents URL injection attacks where arbitrary URLs get stored in the DB
-    const ALLOWED_URL_PREFIX = process.env.CLOUDFLARE_PUBLIC_URL;
-    if (!ALLOWED_URL_PREFIX || !croppedImageUrl.startsWith(ALLOWED_URL_PREFIX)) {
+    if (!isAllowedStorageUrl(croppedImageUrl, { userId: user.id })) {
       console.warn(`[Crop API] Blocked attempt to store unauthorized URL: ${croppedImageUrl}`);
       return NextResponse.json({ error: "Invalid image URL: must be from our storage." }, { status: 400 });
     }
@@ -38,7 +38,10 @@ export async function POST(request) {
         original_image_url: croppedImageUrl,
         generated_image_url: null,
         upscaled_image_url: null,
-        svg_url: null
+        svg_url: null,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
       })
       .eq('id', projectId)
       .eq('user_id', user.id); // ownership check

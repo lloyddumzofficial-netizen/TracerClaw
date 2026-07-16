@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, DEFAULT_MAX_ZIP_BYTES, fetchWithSSRFProtection, validateUrlForSSRF } from "@/lib/ssrf";
 
 // SSRF Protection: only allow proxying from our own Cloudflare R2 domains.
 // Never fetch arbitrary URLs from the server — that opens internal metadata attacks.
@@ -25,6 +26,7 @@ export async function GET(request) {
     // 2. Rate limiting in middleware (60 req/min per IP)
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
+    const downloadName = searchParams.get('download');
 
     if (!url) {
       return new NextResponse('Missing URL parameter', { status: 400 });
@@ -43,20 +45,66 @@ export async function GET(request) {
       return new NextResponse('Forbidden: URL not from an allowed host', { status: 403 });
     }
 
-    const res = await fetch(url);
-    
+    const lowerPath = parsedUrl.pathname.toLowerCase();
+    const maxBytes = lowerPath.endsWith('.svg')
+      ? DEFAULT_MAX_SVG_BYTES
+      : lowerPath.endsWith('.zip')
+        ? DEFAULT_MAX_ZIP_BYTES
+      : lowerPath.includes('/upscaled_')
+        ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
+        : DEFAULT_MAX_IMAGE_BYTES;
+    const isSvg = parsedUrl.pathname.toLowerCase().endsWith('.svg');
+
+    if (!isSvg) {
+      if (!(await validateUrlForSSRF(url, { allowedHosts: ALLOWED_HOSTS }))) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
+
+      const upstream = await fetch(url, { redirect: 'manual' });
+      if ([301, 302, 303, 307, 308].includes(upstream.status)) {
+        return new NextResponse('Redirects are not allowed', { status: 403 });
+      }
+      if (!upstream.ok) {
+        return new NextResponse(`Failed to fetch image: ${upstream.statusText}`, { status: upstream.status });
+      }
+
+      const contentLength = Number(upstream.headers.get('content-length') || '0');
+      if (contentLength && contentLength > maxBytes) {
+        return new NextResponse('File too large', { status: 413 });
+      }
+
+      const upstreamType = upstream.headers.get('content-type') || '';
+      const contentType = lowerPath.endsWith('.zip')
+        ? 'application/zip'
+        : upstreamType.startsWith('image/')
+          ? upstreamType
+          : 'image/png';
+
+      return new NextResponse(upstream.body, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          ...(downloadName ? { 'Content-Disposition': `attachment; filename="${downloadName.replace(/[^a-zA-Z0-9_.-]/g, '_')}"` } : {}),
+          'Cache-Control': 'public, max-age=86400, no-transform'
+        }
+      });
+    }
+
+    const { response: res, buffer: fetchedBuffer } = await fetchWithSSRFProtection(url, {
+      allowedHosts: ALLOWED_HOSTS,
+      maxBytes,
+      allowedContentTypes: ['image/', 'application/octet-stream'],
+    });
+
     if (!res.ok) {
       return new NextResponse(`Failed to fetch image: ${res.statusText}`, { status: res.status });
     }
 
-    let buffer = await res.arrayBuffer();
+    let buffer = fetchedBuffer;
     
     // Force correct Content-Type for SVG files — R2 sometimes returns
     // application/octet-stream for .svg which breaks <img> rendering
-    const isSvg = parsedUrl.pathname.toLowerCase().endsWith('.svg');
-    const contentType = isSvg
-      ? 'image/svg+xml'
-      : (res.headers.get('content-type') || 'image/jpeg');
+    const contentType = 'image/svg+xml';
 
     // FIX FOR OLD SVGs: Strip invalid inkscape:label that causes Adobe Illustrator to crash
     if (isSvg) {
@@ -71,12 +119,21 @@ export async function GET(request) {
       status: 200,
       headers: {
         'Content-Type': contentType,
+        ...(downloadName ? { 'Content-Disposition': `attachment; filename="${downloadName.replace(/[^a-zA-Z0-9_.-]/g, '_')}"` } : {}),
         'Cache-Control': 'public, max-age=86400'
       }
     });
   } catch (error) {
     console.error('[Proxy Error]:', error);
+    if (error.message === 'Remote file is too large') {
+      return new NextResponse('File too large', { status: 413 });
+    }
+    if (error.message === 'Remote file has an invalid content type') {
+      return new NextResponse('Invalid content type', { status: 415 });
+    }
+    if (error.message === 'Invalid or unauthorized URL') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
-

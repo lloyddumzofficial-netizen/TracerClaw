@@ -30,67 +30,58 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing requestId" }, { status: 400 });
     }
 
-    // Fetch the payment request
     const { data: paymentRequest, error: fetchErr } = await adminSupabase
       .from('payment_requests')
       .select('*')
       .eq('id', requestId)
+      .eq('status', 'pending')
       .single();
 
     if (fetchErr || !paymentRequest) {
-      return NextResponse.json({ error: "Payment request not found." }, { status: 404 });
-    }
-
-    if (paymentRequest.status === 'approved') {
-      return NextResponse.json({ error: "Payment request already approved." }, { status: 400 });
+      return NextResponse.json({ error: "Payment request not found or already approved." }, { status: 409 });
     }
 
     const creditsToAdd = PLAN_CREDITS[paymentRequest.plan] || 0;
+    if (!markOnly && creditsToAdd <= 0) {
+      return NextResponse.json({ error: "Invalid payment plan." }, { status: 400 });
+    }
+
+    const { data: claimedRequest, error: claimErr } = await adminSupabase
+      .from('payment_requests')
+      .update({ status: 'approved' })
+      .eq('id', requestId)
+      .eq('status', 'pending')
+      .select('*')
+      .single();
+
+    if (claimErr || !claimedRequest) {
+      return NextResponse.json({ error: "Payment request already approved." }, { status: 409 });
+    }
 
     if (!markOnly) {
-      // Fetch the user's current profile to update credits
-      const { data: profile, error: profileErr } = await adminSupabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', paymentRequest.user_id)
-        .single();
-
-      if (profileErr || !profile) {
-        return NextResponse.json({ error: "User profile not found." }, { status: 404 });
-      }
-
-      // Update the profile with new credits
       const { error: updateProfileErr } = await adminSupabase
-        .from('profiles')
-        .update({ credits: profile.credits + creditsToAdd })
-        .eq('id', paymentRequest.user_id);
+        .rpc('increment_credits', { user_id: claimedRequest.user_id, amount: creditsToAdd });
 
       if (updateProfileErr) {
         console.error("Failed to update credits:", updateProfileErr);
+        await adminSupabase
+          .from('payment_requests')
+          .update({ status: 'pending' })
+          .eq('id', requestId)
+          .eq('status', 'approved');
         return NextResponse.json({ error: "Failed to update credits." }, { status: 500 });
       }
 
       // Log the transaction
       await adminSupabase.from('credit_logs').insert({
-        user_id: paymentRequest.user_id,
+        user_id: claimedRequest.user_id,
         action: 'Top-Up via GCash',
         amount: creditsToAdd
       });
     }
 
-    // Update the payment request status to approved
-    const { error: updateRequestErr } = await adminSupabase
-      .from('payment_requests')
-      .update({ status: 'approved' })
-      .eq('id', requestId);
-
-    if (updateRequestErr) {
-      console.error("Failed to update payment request status:", updateRequestErr);
-      return NextResponse.json({ error: "Credits added, but failed to update request status." }, { status: 500 });
-    }
-
     // --- SEND EMAIL NOTIFICATION VIA RESEND ---
-    if (!markOnly && resend && paymentRequest.email) {
+    if (!markOnly && resend && claimedRequest.email) {
       try {
         const htmlTemplate = `
           <div style="background-color: #1a1a1a; color: #ffffff; font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; text-align: center;">
@@ -108,7 +99,7 @@ export async function POST(request) {
                 <p style="margin: 0 0 10px 0; color: #888888; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Package Details</p>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                   <span style="color: #aaaaaa; font-size: 14px;">Plan:</span>
-                  <strong style="color: #ffffff; text-transform: capitalize; font-size: 14px;">${paymentRequest.plan}</strong>
+                  <strong style="color: #ffffff; text-transform: capitalize; font-size: 14px;">${claimedRequest.plan}</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                   <span style="color: #aaaaaa; font-size: 14px;">Credits Added:</span>
@@ -116,7 +107,7 @@ export async function POST(request) {
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #aaaaaa; font-size: 14px;">Reference No:</span>
-                  <strong style="color: #ffffff; font-size: 14px;">${paymentRequest.reference_number || 'N/A'}</strong>
+                  <strong style="color: #ffffff; font-size: 14px;">${claimedRequest.reference_number || 'N/A'}</strong>
                 </div>
               </div>
 
@@ -134,11 +125,11 @@ export async function POST(request) {
 
         await resend.emails.send({
           from: 'DesaynClaw <hello@desaynclaw.com>',
-          to: paymentRequest.email,
+          to: claimedRequest.email,
           subject: 'Payment Approved - Credits Added! 🎉',
           html: htmlTemplate,
         });
-        console.log(`Email sent to ${paymentRequest.email}`);
+        console.log(`Email sent to ${claimedRequest.email}`);
       } catch (emailErr) {
         console.error("Failed to send email:", emailErr);
         // We do not fail the request if email fails, credits were already added.
