@@ -98,7 +98,7 @@ export default function RefundPolicy() {
 
         {/* Section 6 */}
         <Section num="6" title="Chargebacks & Disputes">
-          Initiating an unauthorized chargeback with your bank or payment provider — before contacting us to resolve the issue — may result in the <strong style={{ color: "#fff" }}>permanent suspension</strong> of your account and forfeiture of all remaining credits. We strongly encourage you to reach out to us first; we are happy to resolve any payment concerns.
+          Initiating an unauthorized chargeback with your bank or payment provider — before contacting us to resolve the issue — may result in the <strong style={{ color: "#fff" }}>permanent suspension</strong> of your account and forfeiture of all remaining credits, especially where the account is also linked to fraud, abuse, or intellectual property violations. We strongly encourage you to reach out to us first; we are happy to resolve any payment concerns.
         </Section>
 
         {/* Section 7 */}

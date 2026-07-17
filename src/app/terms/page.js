@@ -46,9 +46,14 @@ export default function TermsOfService() {
         </Section>
 
         <Section num="3" title="User Responsibilities & Prohibited Conduct">
+          <p style={{ margin: "0 0 12px 0" }}>
+            You are responsible for every file you upload, process, export, or use through the Service. You must own the artwork or have sufficient authorization from the copyright owner, trademark owner, client, brand, team, school, business, or other rights holder before using DesaynClaw.
+          </p>
           <p style={{ margin: "0 0 12px 0" }}>You agree that you will NOT use the Service to upload, process, or distribute any content that:</p>
           <ul style={{ paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px", color: "#aaa", margin: 0 }}>
             <li>Infringes upon the intellectual property rights of any third party.</li>
+            <li>Copies, recreates, reproduces, sells, distributes, or commercially exploits copyrighted or trademarked content without authorization.</li>
+            <li>Creates counterfeit products, unauthorized brand merchandise, or materials that impersonate an artist, brand, business, team, school, or copyright owner.</li>
             <li>Is illegal, obscene, sexually explicit, threatening, defamatory, or otherwise objectionable.</li>
             <li>Contains malware, viruses, or any other harmful code.</li>
             <li>Attempts to circumvent any security measures or abuse the credit system.</li>
@@ -62,7 +67,9 @@ export default function TermsOfService() {
         <Section num="4" title="Intellectual Property & Content Ownership">
           You retain full copyright and intellectual property ownership over all images you upload and all vector outputs you generate using the Service. By uploading content, you grant us a limited, non-exclusive, royalty-free license solely to process the file in order to provide the Service to you. This license is automatically revoked upon deletion of your files or project.
           <br /><br />
-          We do not claim ownership of your content. We do not use your uploaded images to train AI models.
+          We do not claim ownership of your content. We do not use your uploaded images to train AI models. However, using the Service does not transfer, create, or grant any copyright, trademark, reproduction, merchandising, resale, distribution, or commercial exploitation rights over uploaded content or generated output.
+          <br /><br />
+          We may remove content that appears to violate intellectual property rights, and we may suspend or terminate accounts for repeated infringement or serious violations of these Terms.
         </Section>
 
         <Section num="5" title="Limitation of Liability">

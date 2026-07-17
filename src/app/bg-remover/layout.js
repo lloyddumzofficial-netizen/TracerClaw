@@ -33,9 +33,9 @@ export const metadata = {
     url: "https://desaynclaw.com/bg-remover",
     images: [
       {
-        url: "/a-clean--minimal-social-media-promotional-banner-f-01.jpg",
-        width: 1200,
-        height: 630,
+        url: "/DESAYNCLAW-Image.JPG",
+        width: 1230,
+        height: 807,
         alt: "DesaynClaw AI Background Remover",
       },
     ],
@@ -44,6 +44,7 @@ export const metadata = {
     title: "AI Background Remover | DesaynClaw",
     description:
       "Remove backgrounds from sublimation designs and logos in one click. Free to try.",
+    images: ["/DESAYNCLAW-Image.JPG"],
   },
 };
 

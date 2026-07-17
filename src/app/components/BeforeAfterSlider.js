@@ -76,15 +76,15 @@ export default function BeforeAfterSlider({ title, rasterUrl, vectorUrl, height 
         width: '100%',
         height: '100%',
         background: '#1a1a1a', 
-        border: '1px solid #333', 
-        padding: '16px', 
+        border: '1px solid rgba(255,255,255,0.08)',
+        padding: '8px',
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '12px',
-        borderRadius: '12px',
+        gap: '8px',
+        borderRadius: '0',
         textAlign: 'left'
       }}>
-        <div style={{ position: 'relative', height, background: '#000', overflow: 'hidden', border: '1px solid #444', borderRadius: '8px' }}>
+        <div style={{ position: 'relative', height, background: '#000', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0' }}>
           
           {/* Original Image (Background / Right Side) */}
           <img 
@@ -92,14 +92,14 @@ export default function BeforeAfterSlider({ title, rasterUrl, vectorUrl, height 
             alt="Original Photo" 
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
           />
-          <span style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 10px', fontSize: '11px', color: '#fff', borderRadius: '4px', zIndex: 1 }}>Original Photo</span>
+          <span style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 10px', fontSize: '11px', color: '#fff', borderRadius: '0', zIndex: 1 }}>Original Photo</span>
           
           {/* Vectorized SVG (Foreground / Left Side) */}
           <InlineSVG 
             url={vectorUrl} 
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`, zIndex: 2 }} 
           />
-          <span style={{ position: 'absolute', top: 12, left: 12, background: '#FFD700', padding: '4px 10px', fontSize: '11px', color: '#000', fontWeight: 'bold', borderRadius: '4px', zIndex: 3, opacity: sliderPosition > 10 ? 1 : 0, transition: 'opacity 0.2s' }}>Vectorized SVG</span>
+          <span style={{ position: 'absolute', top: 12, left: 12, background: '#FFD700', padding: '4px 10px', fontSize: '11px', color: '#000', fontWeight: 'bold', borderRadius: '0', zIndex: 3, opacity: sliderPosition > 10 ? 1 : 0, transition: 'opacity 0.2s' }}>Vectorized SVG</span>
 
           {/* Slider Divider Line */}
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${sliderPosition}%`, width: '2px', background: '#FFD700', transform: 'translateX(-50%)', zIndex: 3, pointerEvents: 'none' }}></div>

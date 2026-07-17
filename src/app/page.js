@@ -9,7 +9,7 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Table2, Scan, Scissors, ShieldCheck, Code2 } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2 } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";
@@ -22,7 +22,6 @@ import NewProjectModal from "./components/NewProjectModal";
 import OnboardingModal from "./components/OnboardingModal";
 import RecentProjects from "./components/RecentProjects";
 import EduSection from "./components/EduSection";
-import TraceIcon from "./components/TraceIcon";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
 import PromoModal from "./components/PromoModal";
 import AIDisclaimerModal from "./components/AIDisclaimerModal";
@@ -120,6 +119,7 @@ export default function StartScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showCopyrightNotice, setShowCopyrightNotice] = useState(true);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   // ─── Modal Specific State ───────────────────────────────────────────────────
@@ -134,6 +134,10 @@ export default function StartScreen() {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // ─── Initialization ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    setShowCopyrightNotice(localStorage.getItem("desaynclaw-copyright-notice-dismissed") !== "1");
+  }, []);
+
   useEffect(() => {
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -483,6 +487,27 @@ export default function StartScreen() {
 
       {/* FULL WIDTH HERO SECTION */}
       <div style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
+        {showCopyrightNotice && (
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", background: "#111", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 3 }}>
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "14px", color: "#d8d8d8", fontSize: "12px", lineHeight: "1.5", textAlign: "center" }}>
+              <ShieldCheck size={15} color="#FFD700" style={{ flexShrink: 0 }} />
+              <span>
+                Copyright reminder: only upload or generate designs you own, are authorized to use, or have rights to process. Unauthorized copyrighted or trademarked content may be removed.
+              </span>
+              <button
+                type="button"
+                aria-label="Dismiss copyright notice"
+                onClick={() => {
+                  localStorage.setItem("desaynclaw-copyright-notice-dismissed", "1");
+                  setShowCopyrightNotice(false);
+                }}
+                style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "auto" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 2 }}>
 
           <div className="hero-section" style={{ justifyContent: "flex-start", margin: 0 }}>
@@ -588,15 +613,15 @@ export default function StartScreen() {
               <div className="hero-right" style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
                   <BeforeAfterSlider
-                    title="Untitled Design 1"
-                    rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1783990134382_crop_1783990137133.jpg"
-                    vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/5fca148b-6565-440c-b323-5a345bd2f15a/generated_flat_1783990173901.png"
+                    title="Untitled Design 2"
+                    rasterUrl="/samples/esports-original.jpg"
+                    vectorUrl="/samples/esports-vector.png"
                     height="220px"
                   />
                   <BeforeAfterSlider
-                    title="Untitled Design 2"
-                    rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1784032953717_crop_1784032953314.jpg"
-                    vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/1fb04f02-72a0-4ee5-9011-3f3005f4d45a/generated_flat_1784032985488.png"
+                    title="Polo Shirt Pattern"
+                    rasterUrl="/samples/polo-original.png"
+                    vectorUrl="/samples/polo-vector.png"
                     height="220px"
                   />
                 </div>
@@ -800,14 +825,14 @@ export default function StartScreen() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
             <BeforeAfterSlider
-              title="Basketball Jersey Pattern (4K Vectorized)"
-              rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1783990134382_crop_1783990137133.jpg"
-              vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/5fca148b-6565-440c-b323-5a345bd2f15a/generated_flat_1783990173901.png"
+              title="Esports Gaming Apparel (Flat Extracted)"
+              rasterUrl="/samples/esports-original.jpg"
+              vectorUrl="/samples/esports-vector.png"
             />
             <BeforeAfterSlider
-              title="Esports Gaming Apparel (Flat Extracted)"
-              rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1784032953717_crop_1784032953314.jpg"
-              vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/1fb04f02-72a0-4ee5-9011-3f3005f4d45a/generated_flat_1784032985488.png"
+              title="Polo Shirt Pattern (Flat Extracted)"
+              rasterUrl="/samples/polo-original.png"
+              vectorUrl="/samples/polo-vector.png"
             />
           </div>
         </div>

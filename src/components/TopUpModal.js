@@ -1,8 +1,9 @@
 "use client";
 
 import { memo, useState, useCallback, useEffect } from "react";
-import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock } from "lucide-react";
+import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, CreditCard } from "lucide-react";
 import { toast } from "@/components/Toast";
+import { createClient } from "@/utils/supabase/client";
 
 const PLANS = [
   { 
@@ -36,11 +37,14 @@ const PLAN_LABELS = {
 };
 const PLAN_PRICES = { tingi: "₱50", basic: "₱100", starter: "₱290", pro: "₱870" };
 
-const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onLoginRequired }) {
+const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, onClose, onLoginRequired }) {
+  const [fallbackSupabase] = useState(() => createClient());
+  const supabase = supabaseProp || fallbackSupabase;
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ plan: "pro", txnRef: "", screenshotName: "", screenshotFile: null });
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStartingDodo, setIsStartingDodo] = useState(false);
   const [activeTab, setActiveTab] = useState("plans");
   const [logs, setLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -65,9 +69,43 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
     onClose();
     setStep(1);
     setSubmitted(false);
+    setIsStartingDodo(false);
     setActiveTab("plans");
     setForm({ plan: "pro", txnRef: "", screenshotName: "", screenshotFile: null });
   }, [onClose]);
+
+  const handleStartDodoCheckout = useCallback(async () => {
+    if (!user) {
+      onLoginRequired?.();
+      return;
+    }
+
+    setIsStartingDodo(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Please log in again before checkout.");
+
+      const response = await fetch("/api/payments/dodo/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ plan: form.plan }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to start Dodo checkout");
+      if (!data.checkoutUrl) throw new Error("Dodo checkout URL is missing");
+
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      toast.error(err.message || "Failed to start Dodo checkout");
+    } finally {
+      setIsStartingDodo(false);
+    }
+  }, [form.plan, onLoginRequired, supabase, user]);
 
   const handleSubmit = useCallback(async () => {
     if (!form.txnRef.trim() || !form.screenshotFile) {
@@ -111,11 +149,11 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
   if (!show) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" style={{ maxWidth: '960px', width: '100%', padding: '0', overflow: 'hidden', borderRadius: '0', border: '1px solid #444', background: '#262626' }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose} style={{ padding: '24px' }}>
+      <div className="modal-content" style={{ maxWidth: '960px', width: '100%', maxHeight: 'calc(100vh - 48px)', padding: '0', overflow: 'hidden', borderRadius: '0', border: '1px solid #444', background: '#262626', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
         
         {/* Modal Header */}
-        <div style={{ background: '#2a2a2a', borderBottom: '1px solid #444', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ background: '#2a2a2a', borderBottom: '1px solid #444', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Shirt size={18} color="#fff" />
             <span style={{ fontWeight: '600', fontSize: '15px', color: '#fff' }}>Get More Traces</span>
@@ -131,7 +169,7 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', background: '#2a2a2a', borderBottom: '1px solid #444', padding: '0 24px' }}>
+        <div style={{ display: 'flex', background: '#2a2a2a', borderBottom: '1px solid #444', padding: '0 24px', flexShrink: 0 }}>
           <button 
             onClick={() => { setActiveTab('plans'); setStep(1); }} 
             style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'plans' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'plans' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -146,7 +184,7 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
           </button>
         </div>
 
-        <div style={{ background: '#262626', padding: '24px' }}>
+        <div style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
           {activeTab === 'history' ? (
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>
@@ -253,10 +291,47 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
                 ))}
               </div>
             </>
+          ) : step === 2 ? (
+            <>
+              <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+                <div style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Payment Method</div>
+                <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>Choose how to pay</h2>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>
+                  Selected: <strong style={{ color: '#FFD700' }}>{PLAN_LABELS[form.plan]}</strong> · <strong style={{ color: '#fff' }}>{PLAN_PRICES[form.plan]}</strong>
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  style={{ background: '#2a2a2a', border: '1px solid #444', color: '#fff', padding: '24px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px' }}
+                >
+                  <Smartphone size={26} color="#FFD700" />
+                  <span style={{ fontSize: '18px', fontWeight: '700' }}>GCash Manual</span>
+                  <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>Scan QR, upload payment proof, then wait for admin approval. Best for local PH users.</span>
+                  <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual approval</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleStartDodoCheckout}
+                  disabled={isStartingDodo}
+                  style={{ background: '#333', border: '1px solid #FFD700', color: '#fff', padding: '24px', textAlign: 'left', cursor: isStartingDodo ? 'not-allowed' : 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: isStartingDodo ? 0.75 : 1 }}
+                >
+                  <CreditCard size={26} color="#FFD700" />
+                  <span style={{ fontSize: '18px', fontWeight: '700' }}>Card / International</span>
+                  <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>Pay through Dodo Payments hosted checkout. Credits are added automatically after payment confirmation.</span>
+                  <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isStartingDodo ? 'Starting checkout...' : 'Automated checkout'}</span>
+                </button>
+              </div>
+
+              <button onClick={() => setStep(1)} disabled={isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: isStartingDodo ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
+            </>
           ) : (
             <>
               <div style={{ background: '#2a2a2a', border: '1px solid #444', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#aaa', fontSize: '13px' }}>Selected: <strong style={{ color: '#fff' }}>{PLAN_LABELS[form.plan]}</strong></span>
+                <span style={{ color: '#aaa', fontSize: '13px' }}>Selected: <strong style={{ color: '#fff' }}>{PLAN_LABELS[form.plan]}</strong> · GCash Manual</span>
                 <span style={{ color: '#FFD700', fontWeight: '600', fontSize: '15px' }}>{PLAN_PRICES[form.plan]}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', marginBottom: '24px', alignItems: 'start' }}>
@@ -288,7 +363,7 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={() => setStep(1)} disabled={isSubmitting} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
+                <button onClick={() => setStep(2)} disabled={isSubmitting} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
                 <button 
                   onClick={handleSubmit} 
                   disabled={isSubmitting} 

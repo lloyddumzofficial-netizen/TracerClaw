@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -13,7 +13,13 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
   const [turnstileToken, setTurnstileToken] = useState(null);
 
   // Kailangang totoong key ang gamitin kahit local, dahil totoong Secret Key ang nasa Supabase.
-  const turnstileSiteKey = '0x4AAAAAAD26TJ8T3jCD57hp';
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState('0x4AAAAAAD26TJ8T3jCD57hp');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      setTurnstileSiteKey('1x00000000000000000000AA'); // Cloudflare official dummy testing key
+    }
+  }, []);
 
   if (!show) return null;
 

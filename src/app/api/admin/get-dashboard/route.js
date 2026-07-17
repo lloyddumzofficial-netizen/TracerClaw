@@ -25,6 +25,23 @@ export async function GET(request) {
       throw reqError;
     }
 
+    let dodoPayments = [];
+    try {
+      const { data: dodoRows, error: dodoErr } = await adminSupabase
+        .from('dodo_payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (dodoErr) {
+        console.error("Failed to fetch Dodo payments:", dodoErr);
+      } else {
+        dodoPayments = dodoRows || [];
+      }
+    } catch (dodoFetchErr) {
+      console.error("Error fetching Dodo payments:", dodoFetchErr);
+    }
+
     // Fetch total generations (projects) count
     const { count: projCount, error: projError } = await adminSupabase
       .from('projects')
@@ -108,6 +125,7 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       requests: requests || [],
+      dodoPayments,
       totalProjects: projCount || 0,
       reviews: reviews || [],
       paidUsers: paidUsers

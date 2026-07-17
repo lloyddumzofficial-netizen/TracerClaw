@@ -3,7 +3,7 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin', '/api/', '/workspace/'],
+      disallow: ['/admin', '/api/', '/workspace/', '/mobile'],
     },
     sitemap: 'https://desaynclaw.com/sitemap.xml',
   }

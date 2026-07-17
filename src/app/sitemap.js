@@ -41,5 +41,23 @@ export default function sitemap() {
       changeFrequency: 'monthly',
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/copyright`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/acceptable-use`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/copyright-takedown`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
   ];
 }

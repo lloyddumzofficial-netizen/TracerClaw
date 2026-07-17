@@ -99,9 +99,9 @@ export const metadata = {
     siteName: "DesaynClaw",
     images: [
       {
-        url: "/a-clean--minimal-social-media-promotional-banner-f-01.jpg",
-        width: 1200,
-        height: 630,
+        url: "/DESAYNCLAW-Image.JPG",
+        width: 1230,
+        height: 807,
         alt: "DesaynClaw AI Sublimation Design Extractor and Vector Tracer",
       },
     ],
@@ -111,7 +111,7 @@ export const metadata = {
     title: "DesaynClaw | AI Sublimation Design Extractor & Vector Tracer",
     description:
       "Extract sublimation flat files, vectorize logos, remove backgrounds & upscale designs using AI. Perfect for print shops in the Philippines.",
-    images: ["/a-clean--minimal-social-media-promotional-banner-f-01.jpg"],
+    images: ["/DESAYNCLAW-Image.JPG"],
     creator: "@desaynbro",
   },
   robots: {
@@ -149,7 +149,12 @@ export default function RootLayout({ children }) {
               "@type": "SoftwareApplication",
               "name": "DesaynClaw",
               "url": "https://desaynclaw.com",
+              "image": "https://desaynclaw.com/DESAYNCLAW-Image.JPG",
+              "sameAs": [
+                "https://desaynclaw.com"
+              ],
               "applicationCategory": "DesignApplication",
+              "applicationSubCategory": "AI image vectorizer and sublimation design tool",
               "operatingSystem": "Web",
               "description":
                 "AI-powered tool for sublimation jersey design extraction, vector auto-tracing, logo enhancement, background removal, and 4K image upscaling. Used by print shops and apparel designers.",
@@ -172,26 +177,39 @@ export default function RootLayout({ children }) {
                 "name": "desaynbro",
                 "url": "https://desaynclaw.com",
               },
+              "publisher": {
+                "@type": "Organization",
+                "name": "DesaynClaw",
+                "url": "https://desaynclaw.com",
+                "logo": "https://desaynclaw.com/logo.png"
+              }
             }),
           }}
         />
-        {/* JSON-LD — WebSite with SearchAction for sitelinks searchbox */}
+        {/* JSON-LD — Organization and WebSite */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": "DesaynClaw",
-              "url": "https://desaynclaw.com",
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": {
-                  "@type": "EntryPoint",
-                  "urlTemplate": "https://desaynclaw.com/?q={search_term_string}",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "name": "DesaynClaw",
+                  "url": "https://desaynclaw.com",
+                  "logo": "https://desaynclaw.com/logo.png",
+                  "image": "https://desaynclaw.com/DESAYNCLAW-Image.JPG"
                 },
-                "query-input": "required name=search_term_string",
-              },
+                {
+                  "@type": "WebSite",
+                  "name": "DesaynClaw",
+                  "url": "https://desaynclaw.com",
+                  "publisher": {
+                    "@type": "Organization",
+                    "name": "DesaynClaw"
+                  }
+                }
+              ],
             }),
           }}
         />

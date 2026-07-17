@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
   const [approvedRequests, setApprovedRequests] = useState([]);
+  const [dodoPayments, setDodoPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [totalProjects, setTotalProjects] = useState(0);
   const [paidUsers, setPaidUsers] = useState([]);
@@ -63,6 +64,7 @@ export default function AdminDashboard() {
       // Sort pending so oldest is first
       setRequests(pending.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
       setApprovedRequests(approved);
+      setDodoPayments(data.dodoPayments || []);
       setReviews(data.reviews || []);
       setTotalProjects(data.totalProjects || 0);
       setPaidUsers(data.paidUsers || []);
@@ -269,6 +271,39 @@ export default function AdminDashboard() {
                     <Check size={16} strokeWidth={3} /> PAID
                   </div>
 
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* DODO AUTOMATED PAYMENTS SECTION */}
+        <div className="hero-upload-box" style={{ width: '100%', padding: '20px', minHeight: '150px', marginTop: '30px', justifyContent: dodoPayments.length === 0 ? 'center' : 'flex-start', borderStyle: 'solid', borderColor: '#333' }}>
+          {dodoPayments.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#888', fontSize: '14px' }}>
+              No Dodo automated payments yet.
+            </div>
+          ) : (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '350px', overflowY: 'auto', paddingRight: '10px' }}>
+              <div style={{ fontSize: "12px", color: "#60a5fa", fontWeight: "600", textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', textAlign: 'center' }}>
+                Dodo Automated Payments ({dodoPayments.length})
+              </div>
+
+              {dodoPayments.map(payment => (
+                <div key={payment.id} style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '0', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', opacity: payment.status === 'paid' ? 1 : 0.75 }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ color: '#666', fontSize: '11px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <Clock size={12} /> {new Date(payment.created_at).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#aaa', marginBottom: '4px' }}>{payment.email}</div>
+                    <div style={{ color: '#888', fontSize: '12px' }}>
+                      Plan: <strong style={{ color: payment.status === 'paid' ? '#4ade80' : '#60a5fa', textTransform: 'capitalize' }}>{payment.plan}</strong> &bull; Credits: {payment.credits} &bull; {payment.currency} {(payment.amount / 100).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div style={{ color: payment.status === 'paid' ? '#4ade80' : payment.status === 'failed' ? '#ff4444' : '#60a5fa', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    {payment.status}
+                  </div>
                 </div>
               ))}
             </div>
