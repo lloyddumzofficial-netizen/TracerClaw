@@ -35,6 +35,9 @@ export async function POST(request) {
     if (!plan) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
+    if (!plan.dodoEnabled) {
+      return NextResponse.json({ error: "This package is only available via GCash manual payment." }, { status: 400 });
+    }
 
     const productId = getDodoProductId(plan);
     if (!productId) {

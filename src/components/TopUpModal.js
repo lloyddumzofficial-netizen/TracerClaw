@@ -36,6 +36,7 @@ const PLAN_LABELS = {
   pro: "Professional — 45 Credits" 
 };
 const PLAN_PRICES = { tingi: "₱50", basic: "₱100", starter: "₱290", pro: "₱870" };
+const DODO_ENABLED_PLANS = new Set(["basic", "starter", "pro"]);
 
 const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, onClose, onLoginRequired }) {
   const [fallbackSupabase] = useState(() => createClient());
@@ -77,6 +78,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const handleStartDodoCheckout = useCallback(async () => {
     if (!user) {
       onLoginRequired?.();
+      return;
+    }
+    if (!DODO_ENABLED_PLANS.has(form.plan)) {
+      toast.error("Tingi is available via GCash only. Please choose Basic, Starter, or Pro for card payments.");
       return;
     }
 
@@ -299,6 +304,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>
                   Selected: <strong style={{ color: '#FFD700' }}>{PLAN_LABELS[form.plan]}</strong> · <strong style={{ color: '#fff' }}>{PLAN_PRICES[form.plan]}</strong>
                 </p>
+                {form.plan === 'tingi' && (
+                  <p style={{ margin: '10px 0 0', color: '#FFD700', fontSize: '13px', fontWeight: '600' }}>
+                    Tingi is GCash-only. Card / International starts at Basic.
+                  </p>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -316,13 +326,19 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <button
                   type="button"
                   onClick={handleStartDodoCheckout}
-                  disabled={isStartingDodo}
-                  style={{ background: '#333', border: '1px solid #FFD700', color: '#fff', padding: '24px', textAlign: 'left', cursor: isStartingDodo ? 'not-allowed' : 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: isStartingDodo ? 0.75 : 1 }}
+                  disabled={isStartingDodo || form.plan === 'tingi'}
+                  style={{ background: '#333', border: '1px solid #FFD700', color: '#fff', padding: '24px', textAlign: 'left', cursor: (isStartingDodo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: (isStartingDodo || form.plan === 'tingi') ? 0.55 : 1 }}
                 >
                   <CreditCard size={26} color="#FFD700" />
                   <span style={{ fontSize: '18px', fontWeight: '700' }}>Card / International</span>
-                  <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>Pay through Dodo Payments hosted checkout. Credits are added automatically after payment confirmation.</span>
-                  <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isStartingDodo ? 'Starting checkout...' : 'Automated checkout'}</span>
+                  <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>
+                    {form.plan === 'tingi'
+                      ? 'Not available for Tingi because card fees are too high for micro-payments.'
+                      : 'Pay through Dodo Payments hosted checkout. Credits are added automatically after payment confirmation.'}
+                  </span>
+                  <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {form.plan === 'tingi' ? 'Choose Basic or higher' : isStartingDodo ? 'Starting checkout...' : 'Automated checkout'}
+                  </span>
                 </button>
               </div>
 

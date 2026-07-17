@@ -7,6 +7,7 @@ export const CREDIT_PLANS = {
     amount: 5000,
     currency: "PHP",
     dodoProductEnv: "DODO_PRODUCT_TINGI",
+    dodoEnabled: false,
   },
   basic: {
     key: "basic",
@@ -16,6 +17,7 @@ export const CREDIT_PLANS = {
     amount: 10000,
     currency: "PHP",
     dodoProductEnv: "DODO_PRODUCT_BASIC",
+    dodoEnabled: true,
   },
   starter: {
     key: "starter",
@@ -25,6 +27,7 @@ export const CREDIT_PLANS = {
     amount: 29000,
     currency: "PHP",
     dodoProductEnv: "DODO_PRODUCT_STARTER",
+    dodoEnabled: true,
   },
   pro: {
     key: "pro",
@@ -34,6 +37,7 @@ export const CREDIT_PLANS = {
     amount: 87000,
     currency: "PHP",
     dodoProductEnv: "DODO_PRODUCT_PRO",
+    dodoEnabled: true,
   },
 };
 
