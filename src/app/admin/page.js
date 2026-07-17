@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [dodoPayments, setDodoPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [activeCreditsTotal, setActiveCreditsTotal] = useState(0);
   const [paidUsers, setPaidUsers] = useState([]);
   const [processingId, setProcessingId] = useState(null);
   const router = useRouter();
@@ -35,6 +36,8 @@ export default function AdminDashboard() {
   ));
 
   useEffect(() => {
+    let refreshInterval;
+
     const checkAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || session.user.email !== 'lloyddumzofficial@gmail.com') {
@@ -43,12 +46,20 @@ export default function AdminDashboard() {
       }
       setUser(session.user);
       fetchRequests(session.access_token);
+      refreshInterval = setInterval(() => {
+        fetchRequests(session.access_token, { silent: true });
+      }, 30000);
     };
+
     checkAdmin();
+
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    };
   }, [supabase, router]);
 
-  const fetchRequests = async (token) => {
-    setLoading(true);
+  const fetchRequests = async (token, options = {}) => {
+    if (!options.silent) setLoading(true);
     try {
       const res = await fetch('/api/admin/get-dashboard', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -67,6 +78,7 @@ export default function AdminDashboard() {
       setDodoPayments(data.dodoPayments || []);
       setReviews(data.reviews || []);
       setTotalProjects(data.totalProjects || 0);
+      setActiveCreditsTotal(Number(data.activeCreditsTotal || 0));
       setPaidUsers(data.paidUsers || []);
     } catch (err) {
       toast.error("Failed to load admin data");
@@ -101,6 +113,7 @@ export default function AdminDashboard() {
       
       setRequests(reqs => reqs.filter(r => r.id !== request.id));
       setApprovedRequests(prev => [...prev, { ...request, status: 'approved' }]);
+      fetchRequests(session.access_token, { silent: true });
     } catch (err) {
       toast.error(err.message || "Failed to approve payment");
     } finally {
@@ -126,7 +139,7 @@ export default function AdminDashboard() {
   const totalRevenue = approvedRequests.reduce((sum, req) => sum + (PLAN_PRICES[req.plan] || 0), 0);
   const totalCost = totalProjects * COST_PER_GENERATION;
   const netProfit = totalRevenue - totalCost;
-  const totalActiveCredits = paidUsers.reduce((sum, u) => sum + (u.credits || 0), 0);
+  const totalActiveCredits = activeCreditsTotal;
 
   return (
     <div className="start-screen-container">

@@ -1,6 +1,33 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 
+async function fetchActiveCreditsTotal() {
+  const pageSize = 1000;
+  let from = 0;
+  let total = 0;
+
+  while (true) {
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .select('credits')
+      .gt('credits', 0)
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = data || [];
+    total += rows.reduce((sum, row) => sum + Number(row.credits || 0), 0);
+
+    if (rows.length < pageSize) {
+      return total;
+    }
+
+    from += pageSize;
+  }
+}
+
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -62,6 +89,8 @@ export async function GET(request) {
     if (reviewError) {
       console.error("Failed to fetch reviews:", reviewError);
     }
+
+    const activeCreditsTotal = await fetchActiveCreditsTotal();
 
     // Fetch users with credits (SCALABLE APPROACH)
     let paidUsers = [];
@@ -127,6 +156,7 @@ export async function GET(request) {
       requests: requests || [],
       dodoPayments,
       totalProjects: projCount || 0,
+      activeCreditsTotal,
       reviews: reviews || [],
       paidUsers: paidUsers
     });
