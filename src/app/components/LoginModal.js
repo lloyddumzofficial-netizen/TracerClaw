@@ -12,7 +12,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
   const [emailSent, setEmailSent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
 
-  // Kailangang totoong key ang gamitin kahit local, dahil totoong Secret Key ang nasa Supabase.
+  // Use the production key by default; localhost switches to Cloudflare's dummy testing key below.
   const [turnstileSiteKey, setTurnstileSiteKey] = useState('0x4AAAAAAD26TJ8T3jCD57hp');
 
   useEffect(() => {

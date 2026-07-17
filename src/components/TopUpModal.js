@@ -7,8 +7,8 @@ import { createClient } from "@/utils/supabase/client";
 
 const PLANS = [
   { 
-    key: 'tingi', label: 'Tingi', traces: 2, price: '₱50', 
-    desc: 'Sachet pricing. Good for a quick test.',
+    key: 'tingi', label: 'Mini', traces: 2, price: '₱50', 
+    desc: 'Small package for quick tests.',
     features: ['2 HD Vector Traces', 'Standard Processing'] 
   },
   { 
@@ -30,7 +30,7 @@ const PLANS = [
 ];
 
 const PLAN_LABELS = { 
-  tingi: "Tingi — 2 Credits", 
+  tingi: "Mini — 2 Credits", 
   basic: "Basic — 4 Credits", 
   starter: "Starter — 13 Credits", 
   pro: "Professional — 45 Credits" 
@@ -81,7 +81,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
       return;
     }
     if (!DODO_ENABLED_PLANS.has(form.plan)) {
-      toast.error("Tingi is available via GCash only. Please choose Basic, Starter, or Pro for card payments.");
+      toast.error("Mini is available via GCash only. Please choose Basic, Starter, or Pro for card payments.");
       return;
     }
 
@@ -205,7 +205,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#fff' }}>Token History</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>Tignan ang iyong mga naging transactions at na-consumeng credits. (Logs are auto-deleted after 3 days)</p>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>View your recent credit transactions and usage. Logs are automatically deleted after 3 days.</p>
               </div>
               
               {!user ? (
@@ -239,13 +239,13 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <CheckCircle size={48} color="#4ade80" strokeWidth={1.5} />
               </div>
               <h3 style={{ margin: '0 0 8px', color: '#4ade80', fontWeight: '700' }}>Request Submitted!</h3>
-              <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>Natanggap namin ang iyong payment request.</p>
+              <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>We received your payment request.</p>
               <div style={{ background: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px', margin: '16px 0', textAlign: 'left' }}>
                 <p style={{ margin: '0 0 8px', color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center' }}><Package size={14} style={{ marginRight: '6px', color: '#888' }} /> Package: <strong style={{ color: '#FFD700', marginLeft: '6px' }}>{PLAN_LABELS[form.plan]}</strong></p>
                 <p style={{ margin: '0 0 8px', color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center' }}><Tag size={14} style={{ marginRight: '6px', color: '#888' }} /> Ref No: <strong style={{ color: '#fff', marginLeft: '6px' }}>{form.txnRef || '—'}</strong></p>
                 <p style={{ margin: 0, color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center' }}><Mail size={14} style={{ marginRight: '6px', color: '#888' }} /> Account: <strong style={{ color: '#fff', marginLeft: '6px' }}>{user?.email}</strong></p>
               </div>
-              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 20px' }}>Credits will be added within <strong style={{ color: '#4ade80' }}>10–30 minutes</strong>. Salamat! 🙏</p>
+              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 20px' }}>Credits are usually added within <strong style={{ color: '#4ade80' }}>10-30 minutes</strong>. Thank you.</p>
               <button onClick={handleClose} style={{ width: '100%', padding: '12px', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>Close</button>
             </div>
           ) : step === 1 ? (
@@ -253,12 +253,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                 {!user && (
                   <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid #FFD700', color: '#FFD700', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
-                    👋 Welcome! You need credits to trace images. Please select a plan and log in.
+                    Welcome. You need credits to trace images. Please select a plan and log in.
                   </div>
                 )}
                 <div style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Pricing Plan</div>
                 <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>Affordable pricing</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Piliin ang credit package na sakto sa pangangailangan mo.</p>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Choose the credit package that fits your workflow.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -317,7 +317,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 </p>
                 {form.plan === 'tingi' && (
                   <p style={{ margin: '10px 0 0', color: '#FFD700', fontSize: '13px', fontWeight: '600' }}>
-                    Tingi is GCash-only. Card / International starts at Basic.
+                    Mini is GCash-only. Card / International starts at Basic.
                   </p>
                 )}
               </div>
@@ -330,7 +330,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 >
                   <Smartphone size={26} color="#FFD700" />
                   <span style={{ fontSize: '18px', fontWeight: '700' }}>GCash Manual</span>
-                  <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>Scan QR, upload payment proof, then wait for admin approval. Best for local PH users.</span>
+                  <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>Scan the QR code, upload payment proof, then wait for admin approval. Best for Philippine GCash users.</span>
                   <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual approval</span>
                 </button>
 
@@ -344,7 +344,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   <span style={{ fontSize: '18px', fontWeight: '700' }}>Card / International</span>
                   <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>
                     {form.plan === 'tingi'
-                      ? 'Not available for Tingi because card fees are too high for micro-payments.'
+                      ? 'Not available for Mini because card fees are too high for micro-payments.'
                       : 'Pay through Dodo Payments hosted checkout. Credits are added automatically after payment confirmation.'}
                   </span>
                   <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>

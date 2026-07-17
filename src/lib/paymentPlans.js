@@ -1,7 +1,7 @@
 export const CREDIT_PLANS = {
   tingi: {
     key: "tingi",
-    label: "Tingi",
+    label: "Mini",
     credits: 2,
     price: "₱50",
     amount: 5000,
