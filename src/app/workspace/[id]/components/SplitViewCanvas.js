@@ -289,19 +289,37 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const renderStatus = () => {
     if (traceState !== "idle") {
       return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-          {proxyOriginal && (
-            <img 
-              src={proxyOriginal} 
-              alt="Processing Background" 
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', filter: 'grayscale(80%) blur(4px) brightness(0.35)', transform: 'scale(1.05)', zIndex: 0 }} 
-            />
-          )}
-          <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#fff', background: 'rgba(0,0,0,0.6)', padding: '24px 48px', borderRadius: '0', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
-            
-            <Loader2 size={24} color="#FFD700" className="animate-spin" style={{ marginBottom: "16px" }} />
-            <div style={{ fontSize: "14px", color: "#FFD700", fontWeight: "500", marginBottom: "4px" }}>Processing image</div>
-            <span style={{ fontSize: "12px", color: "#888" }}>Optimizing paths and reducing colors...</span>
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', backgroundColor: '#1a1a1a' }}>
+          <div 
+            className="processing-scan-wrapper"
+            style={proxyOriginal ? { 
+              maskImage: `url(${proxyOriginal})`, 
+              maskSize: 'contain', 
+              maskPosition: 'center', 
+              maskRepeat: 'no-repeat',
+              WebkitMaskImage: `url(${proxyOriginal})`,
+              WebkitMaskSize: 'contain',
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat'
+            } : {}}
+          >
+            {proxyOriginal && (
+              <img 
+                src={proxyOriginal} 
+                alt="Processing Background" 
+                referrerPolicy="no-referrer"
+                decoding="async"
+              />
+            )}
+          </div>
+          <div style={{ position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#fff', background: 'rgba(0,0,0,0.9)', padding: '16px 32px', borderRadius: '4px', border: '1px solid rgba(255,215,0,0.3)', boxShadow: '0 4px 20px rgba(255,215,0,0.1)' }}>
+            <div style={{ fontSize: "14px", color: "#FFD700", fontWeight: "600", marginBottom: "4px", letterSpacing: '1px', textTransform: 'uppercase' }}>
+              <Loader2 size={14} className="animate-spin" style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }} />
+              Executing Neural Scan
+            </div>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)", textTransform: 'uppercase', letterSpacing: '2px' }}>
+              {traceState === 'step1' ? 'Extracting geometry...' : traceState === 'step2' ? 'Enhancing resolution...' : 'Generating SVG paths...'}
+            </span>
           </div>
         </div>
       );

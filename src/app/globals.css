@@ -430,15 +430,17 @@ html, body {
   z-index: 5;
 }
 
-/* AI Processing Scanner Animation */
-@keyframes aiScan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
+/* Minimal Cyberpunk Scanner Animation */
+@keyframes cyberScan {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
-@keyframes pulseOpacity {
-  0%, 100% { opacity: 1; filter: grayscale(100%) brightness(1); }
-  50% { opacity: 0.7; filter: grayscale(100%) brightness(1.4); }
+@keyframes glitchPulse {
+  0%, 100% { filter: grayscale(80%) brightness(0.6); }
+  50% { filter: grayscale(80%) brightness(0.8); }
 }
 
 .processing-scan-wrapper {
@@ -452,23 +454,37 @@ html, body {
 .processing-scan-wrapper img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 4px;
-  animation: pulseOpacity 2s infinite ease-in-out;
+  animation: glitchPulse 3s infinite ease-in-out;
+  opacity: 0.9;
 }
 
+/* Faint grid overlay */
+.processing-scan-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 215, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 215, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Sharp Laser Line */
 .processing-scan-wrapper::after {
   content: '';
   position: absolute;
-  top: 0;
   left: 0;
   width: 100%;
-  height: 20%;
-  background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.4), var(--accent));
-  opacity: 0.6;
-  box-shadow: 0 4px 15px var(--accent);
-  animation: aiScan 1.5s infinite linear;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 10px 2px var(--accent), 0 0 30px var(--accent);
+  animation: cyberScan 2s infinite linear;
   pointer-events: none;
+  z-index: 2;
 }
 
 /* Empty State / Dropzone */
