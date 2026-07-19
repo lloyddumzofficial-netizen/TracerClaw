@@ -6,10 +6,10 @@ const EduSection = memo(function EduSection() {
   return (
     <>
       {/* HOW TO USE / DEMO VIDEO SECTION */}
-      <div className="demo-section" style={{ marginTop: "60px", width: "100%", display: "flex", gap: "60px", alignItems: "center", background: "transparent", padding: "0" }}>
+      <div className="demo-section" style={{ marginTop: "60px", width: "100%", display: "flex", flexWrap: "wrap", gap: "60px", alignItems: "center", background: "transparent", padding: "0" }}>
         
         {/* Video Left */}
-        <div style={{ flex: "1 1 50%" }}>
+        <div style={{ flex: "1 1 min(100%, 400px)" }}>
           <video 
             src="/demo.mp4" 
             autoPlay 
@@ -21,7 +21,7 @@ const EduSection = memo(function EduSection() {
         </div>
 
         {/* Text Details Right */}
-        <div style={{ flex: "1 1 50%", textAlign: "left", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ flex: "1 1 min(100%, 400px)", textAlign: "left", display: "flex", flexDirection: "column", gap: "20px" }}>
           <h3 style={{ color: "#FFD700", fontSize: "14px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>How to Use DesaynClaw</h3>
           <h2 style={{ color: "#fff", fontSize: "36px", margin: 0, fontWeight: "600", letterSpacing: "-1px", lineHeight: "1.2" }}>Convert images in seconds.</h2>
           <p style={{ color: "#aaa", fontSize: "16px", lineHeight: "1.6", margin: 0 }}>
@@ -48,7 +48,7 @@ const EduSection = memo(function EduSection() {
 
       {/* EDUCATIONAL SECTION */}
       <div className="edu-section" style={{ marginTop: "80px", width: "100%", borderTop: "1px solid #222", paddingTop: "60px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", textAlign: "left" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", textAlign: "left" }}>
           
           {/* Col 1 */}
           <div style={{ background: "#111", border: "1px solid #333", padding: "32px", display: "flex", flexDirection: "column" }}>

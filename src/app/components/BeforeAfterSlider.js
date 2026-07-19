@@ -99,7 +99,8 @@ export default function BeforeAfterSlider({
         flexDirection: flexDirection, 
         gap: '16px',
         borderRadius: '0',
-        alignItems: isHorizontal ? 'center' : 'stretch'
+        alignItems: isHorizontal ? 'center' : 'stretch',
+        boxSizing: 'border-box'
       }}>
         <div style={{ 
           position: 'relative', 

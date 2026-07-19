@@ -22,7 +22,8 @@ export default function MobileWarning() {
   }, []);
 
   if (!isMobile) return null;
-  if (pathname === "/mobile") return null;
+  // Allow mobile users to view the homepage and /mobile route
+  if (pathname === "/" || pathname === "/mobile") return null;
 
   return (
     <div style={{

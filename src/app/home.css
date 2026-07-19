@@ -1,6 +1,7 @@
         .start-screen-container {
           height: 100vh;
           overflow-y: auto;
+          overflow-x: hidden;
           background-color: #262626;
           color: #d5d5d5;
           display: flex;

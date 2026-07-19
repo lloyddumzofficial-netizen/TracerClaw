@@ -462,7 +462,7 @@ export default function StartScreen() {
       )}
 
       {/* Top Navigation Bar */}
-      <header style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
+      <header style={{ boxSizing: "border-box", position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
 
         <div style={{ display: "flex", width: "100%", maxWidth: "1200px", alignItems: "center", justifyContent: "space-between" }}>
           {/* Left: Brand/Logo Mini (Hidden at top to avoid redundancy) */}
@@ -471,7 +471,7 @@ export default function StartScreen() {
           </div>
 
           {/* Right: Auth & Credits */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto" }}>
             {user ? (
               <>
                 {/* Premium Credits Badge */}
@@ -577,7 +577,7 @@ export default function StartScreen() {
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: "6px", marginBottom: "20px", flexWrap: "nowrap", justifyContent: "space-between", width: "100%", overflowX: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px", marginBottom: "20px", width: "100%" }}>
                 <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
                   {isUploading ? <><Monitor size={14} className="animate-pulse" /> Creating...</> : <><FilePlus size={14} /> New Project</>}
                 </button>
@@ -746,7 +746,7 @@ export default function StartScreen() {
           {/* Cards Grid */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
             gap: "1px",
             background: "#333",
             border: "1px solid #333",
@@ -864,7 +864,7 @@ export default function StartScreen() {
             <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Sample Extractions</h3>
             <h2 style={{ color: "#fff", fontSize: "36px", margin: "8px 0 0 0", fontWeight: "600", letterSpacing: "-1px" }}>Pixel-Perfect Vectorization</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <BeforeAfterSlider
               title="Esports Gaming Apparel (Flat Extracted)"
               rasterUrl="/samples/esports-original.jpg"
@@ -927,7 +927,7 @@ export default function StartScreen() {
               Try Image Upscaler
             </button>
           </div>
-          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
+          <div style={{ flex: '1 1 450px', minWidth: '280px' }}>
             <BeforeAfterSlider
               rasterUrl="/samples/upscale-original.png"
               vectorUrl="/samples/upscale-hq.png"
