@@ -292,6 +292,12 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
                     }}
                   />
                 </div>
+
+                {/* Terms and Privacy Footer */}
+                <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: '#aaa', lineHeight: '1.5' }}>
+                  By proceeding, you agree to our <a href="/terms" style={{ color: '#4285F4', textDecoration: 'none', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'} onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}>Terms</a> and acknowledge<br/>
+                  our <a href="/privacy" style={{ color: '#4285F4', textDecoration: 'none', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'} onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}>Privacy Policy</a>
+                </div>
                 
               </form>
             )}

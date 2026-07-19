@@ -242,18 +242,18 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             </div>
           ) : submitted ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>
-                <CheckCircle size={48} color="#4ade80" strokeWidth={1.5} />
+              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                <CheckCircle size={48} color="#FFD700" strokeWidth={1.5} />
               </div>
-              <h3 style={{ margin: '0 0 8px', color: '#4ade80', fontWeight: '700' }}>Request Submitted!</h3>
-              <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>We received your payment request.</p>
-              <div style={{ background: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px', margin: '16px 0', textAlign: 'left' }}>
-                <p style={{ margin: '0 0 8px', color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center' }}><Package size={14} style={{ marginRight: '6px', color: '#888' }} /> Package: <strong style={{ color: '#FFD700', marginLeft: '6px' }}>{PLAN_LABELS[form.plan]}</strong></p>
-                <p style={{ margin: '0 0 8px', color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center' }}><Tag size={14} style={{ marginRight: '6px', color: '#888' }} /> Ref No: <strong style={{ color: '#fff', marginLeft: '6px' }}>{form.txnRef || '—'}</strong></p>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '12px', display: 'flex', alignItems: 'center' }}><Mail size={14} style={{ marginRight: '6px', color: '#888' }} /> Account: <strong style={{ color: '#fff', marginLeft: '6px' }}>{user?.email}</strong></p>
+              <h3 style={{ margin: '0 0 8px', color: '#fff', fontWeight: '700', fontSize: '20px' }}>Request Submitted</h3>
+              <p style={{ color: '#aaa', fontSize: '14px', margin: '0 0 8px' }}>We have received your payment request.</p>
+              <div style={{ background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '16px', margin: '24px 0', textAlign: 'left' }}>
+                <p style={{ margin: '0 0 10px', color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Package size={14} style={{ marginRight: '8px', color: '#555' }} /> Package: <strong style={{ color: '#fff', marginLeft: '6px' }}>{PLAN_LABELS[form.plan]}</strong></p>
+                <p style={{ margin: '0 0 10px', color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Tag size={14} style={{ marginRight: '8px', color: '#555' }} /> Ref No: <strong style={{ color: '#fff', marginLeft: '6px' }}>{form.txnRef || '—'}</strong></p>
+                <p style={{ margin: 0, color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Mail size={14} style={{ marginRight: '8px', color: '#555' }} /> Account: <strong style={{ color: '#fff', marginLeft: '6px' }}>{user?.email}</strong></p>
               </div>
-              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 20px' }}>Credits are usually added within <strong style={{ color: '#4ade80' }}>10-30 minutes</strong>. Thank you.</p>
-              <button onClick={handleClose} style={{ width: '100%', padding: '12px', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>Close</button>
+              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 24px' }}>Credits are usually added within <strong style={{ color: '#FFD700' }}>10-30 minutes</strong>. Thank you.</p>
+              <button onClick={handleClose} style={{ width: '100%', padding: '14px', background: 'transparent', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#333'; e.currentTarget.style.borderColor = '#777'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#444'; }}>Close</button>
             </div>
           ) : step === 1 ? (
             <>

@@ -73,6 +73,7 @@ export default function BeforeAfterSlider({
   height = '400px',
   aspectRatio = null,
   objectFit = 'cover',
+  objectPosition = 'center',
   layout = 'vertical',
   leftLabel = "Vectorized SVG",
   rightLabel = "Original Photo",
@@ -118,6 +119,7 @@ export default function BeforeAfterSlider({
             alt="Original Photo" 
             style={{ 
               position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit,
+              objectPosition: objectPosition,
               imageRendering: pixelateRaster ? 'pixelated' : 'auto'
             }} 
           />
@@ -136,7 +138,7 @@ export default function BeforeAfterSlider({
             )}
             <InlineSVG 
               url={vectorUrl} 
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit }} 
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition }} 
             />
           </div>
           <span style={{ position: 'absolute', top: 12, left: 12, background: '#FFD700', padding: '4px 10px', fontSize: '11px', color: '#000', fontWeight: 'bold', borderRadius: '0', zIndex: 3, opacity: sliderPosition > 10 ? 1 : 0, transition: 'opacity 0.2s' }}>{leftLabel}</span>

@@ -645,9 +645,10 @@ export default function StartScreen() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
                   <BeforeAfterSlider
                     title="Untitled Design 2"
-                    rasterUrl="/samples/esports-original.jpg"
-                    vectorUrl="/samples/esports-vector.png"
+                    rasterUrl="/samples/Reference.png"
+                    vectorUrl="/samples/DesaynClaw_Tshirt_Design_4K.png"
                     height="220px"
+                    objectPosition="center 40%"
                   />
                   <BeforeAfterSlider
                     title="Polo Shirt Pattern"

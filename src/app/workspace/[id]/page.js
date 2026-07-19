@@ -230,12 +230,12 @@ export default function Workspace() {
   // Format "Saved X minutes ago" for the project bar
   const savedAgo = project?.updated_at
     ? (() => {
-        const diff = Math.floor((Date.now() - new Date(project.updated_at)) / 60000);
-        if (diff < 1) return "Saved just now";
-        if (diff === 1) return "Saved 1 minute ago";
-        if (diff < 60) return `Saved ${diff} minutes ago`;
-        return "Saved recently";
-      })()
+      const diff = Math.floor((Date.now() - new Date(project.updated_at)) / 60000);
+      if (diff < 1) return "Saved just now";
+      if (diff === 1) return "Saved 1 minute ago";
+      if (diff < 60) return `Saved ${diff} minutes ago`;
+      return "Saved recently";
+    })()
     : null;
 
   return (
@@ -243,14 +243,14 @@ export default function Workspace() {
 
       {/* ── Top Menu Bar ─────────────────────────────────────────────── */}
       <header style={{ padding: "0 20px", height: "42px", display: "flex", alignItems: "center", borderBottom: "1px solid #2a2a2a", background: "#181818", flexShrink: 0 }}>
-        <button onClick={() => router.push('/')} style={{ display: "flex", alignItems: "center", gap: "7px", background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s", padding: "6px 10px" }} onMouseEnter={e => e.currentTarget.style.color="#FFD700"} onMouseLeave={e => e.currentTarget.style.color="#555"}>
+        <button onClick={() => router.push('/')} style={{ display: "flex", alignItems: "center", gap: "7px", background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s", padding: "6px 10px" }} onMouseEnter={e => e.currentTarget.style.color = "#FFD700"} onMouseLeave={e => e.currentTarget.style.color = "#555"}>
           <Home size={14} /> Home
         </button>
         <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
           <h1 style={{ fontSize: "12px", fontWeight: "700", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "3px" }}>WORKSPACE</h1>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", alignItems: "center" }}>
-          <button onClick={() => setShowShortcuts(true)} style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "1px solid #2e2e2e", color: "#555", cursor: "pointer", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "all 0.2s", padding: "5px 10px" }} onMouseEnter={e => { e.currentTarget.style.color="#ccc"; e.currentTarget.style.borderColor="#444"; }} onMouseLeave={e => { e.currentTarget.style.color="#555"; e.currentTarget.style.borderColor="#2e2e2e"; }}>
+          <button onClick={() => setShowShortcuts(true)} style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "1px solid #2e2e2e", color: "#555", cursor: "pointer", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "all 0.2s", padding: "5px 10px" }} onMouseEnter={e => { e.currentTarget.style.color = "#ccc"; e.currentTarget.style.borderColor = "#444"; }} onMouseLeave={e => { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "#2e2e2e"; }}>
             <Keyboard size={12} /> Shortcuts
           </button>
           <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "7px", background: "#FFD700", padding: "5px 12px", cursor: "pointer", border: "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#FFC800"} onMouseOut={e => e.currentTarget.style.background = "#FFD700"}>
@@ -327,11 +327,11 @@ export default function Workspace() {
           ) : null}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button onClick={() => setShowShortcuts(true)} style={{ background: "none", border: "none", color: "#444", cursor: "pointer", fontSize: "10px", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color="#aaa"} onMouseOut={e => e.currentTarget.style.color="#444"}>
+          <button onClick={() => setShowShortcuts(true)} style={{ background: "none", border: "none", color: "#444", cursor: "pointer", fontSize: "10px", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color = "#aaa"} onMouseOut={e => e.currentTarget.style.color = "#444"}>
             Need help?
           </button>
           <span style={{ color: "#333" }}>·</span>
-          <button style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color="#FFD700"} onMouseOut={e => e.currentTarget.style.color="#555"}>
+          <button style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color = "#FFD700"} onMouseOut={e => e.currentTarget.style.color = "#555"}>
             &gt; View Guide
           </button>
         </div>

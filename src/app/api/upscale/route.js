@@ -70,7 +70,7 @@ export async function POST(request) {
     // Log the transaction
     await adminSupabase.from('credit_logs').insert({
       user_id: userId,
-      action: 'AI Upscale (4K)',
+      action: 'AI AuraSR Upscale (4K)',
       amount: -1
     });
 
@@ -78,12 +78,11 @@ export async function POST(request) {
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
     const { fal } = await import("@fal-ai/client");
 
-    console.log("[API Upscale] Using fal-ai/clarity-upscaler for high-end upscale on:", finalImageUrl);
+    console.log("[API Upscale] Using fal-ai/aura-sr for upscale on:", finalImageUrl);
 
-    const result = await fal.subscribe("fal-ai/clarity-upscaler", {
+    const result = await fal.subscribe("fal-ai/aura-sr", {
       input: {
-        image_url: finalImageUrl,
-        scale: 4, // 4x Upscale
+        image_url: finalImageUrl
       },
       logs: true,
       onQueueUpdate: (update) => {
@@ -104,7 +103,7 @@ export async function POST(request) {
       .from('projects')
       .insert({
         user_id: userId,
-        name: "Clarity Upscale",
+        name: "AuraSR Upscale 4K",
         trace_type: "upscale",
         original_image_url: finalImageUrl,
         generated_image_url: upscaledUrl,
