@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function AIDisclaimerModal() {
   const [show, setShow] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(5);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem('ai_disclaimer_seen');
@@ -36,8 +36,9 @@ export default function AIDisclaimerModal() {
     }}>
       <div style={{
         background: '#111', border: '1px solid #333', borderRadius: '16px',
-        maxWidth: '540px', width: '100%', padding: '48px 40px',
-        textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        maxWidth: '540px', width: '100%', padding: '32px 24px',
+        textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        maxHeight: '90vh', overflowY: 'auto'
       }}>
         <h2 style={{
           fontSize: '28px', fontWeight: '300', margin: '0 0 24px 0', color: '#fff',
@@ -92,7 +93,14 @@ export default function AIDisclaimerModal() {
         </div>
 
         <button 
-          onClick={handleClose}
+          onClick={(e) => {
+            e.preventDefault();
+            handleClose();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            handleClose();
+          }}
           disabled={timeLeft > 0}
           style={{
             background: timeLeft > 0 ? '#222' : '#FFD700',
@@ -107,10 +115,9 @@ export default function AIDisclaimerModal() {
             cursor: timeLeft > 0 ? 'not-allowed' : 'pointer',
             width: '100%',
             transition: 'all 0.3s ease',
-            opacity: timeLeft > 0 ? 0.7 : 1
+            opacity: timeLeft > 0 ? 0.7 : 1,
+            WebkitTapHighlightColor: 'transparent'
           }}
-          onMouseOver={(e) => { if(timeLeft <= 0) e.currentTarget.style.transform = 'translateY(-2px)' }}
-          onMouseOut={(e) => { if(timeLeft <= 0) e.currentTarget.style.transform = 'translateY(0)' }}
         >
           {timeLeft > 0 ? `Please read... (${timeLeft}s)` : 'I Understand & Agree'}
         </button>
