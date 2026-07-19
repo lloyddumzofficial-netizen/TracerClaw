@@ -9,7 +9,7 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2 } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";
@@ -63,31 +63,48 @@ function AnimatedCounter() {
   return (
     <div style={{
       marginTop: "60px",
-      padding: "60px 40px",
-      background: "linear-gradient(145deg, #161616, #111)",
-      border: "1px solid #222",
-      borderRadius: "0",
+      padding: "50px 40px",
+      background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(26,26,26,0.8) 100%)",
+      borderBottom: "1px solid #2a2a2a",
       textAlign: "center",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: "12px",
-      boxShadow: "0 20px 40px rgba(0,0,0,0.4)"
+      gap: "20px"
     }}>
-      <div style={{ color: "#FFD700", fontSize: "12px", fontWeight: "800", letterSpacing: "3px", textTransform: "uppercase" }}>
+      {/* Premium Pill Badge */}
+      <div style={{ 
+        color: "#FFD700", 
+        fontSize: "11px", 
+        fontWeight: "800", 
+        letterSpacing: "3px", 
+        textTransform: "uppercase",
+        background: "rgba(255, 215, 0, 0.08)",
+        border: "1px solid rgba(255, 215, 0, 0.2)",
+        padding: "6px 16px",
+        borderRadius: "100px",
+        boxShadow: "0 0 20px rgba(255, 215, 0, 0.1)"
+      }}>
         TRUSTED NATIONWIDE
       </div>
+
+      {/* Gradient Number */}
       <div style={{ 
         fontSize: "72px", 
-        fontWeight: "900", 
-        color: "#fff", 
-        lineHeight: "1",
+        fontWeight: "800", 
+        fontFamily: "'Nexa', 'Nexa Bold', 'Montserrat', sans-serif",
+        background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        lineHeight: "1.1",
         letterSpacing: "-2px",
-        fontVariantNumeric: "tabular-nums"
+        filter: "drop-shadow(0px 10px 20px rgba(255, 215, 0, 0.15))"
       }}>
         {count.toLocaleString()}+
       </div>
-      <div style={{ color: "#888", fontSize: "15px", maxWidth: "400px", lineHeight: "1.6" }}>
+
+      {/* Clean Description */}
+      <div style={{ color: "#aaa", fontSize: "16px", maxWidth: "420px", lineHeight: "1.6", fontWeight: "400" }}>
         Designs successfully extracted and vectorized by print shops and freelancers.
       </div>
     </div>
@@ -519,22 +536,36 @@ export default function StartScreen() {
 
                 {/* PUBLIC STATS */}
                 {publicStats.totalUsers > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: "24px", gap: "16px" }}>
-
-                    {/* FlyonUI-style Avatar Group (Avatars ONLY) */}
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      {publicStats.avatars.length > 0 && publicStats.avatars.map((url, i) => (
-                        <img key={i} src={url} alt="User" style={{ width: "42px", height: "42px", borderRadius: "50%", border: "2px solid #1a1a1a", marginLeft: i > 0 ? "-16px" : "0", backgroundColor: "#333", objectFit: "cover", zIndex: 10 - i, boxShadow: "0 0 0 1px rgba(0,0,0,0.1)" }} />
-                      ))}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "24px", gap: "12px" }}>
+                    
+                    {/* Top Row: Avatars and Users Text */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        {publicStats.avatars.length > 0 && publicStats.avatars.map((url, i) => (
+                          <img key={i} src={url} alt="User" style={{ width: "36px", height: "36px", borderRadius: "50%", border: "2px solid #1a1a1a", marginLeft: i > 0 ? "-12px" : "0", backgroundColor: "#333", objectFit: "cover", zIndex: 10 - i, boxShadow: "0 0 0 1px rgba(0,0,0,0.1)" }} />
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "left" }}>
+                        <div style={{ fontSize: "15px", color: "#fff", fontWeight: "600", letterSpacing: "-0.2px" }}>
+                          {publicStats.totalUsers.toLocaleString()}+ creatives
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#888", fontWeight: "500" }}>
+                          joined the beta
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Clean Text Label */}
-                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "left" }}>
-                      <div style={{ fontSize: "14px", color: "#e0e0e0", fontWeight: "600", letterSpacing: "-0.2px" }}>
-                        {publicStats.totalUsers.toLocaleString()}+ creatives
+                    {/* Bottom Row: Stars and Rating Text */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ display: "flex", gap: "4px" }}>
+                        {[1, 2, 3, 4, 5].map((_, i) => (
+                          <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                          </svg>
+                        ))}
                       </div>
-                      <div style={{ fontSize: "13px", color: "#888", fontWeight: "500" }}>
-                        joined the beta
+                      <div style={{ fontSize: "13px", color: "#aaa", fontWeight: "500" }}>
+                        Rated <span style={{ color: "#fff", fontWeight: "700" }}>4.9/5</span> from 250+ reviews
                       </div>
                     </div>
 
@@ -691,6 +722,11 @@ export default function StartScreen() {
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
+          
+          <div style={{ width: '100%', marginBottom: '40px' }}>
+            <img src="/small_banner.jpg" alt="Promo Banner" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid #333' }} />
+          </div>
+
           {/* Section Header */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
             <div style={{
@@ -809,9 +845,13 @@ export default function StartScreen() {
 
           </div>
         </div>
-        
         {/* Animated Counter Section */}
         <AnimatedCounter />
+
+        {/* Banner Image (banner-webapp-2.jpg) */}
+        <div style={{ marginTop: "40px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
+          <img src="/banner-webapp-2.jpg" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
+        </div>
 
         {/* ────────────────────────────────────────────────────────────────────── */}
 
@@ -821,7 +861,7 @@ export default function StartScreen() {
         <div id="samples-section" style={{ marginTop: '80px', marginBottom: '60px' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Sample Extractions</h3>
-            <h2 style={{ color: "#fff", fontSize: "24px", margin: "8px 0 0 0", fontWeight: "700" }}>Pixel-Perfect Vectorization</h2>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "8px 0 0 0", fontWeight: "600", letterSpacing: "-1px" }}>Pixel-Perfect Vectorization</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
             <BeforeAfterSlider
@@ -836,6 +876,74 @@ export default function StartScreen() {
             />
           </div>
         </div>
+
+        {/* BG Remover Sample Section */}
+        <div style={{ marginBottom: '80px', width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Background Remover</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Flawless Subject Cutouts</h2>
+            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+              Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
+            </p>
+            <button 
+              onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
+              style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
+              onMouseLeave={e => e.currentTarget.style.background = "#FFD700"}
+            >
+              <Scissors size={18} color="#000" />
+              Try Background Remover
+            </button>
+          </div>
+          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
+            <BeforeAfterSlider
+              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.png"
+              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.png"
+              leftLabel="NO BACKGROUND"
+              rightLabel="ORIGINAL"
+              layout="vertical"
+              aspectRatio="1 / 1"
+              showCheckerboard={true}
+            />
+          </div>
+        </div>
+
+        {/* Upscaler Sample Section */}
+        <div style={{ marginBottom: '100px', width: '100%', display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Image Upscaler</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Enhance to 4K Quality</h2>
+            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+              Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
+            </p>
+            <button 
+              onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
+              style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#444"}
+              onMouseLeave={e => e.currentTarget.style.background = "#333"}
+            >
+              <ImageIcon size={18} />
+              Try Image Upscaler
+            </button>
+          </div>
+          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
+            <BeforeAfterSlider
+              rasterUrl="/samples/upscale-original.png"
+              vectorUrl="/samples/upscale-hq.png"
+              leftLabel="4K UPSCALE"
+              rightLabel="PIXELATED"
+              layout="vertical"
+              aspectRatio="1 / 1"
+              pixelateRaster={true}
+            />
+          </div>
+        </div>
+
+        {/* Banner Image (COVER PAGE.png) */}
+        <div style={{ width: '100%', marginBottom: '100px', display: 'flex', justifyContent: 'center' }}>
+          <img src="/COVER PAGE.png" alt="DesaynClaw Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }} />
+        </div>
+
         <TestimonialSection />
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />

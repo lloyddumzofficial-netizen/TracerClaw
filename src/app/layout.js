@@ -1,10 +1,10 @@
-import { Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ToastContainer } from "@/components/Toast";
 import MobileWarning from "./components/MobileWarning";
 import CookieConsent from "./components/CookieConsent";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata = {
   metadataBase: new URL("https://desaynclaw.com"),
@@ -214,7 +214,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={outfit.className}>
+      <body className={inter.className}>
         {isMaintenance ? (
           <MaintenanceScreen />
         ) : (

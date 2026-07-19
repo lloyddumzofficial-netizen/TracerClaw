@@ -23,7 +23,7 @@ const EduSection = memo(function EduSection() {
         {/* Text Details Right */}
         <div style={{ flex: "1 1 50%", textAlign: "left", display: "flex", flexDirection: "column", gap: "20px" }}>
           <h3 style={{ color: "#FFD700", fontSize: "14px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>How to Use DesaynClaw</h3>
-          <h2 style={{ color: "#fff", fontSize: "28px", margin: 0, fontWeight: "700", lineHeight: "1.2" }}>Convert images in seconds.</h2>
+          <h2 style={{ color: "#fff", fontSize: "36px", margin: 0, fontWeight: "600", letterSpacing: "-1px", lineHeight: "1.2" }}>Convert images in seconds.</h2>
           <p style={{ color: "#aaa", fontSize: "16px", lineHeight: "1.6", margin: 0 }}>
             Our advanced AI handles the complex tracing process for you. No manual pen tool required.
           </p>

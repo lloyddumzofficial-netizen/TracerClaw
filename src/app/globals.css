@@ -27,7 +27,6 @@
 html, body {
   background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: var(--font-outfit), monospace;
   font-size: 13px; /* Smaller, professional desktop font size */
   user-select: none;
   -webkit-font-smoothing: antialiased;
@@ -723,3 +722,32 @@ html, body {
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
+/* Login Modal Styles */
+.login-split-container {
+  display: flex;
+  flex-direction: row;
+}
+.login-form-side {
+  flex: 1;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+}
+.login-image-side {
+  display: none;
+  flex: 1;
+}
+@media (min-width: 768px) {
+  .login-image-side {
+    display: block;
+  }
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalScaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

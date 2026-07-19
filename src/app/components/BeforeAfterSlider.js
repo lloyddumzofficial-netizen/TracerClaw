@@ -66,11 +66,27 @@ function InlineSVG({ url, style }) {
   return <div style={{ ...style, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: svgHtml }} />;
 }
 
-export default function BeforeAfterSlider({ title, rasterUrl, vectorUrl, height = '400px' }) {
+export default function BeforeAfterSlider({ 
+  title, 
+  rasterUrl, 
+  vectorUrl, 
+  height = '400px',
+  aspectRatio = null,
+  objectFit = 'cover',
+  layout = 'vertical',
+  leftLabel = "Vectorized SVG",
+  rightLabel = "Original Photo",
+  description = "Slide to compare the original photo vs. the extracted vector SVG.",
+  showCheckerboard = false,
+  pixelateRaster = false
+}) {
   const [sliderPosition, setSliderPosition] = useState(50);
 
+  const isHorizontal = layout === 'horizontal' || layout === 'horizontal-reverse';
+  const flexDirection = layout === 'horizontal-reverse' ? 'row-reverse' : (layout === 'horizontal' ? 'row' : 'column');
+
   return (
-    <div style={{ textAlign: 'center', height: '100%' }}>
+    <div style={{ textAlign: 'left', height: '100%', width: '100%' }}>
       
       <div style={{ 
         width: '100%',
@@ -79,27 +95,51 @@ export default function BeforeAfterSlider({ title, rasterUrl, vectorUrl, height 
         border: '1px solid rgba(255,255,255,0.08)',
         padding: '8px',
         display: 'flex', 
-        flexDirection: 'column', 
-        gap: '8px',
+        flexDirection: flexDirection, 
+        gap: '16px',
         borderRadius: '0',
-        textAlign: 'left'
+        alignItems: isHorizontal ? 'center' : 'stretch'
       }}>
-        <div style={{ position: 'relative', height, background: '#000', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0' }}>
+        <div style={{ 
+          position: 'relative', 
+          height: aspectRatio ? 'auto' : height, 
+          aspectRatio: aspectRatio || 'auto',
+          flex: isHorizontal ? '1' : 'none',
+          minWidth: isHorizontal ? '60%' : 'auto',
+          background: '#000', 
+          overflow: 'hidden', 
+          border: '1px solid rgba(255,255,255,0.08)', 
+          borderRadius: '0' 
+        }}>
           
           {/* Original Image (Background / Right Side) */}
           <img 
             src={rasterUrl} 
             alt="Original Photo" 
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+            style={{ 
+              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit,
+              imageRendering: pixelateRaster ? 'pixelated' : 'auto'
+            }} 
           />
-          <span style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 10px', fontSize: '11px', color: '#fff', borderRadius: '0', zIndex: 1 }}>Original Photo</span>
+          <span style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.7)', padding: '4px 10px', fontSize: '11px', color: '#fff', borderRadius: '0', zIndex: 1 }}>{rightLabel}</span>
           
-          {/* Vectorized SVG (Foreground / Left Side) */}
-          <InlineSVG 
-            url={vectorUrl} 
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`, zIndex: 2 }} 
-          />
-          <span style={{ position: 'absolute', top: 12, left: 12, background: '#FFD700', padding: '4px 10px', fontSize: '11px', color: '#000', fontWeight: 'bold', borderRadius: '0', zIndex: 3, opacity: sliderPosition > 10 ? 1 : 0, transition: 'opacity 0.2s' }}>Vectorized SVG</span>
+          {/* Vectorized SVG (Foreground / Left Side) with clip path container */}
+          <div style={{ 
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2,
+            clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`
+          }}>
+            {showCheckerboard && (
+              <div style={{ 
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+                background: 'repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%) 50% / 20px 20px' 
+              }}></div>
+            )}
+            <InlineSVG 
+              url={vectorUrl} 
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit }} 
+            />
+          </div>
+          <span style={{ position: 'absolute', top: 12, left: 12, background: '#FFD700', padding: '4px 10px', fontSize: '11px', color: '#000', fontWeight: 'bold', borderRadius: '0', zIndex: 3, opacity: sliderPosition > 10 ? 1 : 0, transition: 'opacity 0.2s' }}>{leftLabel}</span>
 
           {/* Slider Divider Line */}
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${sliderPosition}%`, width: '2px', background: '#FFD700', transform: 'translateX(-50%)', zIndex: 3, pointerEvents: 'none' }}></div>
@@ -123,10 +163,12 @@ export default function BeforeAfterSlider({ title, rasterUrl, vectorUrl, height 
           
         </div>
         
-        <div>
-          <div style={{ fontSize: '15px', color: '#fff', fontWeight: 'bold' }}>{title}</div>
-          <div style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>Slide to compare the original photo vs. the extracted vector SVG.</div>
-        </div>
+        {(title || description) && (
+          <div style={{ flex: isHorizontal ? '1' : 'none', padding: isHorizontal ? '0 16px' : '0' }}>
+            {title && <div style={{ fontSize: '15px', color: '#fff', fontWeight: 'bold' }}>{title}</div>}
+            {description && <div style={{ fontSize: '13px', color: '#888', marginTop: '4px', lineHeight: '1.5' }}>{description}</div>}
+          </div>
+        )}
 
       </div>
     </div>

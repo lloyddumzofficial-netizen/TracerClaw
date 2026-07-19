@@ -364,50 +364,63 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             </>
           ) : (
             <>
-              <div style={{ background: '#2a2a2a', border: '1px solid #444', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#aaa', fontSize: '13px' }}>Selected: <strong style={{ color: '#fff' }}>{PLAN_LABELS[form.plan]}</strong> · GCash Manual</span>
-                <span style={{ color: '#FFD700', fontWeight: '600', fontSize: '15px' }}>{PLAN_PRICES[form.plan]}</span>
+              {/* Header */}
+              <div style={{ background: '#1f1f1f', borderRadius: '8px', padding: '16px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#aaa', fontSize: '14px' }}>Selected: <strong style={{ color: '#fff' }}>{PLAN_LABELS[form.plan]}</strong> · GCash Manual</span>
+                <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '16px' }}>{PLAN_PRICES[form.plan]}</span>
               </div>
-              <div style={{ background: 'rgba(255, 215, 0, 0.08)', border: '1px solid rgba(255, 215, 0, 0.35)', borderRadius: '8px', padding: '14px 16px', marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <AlertTriangle size={18} color="#FFD700" style={{ flexShrink: 0, marginTop: '1px' }} />
-                <div style={{ color: '#d6d6d6', fontSize: '13px', lineHeight: 1.55 }}>
+              
+              {/* Warning Alert */}
+              <div style={{ background: 'rgba(255, 215, 0, 0.05)', borderLeft: '3px solid #FFD700', borderRadius: '4px', padding: '16px', marginBottom: '32px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <AlertTriangle size={20} color="#FFD700" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ color: '#ccc', fontSize: '13px', lineHeight: 1.6 }}>
                   <strong style={{ color: '#FFD700' }}>Manual GCash is not automated.</strong> Submit only once after paying. Duplicate or repeated proof submissions after credits are already added may be blocked for 7 days. Use the same email/account you want credited.
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', marginBottom: '24px', alignItems: 'start' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', display: 'inline-block', marginBottom: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-                    <img src="/gcash_qr.png" alt="GCash QR" style={{ width: '100%', maxWidth: '280px', height: 'auto', objectFit: 'contain', display: 'block' }} />
+
+              {/* Two Column Layout */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '32px', alignItems: 'start' }}>
+                
+                {/* Left: QR Code */}
+                <div style={{ textAlign: 'center', background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ background: '#fff', borderRadius: '12px', padding: '12px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                    <img src="/gcash_qr.png" alt="GCash QR" style={{ width: '100%', maxWidth: '220px', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: '4px' }} />
                   </div>
-                  <p style={{ color: '#FFD700', fontSize: '14px', margin: '0 0 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Smartphone size={18} style={{ marginRight: '6px' }} /> Scan with GCash</p>
-                  <p style={{ color: '#aaa', fontSize: '13px', margin: 0 }}>LL**D D. · +63 948 562 ••••</p>
+                  <p style={{ color: '#fff', fontSize: '15px', fontWeight: '600', margin: '0 0 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Smartphone size={18} color="#FFD700" style={{ marginRight: '8px' }} /> Scan with GCash</p>
+                  <p style={{ color: '#888', fontSize: '13px', margin: 0, letterSpacing: '0.5px' }}>LL**D D. · +63 948 562 ••••</p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px' }}>
+
+                {/* Right: Form */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div>
-                    <label style={{ display: 'block', color: '#aaa', fontSize: '13px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GCASH NUMBER *</label>
-                    <input type="text" placeholder="e.g. 09123456789" value={form.txnRef} onChange={e => setForm(f => ({ ...f, txnRef: e.target.value }))} style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: '8px', padding: '16px', color: '#fff', fontSize: '16px', outline: 'none', boxSizing: 'border-box' }} onFocus={e => e.target.style.borderColor = '#FFD700'} onBlur={e => e.target.style.borderColor = '#444'} />
+                    <label style={{ display: 'block', color: '#888', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GCash Number *</label>
+                    <input type="text" placeholder="e.g. 09123456789" value={form.txnRef} onChange={e => setForm(f => ({ ...f, txnRef: e.target.value }))} style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', padding: '14px 16px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }} onFocus={e => e.target.style.borderColor = '#FFD700'} onBlur={e => e.target.style.borderColor = '#333'} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', color: '#aaa', fontSize: '13px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upload Proof of Payment *</label>
+                    <label style={{ display: 'block', color: '#888', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upload Proof of Payment *</label>
                     <input type="file" accept="image/*" onChange={e => { if (e.target.files[0]) setForm(f => ({ ...f, screenshotName: e.target.files[0].name, screenshotFile: e.target.files[0] })) }} style={{ display: 'none' }} id="proof-upload" />
-                    <label htmlFor="proof-upload" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: '#222', border: '1px dashed #555', borderRadius: '8px', padding: '14px 16px', color: form.screenshotName ? '#FFD700' : '#888', fontSize: '15px', cursor: 'pointer', boxSizing: 'border-box', transition: 'all 0.2s' }}>
+                    <label htmlFor="proof-upload" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: '#1a1a1a', border: form.screenshotName ? '1px solid #FFD700' : '1px dashed #444', borderRadius: '8px', padding: '12px 16px', color: form.screenshotName ? '#FFD700' : '#666', fontSize: '14px', cursor: 'pointer', boxSizing: 'border-box', transition: 'all 0.2s' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><ImageIcon size={18} /> {form.screenshotName || 'Select screenshot...'}</span>
-                      <span style={{ fontSize: '12px', background: '#444', color: '#fff', padding: '6px 10px', borderRadius: '4px' }}>Browse</span>
+                      <span style={{ fontSize: '12px', fontWeight: '600', background: form.screenshotName ? '#FFD700' : '#333', color: form.screenshotName ? '#000' : '#fff', padding: '6px 12px', borderRadius: '4px', transition: 'all 0.2s' }}>Browse</span>
                     </label>
                   </div>
                   <div>
-                    <label style={{ display: 'block', color: '#888', fontSize: '13px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Email (auto-filled)</label>
-                    <input type="text" value={user?.email || ''} readOnly style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', padding: '16px', color: '#666', fontSize: '16px', outline: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }} />
+                    <label style={{ display: 'block', color: '#666', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Email (Auto-filled)</label>
+                    <input type="text" value={user?.email || ''} readOnly style={{ width: '100%', background: 'transparent', border: '1px solid #222', borderRadius: '8px', padding: '14px 16px', color: '#555', fontSize: '15px', outline: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }} />
                   </div>
-                  <p style={{ margin: '12px 0 0', color: '#aaa', fontSize: '13px', lineHeight: 1.6 }}>After paying, fill in the reference number, attach your screenshot above and submit. Credits arrive within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>.</p>
+                  <p style={{ margin: '4px 0 0', color: '#888', fontSize: '13px', lineHeight: 1.6 }}>After paying, fill in the number, attach screenshot and submit. Credits arrive within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>.</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={() => setStep(2)} disabled={isSubmitting} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #2a2a2a', paddingTop: '24px' }}>
+                <button onClick={() => setStep(2)} disabled={isSubmitting} style={{ padding: '14px 28px', background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '600', transition: 'all 0.2s' }} onMouseOver={e => { if(!isSubmitting){ e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#666'; } }} onMouseOut={e => { if(!isSubmitting){ e.currentTarget.style.color = '#aaa'; e.currentTarget.style.borderColor = '#444'; } }}>Back</button>
                 <button 
                   onClick={handleSubmit} 
                   disabled={isSubmitting} 
-                  style={{ flex: 1, padding: '12px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ flex: 1, padding: '14px', background: '#FFD700', color: '#000', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s', opacity: isSubmitting ? 0.7 : 1 }}
+                  onMouseOver={e => { if(!isSubmitting) e.currentTarget.style.opacity = '0.9'; }}
+                  onMouseOut={e => { if(!isSubmitting) e.currentTarget.style.opacity = '1'; }}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Payment'}
                 </button>
