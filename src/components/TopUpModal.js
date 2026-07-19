@@ -10,9 +10,9 @@ import { CREDIT_PLANS } from "@/lib/paymentPlans";
 // To change prices, edit src/lib/paymentPlans.js only.
 const PLANS_META = {
   tingi:   { desc: 'Small package for quick tests.',                          features: ['2 HD Vector Traces', 'Standard Processing'] },
-  basic:   { desc: 'Great for hobbyists printing occasionally.',               features: ['4 HD Vector Traces', 'Standard Processing'] },
-  starter: { desc: 'Ideal for small businesses taking their first steps.',     features: ['13 HD Vector Traces', 'Priority Processing', 'Email support'] },
-  pro:     { desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['45 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
+  basic:   { desc: 'Great for hobbyists printing occasionally.',               features: ['5 HD Vector Traces', 'Standard Processing'] },
+  starter: { desc: 'Ideal for small businesses taking their first steps.',     features: ['10 HD Vector Traces', 'Priority Processing', 'Email support'] },
+  pro:     { desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['35 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
 };
 
 const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
