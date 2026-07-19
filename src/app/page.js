@@ -722,10 +722,6 @@ export default function StartScreen() {
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
-          
-          <div style={{ width: '100%', marginBottom: '40px' }}>
-            <img src="/small_banner.jpg" alt="Promo Banner" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid #333' }} />
-          </div>
 
           {/* Section Header */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
@@ -843,6 +839,10 @@ export default function StartScreen() {
               </div>
             </div>
 
+          </div>
+
+          <div style={{ width: '100%', marginTop: '40px' }}>
+            <img src="/small_banner.jpg" alt="Promo Banner" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid #333' }} />
           </div>
         </div>
         {/* Animated Counter Section */}
