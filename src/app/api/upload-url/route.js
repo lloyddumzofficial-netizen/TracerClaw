@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getUploadUrl } from '@/lib/cloudflare';
 import { adminSupabase } from '@/lib/supabase';
+import { validateImageUploadRequest } from '@/lib/uploadLimits';
 
 export async function POST(request) {
   try {
-    const { fileName, contentType } = await request.json();
+    const { fileName, contentType, fileSize, purpose } = await request.json();
 
-    if (!fileName || !contentType) {
-      return NextResponse.json({ error: 'Missing fileName or contentType' }, { status: 400 });
+    if (!fileName || !contentType || !fileSize) {
+      return NextResponse.json({ error: 'Missing fileName, contentType, or fileSize' }, { status: 400 });
     }
 
-    // Fix #9: Allowlist content types — block non-image uploads
-    const ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp', 'image/tiff'];
-    if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
-      return NextResponse.json({ error: 'Invalid file type. Only images are allowed.' }, { status: 400 });
+    const validation = validateImageUploadRequest({ contentType, fileSize, purpose });
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error, maxBytes: validation.maxBytes }, { status: validation.status });
     }
     
     const authHeader = request.headers.get('authorization');
@@ -39,7 +39,10 @@ export async function POST(request) {
     const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const fullFileName = `users/${user.id}/${Date.now()}_${safeName}`;
 
-    const urls = await getUploadUrl(fullFileName, contentType);
+    const urls = await getUploadUrl(fullFileName, validation.contentType, {
+      fileSize: validation.fileSize,
+      maxBytes: validation.maxBytes,
+    });
 
     return NextResponse.json(urls);
 

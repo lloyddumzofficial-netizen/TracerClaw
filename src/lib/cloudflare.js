@@ -16,11 +16,12 @@ export const s3Client = new S3Client({
   },
 });
 
-export async function getUploadUrl(fileName, contentType) {
+export async function getUploadUrl(fileName, contentType, options = {}) {
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: fileName,
     ContentType: contentType,
+    ...(options.fileSize ? { ContentLength: options.fileSize } : {}),
   });
 
   // URL valid for 5 minutes
@@ -29,6 +30,7 @@ export async function getUploadUrl(fileName, contentType) {
   return {
     uploadUrl: signedUrl,
     publicUrl: `${publicUrl}/${fileName}`,
+    ...(options.maxBytes ? { maxBytes: options.maxBytes } : {}),
   };
 }
 

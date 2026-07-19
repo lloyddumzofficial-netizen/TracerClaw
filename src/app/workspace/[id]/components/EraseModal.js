@@ -2,6 +2,7 @@
 
 import { memo, useState, useRef, useCallback, useEffect } from "react";
 import { Eraser, X, Save } from "lucide-react";
+import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 
 /**
  * EraseModal — Isolated canvas drawing modal.
@@ -114,6 +115,10 @@ const EraseModal = memo(function EraseModal({
 
     try {
       const blob = await new Promise(resolve => canvasRef.current.toBlob(resolve, "image/jpeg", 0.95));
+      const maxUploadBytes = resolveImageUploadLimit();
+      if (!blob || blob.size > maxUploadBytes) {
+        throw new Error(`Edited image is too large. Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+      }
 
       const sessionRes = await supabase.auth.getSession();
       const token = sessionRes.data.session?.access_token;
@@ -127,7 +132,7 @@ const EraseModal = memo(function EraseModal({
       const urlRes = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ fileName: `erased_${Date.now()}.jpg`, contentType: "image/jpeg" }),
+        body: JSON.stringify({ fileName: `erased_${Date.now()}.jpg`, contentType: "image/jpeg", fileSize: blob.size }),
       });
       const urlData = await urlRes.json();
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");

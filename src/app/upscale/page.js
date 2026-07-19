@@ -8,6 +8,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import TopUpModal from "@/components/TopUpModal";
 import { compressImageClientSide } from "@/utils/imageUtils";
+import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import FeedbackWidget from "@/app/workspace/[id]/components/FeedbackWidget";
 import "../globals.css";
 import "../home.css";
@@ -118,6 +119,11 @@ export default function UpscalePage() {
 
   const handleFileSelected = (file) => {
     if (!file) return;
+    const maxUploadBytes = resolveImageUploadLimit();
+    if (file.size > maxUploadBytes) {
+      toast.error(`File is too large! Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+      return;
+    }
     const objUrl = URL.createObjectURL(file);
     setPreviewImage(objUrl);
     setSelectedFile(file);
@@ -136,7 +142,7 @@ export default function UpscalePage() {
       const res = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ fileName, contentType: file.type }),
+        body: JSON.stringify({ fileName, contentType: file.type, fileSize: file.size }),
       });
       const data = await res.json();
       if (!res.ok || !data.uploadUrl) throw new Error("Failed to get upload URL");

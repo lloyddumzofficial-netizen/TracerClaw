@@ -1,74 +1,13 @@
 "use client";
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Scissors, ZoomIn, ZoomOut, Maximize, AlertCircle, Eraser, Loader2, ImageMinus } from "lucide-react";
-
-/**
- * InlineSVG — Fetches SVG text and injects it directly into the DOM.
- * More reliable than <img> (content-type issues) or <object> (doesn't reload on data change).
- */
-function InlineSVG({ url, style }) {
-  const [svgHtml, setSvgHtml] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!url) { setSvgHtml(null); return; }
-    setLoading(true);
-    setSvgHtml(null);
-    fetch(url)
-      .then(r => r.text())
-      .then(text => {
-        // Sanitize: strip script tags + inline event handlers before injection
-        const safe = text
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/\son\w+="[^"]*"/gi, '')
-          .replace(/\son\w+='[^']*'/gi, '');
-        if (safe.includes('<svg')) {
-          // Strip fixed width/height so SVG scales to fit container
-          const scaled = safe.replace(/<svg([^>]*?)>/i, (_, attrs) => {
-            let clean = attrs;
-            const wMatch = attrs.match(/\swidth=["']([^"']+)["']/i);
-            const hMatch = attrs.match(/\sheight=["']([^"']+)["']/i);
-            const vMatch = attrs.match(/\sviewBox=["']([^"']+)["']/i);
-
-            clean = clean.replace(/\s+width=["'][^"']*["']/gi, '')
-                         .replace(/\s+height=["'][^"']*["']/gi, '')
-                         .replace(/\s+preserveAspectRatio=["'][^"']*["']/gi, '')
-                         .replace(/\s+style=["'][^"']*["']/gi, '');
-
-            if (!vMatch && wMatch && hMatch) {
-              const w = parseFloat(wMatch[1].replace(/px/i, ''));
-              const h = parseFloat(hMatch[1].replace(/px/i, ''));
-              if (!isNaN(w) && !isNaN(h)) {
-                clean += ` viewBox="0 0 ${w} ${h}"`;
-              }
-            }
-            return `<svg${clean} style="width:100%;height:100%;display:block;" preserveAspectRatio="xMidYMid meet">`;
-          });
-          setSvgHtml(scaled);
-        }
-      })
-      .catch(err => console.error('[InlineSVG] fetch failed:', err))
-      .finally(() => setLoading(false));
-  }, [url]);
-
-  if (loading) return <div style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 12 }}>Loading SVG...</div>;
-  if (!svgHtml) return null;
-  return (
-    <div
-      style={{ ...style, overflow: 'hidden' }}
-      dangerouslySetInnerHTML={{ __html: svgHtml }}
-    />
-  );
-}
+import { Maximize, AlertCircle, Loader2 } from "lucide-react";
+import SafeInlineSVG from "@/app/components/SafeInlineSVG";
 
 const SplitViewCanvas = memo(function SplitViewCanvas({
   project,
   traceState,
   nodeErrors,
-  onCropOpen,
-  onEraseOpen,
-  onRemoveBgOpen,
 }) {
   const [activeTab, setActiveTab] = useState("generated");
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -348,25 +287,12 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   return (
     <div ref={containerRef} style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
 
-      {/* ── Sub-toolbar: tool buttons LEFT, zoom controls CENTER ── */}
+      {/* ── Sub-toolbar: context LEFT, zoom controls CENTER ── */}
       <div style={{ display: "flex", alignItems: "center", padding: "0 16px", background: "#1e1e1e", borderBottom: "1px solid #333", height: "38px", flexShrink: 0, gap: "8px" }}>
 
-        {/* Left: tool buttons (only in idle) */}
+        {/* Left: workspace context */}
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
           <span style={{ color: "#555", fontSize: "10px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px", marginRight: "4px" }}>ORIGINAL UPLOAD</span>
-          {traceState === "idle" && (
-            <>
-              <button onClick={onRemoveBgOpen} style={toolBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#ccc"} onMouseOut={e => e.currentTarget.style.borderColor="#444"}>
-                <ImageMinus size={11} /> Remove BG
-              </button>
-              <button onClick={onEraseOpen} style={toolBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#ccc"} onMouseOut={e => e.currentTarget.style.borderColor="#444"}>
-                <Eraser size={11} /> Erase Noise
-              </button>
-              <button onClick={onCropOpen} style={{ ...toolBtnStyle, background: "rgba(255,215,0,0.08)", borderColor: "#FFD700", color: "#FFD700" }} onMouseOver={e => e.currentTarget.style.background="rgba(255,215,0,0.18)"} onMouseOut={e => e.currentTarget.style.background="rgba(255,215,0,0.08)"}>
-                <Scissors size={11} /> Crop Region
-              </button>
-            </>
-          )}
         </div>
 
         {/* Center: zoom */}
@@ -461,9 +387,10 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               <div style={{ position: "relative", width: `${Math.max(100, zoomLevel * 100)}%`, height: `${Math.max(100, zoomLevel * 100)}%`, minWidth: "100%", minHeight: "100%" }}>
                 <div style={{ position: "absolute", top: "50%", left: "50%", width: `${100 / Math.max(1, zoomLevel)}%`, height: `${100 / Math.max(1, zoomLevel)}%`, transform: `translate(-50%, -50%) scale(${zoomLevel})`, padding: "24px", boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
                   {activeTab === "svg" ? (
-                    <InlineSVG
+                    <SafeInlineSVG
                       url={activeUrl}
                       style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      loadingFallback={<div style={{ width: "100%", height: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 12 }}>Loading SVG...</div>}
                     />
                   ) : (
                     <img src={activeUrl} draggable={false} alt="Output" style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain" }} />
@@ -483,23 +410,6 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     </div>
   );
 });
-
-// ── Shared micro-styles ──────────────────────────────────────────────────────
-const toolBtnStyle = {
-  background: "#1a1a1a",
-  border: "1px solid #444",
-  color: "#bbb",
-  padding: "4px 10px",
-  cursor: "pointer",
-  fontSize: "10px",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  display: "flex",
-  alignItems: "center",
-  gap: "5px",
-  transition: "all 0.15s",
-  fontWeight: "600",
-};
 
 const zoomBtnStyle = {
   background: "#1a1a1a",

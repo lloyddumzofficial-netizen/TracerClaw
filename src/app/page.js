@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
+import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
 
@@ -352,9 +353,9 @@ export default function StartScreen() {
     if (!file || !file.type.startsWith("image/")) return;
 
     // Limit upload to 10MB to save bandwidth and prevent AI processing timeouts
-    const maxSizeInMB = isBgRemover ? 20 : 10;
-    if (file.size > maxSizeInMB * 1024 * 1024) {
-      toast.error(`File is too large! Maximum allowed size is ${maxSizeInMB}MB.`);
+    const maxUploadBytes = resolveImageUploadLimit({ purpose: isBgRemover ? "bg_remover" : "standard" });
+    if (file.size > maxUploadBytes) {
+      toast.error(`File is too large! Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
       return;
     }
 
@@ -368,6 +369,11 @@ export default function StartScreen() {
         console.warn("Compression failed, uploading original:", compressErr);
       }
 
+      if (fileToUpload.size > maxUploadBytes) {
+        toast.error(`Compressed file is still too large. Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+        return;
+      }
+
       const sessionRes = await supabase.auth.getSession();
       const token = sessionRes.data.session?.access_token;
       if (!token) { setIsUploading(false); handleLogin(); return; }
@@ -375,7 +381,12 @@ export default function StartScreen() {
       const urlRes = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ fileName: fileToUpload.name, contentType: fileToUpload.type })
+        body: JSON.stringify({
+          fileName: fileToUpload.name,
+          contentType: fileToUpload.type,
+          fileSize: fileToUpload.size,
+          purpose: isBgRemover ? "bg_remover" : "standard",
+        })
       });
 
       const urlData = await urlRes.json();
@@ -577,21 +588,21 @@ export default function StartScreen() {
                 </p>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px", marginBottom: "20px", width: "100%" }}>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  {isUploading ? <><Monitor size={14} className="animate-pulse" /> Creating...</> : <><FilePlus size={14} /> New Project</>}
+              <div style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflowX: "auto", paddingBottom: "2px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  {isUploading ? <><Monitor size={13} className="animate-pulse" /> Creating...</> : <><FilePlus size={13} /> New Project</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  {isUploading ? <><Monitor size={14} className="animate-pulse" /> Uploading...</> : <><Monitor size={14} /> Open PC</>}
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  {isUploading ? <><Monitor size={13} className="animate-pulse" /> Uploading...</> : <><Monitor size={13} /> Open PC</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  <Scan size={14} /> Scan Phone
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  <Scan size={13} /> Scan Phone
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  <ImageIcon size={14} /> Image Upscale
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  <ImageIcon size={13} /> Image Upscale
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <Scissors size={14} color="#FFD700" /> BG Remover
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <Scissors size={13} color="#FFD700" /> BG Remover
                 </button>
               </div>
 

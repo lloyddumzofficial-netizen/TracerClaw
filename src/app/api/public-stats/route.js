@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 
-export const dynamic = 'force-dynamic'; // Ensures truly real-time updates on every page load
+export const dynamic = 'force-dynamic';
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedStats = null;
 
 export async function GET() {
   try {
+    if (cachedStats && Date.now() < cachedStats.expiresAt) {
+      return NextResponse.json(cachedStats.payload);
+    }
+
     const { count, error } = await adminSupabase
       .from('profiles')
       .select('id', { count: 'exact', head: true });
@@ -14,22 +21,32 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
     }
 
-    // Securely fetch real avatars without leaking emails
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.listUsers();
-    let realAvatars = [];
-    
-    if (!authError && authData && authData.users) {
-      realAvatars = authData.users
-        .map(u => u.user_metadata?.avatar_url) // Extract only the avatar string
-        .filter(url => url)                    // Remove nulls/undefined
-        .slice(0, 5);                          // Get only top 5
+    const { data: reviewedProjects, error: avatarError } = await adminSupabase
+      .from('projects')
+      .select('reviewer_avatar')
+      .not('reviewer_avatar', 'is', null)
+      .gte('rating', 4)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (avatarError) {
+      console.warn("Failed to fetch public avatar stats", avatarError);
     }
 
-    return NextResponse.json({
+    const realAvatars = [...new Set((reviewedProjects || []).map((row) => row.reviewer_avatar).filter(Boolean))].slice(0, 5);
+
+    const payload = {
       success: true,
       totalUsers: count || 0,
       avatars: realAvatars
-    });
+    };
+
+    cachedStats = {
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      payload,
+    };
+
+    return NextResponse.json(payload);
   } catch (err) {
     return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
   }

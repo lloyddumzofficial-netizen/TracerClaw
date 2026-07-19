@@ -23,6 +23,7 @@ import CompareModal from "./components/CompareModal";
 import NoCreditsModal from "./components/NoCreditsModal";
 import TopUpModal from "@/components/TopUpModal";
 import ShortcutsModal from "./components/ShortcutsModal";
+import WorkspaceCommandBar from "./components/WorkspaceCommandBar";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
@@ -186,6 +187,7 @@ export default function Workspace() {
       logToConsole("[Success] Crop applied and saved! You can now re-trace.", "success");
     }
     setIsSavingCrop(false);
+    setActiveTool("pointer");
   }, [logToConsole]);
 
   const handleEraseApplied = useCallback((publicUrl, errorMsg) => {
@@ -201,6 +203,7 @@ export default function Workspace() {
       }));
       logToConsole("[Success] Erased noise saved! You can now re-trace.", "success");
     }
+    setActiveTool("pointer");
   }, [logToConsole]);
 
   const handleRemoveBgApplied = useCallback((publicUrl, errorMsg) => {
@@ -217,6 +220,7 @@ export default function Workspace() {
       setUserCredits(prev => (prev > 0 ? prev - 1 : 0));
       logToConsole("[Success] Background removed! You can now re-trace.", "success");
     }
+    setActiveTool("pointer");
   }, [logToConsole]);
 
   const handleLogin = useCallback(async () => {
@@ -237,6 +241,10 @@ export default function Workspace() {
       return "Saved recently";
     })()
     : null;
+  const isBusy = traceState !== "idle" || isSavingCrop;
+  const hasProject = !!project;
+  const hasRaster = !!project?.upscaled_image_url || !!project?.generated_image_url;
+  const hasSvg = !!project?.svg_url;
 
   return (
     <div className="app-container">
@@ -273,6 +281,25 @@ export default function Workspace() {
         </div>
       )}
 
+      {project && (
+        <WorkspaceCommandBar
+          activeTool={activeTool}
+          isBusy={isBusy}
+          hasProject={hasProject}
+          hasRaster={hasRaster}
+          hasSvg={hasSvg}
+          hasUpscaled={!!project?.upscaled_image_url}
+          onSelectTool={setActiveTool}
+          onOpenCrop={() => setShowCropModal(true)}
+          onOpenErase={() => setShowEraseModal(true)}
+          onOpenRemoveBg={() => setShowRemoveBgModal(true)}
+          onOpenCompare={() => setShowCompare(true)}
+          onDownloadSvg={handleDownloadSvg}
+          onDownloadPng={handleDownloadUpscaled}
+          onDownloadZip={handleDownloadAll}
+        />
+      )}
+
 
       <main className="main-workspace" style={{ padding: 0 }}>
         {/* Split View Workspace */}
@@ -286,9 +313,6 @@ export default function Workspace() {
               project={project}
               traceState={traceState}
               nodeErrors={nodeErrors}
-              onCropOpen={() => setShowCropModal(true)}
-              onEraseOpen={() => setShowEraseModal(true)}
-              onRemoveBgOpen={() => setShowRemoveBgModal(true)}
             />
           )}
         </div>
@@ -342,7 +366,7 @@ export default function Workspace() {
         show={showCropModal}
         project={project}
         supabase={supabase}
-        onClose={() => setShowCropModal(false)}
+        onClose={() => { setShowCropModal(false); setActiveTool("pointer"); }}
         onCropApplied={handleCropApplied}
         onLoginRequired={handleLogin}
       />
@@ -351,7 +375,7 @@ export default function Workspace() {
         show={showEraseModal}
         project={project}
         supabase={supabase}
-        onClose={() => setShowEraseModal(false)}
+        onClose={() => { setShowEraseModal(false); setActiveTool("pointer"); }}
         onEraseApplied={handleEraseApplied}
         onLoginRequired={handleLogin}
       />
@@ -360,7 +384,7 @@ export default function Workspace() {
         show={showRemoveBgModal}
         project={project}
         supabase={supabase}
-        onClose={() => setShowRemoveBgModal(false)}
+        onClose={() => { setShowRemoveBgModal(false); setActiveTool("pointer"); }}
         onRemoveBgApplied={handleRemoveBgApplied}
       />
 

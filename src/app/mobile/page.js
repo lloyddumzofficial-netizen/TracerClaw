@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Camera, Upload, CheckCircle2, Loader2, Image as ImageIcon } from "lucide-react";
 import { compressImageClientSide } from "@/utils/imageUtils";
+import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 
 function MobileUploadContent() {
   const searchParams = useSearchParams();
@@ -23,6 +24,12 @@ function MobileUploadContent() {
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const maxUploadBytes = resolveImageUploadLimit();
+    if (file.size > maxUploadBytes) {
+      setStatus("error");
+      setErrorMsg(`File is too large. Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+      return;
+    }
 
     try {
       setStatus("uploading");
@@ -34,13 +41,24 @@ function MobileUploadContent() {
       } catch (compressErr) {
         console.warn("Compression failed on mobile, using original:", compressErr);
       }
-      
+
+      if (fileToUpload.size > maxUploadBytes) {
+        throw new Error(`Compressed file is still too large. Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+      }
+
+      const sessionRes = await supabase.auth.getSession();
+      const token = sessionRes.data.session?.access_token;
+
       const res = await fetch("/api/upload-mobile", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           fileName: fileToUpload.name,
           contentType: fileToUpload.type,
+          fileSize: fileToUpload.size,
           syncSessionId: syncSessionId
         })
       });

@@ -4,6 +4,7 @@ import { memo, useState, useRef, useCallback } from "react";
 import { Scissors, X } from "lucide-react";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 
 /**
  * CropModal — Isolated crop modal with its own state.
@@ -65,6 +66,10 @@ const CropModal = memo(function CropModal({
 
     try {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.90));
+      const maxUploadBytes = resolveImageUploadLimit();
+      if (!blob || blob.size > maxUploadBytes) {
+        throw new Error(`Cropped image is too large. Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+      }
 
       const sessionRes = await supabase.auth.getSession();
       const token = sessionRes.data.session?.access_token;
@@ -77,7 +82,7 @@ const CropModal = memo(function CropModal({
       const urlRes = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ fileName: `crop_${Date.now()}.jpg`, contentType: "image/jpeg" }),
+        body: JSON.stringify({ fileName: `crop_${Date.now()}.jpg`, contentType: "image/jpeg", fileSize: blob.size }),
       });
       const urlData = await urlRes.json();
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
@@ -110,49 +115,65 @@ const CropModal = memo(function CropModal({
 
   if (!show || !project) return null;
 
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: "1000px", width: "95%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-        <h3 style={{ marginBottom: "15px" }}>
-          <Scissors size={18} style={{ verticalAlign: "text-bottom", marginRight: "8px" }} />
-          Crop Pattern Region
-        </h3>
+  const cropSizeLabel = completedCrop?.width && completedCrop?.height
+    ? `${Math.round(completedCrop.width)} x ${Math.round(completedCrop.height)} px`
+    : "No selection";
 
-        <div style={{ display: "flex", gap: "20px", flex: 1, minHeight: 0, flexDirection: "row" }}>
-          {/* Left Column: The Cropper */}
-          <div style={{ flex: "1 1 65%", backgroundColor: "#0f0f0f", border: "1px solid #2a2a2a", borderRadius: "8px", display: "flex", justifyContent: "center", alignItems: "center", padding: "16px", minHeight: "400px", overflow: "hidden" }}>
-            <ReactCrop
-              crop={crop}
-              onChange={c => { setCrop(c); setCropError(""); }}
-              onComplete={c => setCompletedCrop(c)}
-              style={{ display: "flex", justifyContent: "center", alignItems: "center", maxWidth: "100%", maxHeight: "100%" }}
-            >
-              <img
-                ref={imgRef}
-                src={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
-                alt="Crop source"
-                style={{ maxHeight: "65vh", maxWidth: "100%", objectFit: "contain", display: "block", margin: "0 auto" }}
-                crossOrigin="anonymous"
-                onLoad={e => { imgRef.current = e.currentTarget; }}
-              />
-            </ReactCrop>
+  return (
+    <div className="modal-overlay crop-workspace-overlay">
+      <div className="crop-workspace-modal">
+        <div className="crop-workspace-header">
+          <div className="crop-workspace-title">
+            <span className="crop-tool-icon"><Scissors size={16} /></span>
+            <div>
+              <h3>Crop Pattern Region</h3>
+              <p>Isolate the artwork area for cleaner extraction.</p>
+            </div>
+          </div>
+          <button className="crop-close-btn" onClick={onClose} aria-label="Close crop modal">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="crop-workspace-body">
+          <div className="crop-canvas-panel">
+            <div className="crop-canvas-toolbar">
+              <span>Source Image</span>
+              <span>{cropSizeLabel}</span>
+            </div>
+            <div className="crop-canvas-stage">
+              <ReactCrop
+                crop={crop}
+                onChange={c => { setCrop(c); setCropError(""); }}
+                onComplete={c => setCompletedCrop(c)}
+                className="designer-crop"
+              >
+                <img
+                  ref={imgRef}
+                  src={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
+                  alt="Crop source"
+                  className="crop-source-image"
+                  crossOrigin="anonymous"
+                  onLoad={e => { imgRef.current = e.currentTarget; }}
+                />
+              </ReactCrop>
+            </div>
           </div>
 
-          {/* Right Column: The Guide */}
-          <div style={{ flex: "0 0 320px", backgroundColor: "#0a0a0a", border: "1px solid #1f1f1f", borderRadius: "8px", padding: "24px 20px", display: "flex", flexDirection: "column", gap: "24px", overflowY: "auto" }}>
-            <div>
-              <h4 style={{ margin: "0 0 6px", color: "#fff", fontSize: "14px", fontWeight: "600", letterSpacing: "0.3px" }}>Crop Guide</h4>
-              <p style={{ fontSize: "12px", color: "#666", margin: 0, lineHeight: 1.5 }}>Help the AI focus by isolating the pattern correctly.</p>
+          <aside className="crop-guide-panel">
+            <div className="crop-guide-header">
+              <span>Guide</span>
+              <strong>{project?.trace_type === 'logo' ? "Logo Mode" : "Pattern Mode"}</strong>
             </div>
             {project?.trace_type === 'logo' ? (
               <>
-                <div>
-                  <div style={{ color: "#ececec", fontWeight: "500", fontSize: "13px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80" }} />
+                <div className="crop-guide-card is-good">
+                  <div className="crop-guide-label">
+                    <span />
                     DO: Crop Tightly Around Logo
                   </div>
-                  <p style={{ fontSize: "12px", color: "#666", margin: "0 0 12px", lineHeight: 1.5 }}>Remove as much empty background as possible. Keep the box snug to the logo edges.</p>
-                  <svg viewBox="5 5 90 90" width="100%" height="140" style={{ display: "block", backgroundColor: "#111", borderRadius: "6px", padding: "10px", boxSizing: "border-box" }}>
+                  <p>Remove empty background. Keep the box snug to the logo edges.</p>
+                  <svg viewBox="5 5 90 90" width="100%" height="126">
                     <circle cx="50" cy="50" r="20" fill="#FFD700" />
                     <path d="M 40 50 L 60 50 M 50 40 L 50 60" stroke="#000" strokeWidth="4" />
                     <rect x="28" y="28" width="44" height="44" fill="transparent" stroke="#4ade80" strokeWidth="1.5" strokeDasharray="3 3" />
@@ -162,13 +183,13 @@ const CropModal = memo(function CropModal({
                     <rect x="70" y="70" width="4" height="4" fill="#4ade80" />
                   </svg>
                 </div>
-                <div>
-                  <div style={{ color: "#ececec", fontWeight: "500", fontSize: "13px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff4444" }} />
+                <div className="crop-guide-card is-bad">
+                  <div className="crop-guide-label">
+                    <span />
                     DON'T: Include Extra Space
                   </div>
-                  <p style={{ fontSize: "12px", color: "#666", margin: "0 0 12px", lineHeight: 1.5 }}>Do not leave huge margins around the logo. This reduces the AI resolution.</p>
-                  <svg viewBox="5 5 90 90" width="100%" height="140" style={{ display: "block", backgroundColor: "#111", borderRadius: "6px", padding: "10px", boxSizing: "border-box" }}>
+                  <p>Huge margins reduce effective AI detail and weaken the result.</p>
+                  <svg viewBox="5 5 90 90" width="100%" height="126">
                     <circle cx="50" cy="50" r="20" fill="#FFD700" />
                     <path d="M 40 50 L 60 50 M 50 40 L 50 60" stroke="#000" strokeWidth="4" />
                     <rect x="5" y="5" width="90" height="90" fill="rgba(255, 68, 68, 0.05)" stroke="#ff4444" strokeWidth="1.5" strokeDasharray="3 3" />
@@ -181,13 +202,13 @@ const CropModal = memo(function CropModal({
               </>
             ) : (
               <>
-                <div>
-                  <div style={{ color: "#ececec", fontWeight: "500", fontSize: "13px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80" }} />
+                <div className="crop-guide-card is-good">
+                  <div className="crop-guide-label">
+                    <span />
                     DO: Crop Torso Only
                   </div>
-                  <p style={{ fontSize: "12px", color: "#666", margin: "0 0 12px", lineHeight: 1.5 }}>Exclude sleeves. Keep the box tight to the main body.</p>
-                  <svg viewBox="5 5 90 90" width="100%" height="140" style={{ display: "block", backgroundColor: "#111", borderRadius: "6px", padding: "10px", boxSizing: "border-box" }}>
+                  <p>Exclude sleeves. Keep the selection tight to the main body.</p>
+                  <svg viewBox="5 5 90 90" width="100%" height="126">
                     <path d="M 20 20 L 40 10 L 60 10 L 80 20 L 90 40 L 75 45 L 70 90 L 30 90 L 25 45 L 10 40 Z" fill="#1a1a1a" stroke="#333" strokeWidth="1" />
                     <path d="M 35 30 L 65 50 M 35 50 L 65 70 M 35 70 L 65 90" stroke="#222" strokeWidth="1.5" />
                     <rect x="25" y="10" width="50" height="80" fill="rgba(74, 222, 128, 0.05)" stroke="#4ade80" strokeWidth="1.5" strokeDasharray="3 3" />
@@ -197,13 +218,13 @@ const CropModal = memo(function CropModal({
                     <rect x="73" y="88" width="4" height="4" fill="#4ade80" />
                   </svg>
                 </div>
-                <div>
-                  <div style={{ color: "#ececec", fontWeight: "500", fontSize: "13px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ff4444" }} />
+                <div className="crop-guide-card is-bad">
+                  <div className="crop-guide-label">
+                    <span />
                     DON'T: Include Sleeves
                   </div>
-                  <p style={{ fontSize: "12px", color: "#666", margin: "0 0 12px", lineHeight: 1.5 }}>If you include sleeves, the AI will draw a shirt.</p>
-                  <svg viewBox="5 5 90 90" width="100%" height="140" style={{ display: "block", backgroundColor: "#111", borderRadius: "6px", padding: "10px", boxSizing: "border-box" }}>
+                  <p>If sleeves are included, the AI may extract the full shirt shape.</p>
+                  <svg viewBox="5 5 90 90" width="100%" height="126">
                     <path d="M 20 20 L 40 10 L 60 10 L 80 20 L 90 40 L 75 45 L 70 90 L 30 90 L 25 45 L 10 40 Z" fill="#1a1a1a" stroke="#333" strokeWidth="1" />
                     <rect x="5" y="5" width="90" height="90" fill="rgba(255, 68, 68, 0.05)" stroke="#ff4444" strokeWidth="1.5" strokeDasharray="3 3" />
                     <rect x="3" y="3" width="4" height="4" fill="#ff4444" />
@@ -214,19 +235,33 @@ const CropModal = memo(function CropModal({
                 </div>
               </>
             )}
-          </div>
+            <div className="crop-inspector-panel">
+              <div className="crop-inspector-row">
+                <span>Selection</span>
+                <strong>{cropSizeLabel}</strong>
+              </div>
+              <div className="crop-inspector-row">
+                <span>Output</span>
+                <strong>JPG · max 1536px</strong>
+              </div>
+              <div className="crop-inspector-row">
+                <span>Focus</span>
+                <strong>{project?.trace_type === 'logo' ? "Logo artwork" : "Main body"}</strong>
+              </div>
+            </div>
+          </aside>
         </div>
 
         {cropError && (
-          <div style={{ color: "#ff4444", fontSize: "13px", marginTop: "12px", textAlign: "center", fontWeight: "bold" }}>
+          <div className="crop-error-message">
             {cropError}
           </div>
         )}
-        <div className="modal-actions" style={{ marginTop: "20px" }}>
+        <div className="crop-workspace-actions">
           {project?.generated_image_url && (
-            <button className="btn-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn-secondary crop-secondary-action" onClick={onClose}>Cancel</button>
           )}
-          <button className="btn-primary" onClick={handleApply} disabled={isSaving}>
+          <button className="btn-primary crop-primary-action" onClick={handleApply} disabled={isSaving}>
             {isSaving ? "Saving..." : "Apply Crop & Extract"}
           </button>
         </div>
