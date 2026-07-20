@@ -944,18 +944,18 @@ html, body {
 }
 
 .crop-guide-panel {
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
+  gap: 10px;
+  overflow: hidden;
 }
 
 .crop-guide-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #262626;
   color: #7f7f7f;
   font-size: 11px;
@@ -972,7 +972,7 @@ html, body {
 .crop-guide-card {
   background: #151515;
   border: 1px solid #292929;
-  padding: 12px;
+  padding: 10px;
 }
 
 .crop-guide-label {
@@ -1000,7 +1000,7 @@ html, body {
 }
 
 .crop-guide-card p {
-  margin: 8px 0 10px;
+  margin: 7px 0 9px;
   color: #858585;
   font-size: 12px;
   line-height: 1.45;
@@ -1013,17 +1013,114 @@ html, body {
   box-sizing: border-box;
 }
 
+.crop-guide-photo-frame {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  background: #0f0f0f;
+  border: 1px solid #232323;
+  box-sizing: border-box;
+}
+
+.crop-guide-photo-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.crop-guide-demo-box {
+  position: absolute;
+  border: 2px dashed currentColor;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.27);
+}
+
+.crop-guide-card.is-good .crop-guide-demo-box {
+  color: #4ade80;
+}
+
+.crop-guide-card.is-bad .crop-guide-demo-box {
+  color: #ff4444;
+}
+
+.crop-guide-demo-box.is-tight-body {
+  left: 35%;
+  top: 13%;
+  width: 30%;
+  height: 78%;
+}
+
+.crop-guide-demo-box.is-full-shirt {
+  left: 10%;
+  top: 8%;
+  width: 80%;
+  height: 86%;
+}
+
+.crop-guide-demo-box i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  border: 1px solid #0b0b0b;
+  box-sizing: border-box;
+}
+
+.crop-guide-demo-box i:nth-child(1) {
+  left: -5px;
+  top: -5px;
+}
+
+.crop-guide-demo-box i:nth-child(2) {
+  left: 50%;
+  top: -5px;
+  transform: translateX(-50%);
+}
+
+.crop-guide-demo-box i:nth-child(3) {
+  right: -5px;
+  top: -5px;
+}
+
+.crop-guide-demo-box i:nth-child(4) {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.crop-guide-demo-box i:nth-child(5) {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.crop-guide-demo-box i:nth-child(6) {
+  left: -5px;
+  bottom: -5px;
+}
+
+.crop-guide-demo-box i:nth-child(7) {
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+}
+
+.crop-guide-demo-box i:nth-child(8) {
+  right: -5px;
+  bottom: -5px;
+}
+
 .crop-inspector-panel {
   margin-top: auto;
   border-top: 1px solid #262626;
-  padding-top: 12px;
+  padding-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .crop-inspector-row {
-  min-height: 30px;
+  min-height: 28px;
   padding: 0 10px;
   border: 1px solid #292929;
   background: #151515;

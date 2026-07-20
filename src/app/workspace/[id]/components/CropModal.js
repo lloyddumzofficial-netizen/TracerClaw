@@ -6,6 +6,31 @@ import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 
+function CropGuidePhoto({ title, body, tone, imageSrc, imageAlt, boxClassName }) {
+  return (
+    <div className={`crop-guide-card ${tone === "good" ? "is-good" : "is-bad"}`}>
+      <div className="crop-guide-label">
+        <span />
+        {title}
+      </div>
+      <p>{body}</p>
+      <div className="crop-guide-photo-frame">
+        <img src={imageSrc} alt={imageAlt} loading="lazy" />
+        <div className={`crop-guide-demo-box ${boxClassName}`}>
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * CropModal — Isolated crop modal with its own state.
  * Only mounted when `show` is true — no cost when hidden.
@@ -202,37 +227,22 @@ const CropModal = memo(function CropModal({
               </>
             ) : (
               <>
-                <div className="crop-guide-card is-good">
-                  <div className="crop-guide-label">
-                    <span />
-                    DO: Crop Torso Only
-                  </div>
-                  <p>Exclude sleeves. Keep the selection tight to the main body.</p>
-                  <svg viewBox="5 5 90 90" width="100%" height="126">
-                    <path d="M 20 20 L 40 10 L 60 10 L 80 20 L 90 40 L 75 45 L 70 90 L 30 90 L 25 45 L 10 40 Z" fill="#1a1a1a" stroke="#333" strokeWidth="1" />
-                    <path d="M 35 30 L 65 50 M 35 50 L 65 70 M 35 70 L 65 90" stroke="#222" strokeWidth="1.5" />
-                    <rect x="25" y="10" width="50" height="80" fill="rgba(74, 222, 128, 0.05)" stroke="#4ade80" strokeWidth="1.5" strokeDasharray="3 3" />
-                    <rect x="23" y="8" width="4" height="4" fill="#4ade80" />
-                    <rect x="73" y="8" width="4" height="4" fill="#4ade80" />
-                    <rect x="23" y="88" width="4" height="4" fill="#4ade80" />
-                    <rect x="73" y="88" width="4" height="4" fill="#4ade80" />
-                  </svg>
-                </div>
-                <div className="crop-guide-card is-bad">
-                  <div className="crop-guide-label">
-                    <span />
-                    DON'T: Include Sleeves
-                  </div>
-                  <p>If sleeves are included, the AI may extract the full shirt shape.</p>
-                  <svg viewBox="5 5 90 90" width="100%" height="126">
-                    <path d="M 20 20 L 40 10 L 60 10 L 80 20 L 90 40 L 75 45 L 70 90 L 30 90 L 25 45 L 10 40 Z" fill="#1a1a1a" stroke="#333" strokeWidth="1" />
-                    <rect x="5" y="5" width="90" height="90" fill="rgba(255, 68, 68, 0.05)" stroke="#ff4444" strokeWidth="1.5" strokeDasharray="3 3" />
-                    <rect x="3" y="3" width="4" height="4" fill="#ff4444" />
-                    <rect x="93" y="3" width="4" height="4" fill="#ff4444" />
-                    <rect x="3" y="93" width="4" height="4" fill="#ff4444" />
-                    <rect x="93" y="93" width="4" height="4" fill="#ff4444" />
-                  </svg>
-                </div>
+                <CropGuidePhoto
+                  title="DO: Crop Torso Only"
+                  body="Exclude sleeves. Keep the selection tight to the main body."
+                  tone="good"
+                  imageSrc="/crop-guide-front.webp"
+                  imageAlt="Correct crop selection around the main shirt body"
+                  boxClassName="is-tight-body"
+                />
+                <CropGuidePhoto
+                  title="DON'T: Include Sleeves"
+                  body="If sleeves are included, the AI may extract the full shirt shape."
+                  tone="bad"
+                  imageSrc="/crop-guide-back.webp"
+                  imageAlt="Incorrect crop selection including shirt sleeves"
+                  boxClassName="is-full-shirt"
+                />
               </>
             )}
             <div className="crop-inspector-panel">
