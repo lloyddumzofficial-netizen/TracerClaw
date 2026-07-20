@@ -103,7 +103,8 @@ export default function AdminDashboard() {
     if (options.manual) setIsRefreshing(true);
     try {
       const res = await fetch('/api/admin/get-dashboard', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
       const data = await res.json();
       
@@ -113,8 +114,9 @@ export default function AdminDashboard() {
       const pending = reqData.filter(r => r.status === 'pending');
       const approved = reqData.filter(r => r.status === 'approved');
       
-      // Sort pending so oldest is first
-      setRequests(pending.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+      // Show newest pending payments first so fresh user submissions are not
+      // buried at the bottom of a long review list.
+      setRequests(pending.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
       setApprovedRequests(approved);
       setDodoPayments(data.dodoPayments || []);
       setReviews(data.reviews || []);

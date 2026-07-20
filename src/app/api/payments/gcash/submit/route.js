@@ -49,6 +49,8 @@ export async function POST(request) {
       .select("id, created_at")
       .eq("user_id", user.id)
       .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (pendingErr) {
@@ -89,21 +91,25 @@ export async function POST(request) {
       );
     }
 
-    const { error: insertErr } = await adminSupabase.from("payment_requests").insert({
-      user_id: user.id,
-      email: user.email,
-      plan: plan.key,
-      reference_number: normalizedReference,
-      proof_url: proofUrl,
-      status: "pending",
-    });
+    const { data: paymentRequest, error: insertErr } = await adminSupabase
+      .from("payment_requests")
+      .insert({
+        user_id: user.id,
+        email: user.email,
+        plan: plan.key,
+        reference_number: normalizedReference,
+        proof_url: proofUrl,
+        status: "pending",
+      })
+      .select("id, created_at")
+      .single();
 
     if (insertErr) {
       console.error("[GCash Submit] Insert failed:", insertErr);
       return NextResponse.json({ error: "Failed to submit payment request." }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, requestId: paymentRequest?.id || null });
   } catch (error) {
     console.error("[GCash Submit] Error:", error);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
