@@ -25,6 +25,7 @@ import RecentProjects from "./components/RecentProjects";
 import EduSection from "./components/EduSection";
 import BeforeAfterSlider from "./components/BeforeAfterSlider";
 import PromoModal from "./components/PromoModal";
+import SublibatchModal from "./components/SublibatchModal";
 import AIDisclaimerModal from "./components/AIDisclaimerModal";
 import TestimonialSection from "./components/TestimonialSection";
 import QRCode from "react-qr-code";
@@ -957,6 +958,87 @@ export default function StartScreen() {
         </div>
 
         <TestimonialSection />
+
+        {/* ─── SUBLIBATCH 4 Promo Section ─────────────────────────────────── */}
+        <div
+          id="sublibatch-promo"
+          style={{
+            margin: "80px 0",
+            border: "1px solid rgba(255,215,0,0.18)",
+            borderRadius: "8px",
+            overflow: "hidden",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            position: "relative",
+          }}
+        >
+          {/* Badge */}
+          <div style={{
+            position: "absolute",
+            top: "16px",
+            left: "16px",
+            background: "linear-gradient(135deg, #FFD700, #FFA500)",
+            color: "#000",
+            fontSize: "10px",
+            fontWeight: "800",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            padding: "5px 12px",
+            borderRadius: "100px",
+            zIndex: 2,
+            boxShadow: "0 2px 8px rgba(255,165,0,0.4)",
+          }}>
+            Limited Offer
+          </div>
+
+          <img
+            src="/sublibatch4.jpg"
+            alt="SUBLIBATCH 4 — Exclusive Limited Batch"
+            style={{ width: "100%", height: "auto", display: "block" }}
+          />
+
+          {/* CTA Bar */}
+          <div style={{
+            background: "#111",
+            borderTop: "1px solid rgba(255,215,0,0.2)",
+            padding: "20px 24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}>
+            <div>
+              <div style={{ color: "#fff", fontWeight: "700", fontSize: "18px", marginBottom: "4px" }}>SUBLIBATCH 4</div>
+              <div style={{ color: "#888", fontSize: "13px" }}>Limited slots available — message us to order.</div>
+            </div>
+            <button
+              onClick={() => window.open('https://m.me/105884602605306', '_blank', 'noopener,noreferrer')}
+              style={{
+                background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                color: "#000",
+                border: "none",
+                padding: "13px 32px",
+                borderRadius: "6px",
+                fontSize: "15px",
+                fontWeight: "800",
+                letterSpacing: "0.8px",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 16px rgba(255,215,0,0.3)",
+                transition: "transform 0.15s, box-shadow 0.15s",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(255,215,0,0.45)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(255,215,0,0.3)"; }}
+            >
+              🛒 Buy Now
+            </button>
+          </div>
+        </div>
+
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
         <input type="file" ref={bgRemoveInputRef} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0], true); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
@@ -1113,6 +1195,9 @@ export default function StartScreen() {
 
       {/* Promo Popup */}
       <PromoModal onBuyClick={() => window.open('https://m.me/105884602605306', '_blank')} />
+
+      {/* Sublibatch 4 — once-a-day popup */}
+      <SublibatchModal />
 
       {/* AI Guidelines Popup */}
       <AIDisclaimerModal />
