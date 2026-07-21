@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { Resend } from "resend";
+import { getCreditPlan } from "@/lib/paymentPlans";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
-const PLAN_CREDITS = {
-  tingi: 2,
-  basic: 4,
-  starter: 13,
-  pro: 45
-};
 
 export async function POST(request) {
   try {
@@ -41,7 +35,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "Payment request not found or already approved." }, { status: 409 });
     }
 
-    const creditsToAdd = PLAN_CREDITS[paymentRequest.plan] || 0;
+    const plan = getCreditPlan(paymentRequest.plan);
+    const creditsToAdd = plan?.credits || 0;
     if (!markOnly && creditsToAdd <= 0) {
       return NextResponse.json({ error: "Invalid payment plan." }, { status: 400 });
     }

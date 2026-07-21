@@ -3,12 +3,14 @@
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
+import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
 
@@ -17,7 +19,6 @@ import "./globals.css";
 import "./home.css";
 
 // ─── Components ───────────────────────────────────────────────────────────────
-import TopUpModal from "@/components/TopUpModal";
 import LoginModal from "./components/LoginModal";
 import NewProjectModal from "./components/NewProjectModal";
 import OnboardingModal from "./components/OnboardingModal";
@@ -28,22 +29,103 @@ import PromoModal from "./components/PromoModal";
 import SublibatchModal from "./components/SublibatchModal";
 import AIDisclaimerModal from "./components/AIDisclaimerModal";
 import TestimonialSection from "./components/TestimonialSection";
-import QRCode from "react-qr-code";
 
-function AnimatedCounter() {
+const TopUpModal = dynamic(() => import("@/components/TopUpModal"), { ssr: false });
+const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
+
+function HomepageWorkflowPreview() {
+  return (
+    <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
+      <div className="workflow-preview-copy">
+        <div className="section-kicker">Production Preview</div>
+        <h2>From messy mockup to print-ready files.</h2>
+        <p>
+          Preview the full handoff after upload: cleaned artwork, vector controls, transparent output, and export-ready files for real print shop work.
+        </p>
+        <div className="workflow-output-grid">
+          <div><CheckCircle2 size={15} /> Editable SVG</div>
+          <div><CheckCircle2 size={15} /> 4K PNG</div>
+          <div><CheckCircle2 size={15} /> Transparent BG</div>
+          <div><CheckCircle2 size={15} /> ZIP Package</div>
+        </div>
+      </div>
+
+      <div className="workflow-mockup" aria-hidden="true">
+        <div className="mock-window mock-window-main">
+          <div className="mock-window-dots"><span /><span /><span /></div>
+          <div className="mock-toolbar">
+            <div className="mock-tool active"><ImageIcon size={13} /></div>
+            <div className="mock-tool"><Scissors size={13} /></div>
+            <div className="mock-tool"><Scan size={13} /></div>
+            <div className="mock-tool"><Code2 size={13} /></div>
+          </div>
+          <div className="mock-artboard">
+            <div className="mock-sale-type">
+              <span>SVG</span>
+              <strong>VECTOR</strong>
+            </div>
+            <div className="mock-jersey">
+              <img src="/samples/workflow-crop-front.webp" alt="" />
+            </div>
+            <div className="mock-crop-line" />
+          </div>
+        </div>
+
+        <div className="mock-window mock-window-panel">
+          <div className="mock-window-dots"><span /><span /><span /></div>
+          <div className="mock-control-row">
+            <div>
+              <span>Shadow Killer</span>
+              <strong>8 Colors</strong>
+            </div>
+            <Scissors size={19} />
+          </div>
+          <div className="mock-slider">
+            <span className="mock-checker" />
+            <div><span /></div>
+          </div>
+          <div className="mock-control-row">
+            <div>
+              <span>Export</span>
+              <strong>Illustrator-ready SVG</strong>
+            </div>
+            <Code2 size={20} />
+          </div>
+          <div className="mock-color-row">
+            <span>Background</span>
+            <div><i /> Transparent</div>
+          </div>
+        </div>
+
+        <div className="mock-output-card">
+          <div className="checker-card">
+            <img src="/samples/workflow-crop-front.webp" alt="" />
+          </div>
+          <div>
+            <strong>Vector Ready</strong>
+            <span>SVG + 4K PNG + ZIP</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AnimatedCounter({ value }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    // Generate a growing target based on time so it never stays exactly the same day by day
-    const launchDate = new Date('2026-07-15T00:00:00Z').getTime();
-    const now = Date.now();
-    const hoursPassed = Math.max(0, (now - launchDate) / (1000 * 60 * 60));
-    
-    // Base is 14,582. We add roughly ~5 "fake" extractions every hour that passes.
-    const target = 14582 + Math.floor(hoursPassed * 5.2);
-    
+    if (!Number.isFinite(value)) return;
+
+    const target = Math.max(0, value);
+    const start = count;
+    const distance = target - start;
+
+    if (distance === 0) return;
+
     const duration = 2500; // 2.5 seconds
     let startTime = null;
+    let frameId = null;
 
     const animate = (timestamp) => {
       if (!startTime) startTime = timestamp;
@@ -52,15 +134,19 @@ function AnimatedCounter() {
       
       const easeOut = percentage === 1 ? 1 : 1 - Math.pow(2, -10 * percentage);
       
-      setCount(Math.floor(easeOut * target));
+      setCount(Math.round(start + (distance * easeOut)));
       
       if (progress < duration) {
-        requestAnimationFrame(animate);
+        frameId = requestAnimationFrame(animate);
       }
     };
     
-    requestAnimationFrame(animate);
-  }, []);
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [value]);
 
   return (
     <div style={{
@@ -102,12 +188,12 @@ function AnimatedCounter() {
         letterSpacing: "-2px",
         filter: "drop-shadow(0px 10px 20px rgba(255, 215, 0, 0.15))"
       }}>
-        {count.toLocaleString()}+
+        {Number.isFinite(value) ? count.toLocaleString() : "--"}
       </div>
 
       {/* Clean Description */}
       <div style={{ color: "#aaa", fontSize: "16px", maxWidth: "420px", lineHeight: "1.6", fontWeight: "400" }}>
-        Designs successfully extracted and vectorized by print shops and freelancers.
+        Real completed SVG extractions from DesaynClaw projects.
       </div>
     </div>
   );
@@ -116,6 +202,7 @@ function AnimatedCounter() {
 export default function StartScreen() {
   const router = useRouter();
   const supabase = createClient();
+  const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
   const containerRef = useRef(null);
@@ -147,7 +234,7 @@ export default function StartScreen() {
   const [projectToDelete, setProjectToDelete] = useState(null);
 
   // ─── Public Stats State ─────────────────────────────────────────────────────
-  const [publicStats, setPublicStats] = useState({ totalUsers: 0, avatars: [] });
+  const [publicStats, setPublicStats] = useState({ totalUsers: 0, completedExtractions: null, reviewCount: 0, avatars: [] });
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -244,7 +331,12 @@ export default function StartScreen() {
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            setPublicStats({ totalUsers: data.totalUsers, avatars: data.avatars });
+            setPublicStats({
+              totalUsers: data.totalUsers || 0,
+              completedExtractions: Number.isFinite(data.completedExtractions) ? data.completedExtractions : 0,
+              reviewCount: data.reviewCount || 0,
+              avatars: data.avatars || []
+            });
           }
         })
         .catch(console.error);
@@ -352,6 +444,10 @@ export default function StartScreen() {
   // ─── Upload Logic ───────────────────────────────────────────────────────────
   const handleFileUpload = async (file, isBgRemover = false, mobileTraceType = null) => {
     if (!file || !file.type.startsWith("image/")) return;
+    if (isMobileDevice) {
+      toast.info("Desktop required: please use a computer or laptop to process designs.");
+      return;
+    }
 
     // Limit upload to 10MB to save bandwidth and prevent AI processing timeouts
     const maxUploadBytes = resolveImageUploadLimit({ purpose: isBgRemover ? "bg_remover" : "standard" });
@@ -440,6 +536,10 @@ export default function StartScreen() {
   // Open type-selection modal with a pre-selected file (from drop or file picker)
   const openModalWithFile = (file) => {
     if (!file || !file.type.startsWith("image/")) return;
+    if (isMobileDevice) {
+      toast.info("Desktop required: workspace tools are available on computer or laptop only.");
+      return;
+    }
     if (!user) { setShowLoginModal(true); return; }
     const maxSizeInMB = 10;
     if (file.size > maxSizeInMB * 1024 * 1024) {
@@ -448,6 +548,12 @@ export default function StartScreen() {
     }
     setPendingFile(file);
     setShowModal(true);
+  };
+
+  const requireDesktopTool = () => {
+    if (!isMobileDevice) return false;
+    toast.info("Desktop required: please use a computer or laptop to open DesaynClaw tools.");
+    return true;
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -567,19 +673,20 @@ export default function StartScreen() {
                       </div>
                     </div>
 
-                    {/* Bottom Row: Stars and Rating Text */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div style={{ display: "flex", gap: "4px" }}>
-                        {[1, 2, 3, 4, 5].map((_, i) => (
-                          <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                          </svg>
-                        ))}
+                    {publicStats.reviewCount > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          {[1, 2, 3, 4, 5].map((_, i) => (
+                            <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#aaa", fontWeight: "500" }}>
+                          Based on <span style={{ color: "#fff", fontWeight: "700" }}>{publicStats.reviewCount.toLocaleString()}</span> project review{publicStats.reviewCount === 1 ? "" : "s"}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "13px", color: "#aaa", fontWeight: "500" }}>
-                        Rated <span style={{ color: "#fff", fontWeight: "700" }}>4.9/5</span> from 250+ reviews
-                      </div>
-                    </div>
+                    )}
 
                   </div>
                 )}
@@ -589,20 +696,20 @@ export default function StartScreen() {
                 </p>
               </div>
 
-              <div style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflowX: "auto", paddingBottom: "2px" }}>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+              <div className="hero-action-bar" style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflowX: "auto", paddingBottom: "2px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   {isUploading ? <><Monitor size={13} className="animate-pulse" /> Creating...</> : <><FilePlus size={13} /> New Project</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   {isUploading ? <><Monitor size={13} className="animate-pulse" /> Uploading...</> : <><Monitor size={13} /> Open PC</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   <Scan size={13} /> Scan Phone
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   <ImageIcon size={13} /> Image Upscale
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <Scissors size={13} color="#FFD700" /> BG Remover
                 </button>
               </div>
@@ -623,7 +730,7 @@ export default function StartScreen() {
                   <label htmlFor="aiEnhance" style={{ fontSize: "14px", color: "#ccc", cursor: "pointer" }}><strong>Enhance image with AI</strong> (Removes noise)</label>
                 </div>
 
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ background: "transparent", color: "#e0e0e0", border: "1px solid #444", borderRadius: "0", fontSize: "16px", padding: "16px 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontWeight: "500", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#333"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ background: "transparent", color: "#e0e0e0", border: "1px solid #444", borderRadius: "0", fontSize: "16px", padding: "16px 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontWeight: "500", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#333"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                   {isUploading ? <><Monitor size={18} className="animate-pulse" /> Uploading...</> : <><Monitor size={18} /> Upload Images</>}
                 </button>
                 <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "4px", alignItems: "center" }}>
@@ -658,14 +765,14 @@ export default function StartScreen() {
                   <BeforeAfterSlider
                     title="Untitled Design 2"
                     rasterUrl="/samples/Reference.png"
-                    vectorUrl="/samples/DesaynClaw_Tshirt_Design_4K.png"
+                    vectorUrl="/samples/DesaynClaw_Tshirt_Design_4K.webp"
                     height="220px"
                     objectPosition="center 40%"
                   />
                   <BeforeAfterSlider
                     title="Polo Shirt Pattern"
                     rasterUrl="/samples/polo-original.png"
-                    vectorUrl="/samples/polo-vector.png"
+                    vectorUrl="/samples/polo-vector.webp"
                     height="220px"
                   />
                 </div>
@@ -732,6 +839,8 @@ export default function StartScreen() {
             </div>
           </div>
         </div>
+
+        <HomepageWorkflowPreview />
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
@@ -859,7 +968,7 @@ export default function StartScreen() {
           </div>
         </div>
         {/* Animated Counter Section */}
-        <AnimatedCounter />
+        <AnimatedCounter value={publicStats.completedExtractions} />
 
         {/* Banner Image (banner-webapp-2.jpg) */}
         <div style={{ marginTop: "40px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
@@ -885,7 +994,7 @@ export default function StartScreen() {
             <BeforeAfterSlider
               title="Polo Shirt Pattern (Flat Extracted)"
               rasterUrl="/samples/polo-original.png"
-              vectorUrl="/samples/polo-vector.png"
+              vectorUrl="/samples/polo-vector.webp"
             />
           </div>
         </div>
@@ -899,7 +1008,7 @@ export default function StartScreen() {
               Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
             </p>
             <button 
-              onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
               style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
               onMouseLeave={e => e.currentTarget.style.background = "#FFD700"}
@@ -930,7 +1039,7 @@ export default function StartScreen() {
               Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
             </p>
             <button 
-              onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
               style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.background = "#444"}
               onMouseLeave={e => e.currentTarget.style.background = "#333"}
@@ -954,7 +1063,7 @@ export default function StartScreen() {
 
         {/* Banner Image (COVER PAGE.png) */}
         <div style={{ width: '100%', marginBottom: '100px', display: 'flex', justifyContent: 'center' }}>
-          <img src="/COVER PAGE.png" alt="DesaynClaw Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }} />
+          <img src="/cover-page.webp" alt="DesaynClaw Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }} />
         </div>
 
         <TestimonialSection />
@@ -1041,7 +1150,7 @@ export default function StartScreen() {
 
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
-        <input type="file" ref={bgRemoveInputRef} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0], true); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
+        <input type="file" ref={bgRemoveInputRef} onChange={(e) => { if (e.target.files[0]) { if (requireDesktopTool()) { e.target.value = ""; return; } handleFileUpload(e.target.files[0], true); } e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
 
         {/* ─── Modals ────────────────────────────────────────────────────────── */}
         <NewProjectModal
@@ -1051,6 +1160,7 @@ export default function StartScreen() {
           isUploading={isUploading}
           onClose={() => { setShowModal(false); setPendingFile(null); }}
           onSelectImage={() => {
+            if (requireDesktopTool()) return;
             if (pendingFile) {
               handleFileUpload(pendingFile);
             } else {
@@ -1058,6 +1168,7 @@ export default function StartScreen() {
             }
           }}
           onSelectBgRemover={() => {
+            if (requireDesktopTool()) return;
             bgRemoveInputRef.current.click();
           }}
         />
@@ -1067,13 +1178,15 @@ export default function StartScreen() {
           onClose={() => setShowOnboarding(false)}
         />
 
-        <TopUpModal
-          show={showTopUpModal}
-          user={user}
-          supabase={supabase}
-          onClose={() => setShowTopUpModal(false)}
-          onLoginRequired={() => { setShowTopUpModal(false); setShowLoginModal(true); }}
-        />
+        {showTopUpModal && (
+          <TopUpModal
+            show={showTopUpModal}
+            user={user}
+            supabase={supabase}
+            onClose={() => setShowTopUpModal(false)}
+            onLoginRequired={() => { setShowTopUpModal(false); setShowLoginModal(true); }}
+          />
+        )}
 
         <LoginModal
           show={showLoginModal}

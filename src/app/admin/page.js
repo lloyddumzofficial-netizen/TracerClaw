@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "@/components/Toast";
 import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
+import { CREDIT_PLANS } from "@/lib/paymentPlans";
 
 import "../globals.css";
 import "../home.css";
+
+const ADMIN_PAYMENT_REFRESH_MS = 10_000;
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -24,12 +27,9 @@ export default function AdminDashboard() {
   const [hasNewRequests, setHasNewRequests] = useState(false);
   const router = useRouter();
 
-  const PLAN_PRICES = {
-    tingi: 50,
-    basic: 100,
-    starter: 290,
-    pro: 870
-  };
+  const PLAN_PRICES = Object.fromEntries(
+    Object.values(CREDIT_PLANS).map((plan) => [plan.key, Math.round(plan.amount / 100)])
+  );
   const COST_PER_GENERATION = 2; // Estimated PHP cost per generation
 
   const [supabase] = useState(() => createBrowserClient(
@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     let fallbackInterval;
     let realtimeChannel;
+    let refreshSilently = () => {};
 
     const checkAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -49,22 +50,23 @@ export default function AdminDashboard() {
       }
       setUser(session.user);
       await fetchRequests(session.access_token);
+      refreshSilently = () => fetchRequests(session.access_token, { silent: true });
 
-      // ── Supabase Realtime Subscription ──────────────────────────────────
+      // Supabase Realtime Subscription
       // Fires instantly when any row in payment_requests changes,
-      // replacing the old 30-second polling loop.
+      // with polling below as a fast safety net.
       realtimeChannel = supabase
         .channel('admin_payment_requests')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'payment_requests' },
           (payload) => {
-            // New payment just submitted — notify admin immediately
+            // New payment just submitted. Notify admin immediately.
             const email = payload.new?.email || 'a user';
             const plan = payload.new?.plan || 'unknown';
-            toast.success(`🔔 New payment from ${email} (${plan})`);
+            toast.success(`New payment from ${email} (${plan})`);
             setHasNewRequests(true);
-            fetchRequests(session.access_token, { silent: true });
+            refreshSilently();
           }
         )
         .on(
@@ -72,27 +74,38 @@ export default function AdminDashboard() {
           { event: 'UPDATE', schema: 'public', table: 'payment_requests' },
           () => {
             // Status changed externally (e.g. another session approved it)
-            fetchRequests(session.access_token, { silent: true });
+            refreshSilently();
           }
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[Admin] Realtime connected — instant payment notifications active.');
+            console.log('[Admin] Realtime connected - instant payment notifications active.');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.warn('[Admin] Realtime connection issue:', status);
           }
         });
 
-      // ── Fallback Polling (5 min) ─────────────────────────────────────────
-      // Safety net in case the realtime WebSocket disconnects.
-      fallbackInterval = setInterval(() => {
-        fetchRequests(session.access_token, { silent: true });
-      }, 5 * 60_000);
+      // Fast fallback in case the realtime WebSocket is disabled or drops.
+      fallbackInterval = setInterval(refreshSilently, ADMIN_PAYMENT_REFRESH_MS);
     };
 
+    const handleWindowFocus = () => {
+      refreshSilently();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSilently();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     checkAdmin();
 
     return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (fallbackInterval) clearInterval(fallbackInterval);
       if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     };
@@ -166,7 +179,7 @@ export default function AdminDashboard() {
       }
       
       setRequests(reqs => reqs.filter(r => r.id !== request.id));
-      setApprovedRequests(prev => [...prev, { ...request, status: 'approved' }]);
+      setApprovedRequests(prev => [{ ...request, status: 'approved' }, ...prev]);
       fetchRequests(session.access_token, { silent: true });
     } catch (err) {
       toast.error(err.message || "Failed to approve payment");

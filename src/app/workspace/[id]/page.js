@@ -3,6 +3,7 @@
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
@@ -21,18 +22,22 @@ import EraseModal from "./components/EraseModal";
 import RemoveBgModal from "./components/RemoveBgModal";
 import CompareModal from "./components/CompareModal";
 import NoCreditsModal from "./components/NoCreditsModal";
-import TopUpModal from "@/components/TopUpModal";
 import ShortcutsModal from "./components/ShortcutsModal";
 import WorkspaceCommandBar from "./components/WorkspaceCommandBar";
+import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
+import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
+
+const TopUpModal = dynamic(() => import("@/components/TopUpModal"), { ssr: false });
 
 
 export default function Workspace() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id;
+  const isMobileDevice = useIsMobileDevice();
 
   // ─── Core State ───────────────────────────────────────────────────────────
   const [project, setProject] = useState(null);
@@ -66,6 +71,7 @@ export default function Workspace() {
 
   // ─── Data Fetching ────────────────────────────────────────────────────────
   useEffect(() => {
+    if (isMobileDevice !== false) return;
     if (!projectId) return;
     const fetchData = async () => {
       try {
@@ -95,7 +101,7 @@ export default function Workspace() {
       }
     };
     fetchData();
-  }, [projectId, router]);
+  }, [isMobileDevice, projectId, router]);
 
   // Auto-switch away from loading state (if any was needed)
   useEffect(() => {
@@ -245,6 +251,10 @@ export default function Workspace() {
   const hasProject = !!project;
   const hasRaster = !!project?.upscaled_image_url || !!project?.generated_image_url;
   const hasSvg = !!project?.svg_url;
+
+  if (isMobileDevice !== false) {
+    return <DesktopRequiredNotice />;
+  }
 
   return (
     <div className="app-container">
@@ -402,12 +412,14 @@ export default function Workspace() {
         onTopUp={() => setShowTopUpModal(true)}
       />
 
-      <TopUpModal
-        show={showTopUpModal}
-        user={user}
-        supabase={supabase}
-        onClose={() => setShowTopUpModal(false)}
-      />
+      {showTopUpModal && (
+        <TopUpModal
+          show={showTopUpModal}
+          user={user}
+          supabase={supabase}
+          onClose={() => setShowTopUpModal(false)}
+        />
+      )}
 
       <ShortcutsModal
         show={showShortcuts}

@@ -1,22 +1,27 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import QRCode from "react-qr-code";
+import dynamic from "next/dynamic";
 import { Monitor, ArrowLeft, Loader2, Download, ImageIcon, Sparkles, Wand2, Home, Keyboard, ShieldAlert, Clock, Scan, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { toast } from "@/components/Toast";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import TopUpModal from "@/components/TopUpModal";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import FeedbackWidget from "@/app/workspace/[id]/components/FeedbackWidget";
+import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
+import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 import "../globals.css";
 import "../home.css";
+
+const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
+const TopUpModal = dynamic(() => import("@/components/TopUpModal"), { ssr: false });
 
 export default function UpscalePage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
   const supabase = createClient();
+  const isMobileDevice = useIsMobileDevice();
 
   const [syncSessionId, setSyncSessionId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,6 +59,7 @@ export default function UpscalePage() {
   }, [previewImage, upscaledImage]); // attach when image renders
 
   useEffect(() => {
+    if (isMobileDevice !== false) return;
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -65,7 +71,7 @@ export default function UpscalePage() {
       }
     };
     fetchSession();
-  }, [router, supabase]);
+  }, [isMobileDevice, router, supabase]);
 
   const fetchCredits = async (userId) => {
     const { data } = await supabase.from("profiles").select("credits").eq("id", userId).single();
@@ -225,6 +231,10 @@ export default function UpscalePage() {
       toast.error("Failed to download image");
     }
   };
+
+  if (isMobileDevice !== false) {
+    return <DesktopRequiredNotice />;
+  }
 
   return (
     <div className="app-container">

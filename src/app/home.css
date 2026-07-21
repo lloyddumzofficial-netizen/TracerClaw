@@ -586,3 +586,580 @@
         .marquee-content:hover {
           animation-play-state: paused;
         }
+
+        /* Homepage workflow preview */
+        .workflow-preview-section {
+          margin-top: 48px;
+          min-height: 430px;
+          display: grid;
+          grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 1.18fr);
+          gap: 36px;
+          align-items: center;
+          padding: 34px 0 46px;
+          border-bottom: 1px solid #333;
+          position: relative;
+        }
+
+        .workflow-preview-copy {
+          max-width: 430px;
+        }
+
+        .section-kicker {
+          display: inline-flex;
+          align-items: center;
+          background: #FFD700;
+          color: #000;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          padding: 6px 14px;
+          transform: skewX(-8deg);
+          margin-bottom: 18px;
+        }
+
+        .workflow-preview-copy h2 {
+          color: #fff;
+          font-size: 34px;
+          line-height: 1.05;
+          font-weight: 850;
+          margin: 0 0 14px;
+        }
+
+        .workflow-preview-copy p {
+          color: #999;
+          font-size: 14px;
+          line-height: 1.7;
+          margin: 0;
+        }
+
+        .workflow-output-grid {
+          margin-top: 22px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .workflow-output-grid div {
+          min-height: 38px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #ddd;
+          background: #1d1d1d;
+          border: 1px solid #333;
+          padding: 9px 11px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+        }
+
+        .workflow-output-grid svg {
+          color: #FFD700;
+          flex-shrink: 0;
+        }
+
+        .workflow-mockup {
+          min-height: 390px;
+          position: relative;
+          isolation: isolate;
+        }
+
+        .workflow-mockup::before {
+          content: "";
+          position: absolute;
+          inset: 24px 20px 16px 42px;
+          background:
+            linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+          background-size: 34px 34px;
+          border: 1px solid rgba(255,255,255,0.04);
+          z-index: -2;
+        }
+
+        .mock-window {
+          background: #171717;
+          border: 1px solid #3c3c3c;
+          box-shadow: 0 22px 50px rgba(0,0,0,0.36);
+        }
+
+        .mock-window-dots {
+          height: 20px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .mock-window-dots span {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #777;
+        }
+
+        .mock-window-main {
+          width: min(410px, 66%);
+          min-height: 345px;
+          padding: 10px 12px 16px;
+          position: absolute;
+          left: 0;
+          top: 26px;
+        }
+
+        .mock-toolbar {
+          position: absolute;
+          left: 14px;
+          top: 46px;
+          width: 34px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 7px 5px;
+          background: #101010;
+          border: 1px solid #333;
+        }
+
+        .mock-tool {
+          width: 22px;
+          height: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #777;
+          border: 1px solid transparent;
+        }
+
+        .mock-tool.active {
+          color: #000;
+          background: #FFD700;
+          border-color: #FFD700;
+        }
+
+        .mock-artboard {
+          position: absolute;
+          left: 62px;
+          right: 16px;
+          top: 46px;
+          bottom: 16px;
+          overflow: hidden;
+          background:
+            linear-gradient(135deg, rgba(255,215,0,0.16), rgba(255,215,0,0.04)),
+            #232323;
+          border: 1px solid #454545;
+        }
+
+        .mock-sale-type {
+          position: absolute;
+          left: 24px;
+          top: 24px;
+          z-index: 2;
+        }
+
+        .mock-sale-type span {
+          display: block;
+          color: #fff;
+          font-size: 72px;
+          line-height: 0.85;
+          font-weight: 900;
+          letter-spacing: 0;
+        }
+
+        .mock-sale-type strong {
+          display: inline-block;
+          margin-top: 10px;
+          padding: 8px 18px;
+          color: #000;
+          background: #FFD700;
+          font-size: 14px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          transform: skewX(-12deg);
+        }
+
+        .mock-jersey {
+          position: absolute;
+          right: -8px;
+          bottom: 0;
+          width: 76%;
+          height: 76%;
+          filter: drop-shadow(0 20px 22px rgba(0,0,0,0.48));
+        }
+
+        .mock-jersey img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: contain;
+          object-position: center bottom;
+          mix-blend-mode: multiply;
+          filter: contrast(1.08) saturate(1.08);
+        }
+
+        .mock-crop-line {
+          position: absolute;
+          inset: 18px;
+          border: 1px dashed rgba(255,255,255,0.34);
+          pointer-events: none;
+        }
+
+        .mock-window-panel {
+          width: min(330px, 51%);
+          min-height: 316px;
+          padding: 14px 22px 20px;
+          position: absolute;
+          right: 0;
+          top: 54px;
+          z-index: 3;
+        }
+
+        .mock-control-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          color: #ddd;
+          padding: 16px 0 12px;
+          border-bottom: 1px solid #2b2b2b;
+        }
+
+        .mock-control-row span,
+        .mock-color-row span {
+          display: block;
+          color: #8c8c8c;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+        }
+
+        .mock-control-row strong {
+          color: #fff;
+          font-size: 15px;
+          font-weight: 700;
+        }
+
+        .mock-control-row svg {
+          color: #FFD700;
+          flex-shrink: 0;
+        }
+
+        .mock-slider {
+          display: grid;
+          grid-template-columns: 28px 1fr;
+          gap: 14px;
+          align-items: center;
+          padding: 18px 0;
+        }
+
+        .mock-checker,
+        .checker-card {
+          background-color: #f4f4f4;
+          background-image:
+            linear-gradient(45deg, #d8d8d8 25%, transparent 25%),
+            linear-gradient(-45deg, #d8d8d8 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #d8d8d8 75%),
+            linear-gradient(-45deg, transparent 75%, #d8d8d8 75%);
+          background-size: 12px 12px;
+          background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+        }
+
+        .mock-checker {
+          width: 24px;
+          height: 24px;
+          border: 1px solid #777;
+        }
+
+        .mock-slider div {
+          height: 3px;
+          background: #3b3b3b;
+          position: relative;
+        }
+
+        .mock-slider div::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 68%;
+          height: 100%;
+          background: #FFD700;
+        }
+
+        .mock-slider div span {
+          position: absolute;
+          left: 68%;
+          top: 50%;
+          width: 11px;
+          height: 11px;
+          background: #171717;
+          border: 2px solid #FFD700;
+          transform: translate(-50%, -50%);
+        }
+
+        .mock-color-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          padding-top: 17px;
+          color: #ddd;
+        }
+
+        .mock-color-row div {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          color: #d4d4d4;
+          font-weight: 700;
+        }
+
+        .mock-color-row i {
+          width: 22px;
+          height: 22px;
+          border: 1px solid #777;
+          background:
+            linear-gradient(45deg, #d8d8d8 25%, transparent 25%),
+            linear-gradient(-45deg, #d8d8d8 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #d8d8d8 75%),
+            linear-gradient(-45deg, transparent 75%, #d8d8d8 75%),
+            #fff;
+          background-size: 10px 10px;
+          background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+        }
+
+        .mock-output-card {
+          position: absolute;
+          left: 45%;
+          bottom: 2px;
+          width: 240px;
+          z-index: 5;
+          display: grid;
+          grid-template-columns: 94px 1fr;
+          gap: 12px;
+          align-items: center;
+          padding: 9px;
+          background: #111;
+          border: 1px solid #444;
+          box-shadow: 0 18px 36px rgba(0,0,0,0.42);
+        }
+
+        .checker-card {
+          height: 76px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border: 1px solid #ddd;
+        }
+
+        .checker-card img {
+          display: block;
+          width: 108%;
+          height: 108%;
+          object-fit: contain;
+          object-position: center;
+          mix-blend-mode: multiply;
+        }
+
+        .mock-output-card strong {
+          display: block;
+          color: #fff;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          margin-bottom: 5px;
+        }
+
+        .mock-output-card span {
+          display: block;
+          color: #888;
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        @media (max-width: 980px) {
+          .workflow-preview-section {
+            grid-template-columns: 1fr;
+            gap: 28px;
+          }
+
+          .workflow-preview-copy {
+            max-width: 680px;
+          }
+
+          .workflow-mockup {
+            min-height: 420px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .start-screen-container {
+            padding: 64px 14px 36px;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .hero-section {
+            gap: 24px !important;
+            margin-bottom: 28px !important;
+          }
+
+          .start-logo {
+            margin-bottom: 22px !important;
+          }
+
+          .start-logo img {
+            max-width: min(330px, 92vw) !important;
+          }
+
+          .hero-left > div:first-child p {
+            font-size: 14px !important;
+            line-height: 1.55 !important;
+            max-width: 330px !important;
+          }
+
+          .hero-action-bar {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px !important;
+            overflow: visible !important;
+            padding-bottom: 0 !important;
+          }
+
+          .hero-action-bar .start-btn {
+            width: 100% !important;
+            min-width: 0 !important;
+            height: 38px !important;
+            padding: 0 8px !important;
+            font-size: 10px !important;
+            letter-spacing: 0.45px !important;
+            border-radius: 0 !important;
+          }
+
+          .hero-action-bar .start-btn:first-child {
+            grid-column: 1 / -1;
+          }
+
+          .hero-upload-box {
+            padding: 22px 16px !important;
+            width: 100% !important;
+            box-sizing: border-box;
+          }
+
+          .hero-upload-box label {
+            max-width: 250px;
+            font-size: 13px !important;
+            line-height: 1.35;
+          }
+
+          .hero-upload-box .start-btn {
+            font-size: 14px !important;
+            padding: 14px 16px !important;
+          }
+
+          .modal-content {
+            width: calc(100vw - 28px) !important;
+            max-width: calc(100vw - 28px) !important;
+            max-height: calc(100vh - 32px);
+            overflow-y: auto;
+            padding: 20px !important;
+            box-sizing: border-box;
+          }
+
+          .workflow-preview-section {
+            margin-top: 34px;
+            padding-bottom: 34px;
+            min-height: auto;
+            width: 100%;
+          }
+
+          .workflow-preview-copy h2 {
+            font-size: 26px;
+            line-height: 1.12;
+          }
+
+          .workflow-output-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .workflow-mockup {
+            min-height: auto;
+            display: grid;
+            gap: 12px;
+          }
+
+          .workflow-mockup::before {
+            inset: 12px 0;
+          }
+
+          .mock-window-main,
+          .mock-window-panel,
+          .mock-output-card {
+            position: relative;
+            width: 100%;
+            left: auto;
+            right: auto;
+            top: auto;
+            bottom: auto;
+          }
+
+          .mock-window-main {
+            min-height: 310px;
+            padding: 10px 10px 14px;
+            box-sizing: border-box;
+          }
+
+          .mock-artboard {
+            left: 54px;
+            right: 12px;
+            top: 44px;
+            bottom: 14px;
+          }
+
+          .mock-sale-type {
+            left: 14px;
+            top: 16px;
+          }
+
+          .mock-sale-type span {
+            font-size: 48px;
+          }
+
+          .mock-sale-type strong {
+            padding: 7px 12px;
+            font-size: 11px;
+          }
+
+          .mock-jersey {
+            right: -12px;
+            width: 84%;
+            height: 84%;
+          }
+
+          .mock-window-panel {
+            margin-top: 14px;
+            min-height: auto;
+            padding: 12px 16px 16px;
+            box-sizing: border-box;
+          }
+
+          .mock-control-row {
+            padding: 13px 0 10px;
+          }
+
+          .mock-control-row strong {
+            font-size: 14px;
+          }
+
+          .mock-output-card {
+            margin-top: 14px;
+            grid-template-columns: 86px 1fr;
+            width: 100%;
+            box-sizing: border-box;
+          }
+
+          .checker-card {
+            height: 72px;
+          }
+        }

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Scissors, Download, Home, Loader2, ArrowRight, Settings2, Image as ImageIcon, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
+import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 
 const supabase = createClient();
 
@@ -11,6 +13,7 @@ export default function BgRemoverPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id;
+  const isMobileDevice = useIsMobileDevice();
 
   const [project, setProject] = useState(null);
   const [user, setUser] = useState(null);
@@ -29,6 +32,7 @@ export default function BgRemoverPage() {
   }, [zoom]);
 
   useEffect(() => {
+    if (isMobileDevice !== false) return;
     if (!projectId) return;
 
     let isMounted = true;
@@ -59,7 +63,7 @@ export default function BgRemoverPage() {
     fetchData();
 
     return () => { isMounted = false; };
-  }, [projectId, router]);
+  }, [isMobileDevice, projectId, router]);
 
   const handleRemoveBg = async () => {
     // Fix #5: Guard against double-click / re-triggering while already processing
@@ -180,6 +184,10 @@ export default function BgRemoverPage() {
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [isCompleted]);
+
+  if (isMobileDevice !== false) {
+    return <DesktopRequiredNotice />;
+  }
 
   if (!project) {
     return (
