@@ -1,18 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import styles from "./FeedbackWidget.module.css";
 
+const REVIEWED_PROJECT_PREFIX = "desaynclaw:reviewed-project:";
+
+function getReviewedProjectKey(projectId) {
+  return projectId ? `${REVIEWED_PROJECT_PREFIX}${projectId}` : null;
+}
+
+function hasStoredReview(projectId) {
+  const key = getReviewedProjectKey(projectId);
+
+  if (!key || typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(key) === "1";
+}
+
 export default function FeedbackWidget({ projectId, initialRating = null }) {
+  const hideTimerRef = useRef(null);
+  const reviewedStorageKey = useMemo(() => getReviewedProjectKey(projectId), [projectId]);
+  const hasExistingReview = Boolean(initialRating) || hasStoredReview(projectId);
   const [rating, setRating] = useState(initialRating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(!!initialRating);
+  const [submitted, setSubmitted] = useState(false);
+  const [isHidden, setIsHidden] = useState(hasExistingReview);
   const [feedbackText, setFeedbackText] = useState("");
 
+  useEffect(() => {
+    const shouldHide = Boolean(initialRating) || hasStoredReview(projectId);
+
+    setRating(initialRating || 0);
+    setHoverRating(0);
+    setFeedbackText("");
+    setSubmitted(false);
+    setIsHidden(shouldHide);
+  }, [initialRating, projectId]);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) {
+        window.clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleSubmit = async () => {
-    if (rating === 0 || submitted) return; // Must select a star at least
+    if (!projectId || rating === 0 || submitted) return;
     setIsSubmitting(true);
 
     try {
@@ -25,8 +63,15 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
       if (!res.ok) {
         throw new Error("API returned error");
       }
-      
+
+      if (reviewedStorageKey && typeof window !== "undefined") {
+        window.localStorage.setItem(reviewedStorageKey, "1");
+      }
+
       setSubmitted(true);
+      hideTimerRef.current = window.setTimeout(() => {
+        setIsHidden(true);
+      }, 1600);
     } catch (err) {
       console.error("Failed to save rating:", err);
       alert("Failed to save review! Have you run the SQL migration?");
@@ -34,6 +79,10 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
       setIsSubmitting(false);
     }
   };
+
+  if (!projectId || isHidden) {
+    return null;
+  }
 
   if (submitted) {
     return (
