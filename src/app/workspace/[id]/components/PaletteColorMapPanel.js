@@ -10,6 +10,7 @@ export default function PaletteColorMapPanel({
   featured,
   paletteClusters,
   bubbleLayout,
+  childBubbleLayout,
   selectedColor,
   mergeTargetColor,
   dragMergeColor,
@@ -26,6 +27,9 @@ export default function PaletteColorMapPanel({
   onStartBubbleDrag,
   onMoveBubble,
   onStopBubbleDrag,
+  onStartChildBubbleDrag,
+  onMoveChildBubble,
+  onStopChildBubbleDrag,
   onMergePaletteColors,
   onSetMergeTargetColor,
   onSetDragMergeColor,
@@ -50,11 +54,20 @@ export default function PaletteColorMapPanel({
       <div className="palette-clusters" aria-label="Detected color clusters">
         {featured.map((item, index) => {
           const clusterMembers = paletteClusters[index] || [item];
-          const visualChildren = clusterMembers
+          const mergedChildren = (mergeGroups[item.color] || [])
+            .map(child => (
+              typeof child === "string"
+                ? { color: child, count: 0, isMerged: true }
+                : { color: child?.color, count: child?.count || 0, isMerged: true }
+            ))
+            .filter(child => child.color);
+          const relatedChildren = clusterMembers
             .slice(1)
             .map(child => ({ color: child.color, count: child.count }))
+            .filter(child => !mergedChildren.some(merged => merged.color === child.color))
             .slice(0, MAX_CLUSTER_CHILDREN);
-          const hiddenChildren = Math.max(0, clusterMembers.length - 1 - visualChildren.length);
+          const visualChildren = [...mergedChildren, ...relatedChildren].slice(0, MAX_CLUSTER_CHILDREN);
+          const hiddenChildren = Math.max(0, mergedChildren.length + clusterMembers.length - 1 - visualChildren.length);
 
           return (
             <div
@@ -89,25 +102,31 @@ export default function PaletteColorMapPanel({
               }}
               onClick={() => onSelectColor(item.color)}
               title={`${item.color} · ${item.count} paths`}
+              data-cluster-color={item.color}
             >
               <span className="palette-cluster-index">{index + 1}</span>
               <span className="palette-cluster-count">{item.count}</span>
               {visualChildren.map((child, childIndex) => {
                 const pos = getClusterChildPosition(childIndex);
+                const childKey = `${item.color}:${child.color}`;
+                const childPosition = childBubbleLayout[childKey] || pos;
                 return (
                   <button
-                    key={`${item.color}-${child.color}`}
+                    key={`${item.color}-${child.color}-${childIndex}`}
                     type="button"
-                    className={`palette-cluster-child${child.color === selectedColor ? " active" : ""}`}
+                    className={`palette-cluster-child${child.color === selectedColor ? " active" : ""}${child.isMerged ? " is-merged" : ""}`}
                     style={{
                       backgroundColor: child.color,
-                      left: `${pos.left}%`,
-                      top: `${pos.top}%`,
+                      left: `${childPosition.left}%`,
+                      top: `${childPosition.top}%`,
                     }}
-                    onPointerDown={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => onStartChildBubbleDrag(event, childKey, childPosition)}
+                    onPointerMove={(event) => onMoveChildBubble(event, childKey)}
+                    onPointerUp={(event) => onStopChildBubbleDrag(event, childKey)}
+                    onPointerCancel={(event) => onStopChildBubbleDrag(event, childKey)}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onSelectColor(child.color);
+                      onSelectColor(child.color, item.color);
                     }}
                     title={`${child.color} · ${child.count} paths`}
                   />

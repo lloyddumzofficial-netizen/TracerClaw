@@ -5,11 +5,11 @@ export const MAX_CLUSTER_CHILDREN = 12;
 export const MAX_BITMAP_EXPORT_SIDE = 4096;
 export const QUICK_COLORS = ["#ffd700", "#ffffff", "#111111", "#c1121f", "#0b4f9c", "#00a86b", "#ff7a00", "#7c3aed"];
 export const DEFAULT_BUBBLE_LAYOUT = [
-  { x: 46, y: 8, size: 144 },
-  { x: 12, y: 20, size: 112 },
-  { x: 62, y: 42, size: 104 },
-  { x: 22, y: 52, size: 98 },
-  { x: 82, y: 24, size: 72 },
+  { x: 58, y: 12, size: 118 },
+  { x: 8, y: 14, size: 96 },
+  { x: 32, y: 42, size: 96 },
+  { x: 8, y: 60, size: 78 },
+  { x: 84, y: 64, size: 64 },
 ];
 
 export function expandHex(value) {
@@ -134,10 +134,24 @@ export function clamp(value, min, max) {
 }
 
 export function getClusterChildPosition(index) {
-  const ring = Math.floor(index / 8);
-  const slot = index % 8;
-  const radius = 24 + ring * 13;
-  const angle = (slot / 8) * Math.PI * 2 + ring * 0.55;
+  const positions = [
+    { left: 48, top: 18 },
+    { left: 30, top: 27 },
+    { left: 66, top: 27 },
+    { left: 17, top: 45 },
+    { left: 48, top: 44 },
+    { left: 79, top: 45 },
+    { left: 30, top: 63 },
+    { left: 66, top: 63 },
+    { left: 12, top: 76 },
+    { left: 48, top: 79 },
+    { left: 84, top: 76 },
+    { left: 48, top: 102 },
+  ];
+  if (positions[index]) return positions[index];
+
+  const angle = index * 2.399963229728653;
+  const radius = 28 + index * 4.8;
   return {
     left: 50 + Math.cos(angle) * radius,
     top: 50 + Math.sin(angle) * radius,

@@ -21,6 +21,60 @@ const LARGE_COLOR_THRESHOLD = 120;
 const LARGE_PAINT_THRESHOLD = 2500;
 const LARGE_SVG_KB_THRESHOLD = 900;
 
+function getPaletteItem(palette, color) {
+  return palette.find(item => item.color === color) || null;
+}
+
+function normalizeMergeGroup(group, fallbackItem, palette) {
+  const items = Array.isArray(group) && group.length > 0
+    ? group
+    : fallbackItem
+      ? [{ color: fallbackItem.color, count: fallbackItem.count }]
+      : [];
+
+  return items
+    .map(child => (
+      typeof child === "string"
+        ? { color: child, count: getPaletteItem(palette, child)?.count || 0 }
+        : { color: child?.color, count: child?.count || 0 }
+    ))
+    .filter(child => child.color);
+}
+
+function mergeVisualGroups({ palette, mergeGroups, sourceItem, targetItem }) {
+  const sourceGroup = normalizeMergeGroup(mergeGroups[sourceItem.color], sourceItem, palette);
+  const targetGroup = normalizeMergeGroup(mergeGroups[targetItem.color], null, palette)
+    .filter(child => child.color !== targetItem.color);
+  const mergedChildren = [...targetGroup, ...sourceGroup]
+    .filter(child => child.color !== targetItem.color)
+    .reduce((items, child) => {
+      if (items.some(item => item.color === child.color)) return items;
+      return [...items, child];
+    }, []);
+
+  const nextGroups = { ...mergeGroups };
+  delete nextGroups[sourceItem.color];
+  return {
+    ...nextGroups,
+    [targetItem.color]: mergedChildren,
+  };
+}
+
+function remapMergeGroupsForRecolor(mergeGroups, previousColor, nextColor) {
+  if (!previousColor || !nextColor || previousColor === nextColor) return mergeGroups;
+  const nextGroups = {};
+  Object.entries(mergeGroups).forEach(([groupColor, children]) => {
+    const nextGroupColor = groupColor === previousColor ? nextColor : groupColor;
+    nextGroups[nextGroupColor] = normalizeMergeGroup(children, null, [])
+      .map(child => ({
+        ...child,
+        color: child.color === previousColor ? nextColor : child.color,
+      }))
+      .filter(child => child.color !== nextGroupColor);
+  });
+  return nextGroups;
+}
+
 const PalettePreviewModal = memo(function PalettePreviewModal({
   show,
   project,
@@ -36,6 +90,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const [selectedColor, setSelectedColor] = useState(null);
   const [hexInput, setHexInput] = useState("#ffd700");
   const [bubbleLayout, setBubbleLayout] = useState(DEFAULT_BUBBLE_LAYOUT);
+  const [childBubbleLayout, setChildBubbleLayout] = useState({});
   const [viewZoom, setViewZoom] = useState(1);
   const [viewPan, setViewPan] = useState({ x: 0, y: 0 });
   const [editHistory, setEditHistory] = useState([]);
@@ -47,9 +102,11 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
 
   const dragRef = useRef(null);
+  const childDragRef = useRef(null);
   const previewDragRef = useRef(null);
   const previewPanFrameRef = useRef(null);
   const bubbleFrameRef = useRef(null);
+  const childBubbleFrameRef = useRef(null);
   const editorRef = useRef(null);
   const suppressClickRef = useRef(false);
 
@@ -81,6 +138,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
         setSelectedColor(nextPalette[0]?.color || null);
         setHexInput(nextPalette[0]?.color || "#ffd700");
         setBubbleLayout(DEFAULT_BUBBLE_LAYOUT);
+        setChildBubbleLayout({});
         setViewZoom(1);
         setViewPan({ x: 0, y: 0 });
         setEditHistory([]);
@@ -102,6 +160,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
       cancelled = true;
       if (previewPanFrameRef.current) cancelAnimationFrame(previewPanFrameRef.current);
       if (bubbleFrameRef.current) cancelAnimationFrame(bubbleFrameRef.current);
+      if (childBubbleFrameRef.current) cancelAnimationFrame(childBubbleFrameRef.current);
     };
   }, [show, svgUrl]);
 
@@ -142,9 +201,18 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   }, [svgComplexity]);
   if (!show || !project) return null;
 
-  const commitSvgChange = (nextSvgText, preferredColor = selectedColor, rememberHistory = true) => {
+  const commitPaletteEdit = (nextSvgText, preferredColor = selectedColor, options = {}) => {
     if (!nextSvgText || nextSvgText === editedSvgText) return;
-    if (rememberHistory) setEditHistory(prev => [...prev.slice(-11), editedSvgText]);
+    if (options.rememberHistory !== false) {
+      setEditHistory(prev => [
+        ...prev.slice(-11),
+        {
+          svgText: editedSvgText,
+          selectedColor,
+          mergeGroups,
+        },
+      ]);
+    }
 
     const nextPalette = extractPalette(nextSvgText);
     const nextSelected = nextPalette.find(item => item.color === preferredColor)?.color || nextPalette[0]?.color || null;
@@ -152,13 +220,16 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     setPalette(nextPalette);
     setSelectedColor(nextSelected);
     setHexInput(nextSelected || "#ffd700");
+    setMergeGroups(options.nextMergeGroups || {});
+    setChildBubbleLayout({});
   };
 
   const updateSelectedColor = (nextColor) => {
     if (!selectedItem || !/^#[0-9a-f]{6}$/i.test(nextColor)) return;
     const nextNormalizedColor = nextColor.toLowerCase();
     const updated = replacePaletteColor(editedSvgText, selectedItem, nextNormalizedColor);
-    commitSvgChange(updated, nextNormalizedColor);
+    const nextMergeGroups = remapMergeGroupsForRecolor(mergeGroups, selectedItem.color, nextNormalizedColor);
+    commitPaletteEdit(updated, nextNormalizedColor, { nextMergeGroups });
   };
 
   const resetEdits = () => {
@@ -169,57 +240,54 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     setHexInput(nextPalette[0]?.color || "#ffd700");
     setEditHistory([]);
     setMergeGroups({});
+    setChildBubbleLayout({});
     setShowApplyConfirm(false);
   };
 
   const mergePaletteColors = (sourceColor, targetColor) => {
     if (!sourceColor || !targetColor || sourceColor === targetColor) return;
-    const sourceItem = palette.find(item => item.color === sourceColor);
-    const targetItem = palette.find(item => item.color === targetColor);
+    const sourceItem = getPaletteItem(palette, sourceColor);
+    const targetItem = getPaletteItem(palette, targetColor);
     if (!sourceItem || !targetItem) return;
 
     const updated = replacePaletteColor(editedSvgText, sourceItem, targetItem.color);
-    commitSvgChange(updated, targetItem.color);
-    setMergeGroups(prev => {
-      const sourceGroup = prev[sourceColor] || [sourceColor];
-      const targetGroup = prev[targetColor] || [targetColor];
-      return {
-        ...prev,
-        [targetColor]: [...new Set([...targetGroup, ...sourceGroup])],
-      };
-    });
+    const nextMergeGroups = mergeVisualGroups({ palette, mergeGroups, sourceItem, targetItem });
+    commitPaletteEdit(updated, targetItem.color, { nextMergeGroups });
   };
 
   const undoLastEdit = () => {
     setEditHistory(prev => {
-      const previousSvg = prev[prev.length - 1];
-      if (!previousSvg) return prev;
+      const previous = prev[prev.length - 1];
+      if (!previous) return prev;
 
-      const nextPalette = extractPalette(previousSvg);
-      const nextSelected = nextPalette.find(item => item.color === selectedColor)?.color || nextPalette[0]?.color || null;
-      setEditedSvgText(previousSvg);
+      const nextPalette = extractPalette(previous.svgText);
+      const nextSelected = nextPalette.find(item => item.color === previous.selectedColor)?.color || nextPalette[0]?.color || null;
+      setEditedSvgText(previous.svgText);
       setPalette(nextPalette);
       setSelectedColor(nextSelected);
       setHexInput(nextSelected || "#ffd700");
-      setMergeGroups({});
+      setMergeGroups(previous.mergeGroups || {});
+      setChildBubbleLayout({});
       return prev.slice(0, -1);
     });
   };
 
-  const selectColor = (color) => {
-    if (!color) return;
-    const exact = palette.find(item => item.color === color);
-    const closest = exact || palette.reduce((best, item) => (
-      colorDistance(item.color, color) < colorDistance(best.color, color) ? item : best
+  const selectColor = (color, fallbackColor = null) => {
+    const requestedColor = color || fallbackColor;
+    if (!requestedColor) return;
+    const exact = getPaletteItem(palette, requestedColor);
+    const fallback = fallbackColor ? getPaletteItem(palette, fallbackColor) : null;
+    const closest = exact || fallback || palette.reduce((best, item) => (
+      colorDistance(item.color, requestedColor) < colorDistance(best.color, requestedColor) ? item : best
     ), palette[0]);
     if (!closest) return;
     setSelectedColor(closest.color);
     setHexInput(closest.color);
   };
 
-  const handleSelectColor = (color) => {
+  const handleSelectColor = (color, fallbackColor = null) => {
     if (suppressClickRef.current) return;
-    selectColor(color);
+    selectColor(color, fallbackColor);
   };
 
   const findColorFromSvgElement = (element) => {
@@ -241,7 +309,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   };
 
   const zoomPreview = (nextZoom) => {
-    setViewZoom(clamp(nextZoom, 0.35, 5));
+    setViewZoom(clamp(nextZoom, 0.25, 40));
   };
 
   const resetPreviewView = () => {
@@ -251,8 +319,8 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
 
   const handlePreviewWheel = (event) => {
     event.preventDefault();
-    const direction = event.deltaY > 0 ? -0.12 : 0.12;
-    zoomPreview(viewZoom + direction);
+    const multiplier = event.deltaY > 0 ? 0.86 : 1.16;
+    zoomPreview(viewZoom * multiplier);
   };
 
   const startPreviewPan = (event) => {
@@ -308,6 +376,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
 
   const resetBubbleLayout = () => {
     setBubbleLayout(DEFAULT_BUBBLE_LAYOUT);
+    setChildBubbleLayout({});
   };
 
   const startBubbleDrag = (event, index) => {
@@ -366,7 +435,107 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
         itemIndex === index ? { ...item, ...drag.nextBubble } : item
       )));
     }
+    if (paletteMode === "merge" && drag.moved) {
+      const sourceColor = featured[index]?.color;
+      const dropTarget = document
+        .elementsFromPoint(event.clientX, event.clientY)
+        .map(element => element.closest?.("[data-cluster-color]"))
+        .find(element => {
+          const color = element?.getAttribute("data-cluster-color");
+          return color && color !== sourceColor;
+        });
+      const targetColor = dropTarget?.getAttribute("data-cluster-color");
+      if (sourceColor && targetColor) {
+        mergePaletteColors(sourceColor, targetColor);
+        setMergeTargetColor(null);
+        setDragMergeColor(null);
+      }
+    }
     dragRef.current = null;
+    if (suppressClickRef.current) {
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+    }
+  };
+
+  const startChildBubbleDrag = (event, childKey, startPosition) => {
+    event.stopPropagation();
+    const childRect = event.currentTarget.getBoundingClientRect();
+    childDragRef.current = {
+      childKey,
+      offsetX: event.clientX - childRect.left,
+      offsetY: event.clientY - childRect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      startPosition,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  };
+
+  const moveChildBubble = (event, childKey) => {
+    const drag = childDragRef.current;
+    if (!drag || drag.childKey !== childKey) return;
+    event.stopPropagation();
+
+    const parent = event.currentTarget.parentElement;
+    if (!parent) return;
+
+    const parentRect = parent.getBoundingClientRect();
+    const x = ((event.clientX - parentRect.left - drag.offsetX) / parentRect.width) * 100;
+    const y = ((event.clientY - parentRect.top - drag.offsetY) / parentRect.height) * 100;
+
+    if (Math.abs(event.clientX - drag.startX) > 3 || Math.abs(event.clientY - drag.startY) > 3) {
+      drag.moved = true;
+    }
+    // Allow child bubbles to leave their source cluster so users can drop them
+    // onto another color cluster, matching the Vectorizer-style interaction.
+    drag.nextChild = { left: clamp(x, -80, 180), top: clamp(y, -80, 180) };
+    if (childBubbleFrameRef.current) return;
+
+    childBubbleFrameRef.current = requestAnimationFrame(() => {
+      childBubbleFrameRef.current = null;
+      const nextChild = childDragRef.current?.nextChild;
+      const activeKey = childDragRef.current?.childKey;
+      if (!nextChild || !activeKey) return;
+      setChildBubbleLayout(prev => ({ ...prev, [activeKey]: nextChild }));
+    });
+  };
+
+  const stopChildBubbleDrag = (event, childKey) => {
+    const drag = childDragRef.current;
+    if (!drag || drag.childKey !== childKey) return;
+    event.stopPropagation();
+
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    suppressClickRef.current = drag.moved;
+    if (childBubbleFrameRef.current) {
+      cancelAnimationFrame(childBubbleFrameRef.current);
+      childBubbleFrameRef.current = null;
+    }
+    if (drag.nextChild) {
+      setChildBubbleLayout(prev => ({ ...prev, [childKey]: drag.nextChild }));
+    }
+    if (paletteMode === "merge" && drag.moved) {
+      const sourceColor = childKey.split(":").pop();
+      const sourceClusterColor = childKey.split(":")[0];
+      const dropTarget = document
+        .elementsFromPoint(event.clientX, event.clientY)
+        .map(element => element.closest?.("[data-cluster-color]"))
+        .find(element => {
+          const color = element?.getAttribute("data-cluster-color");
+          return color && color !== sourceClusterColor;
+        });
+      const targetColor = dropTarget?.getAttribute("data-cluster-color");
+      if (sourceColor && targetColor && sourceColor !== targetColor) {
+        mergePaletteColors(sourceColor, targetColor);
+        setMergeTargetColor(null);
+        setDragMergeColor(null);
+      }
+    }
+    childDragRef.current = null;
     if (suppressClickRef.current) {
       window.setTimeout(() => {
         suppressClickRef.current = false;
@@ -404,6 +573,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
           <PaletteCanvas
             svgUrl={svgUrl}
             sanitizedSvg={sanitizedSvg}
+            selectedColor={selectedColor}
             sizeLabel={sizeLabel}
             viewZoom={viewZoom}
             viewPan={viewPan}
@@ -420,6 +590,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             featured={featured}
             paletteClusters={paletteClusters}
             bubbleLayout={bubbleLayout}
+            childBubbleLayout={childBubbleLayout}
             selectedColor={selectedColor}
             mergeTargetColor={mergeTargetColor}
             dragMergeColor={dragMergeColor}
@@ -436,6 +607,9 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             onStartBubbleDrag={startBubbleDrag}
             onMoveBubble={moveBubble}
             onStopBubbleDrag={stopBubbleDrag}
+            onStartChildBubbleDrag={startChildBubbleDrag}
+            onMoveChildBubble={moveChildBubble}
+            onStopChildBubbleDrag={stopChildBubbleDrag}
             onMergePaletteColors={mergePaletteColors}
             onSetMergeTargetColor={setMergeTargetColor}
             onSetDragMergeColor={setDragMergeColor}
@@ -452,10 +626,10 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
           />
         </section>
 
-        <PaletteFooter
+          <PaletteFooter
           hasEdits={hasEdits}
           isApplying={isApplying}
-          onResetLayout={() => setBubbleLayout(DEFAULT_BUBBLE_LAYOUT)}
+          onResetLayout={resetBubbleLayout}
           onResetColors={resetEdits}
           onRequestApply={() => {
             if (onApplyEditedSvg) setShowApplyConfirm(true);

@@ -1372,6 +1372,14 @@ html, body {
   pointer-events: visiblePainted;
 }
 
+.palette-svg-preview.is-color-focused .dc-palette-focus-muted {
+  opacity: 0.18;
+}
+
+.palette-svg-preview.is-color-focused .dc-palette-focus-hit {
+  opacity: 1;
+}
+
 .palette-canvas > span {
   position: absolute;
   right: 22px;
@@ -1529,8 +1537,8 @@ html, body {
 
 .palette-cluster-child {
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -1542,8 +1550,9 @@ html, body {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
   box-shadow:
     inset -3px -4px 0 rgba(0, 0, 0, 0.18),
-    0 4px 10px rgba(0, 0, 0, 0.28);
+    0 3px 8px rgba(0, 0, 0, 0.26);
   cursor: pointer;
+  touch-action: none;
   opacity: 0.92;
   transition: transform 0.14s, opacity 0.14s;
 }
@@ -1554,12 +1563,26 @@ html, body {
   border-color: #ffd700;
 }
 
+.palette-cluster-child.is-merged {
+  border-color: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    inset -3px -4px 0 rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 215, 0, 0.18),
+    0 3px 8px rgba(0, 0, 0, 0.26);
+}
+
+.palette-cluster-child:active {
+  cursor: grabbing;
+  opacity: 1;
+  transform: scale(1.12);
+}
+
 .palette-cluster-more {
   position: absolute;
-  right: 16%;
-  top: 18%;
-  min-width: 25px;
-  height: 25px;
+  right: 7%;
+  top: 10%;
+  min-width: 23px;
+  height: 23px;
   display: grid;
   place-items: center;
   border-radius: 50%;
