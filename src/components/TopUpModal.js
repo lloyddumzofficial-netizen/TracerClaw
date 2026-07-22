@@ -5,6 +5,7 @@ import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRigh
 import { toast } from "@/components/Toast";
 import { createClient } from "@/utils/supabase/client";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
+import { safeJson } from "@/lib/safeJson";
 
 // Derived from CREDIT_PLANS — single source of truth.
 // To change prices, edit src/lib/paymentPlans.js only.
@@ -98,7 +99,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         body: JSON.stringify({ plan: form.plan }),
       });
 
-      const data = await response.json();
+      const data = await safeJson(response, "Failed to start Dodo checkout");
       if (!response.ok) throw new Error(data.error || "Failed to start Dodo checkout");
       if (!data.checkoutUrl) throw new Error("Dodo checkout URL is missing");
 
@@ -149,7 +150,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         }),
       });
 
-      const data = await response.json();
+      const data = await safeJson(response, "Failed to submit payment request.");
 
       // If this reference was already approved, credits are already in their account.
       // Treat this as success/info — not an error — so users aren't confused.

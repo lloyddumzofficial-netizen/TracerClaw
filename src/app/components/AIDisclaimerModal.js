@@ -22,6 +22,7 @@ export default function AIDisclaimerModal() {
   const handleClose = () => {
     if (timeLeft > 0) return;
     localStorage.setItem('ai_disclaimer_seen', 'true');
+    window.dispatchEvent(new Event('desaynclaw:data-privacy-accepted'));
     setShow(false);
   };
 

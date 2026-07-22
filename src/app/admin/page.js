@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "@/components/Toast";
 import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
+import { safeJson } from "@/lib/safeJson";
 
 import "../globals.css";
 import "../home.css";
@@ -119,9 +120,9 @@ export default function AdminDashboard() {
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to load admin dashboard");
       
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Failed to load admin dashboard");
 
       const reqData = data.requests || [];
       const pending = reqData.filter(r => r.status === 'pending');
@@ -169,8 +170,8 @@ export default function AdminDashboard() {
         body: JSON.stringify({ requestId: request.id, markOnly })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await safeJson(res, "Failed to approve payment");
+      if (!res.ok) throw new Error(data.error || "Failed to approve payment");
 
       if (markOnly) {
         toast.success(`Marked as paid! (No credits added)`);

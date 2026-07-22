@@ -26,6 +26,7 @@ import ShortcutsModal from "./components/ShortcutsModal";
 import WorkspaceCommandBar from "./components/WorkspaceCommandBar";
 import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import { safeJson } from "@/lib/safeJson";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
@@ -156,7 +157,7 @@ export default function Workspace() {
         },
         body: JSON.stringify({ projectId: project.id }),
       });
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to prepare ZIP");
       if (!res.ok) throw new Error(data.error || "Failed to prepare ZIP");
 
       await forceDownload(

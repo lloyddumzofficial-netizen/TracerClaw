@@ -8,6 +8,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
+import { safeJson } from "@/lib/safeJson";
 import FeedbackWidget from "@/app/workspace/[id]/components/FeedbackWidget";
 import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
@@ -150,8 +151,8 @@ export default function UpscalePage() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ fileName, contentType: file.type, fileSize: file.size }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.uploadUrl) throw new Error("Failed to get upload URL");
+      const data = await safeJson(res, "Failed to get upload URL");
+      if (!res.ok || !data.uploadUrl) throw new Error(data.error || "Failed to get upload URL");
       
       const { uploadUrl, publicUrl } = data;
 
@@ -200,7 +201,7 @@ export default function UpscalePage() {
         body: JSON.stringify({ imageUrl: finalUrl }),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to process image");
       if (!res.ok) throw new Error(data.error || "Failed to process image");
 
       setUpscaledImage(data.upscaledUrl);

@@ -11,17 +11,30 @@ const PromoModal = memo(function PromoModal({ onBuyClick }) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Only show if they haven't closed it in the last 24 hours
-    const lastSeen = localStorage.getItem("promo_seen_timestamp");
-    const now = Date.now();
+    let timer;
 
-    // Show after 2 seconds for a nice effect
-    if (!lastSeen || now - parseInt(lastSeen) > 86400000) { // 24 hours
-      const timer = setTimeout(() => {
-        setShow(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    const schedulePromo = () => {
+      if (!localStorage.getItem("ai_disclaimer_seen")) return;
+
+      // Only show if they haven't closed it in the last 24 hours
+      const lastSeen = localStorage.getItem("promo_seen_timestamp");
+      const now = Date.now();
+
+      // Show after 2 seconds for a nice effect
+      if (!lastSeen || now - parseInt(lastSeen, 10) > 86400000) { // 24 hours
+        timer = setTimeout(() => {
+          setShow(true);
+        }, 2000);
+      }
+    };
+
+    schedulePromo();
+    window.addEventListener("desaynclaw:data-privacy-accepted", schedulePromo);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("desaynclaw:data-privacy-accepted", schedulePromo);
+    };
   }, []);
 
   const handleClose = () => {

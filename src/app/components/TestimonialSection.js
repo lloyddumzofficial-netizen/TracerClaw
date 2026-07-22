@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Star, User } from "lucide-react";
+import { safeJson } from "@/lib/safeJson";
 
 export default function TestimonialSection() {
   const [reviews, setReviews] = useState([]);
@@ -11,7 +12,7 @@ export default function TestimonialSection() {
     const fetchReviews = async () => {
       try {
         const res = await fetch("/api/reviews");
-        const data = await res.json();
+        const data = await safeJson(res, "Failed to load reviews");
         if (res.ok && data.success) {
           setReviews(data.reviews);
         }

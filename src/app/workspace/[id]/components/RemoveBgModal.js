@@ -2,6 +2,7 @@
 
 import { memo, useState } from "react";
 import { ImageMinus, X, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { safeJson } from "@/lib/safeJson";
 
 /**
  * RemoveBgModal — Redesigned confirmation modal for AI Background Removal.
@@ -36,7 +37,7 @@ const RemoveBgModal = memo(function RemoveBgModal({
         body: JSON.stringify({ projectId: project.id }),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to remove background.");
       if (!res.ok) throw new Error(data.error || "Failed to remove background.");
 
       onRemoveBgApplied(data.original_image_url, null);

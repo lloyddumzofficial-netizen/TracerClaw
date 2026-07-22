@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Scissors, Download, Home, Loader2, ArrowRight, Settings2, Image as ImageIcon, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import { safeJson } from "@/lib/safeJson";
 
 const supabase = createClient();
 
@@ -84,7 +85,7 @@ export default function BgRemoverPage() {
         body: JSON.stringify({ projectId: project.id, keepOriginal: true })
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to remove background");
 
       // Handle ALREADY_PROCESSED gracefully — no error, just reload
       if (res.status === 409 && data.error === "ALREADY_PROCESSED") {

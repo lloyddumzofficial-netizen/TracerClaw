@@ -11,6 +11,7 @@ import { toast } from "@/components/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import { safeJson } from "@/lib/safeJson";
 
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
 
@@ -47,6 +48,11 @@ function HomepageWorkflowPreview() {
           <div><CheckCircle2 size={15} /> 4K PNG</div>
           <div><CheckCircle2 size={15} /> Transparent BG</div>
           <div><CheckCircle2 size={15} /> ZIP Package</div>
+        </div>
+        <div className="workflow-trust-row" aria-label="Workflow trust notes">
+          <span><ShieldCheck size={14} /> Files auto-expire after 3 days</span>
+          <span><Monitor size={14} /> Desktop workspace protected</span>
+          <span><Star size={14} /> Real extraction stats</span>
         </div>
       </div>
 
@@ -328,7 +334,7 @@ export default function StartScreen() {
   useEffect(() => {
     const fetchStats = () => {
       fetch(`/api/public-stats?t=${Date.now()}`)
-        .then(res => res.json())
+        .then(res => safeJson(res, "Failed to load public stats"))
         .then(data => {
           if (data.success) {
             setPublicStats({
@@ -486,7 +492,7 @@ export default function StartScreen() {
         })
       });
 
-      const urlData = await urlRes.json();
+      const urlData = await safeJson(urlRes, "Failed to get upload URL");
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
 
       const putRes = await fetch(urlData.uploadUrl, {
@@ -512,8 +518,8 @@ export default function StartScreen() {
         })
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.details || "Project creation failed");
+      const data = await safeJson(response, "Project creation failed");
+      if (!response.ok) throw new Error(data.details || data.error || "Project creation failed");
 
       if (isBgRemover) {
         router.push(`/bg-remover/${data.projectId}`);

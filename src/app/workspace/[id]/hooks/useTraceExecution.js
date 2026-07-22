@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { safeJson } from "@/lib/safeJson";
 
 /**
  * useTraceExecution — Manages the full 3-step AI pipeline execution.
@@ -77,9 +78,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       });
 
       if (!res1.ok) {
-        const errData = res1.headers.get("content-type")?.includes("application/json")
-          ? await res1.json()
-          : { error: res1.status === 504 ? "504 Timeout" : `Server Error ${res1.status}` };
+        const errData = await safeJson(res1, res1.status === 504 ? "504 Timeout" : `Server Error ${res1.status}`);
         const msg = errData.error || `Error ${res1.status}`;
         if (msg === "INSUFFICIENT_CREDITS") {
           setUserCredits(0);
@@ -91,7 +90,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         throw new Error(msg);
       }
 
-      const data1 = await res1.json();
+      const data1 = await safeJson(res1, "Trace step 1 failed");
       logToConsole("[Step 1.5] Saving extracted image...", "normal");
 
       const save1 = await fetch("/api/save-asset", {
@@ -102,8 +101,8 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         },
         body: JSON.stringify({ projectId: project.id, step: 1, base64: data1.base64, mimeType: data1.mimeType }),
       });
-      if (!save1.ok) throw new Error("Failed to save image");
-      const saveData1 = await save1.json();
+      const saveData1 = await safeJson(save1, "Failed to save image");
+      if (!save1.ok) throw new Error(saveData1.error || "Failed to save image");
 
       setProject(prev => ({ ...prev, generated_image_url: saveData1.url }));
       logToConsole("[Success] Image Extracted by DesaynVision™!", "success");
@@ -122,15 +121,13 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       });
 
       if (!res2.ok) {
-        const errData = res2.headers.get("content-type")?.includes("application/json")
-          ? await res2.json()
-          : { error: res2.status === 504 ? "504 Timeout" : `Server Error ${res2.status}` };
+        const errData = await safeJson(res2, res2.status === 504 ? "504 Timeout" : `Server Error ${res2.status}`);
         const msg = errData.error || `Error ${res2.status}`;
         setNodeErrors(prev => ({ ...prev, step2: msg }));
         throw new Error(msg);
       }
 
-      const data2 = await res2.json();
+      const data2 = await safeJson(res2, "Trace step 2 failed");
       logToConsole("[Step 2.5] Saving upscaled image...", "normal");
 
       const save2 = await fetch("/api/save-asset", {
@@ -141,8 +138,8 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         },
         body: JSON.stringify({ projectId: project.id, step: 2, fileUrl: data2.fileUrl, mimeType: data2.mimeType }),
       });
-      if (!save2.ok) throw new Error("Failed to save upscaled image");
-      const saveData2 = await save2.json();
+      const saveData2 = await safeJson(save2, "Failed to save upscaled image");
+      if (!save2.ok) throw new Error(saveData2.error || "Failed to save upscaled image");
 
       setProject(prev => ({ ...prev, upscaled_image_url: saveData2.url }));
       logToConsole("[Success] Upscale Complete!", "success");
@@ -161,15 +158,13 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       });
 
       if (!res3.ok) {
-        const errData = res3.headers.get("content-type")?.includes("application/json")
-          ? await res3.json()
-          : { error: res3.status === 504 ? "504 Timeout" : `Server Error ${res3.status}` };
+        const errData = await safeJson(res3, res3.status === 504 ? "504 Timeout" : `Server Error ${res3.status}`);
         const msg = errData.error || `Error ${res3.status}`;
         setNodeErrors(prev => ({ ...prev, step3: msg }));
         throw new Error(msg);
       }
 
-      const data3 = await res3.json();
+      const data3 = await safeJson(res3, "Trace step 3 failed");
       setProject(prev => ({ ...prev, svg_url: data3.svg_url }));
       logToConsole("[Success] Vectorization Complete!", "success");
 
@@ -193,7 +188,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
             },
             body: JSON.stringify({ projectId: project.id }),
           });
-          const refundData = await refundRes.json();
+          const refundData = await safeJson(refundRes, "Refund request failed");
           if (refundData.success) {
             logToConsole("[System] Generation failed. 1 Credit has been refunded.", "success");
             if (userCredits !== null) setUserCredits(prev => prev + 1);

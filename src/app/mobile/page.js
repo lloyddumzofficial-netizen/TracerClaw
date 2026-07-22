@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Camera, Upload, CheckCircle2, Loader2, Image as ImageIcon } from "lucide-react";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
+import { safeJson } from "@/lib/safeJson";
 
 function MobileUploadContent() {
   const searchParams = useSearchParams();
@@ -63,11 +64,12 @@ function MobileUploadContent() {
         })
       });
 
+      const data = await safeJson(res, "Failed to get upload URL");
       if (!res.ok) {
-        throw new Error("Failed to get upload URL");
+        throw new Error(data.error || "Failed to get upload URL");
       }
 
-      const { uploadUrl, publicUrl } = await res.json();
+      const { uploadUrl, publicUrl } = data;
 
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",

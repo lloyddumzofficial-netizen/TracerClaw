@@ -6,6 +6,7 @@ import { X, ShoppingCart } from "lucide-react";
 const MESSENGER_URL = "https://m.me/105884602605306";
 const STORAGE_KEY   = "sublibatch_seen_timestamp";
 const ONE_DAY_MS    = 86400000; // 24 hours in ms
+const PRIVACY_KEY   = "ai_disclaimer_seen";
 
 /**
  * SublibatchModal
@@ -20,13 +21,26 @@ const SublibatchModal = memo(function SublibatchModal() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const lastSeen = localStorage.getItem(STORAGE_KEY);
-    const now = Date.now();
+    let timer;
 
-    if (!lastSeen || now - parseInt(lastSeen, 10) > ONE_DAY_MS) {
-      const timer = setTimeout(() => setShow(true), 1500);
-      return () => clearTimeout(timer);
-    }
+    const schedulePromo = () => {
+      if (!localStorage.getItem(PRIVACY_KEY)) return;
+
+      const lastSeen = localStorage.getItem(STORAGE_KEY);
+      const now = Date.now();
+
+      if (!lastSeen || now - parseInt(lastSeen, 10) > ONE_DAY_MS) {
+        timer = setTimeout(() => setShow(true), 1500);
+      }
+    };
+
+    schedulePromo();
+    window.addEventListener("desaynclaw:data-privacy-accepted", schedulePromo);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("desaynclaw:data-privacy-accepted", schedulePromo);
+    };
   }, []);
 
   const handleClose = () => {
@@ -47,7 +61,7 @@ const SublibatchModal = memo(function SublibatchModal() {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 100000,
+        zIndex: 99990,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

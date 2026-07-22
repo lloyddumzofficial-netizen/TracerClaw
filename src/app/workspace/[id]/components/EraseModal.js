@@ -3,6 +3,7 @@
 import { memo, useState, useRef, useCallback, useEffect } from "react";
 import { Eraser, X, Save } from "lucide-react";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
+import { safeJson } from "@/lib/safeJson";
 
 /**
  * EraseModal — Isolated canvas drawing modal.
@@ -134,7 +135,7 @@ const EraseModal = memo(function EraseModal({
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ fileName: `erased_${Date.now()}.jpg`, contentType: "image/jpeg", fileSize: blob.size }),
       });
-      const urlData = await urlRes.json();
+      const urlData = await safeJson(urlRes, "Failed to get upload URL");
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
 
       // 2. Upload to R2 directly from client
@@ -154,7 +155,7 @@ const EraseModal = memo(function EraseModal({
         },
         body: JSON.stringify({ projectId: project.id, croppedImageUrl: urlData.publicUrl }),
       });
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to save erased image");
       if (!res.ok) throw new Error(data.error);
 
       onEraseApplied?.(urlData.publicUrl);

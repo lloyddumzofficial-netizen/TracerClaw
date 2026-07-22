@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Maximize, AlertCircle, Loader2 } from "lucide-react";
+import { Maximize, AlertCircle, CheckCircle2 } from "lucide-react";
 import SafeInlineSVG from "@/app/components/SafeInlineSVG";
 
 const SplitViewCanvas = memo(function SplitViewCanvas({
@@ -20,6 +20,9 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const currentZoom = useRef(zoomLevel);
   currentZoom.current = zoomLevel;
   const pendingScrollRef = useRef(null);
+  const previousActiveUrlRef = useRef(null);
+  const wasProcessingRef = useRef(false);
+  const [completionRevealKey, setCompletionRevealKey] = useState("");
 
   // Scroll to zoom to pointer
   useEffect(() => {
@@ -214,43 +217,91 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     }
   }, [project?.svg_url, activeTab]);
 
+  useEffect(() => {
+    if (traceState !== "idle") {
+      wasProcessingRef.current = true;
+      return;
+    }
+    if (!activeUrl) return;
+
+    const previousUrl = previousActiveUrlRef.current;
+    previousActiveUrlRef.current = activeUrl;
+
+    const shouldReveal = wasProcessingRef.current || (previousUrl && previousUrl !== activeUrl);
+    wasProcessingRef.current = false;
+
+    if (!shouldReveal) return;
+
+    setCompletionRevealKey(`${activeTab}:${activeUrl}`);
+    const t = setTimeout(() => setCompletionRevealKey(""), 1150);
+    return () => clearTimeout(t);
+  }, [activeUrl, activeTab, traceState]);
+
   // Right-side label
   const rightLabel = activeTab === "generated" ? "FLAT EXTRACT" : activeTab === "upscaled" ? "HD UPSCALE" : "VECTOR PREVIEW";
 
   const renderStatus = () => {
     if (traceState !== "idle") {
+      const stepMeta = traceState === "step1"
+        ? { label: "Flat Extract", detail: "Isolating garment artwork", progress: "34%" }
+        : traceState === "step2"
+          ? { label: "HD Upscale", detail: "Rebuilding print detail", progress: "67%" }
+          : { label: "Vector SVG", detail: "Preparing Illustrator-ready paths", progress: "92%" };
+      const layerState = traceState === "step1" ? 0 : traceState === "step2" ? 1 : 2;
+
       return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', backgroundColor: '#1a1a1a' }}>
-          <div 
-            className="processing-scan-wrapper"
-            style={proxyOriginal ? { 
-              maskImage: `url(${proxyOriginal})`, 
-              maskSize: 'contain', 
-              maskPosition: 'center', 
-              maskRepeat: 'no-repeat',
-              WebkitMaskImage: `url(${proxyOriginal})`,
-              WebkitMaskSize: 'contain',
-              WebkitMaskPosition: 'center',
-              WebkitMaskRepeat: 'no-repeat'
-            } : {}}
-          >
-            {proxyOriginal && (
-              <img 
-                src={proxyOriginal} 
-                alt="Processing Background" 
-                referrerPolicy="no-referrer"
-                decoding="async"
-              />
-            )}
-          </div>
-          <div style={{ position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#fff', background: 'rgba(0,0,0,0.9)', padding: '16px 32px', borderRadius: '4px', border: '1px solid rgba(255,215,0,0.3)', boxShadow: '0 4px 20px rgba(255,215,0,0.1)' }}>
-            <div style={{ fontSize: "14px", color: "#FFD700", fontWeight: "600", marginBottom: "4px", letterSpacing: '1px', textTransform: 'uppercase' }}>
-              <Loader2 size={14} className="animate-spin" style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'middle' }} />
-              Executing Neural Scan
+        <div className="processing-blueprint-stage" aria-live="polite">
+          <div className="processing-blueprint-bg" />
+          <div className="processing-blueprint-board">
+            <div className="processing-blueprint-canvas">
+              {proxyOriginal && (
+                <img
+                  src={proxyOriginal}
+                  alt="Processing preview"
+                  referrerPolicy="no-referrer"
+                  decoding="async"
+                />
+              )}
+              <div className="processing-drafting-frame">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="processing-logo-outline" aria-hidden="true">
+                <img src="/SVG/LOGO%20OUTLINE.svg" alt="" decoding="async" />
+              </div>
+              <div className="processing-reveal-sweep" />
+              <div className="processing-anchor a1" />
+              <div className="processing-anchor a2" />
+              <div className="processing-anchor a3" />
+              <div className="processing-anchor a4" />
             </div>
-            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)", textTransform: 'uppercase', letterSpacing: '2px' }}>
-              {traceState === 'step1' ? 'Extracting geometry...' : traceState === 'step2' ? 'Enhancing resolution...' : 'Generating SVG paths...'}
-            </span>
+          </div>
+
+          <div className="processing-layer-panel">
+            <div className="processing-layer-header">
+              <span>{stepMeta.label}</span>
+              <strong>{stepMeta.progress}</strong>
+            </div>
+            <div className="processing-progress-track">
+              <i style={{ width: stepMeta.progress }} />
+            </div>
+            <p>
+              {stepMeta.detail}
+            </p>
+            <div className="processing-layer-stack">
+              {[
+                "Clean artwork",
+                "Print detail",
+                "Vector paths",
+              ].map((label, index) => (
+                <div key={label} className={index <= layerState ? "is-active" : ""}>
+                  <CheckCircle2 size={13} />
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       );
@@ -384,7 +435,10 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
             {/* Canvas label */}
             <div style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: activeTab === "svg" ? "rgba(255,215,0,0.35)" : "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>{rightLabel}</div>
             {activeUrl && traceState === "idle" ? (
-              <div style={{ position: "relative", width: `${Math.max(100, zoomLevel * 100)}%`, height: `${Math.max(100, zoomLevel * 100)}%`, minWidth: "100%", minHeight: "100%" }}>
+              <div
+                className={completionRevealKey ? "output-completion-reveal" : ""}
+                style={{ position: "relative", width: `${Math.max(100, zoomLevel * 100)}%`, height: `${Math.max(100, zoomLevel * 100)}%`, minWidth: "100%", minHeight: "100%" }}
+              >
                 <div style={{ position: "absolute", top: "50%", left: "50%", width: `${100 / Math.max(1, zoomLevel)}%`, height: `${100 / Math.max(1, zoomLevel)}%`, transform: `translate(-50%, -50%) scale(${zoomLevel})`, padding: "24px", boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
                   {activeTab === "svg" ? (
                     <SafeInlineSVG

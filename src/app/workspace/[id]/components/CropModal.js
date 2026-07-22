@@ -1,10 +1,11 @@
 "use client";
 
-import { memo, useState, useRef, useCallback } from "react";
-import { Scissors, X } from "lucide-react";
+import { memo, useState, useRef, useCallback, useEffect } from "react";
+import { Maximize, Minus, Plus, RotateCcw, Scissors, X } from "lucide-react";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
+import { safeJson } from "@/lib/safeJson";
 
 function CropGuidePhoto({ title, body, tone, imageSrc, imageAlt, boxClassName }) {
   return (
@@ -47,7 +48,17 @@ const CropModal = memo(function CropModal({
   const [completedCrop, setCompletedCrop] = useState(null);
   const [cropError, setCropError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [cropZoom, setCropZoom] = useState(1);
   const imgRef = useRef(null);
+
+  useEffect(() => {
+    if (show) {
+      setCropZoom(1);
+      setCrop(undefined);
+      setCompletedCrop(null);
+      setCropError("");
+    }
+  }, [show]);
 
   const handleApply = useCallback(async () => {
     if (!completedCrop || !imgRef.current || !completedCrop.width || !completedCrop.height) {
@@ -109,7 +120,7 @@ const CropModal = memo(function CropModal({
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ fileName: `crop_${Date.now()}.jpg`, contentType: "image/jpeg", fileSize: blob.size }),
       });
-      const urlData = await urlRes.json();
+      const urlData = await safeJson(urlRes, "Failed to get upload URL");
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
 
       const putRes = await fetch(urlData.uploadUrl, {
@@ -127,7 +138,7 @@ const CropModal = memo(function CropModal({
         },
         body: JSON.stringify({ projectId: project.id, croppedImageUrl: urlData.publicUrl }),
       });
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to save crop");
       if (!res.ok) throw new Error(data.error);
 
       onCropApplied?.(urlData.publicUrl);
@@ -164,24 +175,43 @@ const CropModal = memo(function CropModal({
           <div className="crop-canvas-panel">
             <div className="crop-canvas-toolbar">
               <span>Source Image</span>
-              <span>{cropSizeLabel}</span>
+              <div className="crop-toolbar-right">
+                <span>{cropSizeLabel}</span>
+                <div className="crop-zoom-controls" aria-label="Crop zoom controls">
+                  <button type="button" onClick={() => { setCrop(undefined); setCompletedCrop(null); setCropError(""); }} aria-label="Reset selection">
+                    <RotateCcw size={12} />
+                  </button>
+                  <button type="button" onClick={() => setCropZoom(z => Math.max(0.5, Number((z - 0.1).toFixed(2))))} aria-label="Zoom out">
+                    <Minus size={12} />
+                  </button>
+                  <strong>{Math.round(cropZoom * 100)}%</strong>
+                  <button type="button" onClick={() => setCropZoom(z => Math.min(3, Number((z + 0.1).toFixed(2))))} aria-label="Zoom in">
+                    <Plus size={12} />
+                  </button>
+                  <button type="button" onClick={() => setCropZoom(1)} aria-label="Fit image">
+                    <Maximize size={12} />
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="crop-canvas-stage">
-              <ReactCrop
-                crop={crop}
-                onChange={c => { setCrop(c); setCropError(""); }}
-                onComplete={c => setCompletedCrop(c)}
-                className="designer-crop"
-              >
-                <img
-                  ref={imgRef}
-                  src={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
-                  alt="Crop source"
-                  className="crop-source-image"
-                  crossOrigin="anonymous"
-                  onLoad={e => { imgRef.current = e.currentTarget; }}
-                />
-              </ReactCrop>
+              <div className="crop-zoom-surface" style={{ width: `${cropZoom * 100}%` }}>
+                <ReactCrop
+                  crop={crop}
+                  onChange={c => { setCrop(c); setCropError(""); }}
+                  onComplete={c => setCompletedCrop(c)}
+                  className="designer-crop"
+                >
+                  <img
+                    ref={imgRef}
+                    src={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
+                    alt="Crop source"
+                    className="crop-source-image"
+                    crossOrigin="anonymous"
+                    onLoad={e => { imgRef.current = e.currentTarget; }}
+                  />
+                </ReactCrop>
+              </div>
             </div>
           </div>
 

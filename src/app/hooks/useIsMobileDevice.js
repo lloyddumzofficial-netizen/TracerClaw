@@ -17,7 +17,7 @@ function detectMobileDevice() {
 }
 
 export function useIsMobileDevice() {
-  const [isMobileDevice, setIsMobileDevice] = useState(() => detectMobileDevice());
+  const [isMobileDevice, setIsMobileDevice] = useState(null);
 
   useEffect(() => {
     const checkDevice = () => {

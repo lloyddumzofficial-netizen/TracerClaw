@@ -529,61 +529,295 @@ html, body {
   z-index: 5;
 }
 
-/* Minimal Cyberpunk Scanner Animation */
-@keyframes cyberScan {
-  0% { top: 0%; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
+/* Professional production blueprint loading */
+@keyframes blueprintSweep {
+  0% { transform: translateX(-90%) skewX(-12deg); opacity: 0; }
+  12% { opacity: 0.9; }
+  62% { opacity: 0.72; }
+  100% { transform: translateX(112%) skewX(-12deg); opacity: 0; }
 }
 
-@keyframes glitchPulse {
-  0%, 100% { filter: grayscale(80%) brightness(0.6); }
-  50% { filter: grayscale(80%) brightness(0.8); }
+@keyframes blueprintOutline {
+  0% { clip-path: inset(0 100% 0 0); opacity: 0.25; }
+  36% { opacity: 0.9; }
+  100% { clip-path: inset(0 0 0 0); opacity: 0.72; }
 }
 
-.processing-scan-wrapper {
+@keyframes anchorPulse {
+  0%, 100% { transform: scale(0.84); opacity: 0.35; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+.processing-blueprint-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #141414;
+}
+
+.processing-blueprint-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 215, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 215, 0, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(255, 215, 0, 0.08), transparent 34%);
+  background-size: 42px 42px, 42px 42px, auto;
+  opacity: 0.8;
+}
+
+.processing-blueprint-board {
+  position: relative;
+  z-index: 2;
+  width: min(86%, 700px);
+  height: min(76%, 620px);
+  min-height: 390px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.processing-blueprint-canvas {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.28);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.46);
 }
 
-.processing-scan-wrapper img {
+.processing-blueprint-canvas img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 4px;
-  animation: glitchPulse 3s infinite ease-in-out;
-  opacity: 0.9;
+  opacity: 0.28;
+  filter: grayscale(1) contrast(1.05) brightness(0.72);
 }
 
-/* Faint grid overlay */
-.processing-scan-wrapper::before {
-  content: '';
+.processing-blueprint-canvas::before {
+  content: "";
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background-image: 
-    linear-gradient(rgba(255, 215, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 215, 0, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
+  inset: 12px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
   pointer-events: none;
-  z-index: 1;
 }
 
-/* Sharp Laser Line */
-.processing-scan-wrapper::after {
-  content: '';
+.processing-drafting-frame {
   position: absolute;
-  left: 0;
+  inset: 22px;
+  pointer-events: none;
+}
+
+.processing-drafting-frame span {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-color: rgba(255, 215, 0, 0.82);
+}
+
+.processing-drafting-frame span:nth-child(1) { left: 0; top: 0; border-top: 2px solid; border-left: 2px solid; }
+.processing-drafting-frame span:nth-child(2) { right: 0; top: 0; border-top: 2px solid; border-right: 2px solid; }
+.processing-drafting-frame span:nth-child(3) { right: 0; bottom: 0; border-right: 2px solid; border-bottom: 2px solid; }
+.processing-drafting-frame span:nth-child(4) { left: 0; bottom: 0; border-left: 2px solid; border-bottom: 2px solid; }
+
+.processing-logo-outline {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(58%, 360px);
+  aspect-ratio: 478.95 / 419.48;
+  transform: translate(-50%, -50%);
+  clip-path: inset(0 100% 0 0);
+  animation: blueprintOutline 2.8s ease-in-out infinite;
+  opacity: 0.88;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.22)) drop-shadow(0 0 16px rgba(255, 215, 0, 0.14));
+  pointer-events: none;
+}
+
+.processing-logo-outline img {
   width: 100%;
-  height: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 10px 2px var(--accent), 0 0 30px var(--accent);
-  animation: cyberScan 2s infinite linear;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  opacity: 1;
+  filter: none;
+}
+
+.processing-reveal-sweep {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.08), rgba(255, 255, 255, 0.2), transparent);
+  animation: blueprintSweep 3.2s cubic-bezier(0.42, 0, 0.2, 1) infinite;
   pointer-events: none;
+}
+
+.processing-anchor {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #FFD700;
+  border: 1px solid #111;
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.72);
+  animation: anchorPulse 1.9s ease-in-out infinite;
+}
+
+.processing-anchor.a1 { left: 24%; top: 30%; animation-delay: 0s; }
+.processing-anchor.a2 { right: 25%; top: 34%; animation-delay: 0.35s; }
+.processing-anchor.a3 { left: 33%; bottom: 28%; animation-delay: 0.7s; }
+.processing-anchor.a4 { right: 34%; bottom: 24%; animation-delay: 1.05s; }
+
+.processing-layer-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  z-index: 5;
+  width: min(520px, calc(100% - 40px));
+  transform: translateX(-50%);
+  background: rgba(9, 9, 9, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.26);
+  padding: 14px 16px 16px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5);
+}
+
+.processing-layer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  color: #FFD700;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.processing-layer-header strong {
+  color: #f3f3f3;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.processing-progress-track {
+  height: 3px;
+  margin: 10px 0 10px;
+  background: #2c2c2c;
+  overflow: hidden;
+}
+
+.processing-progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #ffffff);
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.45);
+  transition: width 0.35s ease;
+}
+
+.processing-layer-panel p {
+  margin: 0 0 12px;
+  color: #d9d9d9;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.processing-layer-stack {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.processing-layer-stack div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #5f5f5f;
+  background: #151515;
+  border: 1px solid #2b2b2b;
+  padding: 8px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.65px;
+  white-space: nowrap;
+}
+
+.processing-layer-stack div.is-active {
+  color: #f2f2f2;
+  border-color: rgba(255, 215, 0, 0.38);
+  background: rgba(255, 215, 0, 0.06);
+}
+
+.processing-layer-stack svg {
+  color: #FFD700;
+  flex-shrink: 0;
+}
+
+@keyframes outputRevealIn {
+  0% {
+    opacity: 0;
+    filter: blur(10px) saturate(0.8) brightness(0.78);
+    transform: translateY(10px) scale(0.985);
+  }
+  42% {
+    opacity: 1;
+    filter: blur(0) saturate(1.08) brightness(1.08);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes outputRevealSweep {
+  0% { transform: translateX(-118%) skewX(-16deg); opacity: 0; }
+  16% { opacity: 0.9; }
+  72% { opacity: 0.62; }
+  100% { transform: translateX(118%) skewX(-16deg); opacity: 0; }
+}
+
+.output-completion-reveal {
+  animation: outputRevealIn 0.78s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.output-completion-reveal::before {
+  content: "";
+  position: absolute;
+  inset: 24px;
   z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(255, 215, 0, 0.38);
+  box-shadow: inset 0 0 28px rgba(255, 215, 0, 0.08), 0 0 28px rgba(255, 215, 0, 0.1);
+  opacity: 0;
+  animation: outputRevealIn 0.82s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.output-completion-reveal::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 34%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.08), rgba(255, 255, 255, 0.28), transparent);
+  animation: outputRevealSweep 1s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Empty State / Dropzone */
@@ -883,7 +1117,7 @@ html, body {
 }
 
 .crop-canvas-toolbar {
-  height: 34px;
+  min-height: 38px;
   padding: 0 12px;
   border-bottom: 1px solid #2a2a2a;
   background: #171717;
@@ -891,9 +1125,59 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
+}
+
+.crop-toolbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+
+.crop-zoom-controls {
+  height: 26px;
+  border: 1px solid #303030;
+  background: #111111;
+  display: inline-flex;
+  align-items: center;
+}
+
+.crop-zoom-controls button {
+  width: 28px;
+  height: 24px;
+  border: 0;
+  border-right: 1px solid #303030;
+  background: transparent;
+  color: #9a9a9a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crop-zoom-controls button:last-child {
+  border-right: 0;
+}
+
+.crop-zoom-controls button:hover {
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.crop-zoom-controls strong {
+  min-width: 42px;
+  padding: 0 8px;
+  color: #d8d8d8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  text-align: center;
+  letter-spacing: 0;
 }
 
 .crop-canvas-stage {
@@ -911,17 +1195,27 @@ html, body {
   background-size: 18px 18px;
 }
 
+.crop-zoom-surface {
+  margin: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
 .designer-crop {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  max-width: none;
+  max-height: none;
 }
 
 .crop-source-image {
-  max-width: 100%;
-  max-height: 68vh;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  height: auto;
   display: block;
   object-fit: contain;
   box-shadow: 0 0 0 1px #242424, 0 18px 45px rgba(0, 0, 0, 0.5);
@@ -1178,6 +1472,8 @@ html, body {
 
 .crop-primary-action {
   min-width: 152px;
+  width: auto;
+  flex: 0 0 auto;
 }
 
 @media (max-width: 900px) {
