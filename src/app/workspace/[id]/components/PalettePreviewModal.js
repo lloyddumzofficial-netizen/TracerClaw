@@ -475,11 +475,12 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
       <div className="palette-modal">
         <header className="palette-header">
           <div className="palette-brand">
-            <img src="/nav bar logo.png" alt="DesaynClaw" />
-            <div>
-              <span>Palette Studio</span>
-              <small>{palette.length || "..."} colors · {sizeLabel}</small>
-            </div>
+            <img src="/logo.png" alt="DesaynClaw" />
+          </div>
+          <div className="palette-header-meta" aria-label="Palette metadata">
+            <span>{palette.length || "..."} colors</span>
+            <span>{sizeLabel}</span>
+            <strong>{hasEdits ? "Edited" : "Original"}</strong>
           </div>
           <button className="icon-btn-small" onClick={onClose}><X size={16} /></button>
         </header>

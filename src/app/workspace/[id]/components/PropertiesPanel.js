@@ -55,6 +55,21 @@ const PropertiesPanel = memo(function PropertiesPanel({
     : `Run Auto-Trace  (-${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
 
   const canTrace = !isBusy && (noCredits || isCropped);
+  const secondaryActionGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "7px",
+  };
+  const secondaryActionLabelStyle = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "20px",
+    minWidth: "74px",
+    lineHeight: 1.12,
+    textAlign: "center",
+  };
 
   return (
     <aside style={{
@@ -64,7 +79,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
       display: "flex",
       flexDirection: "column",
       flexShrink: 0,
+      minHeight: 0,
+      height: "100%",
       overflowY: "auto",
+      scrollbarGutter: "stable",
     }}>
 
       {/* ── Header ─────────────────────────────────────────── */}
@@ -190,14 +208,14 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── ACTIONS ────────────────────────────────────────── */}
-      <div style={{ padding: "14px", borderBottom: "1px solid #2a2a2a", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+      <div style={{ padding: "12px 12px 10px", borderBottom: "1px solid #2a2a2a", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "9px" }}>
           <span style={{ fontSize: "10px", fontWeight: "700", color: "#aaa", letterSpacing: "1.5px", textTransform: "uppercase" }}>ACTIONS</span>
         </div>
 
         {/* Warning if not cropped */}
         {!advancedOpen && (
-          <div style={{ background: "rgba(255,68,68,0.05)", borderLeft: "2px solid #ff4444", padding: "7px 10px", marginBottom: "12px", fontSize: "10px", color: "#ff8888", display: "flex", gap: "8px", alignItems: "flex-start", lineHeight: 1.4 }}>
+          <div style={{ background: "rgba(255,68,68,0.05)", borderLeft: "2px solid #ff4444", padding: "7px 9px", marginBottom: "9px", fontSize: "9.5px", color: "#ff8888", display: "flex", gap: "7px", alignItems: "flex-start", lineHeight: 1.35 }}>
             <span style={{ fontWeight: "bold", background: "rgba(255,68,68,0.2)", borderRadius: "50%", width: "13px", height: "13px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "9px" }}>!</span>
             <span>If image shows front AND back of a shirt, use Crop Tool to isolate one side.</span>
           </div>
@@ -212,7 +230,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
             background: project?.svg_url && !downloading ? "#FFD700" : "rgba(255,215,0,0.08)",
             border: "1px solid " + (project?.svg_url ? "#FFD700" : "#383838"),
             color: project?.svg_url && !downloading ? "#000" : "#555",
-            padding: "12px 16px",
+            padding: "11px 14px",
             fontSize: "12px",
             fontWeight: "700",
             textTransform: "uppercase",
@@ -222,7 +240,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
             alignItems: "center",
             justifyContent: "center",
             gap: "8px",
-            marginBottom: "8px",
+            marginBottom: "7px",
             transition: "all 0.2s",
           }}
           onMouseOver={e => { if (project?.svg_url && !downloading) e.currentTarget.style.background = "#FFC800"; }}
@@ -232,52 +250,66 @@ const PropertiesPanel = memo(function PropertiesPanel({
           Export as SVG
         </button>
 
-        {/* Download All ZIP */}
-        <button
-          onClick={() => handleDownloadClick('all', onDownloadAll)}
-          disabled={!project?.original_image_url || !!downloading}
-          style={secondaryBtnStyle(!!project?.original_image_url && !downloading)}
-          onMouseOver={e => { if (project?.original_image_url && !downloading) e.currentTarget.style.borderColor = "#555"; }}
-          onMouseOut={e => { if (project?.original_image_url && !downloading) e.currentTarget.style.borderColor = "#2e2e2e"; }}
-        >
-          {downloading === 'all' ? <Loader2 size={13} className="animate-spin" /> : <FolderDown size={13} />}
-          Download All (ZIP)
-        </button>
+        <div style={secondaryActionGridStyle}>
+          {/* Download All ZIP */}
+          <button
+            onClick={() => handleDownloadClick('all', onDownloadAll)}
+            disabled={!project?.original_image_url || !!downloading}
+            style={secondaryBtnStyle(!!project?.original_image_url && !downloading)}
+            onMouseOver={e => { if (project?.original_image_url && !downloading) e.currentTarget.style.borderColor = "#555"; }}
+            onMouseOut={e => { if (project?.original_image_url && !downloading) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+          >
+            {downloading === 'all' ? <Loader2 size={13} className="animate-spin" /> : <FolderDown size={13} />}
+            <span style={secondaryActionLabelStyle}>
+              <span>Download All</span>
+              <span>(ZIP)</span>
+            </span>
+          </button>
 
-        {/* Export 4K PNG */}
-        <button
-          onClick={() => handleDownloadClick('raster', onDownloadRaster)}
-          disabled={!project?.upscaled_image_url || !!downloading}
-          style={secondaryBtnStyle(!!project?.upscaled_image_url && !downloading)}
-          onMouseOver={e => { if (project?.upscaled_image_url && !downloading) e.currentTarget.style.borderColor = "#555"; }}
-          onMouseOut={e => { if (project?.upscaled_image_url && !downloading) e.currentTarget.style.borderColor = "#2e2e2e"; }}
-        >
-          {downloading === 'raster' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-          Export as PNG
-        </button>
+          {/* Export 4K PNG */}
+          <button
+            onClick={() => handleDownloadClick('raster', onDownloadRaster)}
+            disabled={!project?.upscaled_image_url || !!downloading}
+            style={secondaryBtnStyle(!!project?.upscaled_image_url && !downloading)}
+            onMouseOver={e => { if (project?.upscaled_image_url && !downloading) e.currentTarget.style.borderColor = "#555"; }}
+            onMouseOut={e => { if (project?.upscaled_image_url && !downloading) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+          >
+            {downloading === 'raster' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            <span style={secondaryActionLabelStyle}>
+              <span>Export as</span>
+              <span>PNG</span>
+            </span>
+          </button>
 
-        {/* Before / After Compare */}
-        <button
-          onClick={onOpenPalettePreview}
-          disabled={!project?.svg_url}
-          style={secondaryBtnStyle(!!project?.svg_url)}
-          onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
-          onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
-        >
-          <Palette size={13} />
-          Palette Preview
-        </button>
+          {/* Before / After Compare */}
+          <button
+            onClick={onOpenPalettePreview}
+            disabled={!project?.svg_url}
+            style={secondaryBtnStyle(!!project?.svg_url)}
+            onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
+            onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+          >
+            <Palette size={13} />
+            <span style={secondaryActionLabelStyle}>
+              <span>Palette</span>
+              <span>Preview</span>
+            </span>
+          </button>
 
-        <button
-          onClick={onOpenCompare}
-          disabled={!project?.svg_url}
-          style={secondaryBtnStyle(!!project?.svg_url)}
-          onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
-          onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
-        >
-          <Monitor size={13} />
-          Before / After Compare
-        </button>
+          <button
+            onClick={onOpenCompare}
+            disabled={!project?.svg_url}
+            style={secondaryBtnStyle(!!project?.svg_url)}
+            onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
+            onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+          >
+            <Monitor size={13} />
+            <span style={secondaryActionLabelStyle}>
+              <span>Before / After</span>
+              <span>Compare</span>
+            </span>
+          </button>
+        </div>
 
         {/* Run Auto-Trace — show only before SVG is done */}
         {!project?.svg_url && (
@@ -315,7 +347,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              marginTop: "8px",
+              marginTop: "7px",
               opacity: isBusy ? 0.6 : 1,
               transition: "all 0.2s",
             }}
@@ -337,7 +369,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
       {/* ── Feedback Widget ─────────────────────────────────── */}
       {project?.svg_url && (
-        <div style={{ padding: "14px", borderBottom: "1px solid #2a2a2a" }}>
+        <div style={{ padding: "10px 12px", borderBottom: "1px solid #2a2a2a", flexShrink: 0 }}>
           <FeedbackWidget
             projectId={project.id}
             initialRating={project.rating}
@@ -358,17 +390,20 @@ function secondaryBtnStyle(active) {
     background: "#1e1e1e",
     border: "1px solid #2e2e2e",
     color: active ? "#bbb" : "#444",
-    padding: "9px 16px",
-    fontSize: "11px",
+    minHeight: "42px",
+    padding: "6px 6px",
+    fontSize: "9.8px",
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
+    lineHeight: 1.18,
+    textAlign: "center",
     cursor: active ? "pointer" : "not-allowed",
     display: "flex",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: "8px",
-    marginBottom: "6px",
     opacity: active ? 1 : 0.4,
     transition: "all 0.2s",
   };

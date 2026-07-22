@@ -30,6 +30,7 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
   const [submitted, setSubmitted] = useState(false);
   const [isHidden, setIsHidden] = useState(hasExistingReview);
   const [feedbackText, setFeedbackText] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const shouldHide = Boolean(initialRating) || hasStoredReview(projectId);
@@ -39,6 +40,7 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
     setFeedbackText("");
     setSubmitted(false);
     setIsHidden(shouldHide);
+    setIsExpanded(false);
   }, [initialRating, projectId]);
 
   useEffect(() => {
@@ -94,9 +96,29 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
     );
   }
 
+  const selectRating = (value) => {
+    setRating(value);
+    setIsExpanded(true);
+  };
+
   return (
-    <div className={styles.feedbackContainer}>
-      <h3 className={styles.title}>How is the quality of this generation?</h3>
+    <div className={`${styles.feedbackContainer} ${isExpanded ? styles.expanded : styles.compact}`}>
+      <div className={styles.headerRow}>
+        <div>
+          <h3 className={styles.title}>Rate this generation</h3>
+          <p className={styles.subtitle}>{isExpanded ? "Optional note helps improve output quality." : "One quick rating after export."}</p>
+        </div>
+        {!isExpanded && (
+          <button
+            type="button"
+            className={styles.expandBtn}
+            onClick={() => setIsExpanded(true)}
+          >
+            Review
+          </button>
+        )}
+      </div>
+
       <div className={styles.starsRow}>
         {[1, 2, 3, 4, 5].map((value) => (
           <button
@@ -104,12 +126,12 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
             className={styles.starBtn}
             onMouseEnter={() => setHoverRating(value)}
             onMouseLeave={() => setHoverRating(0)}
-            onClick={() => setRating(value)}
+            onClick={() => selectRating(value)}
             disabled={isSubmitting}
             title={`${value} Star${value > 1 ? 's' : ''}`}
           >
             <Star
-              size={28}
+              size={isExpanded ? 24 : 20}
               fill={(hoverRating || rating) >= value ? "#fbbf24" : "transparent"}
               color={(hoverRating || rating) >= value ? "#fbbf24" : "#555"}
               strokeWidth={1.5}
@@ -119,22 +141,33 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
         ))}
       </div>
       
-      <div className={styles.optionalFeedback} style={{ animation: "none", marginTop: "12px" }}>
-        <textarea
-          placeholder="Tell us what you liked or how we can improve... (Optional)"
-          value={feedbackText}
-          onChange={(e) => setFeedbackText(e.target.value)}
-          disabled={isSubmitting}
-        />
-        <button 
-          onClick={handleSubmit} 
-          disabled={rating === 0 || isSubmitting}
-          className={styles.submitBtn}
-          style={{ width: "100%" }}
-        >
-          {isSubmitting ? "Submitting..." : "Submit Review"}
-        </button>
-      </div>
+      {isExpanded && (
+        <div className={styles.optionalFeedback}>
+          <textarea
+            placeholder="Tell us what you liked or how we can improve... (Optional)"
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+            disabled={isSubmitting}
+          />
+          <div className={styles.footerRow}>
+            <button
+              type="button"
+              onClick={() => setIsExpanded(false)}
+              className={styles.minimizeBtn}
+              disabled={isSubmitting}
+            >
+              Minimize
+            </button>
+            <button 
+              onClick={handleSubmit} 
+              disabled={rating === 0 || isSubmitting}
+              className={styles.submitBtn}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Review"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
