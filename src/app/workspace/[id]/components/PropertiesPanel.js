@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Download, Monitor, ChevronDown, FolderDown, Loader2, X, ChevronRight } from "lucide-react";
+import { Download, Monitor, ChevronDown, FolderDown, Loader2, Palette, X, Sparkles } from "lucide-react";
 import FeedbackWidget from "./FeedbackWidget";
 
 /**
@@ -19,14 +19,17 @@ const PropertiesPanel = memo(function PropertiesPanel({
   onDownloadRaster,
   onDownloadAll,
   onOpenCompare,
+  onOpenPalettePreview,
   onOpenCrop,
   onOpenRemoveBg,
   onOpenTopUp,
 }) {
   const [vectorColors, setVectorColors] = useState("auto");
+  const [svgEngine, setSvgEngine] = useState("standard");
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const noCredits = userCredits !== null && userCredits <= 0;
+  const creditCost = svgEngine === "precision" ? 2 : 1;
+  const noCredits = userCredits !== null && userCredits < creditCost;
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url;
   const isBusy = traceState !== "idle" || isSavingCrop;
   const [downloading, setDownloading] = useState(null);
@@ -49,7 +52,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
     ? "Get More Credits"
     : !isCropped
     ? "Crop Image First"
-    : "Run Auto-Trace  (−1 Credit)";
+    : `Run Auto-Trace  (-${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
 
   const canTrace = !isBusy && (noCredits || isCropped);
 
@@ -83,7 +86,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       {/* ── Vector Engine ───────────────────────────────────── */}
       <div style={{ padding: "16px 14px", borderBottom: "1px solid #2a2a2a" }}>
         <label style={{ fontSize: "10px", color: "#666", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "8px", fontWeight: "600" }}>
-          Vector Engine (Beta)
+          Color Detail
         </label>
         <div style={{ position: "relative" }}>
           <select
@@ -114,6 +117,39 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </div>
         <p style={{ marginTop: "8px", fontSize: "10px", color: "#555", lineHeight: 1.5 }}>
           Automatically balances detail and performance for the best vector output.
+        </p>
+
+        <label style={{ fontSize: "10px", color: "#666", textTransform: "uppercase", letterSpacing: "1px", display: "block", margin: "14px 0 8px", fontWeight: "600" }}>
+          SVG Mode
+        </label>
+        <div style={{ display: "grid", gap: "7px" }}>
+          <button
+            type="button"
+            className="svg-engine-option"
+            onClick={() => setSvgEngine("standard")}
+            style={engineButtonStyle(svgEngine === "standard")}
+          >
+            <span>
+              <strong>Standard SVG</strong>
+              <small>Fast daily export</small>
+            </span>
+            <b>1</b>
+          </button>
+          <button
+            type="button"
+            className="svg-engine-option"
+            onClick={() => setSvgEngine("precision")}
+            style={engineButtonStyle(svgEngine === "precision")}
+          >
+            <span>
+              <strong><Sparkles size={11} /> Precision SVG</strong>
+              <small>Premium clean curves</small>
+            </span>
+            <b>2</b>
+          </button>
+        </div>
+        <p style={{ marginTop: "8px", fontSize: "10px", color: "#555", lineHeight: 1.5 }}>
+          Precision is best for logos, marks, and clean artwork that needs tighter SVG paths.
         </p>
       </div>
 
@@ -222,6 +258,17 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
         {/* Before / After Compare */}
         <button
+          onClick={onOpenPalettePreview}
+          disabled={!project?.svg_url}
+          style={secondaryBtnStyle(!!project?.svg_url)}
+          onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
+          onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+        >
+          <Palette size={13} />
+          Palette Preview
+        </button>
+
+        <button
           onClick={onOpenCompare}
           disabled={!project?.svg_url}
           style={secondaryBtnStyle(!!project?.svg_url)}
@@ -238,7 +285,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
             onClick={() => {
               if (isBusy) return;
               if (noCredits) { onOpenTopUp?.(); return; }
-              if (isCropped) onExecuteTrace(vectorColors);
+              if (isCropped) onExecuteTrace(vectorColors, svgEngine);
             }}
             disabled={isBusy || (!isCropped && !noCredits)}
             style={{
@@ -323,6 +370,23 @@ function secondaryBtnStyle(active) {
     gap: "8px",
     marginBottom: "6px",
     opacity: active ? 1 : 0.4,
+    transition: "all 0.2s",
+  };
+}
+
+function engineButtonStyle(active) {
+  return {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    background: active ? "rgba(255,215,0,0.12)" : "#202020",
+    border: "1px solid " + (active ? "#FFD700" : "#333"),
+    color: active ? "#fff" : "#aaa",
+    padding: "9px 10px",
+    cursor: "pointer",
+    textAlign: "left",
     transition: "all 0.2s",
   };
 }

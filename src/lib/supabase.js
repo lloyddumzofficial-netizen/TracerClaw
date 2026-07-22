@@ -20,6 +20,35 @@ export const adminSupabase =
       })
     : null);
 
+// Atomic credit deduction using optimistic locking retry loop.
+// Returns false when the user does not have enough credits or a concurrent
+// request wins the update race.
+export async function safeDeductCredit(userId, amount = 1) {
+  let retries = 3;
+  while (retries > 0) {
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.credits < amount) return false;
+
+    const { error: updateErr, data: updatedData } = await adminSupabase
+      .from('profiles')
+      .update({ credits: profile.credits - amount })
+      .eq('id', userId)
+      .eq('credits', profile.credits)
+      .select();
+
+    if (!updateErr && updatedData && updatedData.length > 0) {
+      return true;
+    }
+    retries--;
+  }
+  return false;
+}
+
 // Atomic credit refund using optimistic locking retry loop
 export async function safeRefundCredit(userId, amount = 1) {
   let retries = 3;

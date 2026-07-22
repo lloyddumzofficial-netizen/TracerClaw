@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { Monitor, ArrowLeft, Loader2, Download, ImageIcon, Sparkles, Wand2, Home, Keyboard, ShieldAlert, Clock, Scan, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { CheckCircle2, Clock, Download, ImageIcon, Loader2, Monitor, Scan, ShieldAlert, Wand2 } from "lucide-react";
 import { toast } from "@/components/Toast";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
 import FeedbackWidget from "@/app/workspace/[id]/components/FeedbackWidget";
 import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
+import StudioShell from "@/app/components/StudioShell";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 import "../globals.css";
 import "../home.css";
@@ -237,24 +238,77 @@ export default function UpscalePage() {
     return <DesktopRequiredNotice />;
   }
 
-  return (
-    <div className="app-container">
+  const activeFileName = selectedFile?.name || (previewImage ? "Mobile upload" : null);
 
-      {/* Top Menu Bar */}
-      <header style={{ padding: "16px 32px", display: "flex", alignItems: "center", borderBottom: "1px solid #444", background: "#1a1a1a" }}>
-        <button onClick={() => router.push('/')} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color="#FFD700"} onMouseLeave={e => e.currentTarget.style.color="#666"}>
-          <Home size={16} /> HOME
-        </button>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <h1 style={{ fontSize: "14px", fontWeight: "600", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>UPSCALE STUDIO</h1>
-        </div>
-        <div style={{ width: "200px", display: "flex", justifyContent: "flex-end", gap: "16px", alignItems: "center" }}>
-          <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#2a2a2a", padding: "6px 12px", borderRadius: "0", cursor: "pointer", border: "1px solid #444", transition: "border-color 0.2s" }} onMouseOver={e => e.currentTarget.style.borderColor = "#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor = "#444"}>
-            <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}>{credits !== null ? credits : "-"}</span>
-            <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CREDITS</span>
+  return (
+    <>
+      <StudioShell
+        title="UPSCALE STUDIO"
+        projectName={activeFileName}
+        credits={credits}
+        onHome={() => router.push("/")}
+        onCreditsClick={() => setShowTopUpModal(true)}
+        commandBar={(
+          <div className="workspace-command-bar">
+            <div className="workspace-command-group">
+              <span className="workspace-command-label">Input</span>
+              <button
+                className="workspace-command-btn is-accent"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                title="Open image from this computer"
+              >
+                <Monitor size={14} />
+                Open File
+              </button>
+              <button
+                className={`workspace-command-btn ${uploadMode === "qr" ? "is-active" : ""}`}
+                onClick={() => setUploadMode(prev => prev === "qr" ? "file" : "qr")}
+                disabled={isProcessing}
+                title="Upload from phone"
+              >
+                <Scan size={14} />
+                Phone
+              </button>
+            </div>
+            <div className="workspace-command-divider" />
+            <div className="workspace-command-group">
+              <span className="workspace-command-label">Process</span>
+              <button
+                className="workspace-command-btn is-primary"
+                onClick={handleUpscale}
+                disabled={isProcessing || (!previewImage && !upscaledImage)}
+                title="Generate 4K upscale"
+              >
+                {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                4K Upscale
+              </button>
+            </div>
+            <div className="workspace-command-spacer" />
+            <div className="workspace-command-group">
+              <span className="workspace-command-label">Export</span>
+              <button
+                className="workspace-command-btn is-primary"
+                onClick={() => upscaledImage && handleDownload(upscaledImage)}
+                disabled={!upscaledImage}
+                title="Download upscaled image"
+              >
+                <Download size={14} />
+                PNG
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+        )}
+        statusLeft={upscaledImage ? (
+          <>
+            <CheckCircle2 size={12} color="#4ade80" />
+            <span style={{ color: "#4ade80" }}>Upscale complete</span>
+            <small>4K image is ready for download.</small>
+          </>
+        ) : (
+          <span>{isProcessing ? "Generating 4K upscale..." : previewImage ? "Ready to upscale" : "Waiting for image"}</span>
+        )}
+      >
 
 
       <main className="main-workspace" style={{ padding: 0 }}>
@@ -418,7 +472,9 @@ export default function UpscalePage() {
 
       </main>
 
+      </StudioShell>
+
       {showTopUpModal && <TopUpModal onClose={() => setShowTopUpModal(false)} user={user} />}
-    </div>
+    </>
   );
 }

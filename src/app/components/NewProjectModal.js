@@ -109,7 +109,7 @@ const NewProjectModal = memo(function NewProjectModal({
               >
                 <div style={{ color: "#FFD700" }}><Shirt size={40} strokeWidth={1.2} /></div>
                 <div>
-                  <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Garment</p>
+                  <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Garment Workspace</p>
                   <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Jerseys, shirts, mockups — extract the flat pattern as SVG.</p>
                 </div>
               </div>
@@ -122,7 +122,7 @@ const NewProjectModal = memo(function NewProjectModal({
               >
                 <div style={{ color: "#FFD700" }}><LogoIcon /></div>
                 <div>
-                  <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Logo / Wordmark</p>
+                  <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Logo Workspace</p>
                   <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Icons, emblems, wordmarks — vectorize with exact color and text.</p>
                 </div>
               </div>
@@ -136,7 +136,7 @@ const NewProjectModal = memo(function NewProjectModal({
                 <div style={{ position: "absolute", top: 8, right: 8, background: "#FFD700", color: "#000", fontSize: "9px", fontWeight: 800, padding: "2px 6px", borderRadius: 4, letterSpacing: "0.5px" }}>AI</div>
                 <div style={{ color: "#FFD700" }}><Scissors size={40} strokeWidth={1.2} /></div>
                 <div>
-                  <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>BG Remover</p>
+                  <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>BG Remover Studio</p>
                   <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Remove backgrounds instantly with AI — perfect for products &amp; portraits.</p>
                 </div>
               </div>
@@ -156,7 +156,7 @@ const NewProjectModal = memo(function NewProjectModal({
             </button>
 
             <h2 style={{ margin: "0 0 20px 0" }}>
-              {category === "logo" ? "Logo / Wordmark Trace" : "Garment Trace"}
+              {category === "logo" ? "Logo Workspace" : "Garment Workspace"}
             </h2>
 
             <div className="form-group" style={{ marginBottom: 20 }}>

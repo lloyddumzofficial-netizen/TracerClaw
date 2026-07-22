@@ -40,10 +40,12 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
     }
   }, []);
 
-  const handleExecuteTrace = useCallback(async (vectorColors = "auto") => {
+  const handleExecuteTrace = useCallback(async (vectorColors = "auto", svgEngine = "standard") => {
     if (!project || traceState !== "idle") return;
+    const isPrecisionSvg = svgEngine === "precision";
+    const creditCost = isPrecisionSvg ? 2 : 1;
 
-    if (userCredits !== null && userCredits <= 0) {
+    if (userCredits !== null && userCredits < creditCost) {
       onNoCredits?.();
       return;
     }
@@ -52,7 +54,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
     setNodeErrors({ step1: null, step2: null, step3: null });
 
     // Deduct locally in UI for immediate feedback
-    if (userCredits > 0) setUserCredits(prev => prev - 1);
+    if (userCredits > 0) setUserCredits(prev => Math.max(0, prev - creditCost));
 
     // Fetch auth token once — used for all secure API calls in this pipeline
     let authToken = null;
@@ -146,7 +148,12 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       // ─── Step 3: Vectorize ───────────────────────────────────────────
       setTraceState("step3");
-      logToConsole("[Step 3] Vectorizing with TrueVector™ Core...", "normal");
+      logToConsole(
+        isPrecisionSvg
+          ? "[Step 3] Vectorizing with Precision SVG Engine..."
+          : "[Step 3] Vectorizing with TrueVector™ Core...",
+        "normal"
+      );
 
       const res3 = await fetch("/api/trace-step3", {
         method: "POST",
@@ -154,7 +161,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
           "Content-Type": "application/json",
           ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ projectId: project.id, colors: vectorColors }),
+        body: JSON.stringify({ projectId: project.id, colors: vectorColors, svgEngine }),
       });
 
       if (!res3.ok) {
@@ -190,9 +197,15 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
           });
           const refundData = await safeJson(refundRes, "Refund request failed");
           if (refundData.success) {
-            logToConsole("[System] Generation failed. 1 Credit has been refunded.", "success");
-            if (userCredits !== null) setUserCredits(prev => prev + 1);
+            logToConsole("[System] Generation failed. Charged credits were restored.", "success");
           }
+
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("credits")
+            .eq("id", session.user.id)
+            .single();
+          if (profile) setUserCredits(profile.credits);
         }
       } catch {
         // Refund request failed silently — backend auto-refund should cover it

@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { Scissors, Download, Home, Loader2, ArrowRight, Settings2, Image as ImageIcon, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { CheckCircle2, Download, Image as ImageIcon, Loader2, Scissors, Settings2 } from "lucide-react";
 import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
+import StudioShell from "@/app/components/StudioShell";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
+import { formatSavedAgo } from "@/lib/formatSavedAgo";
 
 const supabase = createClient();
 
@@ -198,23 +200,54 @@ export default function BgRemoverPage() {
     );
   }
 
+  const savedAgo = formatSavedAgo(project.updated_at);
+
   return (
-    <div className="app-container">
-      {/* Top Menu Bar */}
-      <header style={{ padding: "16px 32px", display: "flex", alignItems: "center", borderBottom: "1px solid #444", background: "#1a1a1a" }}>
-        <button onClick={() => router.push('/')} style={{ width: "200px", display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color="#FFD700"} onMouseLeave={e => e.currentTarget.style.color="#666"}>
-          <Home size={16} /> HOME
-        </button>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <h1 style={{ fontSize: "16px", fontWeight: "700", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>BACKGROUND REMOVER</h1>
-        </div>
-        <div style={{ width: "200px", display: "flex", justifyContent: "flex-end", gap: "16px", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#222", padding: "8px 16px", borderRadius: "4px", border: "1px solid #333", cursor: "default" }}>
-            <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px" }}>{userCredits !== null ? userCredits : "-"}</span>
-            <span style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600" }}>CREDITS</span>
+    <StudioShell
+      title="BG REMOVER"
+      projectName={project.name}
+      savedAgo={savedAgo}
+      credits={userCredits}
+      onHome={() => router.push("/")}
+      commandBar={(
+        <div className="workspace-command-bar">
+          <div className="workspace-command-group">
+            <span className="workspace-command-label">Process</span>
+            <button
+              className="workspace-command-btn is-primary"
+              onClick={handleRemoveBg}
+              disabled={isProcessing || isCompleted || (userCredits !== null && userCredits <= 0)}
+              title="Remove image background"
+            >
+              {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
+              Remove BG
+            </button>
+          </div>
+          <div className="workspace-command-spacer" />
+          <div className="workspace-command-group">
+            <span className="workspace-command-label">Export</span>
+            <button
+              className="workspace-command-btn is-primary"
+              onClick={handleDownload}
+              disabled={!isCompleted || isDownloading}
+              title="Download transparent PNG"
+            >
+              {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              PNG
+            </button>
           </div>
         </div>
-      </header>
+      )}
+      statusLeft={isCompleted ? (
+        <>
+          <CheckCircle2 size={12} color="#4ade80" />
+          <span style={{ color: "#4ade80" }}>Background removed</span>
+          <small>Transparent PNG is ready for export.</small>
+        </>
+      ) : (
+        <span>{isProcessing ? "Removing background..." : "Ready"}</span>
+      )}
+    >
 
       {/* Main Content */}
       <main className="main-workspace" style={{ padding: 0 }}>
@@ -454,6 +487,6 @@ export default function BgRemoverPage() {
           </div>
         </aside>
       </main>
-    </div>
+    </StudioShell>
   );
 }

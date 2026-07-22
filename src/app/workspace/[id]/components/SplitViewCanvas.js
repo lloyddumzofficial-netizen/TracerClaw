@@ -22,7 +22,10 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const pendingScrollRef = useRef(null);
   const previousActiveUrlRef = useRef(null);
   const wasProcessingRef = useRef(false);
+  const wasHiddenRef = useRef(false);
+  const focusRevealTimerRef = useRef(null);
   const [completionRevealKey, setCompletionRevealKey] = useState("");
+  const [animationResumeKey, setAnimationResumeKey] = useState(0);
 
   // Scroll to zoom to pointer
   useEffect(() => {
@@ -237,6 +240,35 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     return () => clearTimeout(t);
   }, [activeUrl, activeTab, traceState]);
 
+  useEffect(() => {
+    const restartVisibleAnimation = () => {
+      if (document.visibilityState === "hidden") {
+        wasHiddenRef.current = true;
+        return;
+      }
+      if (!wasHiddenRef.current) return;
+      wasHiddenRef.current = false;
+
+      if (traceState !== "idle") {
+        setAnimationResumeKey(key => key + 1);
+        return;
+      }
+
+      if (!activeUrl) return;
+      setCompletionRevealKey(`focus:${activeTab}:${activeUrl}:${Date.now()}`);
+      if (focusRevealTimerRef.current) clearTimeout(focusRevealTimerRef.current);
+      focusRevealTimerRef.current = setTimeout(() => setCompletionRevealKey(""), 1150);
+    };
+
+    document.addEventListener("visibilitychange", restartVisibleAnimation);
+    window.addEventListener("focus", restartVisibleAnimation);
+    return () => {
+      document.removeEventListener("visibilitychange", restartVisibleAnimation);
+      window.removeEventListener("focus", restartVisibleAnimation);
+      if (focusRevealTimerRef.current) clearTimeout(focusRevealTimerRef.current);
+    };
+  }, [activeUrl, activeTab, traceState]);
+
   // Right-side label
   const rightLabel = activeTab === "generated" ? "FLAT EXTRACT" : activeTab === "upscaled" ? "HD UPSCALE" : "VECTOR PREVIEW";
 
@@ -250,7 +282,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
       const layerState = traceState === "step1" ? 0 : traceState === "step2" ? 1 : 2;
 
       return (
-        <div className="processing-blueprint-stage" aria-live="polite">
+        <div key={`${traceState}:${animationResumeKey}`} className="processing-blueprint-stage" aria-live="polite">
           <div className="processing-blueprint-bg" />
           <div className="processing-blueprint-board">
             <div className="processing-blueprint-canvas">

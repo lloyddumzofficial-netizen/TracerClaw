@@ -92,7 +92,7 @@ export default function GlobalMobileSync() {
             >
               <div style={{ color: "#FFD700" }}><Shirt size={40} strokeWidth={1.2} /></div>
               <div>
-                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Garment</p>
+                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Garment Workspace</p>
                 <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Extract the flat pattern as SVG.</p>
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function GlobalMobileSync() {
             >
               <div style={{ color: "#FFD700" }}><LogoIcon /></div>
               <div>
-                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Logo / Wordmark</p>
+                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Logo Workspace</p>
                 <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Vectorize with exact color.</p>
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function GlobalMobileSync() {
               <div style={{ position: "absolute", top: 8, right: 8, background: "#FFD700", color: "#000", fontSize: "9px", fontWeight: 800, padding: "2px 6px", borderRadius: 4, letterSpacing: "0.5px" }}>AI</div>
               <div style={{ color: "#FFD700" }}><Scissors size={40} strokeWidth={1.2} /></div>
               <div>
-                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>BG Remover</p>
+                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>BG Remover Studio</p>
                 <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Remove backgrounds instantly.</p>
               </div>
             </div>

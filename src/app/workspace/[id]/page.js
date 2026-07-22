@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/utils/supabase/client";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-import { Home, Keyboard, Pencil, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "./hooks/useTraceExecution";
@@ -21,15 +21,28 @@ import CropModal from "./components/CropModal";
 import EraseModal from "./components/EraseModal";
 import RemoveBgModal from "./components/RemoveBgModal";
 import CompareModal from "./components/CompareModal";
+import PalettePreviewModal from "./components/PalettePreviewModal";
 import NoCreditsModal from "./components/NoCreditsModal";
 import ShortcutsModal from "./components/ShortcutsModal";
 import WorkspaceCommandBar from "./components/WorkspaceCommandBar";
 import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
+import StudioShell from "@/app/components/StudioShell";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
+import { formatSavedAgo } from "@/lib/formatSavedAgo";
+import { getWorkspaceTitle } from "@/lib/workspaceLabels";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
+
+function svgTextToBase64(svgText) {
+  const bytes = new TextEncoder().encode(svgText);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window.btoa(binary);
+}
 
 const TopUpModal = dynamic(() => import("@/components/TopUpModal"), { ssr: false });
 
@@ -51,6 +64,7 @@ export default function Workspace() {
   const [showEraseModal, setShowEraseModal] = useState(false);
   const [showRemoveBgModal, setShowRemoveBgModal] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [showPalettePreview, setShowPalettePreview] = useState(false);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -128,6 +142,46 @@ export default function Workspace() {
     await forceDownload(proxyUrl, `DesaynClaw_${project.name}_Vector.svg`);
   }, [project, forceDownload]);
 
+  const handleApplyEditedSvg = useCallback(async (svgText) => {
+    if (!project?.id || !svgText) return;
+
+    logToConsole("[System] Saving edited SVG to workspace...");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Please log in again before saving.");
+
+      const res = await fetch("/api/save-asset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          step: 3,
+          mimeType: "image/svg+xml",
+          base64: svgTextToBase64(svgText),
+        }),
+      });
+
+      const data = await safeJson(res, "Failed to apply edited SVG");
+      setProject(prev => prev ? ({
+        ...prev,
+        svg_url: data.url,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null,
+      }) : prev);
+      setShowPalettePreview(false);
+      logToConsole("[Success] Edited SVG applied to workspace.", "success");
+      return data.url;
+    } catch (err) {
+      logToConsole(`[Error] Failed to apply edited SVG: ${err.message}`, "error");
+      throw err;
+    }
+  }, [project?.id, logToConsole]);
+
   const handleDownloadRaster = useCallback(async () => {
     if (!project?.generated_image_url) return;
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(project.generated_image_url)}`;
@@ -172,10 +226,10 @@ export default function Workspace() {
   }, [project, logToConsole, forceDownload]);
 
   // ─── Trace Execution Wrapper ──────────────────────────────────────────────
-  const onExecuteTrace = useCallback(async (vectorColors) => {
-    const result = await handleExecuteTrace(vectorColors);
+  const onExecuteTrace = useCallback(async (vectorColors, svgEngine) => {
+    const result = await handleExecuteTrace(vectorColors, svgEngine);
     if (result?.success) {
-      setShowCompare(true);
+      setShowPalettePreview(true);
     }
   }, [handleExecuteTrace]);
 
@@ -239,77 +293,62 @@ export default function Workspace() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   // Format "Saved X minutes ago" for the project bar
-  const savedAgo = project?.updated_at
-    ? (() => {
-      const diff = Math.floor((Date.now() - new Date(project.updated_at)) / 60000);
-      if (diff < 1) return "Saved just now";
-      if (diff === 1) return "Saved 1 minute ago";
-      if (diff < 60) return `Saved ${diff} minutes ago`;
-      return "Saved recently";
-    })()
-    : null;
+  const savedAgo = formatSavedAgo(project?.updated_at);
   const isBusy = traceState !== "idle" || isSavingCrop;
   const hasProject = !!project;
   const hasRaster = !!project?.upscaled_image_url || !!project?.generated_image_url;
   const hasSvg = !!project?.svg_url;
+  const workspaceTitle = getWorkspaceTitle(project?.trace_type);
 
   if (isMobileDevice !== false) {
     return <DesktopRequiredNotice />;
   }
 
   return (
-    <div className="app-container">
-
-      {/* ── Top Menu Bar ─────────────────────────────────────────────── */}
-      <header style={{ padding: "0 20px", height: "42px", display: "flex", alignItems: "center", borderBottom: "1px solid #2a2a2a", background: "#181818", flexShrink: 0 }}>
-        <button onClick={() => router.push('/')} style={{ display: "flex", alignItems: "center", gap: "7px", background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s", padding: "6px 10px" }} onMouseEnter={e => e.currentTarget.style.color = "#FFD700"} onMouseLeave={e => e.currentTarget.style.color = "#555"}>
-          <Home size={14} /> Home
-        </button>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <h1 style={{ fontSize: "12px", fontWeight: "700", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "3px" }}>WORKSPACE</h1>
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", alignItems: "center" }}>
-          <button onClick={() => setShowShortcuts(true)} style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "1px solid #2e2e2e", color: "#555", cursor: "pointer", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "all 0.2s", padding: "5px 10px" }} onMouseEnter={e => { e.currentTarget.style.color = "#ccc"; e.currentTarget.style.borderColor = "#444"; }} onMouseLeave={e => { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "#2e2e2e"; }}>
-            <Keyboard size={12} /> Shortcuts
-          </button>
-          <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "7px", background: "#FFD700", padding: "5px 12px", cursor: "pointer", border: "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#FFC800"} onMouseOut={e => e.currentTarget.style.background = "#FFD700"}>
-            <span style={{ color: "#000", fontWeight: "800", fontSize: "14px", fontFamily: "monospace" }}>{userCredits !== null ? userCredits : "-"}</span>
-            <span style={{ color: "rgba(0,0,0,0.7)", fontSize: "9px", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "700" }}>CREDITS</span>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Project Bar ──────────────────────────────────────────────── */}
-      {project && (
-        <div style={{ height: "34px", background: "#161616", borderBottom: "1px solid #242424", display: "flex", alignItems: "center", padding: "0 16px", gap: "10px", flexShrink: 0 }}>
-          <span style={{ fontSize: "11px", fontWeight: "600", color: "#ccc", letterSpacing: "0.3px" }}>
-            {project.name || "Untitled Project"}
-          </span>
-          <Pencil size={11} color="#444" style={{ cursor: "pointer" }} />
-          {savedAgo && (
-            <span style={{ fontSize: "10px", color: "#444", marginLeft: "4px" }}>{savedAgo}</span>
-          )}
-        </div>
-      )}
-
-      {project && (
-        <WorkspaceCommandBar
-          activeTool={activeTool}
-          isBusy={isBusy}
-          hasProject={hasProject}
-          hasRaster={hasRaster}
-          hasSvg={hasSvg}
-          hasUpscaled={!!project?.upscaled_image_url}
-          onSelectTool={setActiveTool}
-          onOpenCrop={() => setShowCropModal(true)}
-          onOpenErase={() => setShowEraseModal(true)}
-          onOpenRemoveBg={() => setShowRemoveBgModal(true)}
-          onOpenCompare={() => setShowCompare(true)}
-          onDownloadSvg={handleDownloadSvg}
-          onDownloadPng={handleDownloadUpscaled}
-          onDownloadZip={handleDownloadAll}
-        />
-      )}
+    <>
+      <StudioShell
+        title={workspaceTitle}
+        projectName={project?.name}
+        savedAgo={savedAgo}
+        credits={userCredits}
+        onHome={() => router.push("/")}
+        onCreditsClick={() => setShowTopUpModal(true)}
+        onShortcuts={() => setShowShortcuts(true)}
+        commandBar={project && (
+          <WorkspaceCommandBar
+            activeTool={activeTool}
+            isBusy={isBusy}
+            hasProject={hasProject}
+            hasRaster={hasRaster}
+            hasSvg={hasSvg}
+            hasUpscaled={!!project?.upscaled_image_url}
+            onSelectTool={setActiveTool}
+            onOpenCrop={() => setShowCropModal(true)}
+            onOpenErase={() => setShowEraseModal(true)}
+            onOpenRemoveBg={() => setShowRemoveBgModal(true)}
+            onOpenCompare={() => setShowCompare(true)}
+            onDownloadSvg={handleDownloadSvg}
+            onDownloadPng={handleDownloadUpscaled}
+            onDownloadZip={handleDownloadAll}
+          />
+        )}
+        statusLeft={project?.svg_url ? (
+          <>
+            <CheckCircle2 size={12} color="#4ade80" />
+            <span style={{ color: "#4ade80" }}>Vectorization complete</span>
+            <small>Clean shapes, optimized paths, and high quality output.</small>
+          </>
+        ) : project ? (
+          <span>{traceState !== "idle" ? "Processing trace..." : "Ready"}</span>
+        ) : null}
+        statusRight={(
+          <>
+            <button onClick={() => setShowShortcuts(true)}>Need help?</button>
+            <span style={{ color: "#333" }}>·</span>
+            <button>&gt; View Guide</button>
+          </>
+        )}
+      >
 
 
       <main className="main-workspace" style={{ padding: 0 }}>
@@ -340,37 +379,14 @@ export default function Workspace() {
           onDownloadRaster={handleDownloadUpscaled}
           onDownloadAll={handleDownloadAll}
           onOpenCompare={() => setShowCompare(true)}
+          onOpenPalettePreview={() => setShowPalettePreview(true)}
           onOpenCrop={() => setShowCropModal(true)}
           onOpenRemoveBg={() => setShowRemoveBgModal(true)}
           onOpenTopUp={() => setShowTopUpModal(true)}
         />
       </main>
 
-      {/* ── Status Bar ───────────────────────────────────────────────── */}
-      <div style={{ height: "28px", background: "#141414", borderTop: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {project?.svg_url ? (
-            <>
-              <CheckCircle2 size={12} color="#4ade80" />
-              <span style={{ fontSize: "10px", color: "#4ade80", fontWeight: "600" }}>Vectorization complete</span>
-              <span style={{ fontSize: "10px", color: "#444", marginLeft: "4px" }}>Clean shapes, optimized paths, and high quality output.</span>
-            </>
-          ) : project ? (
-            <span style={{ fontSize: "10px", color: "#555" }}>
-              {traceState !== "idle" ? "Processing trace…" : "Ready"}
-            </span>
-          ) : null}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button onClick={() => setShowShortcuts(true)} style={{ background: "none", border: "none", color: "#444", cursor: "pointer", fontSize: "10px", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color = "#aaa"} onMouseOut={e => e.currentTarget.style.color = "#444"}>
-            Need help?
-          </button>
-          <span style={{ color: "#333" }}>·</span>
-          <button style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color = "#FFD700"} onMouseOut={e => e.currentTarget.style.color = "#555"}>
-            &gt; View Guide
-          </button>
-        </div>
-      </div>
+      </StudioShell>
 
       {/* ─── Modals ─────────────────────────────────────────────────────────── */}
       <CropModal
@@ -407,6 +423,19 @@ export default function Workspace() {
         onDownloadSvg={handleDownloadSvg}
       />
 
+      <PalettePreviewModal
+        show={showPalettePreview}
+        project={project}
+        onClose={() => setShowPalettePreview(false)}
+        onCompare={() => {
+          setShowPalettePreview(false);
+          setShowCompare(true);
+        }}
+        onDownloadAll={handleDownloadAll}
+        onDownloadSvg={handleDownloadSvg}
+        onApplyEditedSvg={handleApplyEditedSvg}
+      />
+
       <NoCreditsModal
         show={showNoCreditsModal}
         onClose={() => setShowNoCreditsModal(false)}
@@ -426,6 +455,6 @@ export default function Workspace() {
         show={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
-    </div>
+    </>
   );
 }
