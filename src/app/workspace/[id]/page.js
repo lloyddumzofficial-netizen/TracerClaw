@@ -109,7 +109,9 @@ export default function Workspace() {
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles").select("credits").eq("id", session.user.id).single();
-          if (profile) setUserCredits(profile.credits);
+          if (profile) {
+            setUserCredits(profile.credits);
+          }
         }
       } catch (err) {
         console.error("[Workspace] Data fetch error:", err);
@@ -424,7 +426,7 @@ export default function Workspace() {
       />
 
       <PalettePreviewModal
-        show={showPalettePreview}
+        show={showPalettePreview && Boolean(project?.svg_url)}
         project={project}
         onClose={() => setShowPalettePreview(false)}
         onCompare={() => {

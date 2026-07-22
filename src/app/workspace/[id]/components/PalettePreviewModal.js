@@ -111,7 +111,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     };
   }, [show, svgUrl]);
 
-  const originalPalette = useMemo(() => extractPalette(originalSvgText || ""), [originalSvgText]);
   const featured = useMemo(() => palette.slice(0, 5), [palette]);
   const visiblePalette = useMemo(() => palette.slice(0, MAX_SWATCHES), [palette]);
   const paletteClusters = useMemo(() => {
@@ -147,12 +146,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     if (svgComplexity.sizeKb > LARGE_SVG_KB_THRESHOLD) return `${svgComplexity.sizeKb} KB SVG file. Browser export/editing may take a moment.`;
     return null;
   }, [svgComplexity]);
-  const closestOriginal = selectedItem
-    ? originalPalette.reduce((best, item) => (
-        colorDistance(item.color, selectedItem.color) < colorDistance(best.color, selectedItem.color) ? item : best
-      ), originalPalette[0] || selectedItem)
-    : null;
-
   if (!show || !project) return null;
 
   const commitSvgChange = (nextSvgText, preferredColor = selectedColor, rememberHistory = true) => {
@@ -183,11 +176,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     setEditHistory([]);
     setMergeGroups({});
     setShowApplyConfirm(false);
-  };
-
-  const restoreSelectedColor = () => {
-    if (!selectedItem || !closestOriginal) return;
-    updateSelectedColor(closestOriginal.color);
   };
 
   const mergePaletteColors = (sourceColor, targetColor) => {
@@ -513,7 +501,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             visiblePalette={visiblePalette}
             loading={loading}
             selectedItem={selectedItem}
-            closestOriginal={closestOriginal}
             hexInput={hexInput}
             mergeGroups={mergeGroups}
             editHistory={editHistory}
@@ -535,7 +522,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             }}
             onUpdateSelectedColor={updateSelectedColor}
             onSetHexInput={setHexInput}
-            onRestoreSelectedColor={restoreSelectedColor}
           />
         </section>
 

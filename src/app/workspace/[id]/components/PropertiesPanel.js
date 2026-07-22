@@ -33,6 +33,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url;
   const isBusy = traceState !== "idle" || isSavingCrop;
   const [downloading, setDownloading] = useState(null);
+  const canUsePaletteStudio = Boolean(project?.svg_url);
 
   const handleDownloadClick = async (type, handler) => {
     if (downloading) return;
@@ -149,7 +150,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
           >
             <span>
               <strong>Standard SVG</strong>
-              <small>Fast daily export</small>
+              <small>1 Credit • Includes Palette Studio</small>
             </span>
             <b>1</b>
           </button>
@@ -161,7 +162,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
           >
             <span>
               <strong><Sparkles size={11} /> Precision SVG</strong>
-              <small>Premium clean curves</small>
+              <small>2 Credits • Cleaner paths + smoother Palette Studio</small>
             </span>
             <b>2</b>
           </button>
@@ -285,9 +286,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
           <button
             onClick={onOpenPalettePreview}
             disabled={!project?.svg_url}
-            style={secondaryBtnStyle(!!project?.svg_url)}
-            onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
-            onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+            title={canUsePaletteStudio ? "Open Palette Studio" : "Generate SVG first"}
+            style={secondaryBtnStyle(canUsePaletteStudio)}
+            onMouseOver={e => { if (canUsePaletteStudio) e.currentTarget.style.borderColor = "#555"; }}
+            onMouseOut={e => { if (canUsePaletteStudio) e.currentTarget.style.borderColor = "#2e2e2e"; }}
           >
             <Palette size={13} />
             <span style={secondaryActionLabelStyle}>

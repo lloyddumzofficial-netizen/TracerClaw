@@ -96,14 +96,25 @@ export async function POST(request) {
     if (step === 1) {
       const fileName = `projects/${projectId}/generated_flat_${Date.now()}.${ext}`;
       const finalUrl = await uploadToR2(buffer, fileName, finalMimeType);
-      await adminSupabase.from('projects').update({ generated_image_url: finalUrl, ai_prompt: null, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
+      await adminSupabase.from('projects').update({
+        generated_image_url: finalUrl,
+        ai_prompt: null,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
+      }).eq('id', projectId).eq('user_id', user.id);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 
     if (step === 2) {
       const fileName = `projects/${projectId}/upscaled_${Date.now()}.${ext}`;
       const finalUrl = await uploadToR2(buffer, fileName, finalMimeType);
-      await adminSupabase.from('projects').update({ upscaled_image_url: finalUrl, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
+      await adminSupabase.from('projects').update({
+        upscaled_image_url: finalUrl,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
+      }).eq('id', projectId).eq('user_id', user.id);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 

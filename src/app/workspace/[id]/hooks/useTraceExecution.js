@@ -172,11 +172,17 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       }
 
       const data3 = await safeJson(res3, "Trace step 3 failed");
-      setProject(prev => ({ ...prev, svg_url: data3.svg_url }));
+      setProject(prev => ({
+        ...prev,
+        svg_url: data3.svg_url,
+      }));
       logToConsole("[Success] Vectorization Complete!", "success");
 
       setTraceState("idle");
-      return { success: true }; // Signal to page to open compare modal
+      return {
+        success: true,
+        svgUrl: data3.svg_url,
+      };
 
     } catch (error) {
       setTraceState("idle");

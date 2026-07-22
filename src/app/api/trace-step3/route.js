@@ -143,6 +143,12 @@ export async function POST(request) {
 
       const vectorizerFormData = new FormData();
       vectorizerFormData.append('image', blob, 'image.png');
+      vectorizerFormData.append('output.file_format', 'svg');
+      vectorizerFormData.append('output.svg.adobe_compatibility_mode', 'true');
+      vectorizerFormData.append('output.svg.fixed_size', 'false');
+      if (colors && colors !== "auto") {
+        vectorizerFormData.append('processing.max_colors', String(parseInt(colors, 10)));
+      }
 
       const basicAuth = Buffer.from(`${vectorizerApiId}:${vectorizerApiSecret}`).toString('base64');
       console.log("[Step 3] Sending to Vectorizer.AI precision engine...");
@@ -247,11 +253,20 @@ export async function POST(request) {
 
     await adminSupabase
       .from('projects')
-      .update({ svg_url: finalSvgUrl, zip_url: null, zip_signature: null, zip_generated_at: null })
+      .update({
+        svg_url: finalSvgUrl,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
+      })
       .eq('id', projectId)
       .eq('user_id', user.id);
 
-    return NextResponse.json({ success: true, step: 3, svg_url: finalSvgUrl });
+    return NextResponse.json({
+      success: true,
+      step: 3,
+      svg_url: finalSvgUrl
+    });
 
   } catch (error) {
     console.error(`[Trace Step 3 Error]:`, error.message);

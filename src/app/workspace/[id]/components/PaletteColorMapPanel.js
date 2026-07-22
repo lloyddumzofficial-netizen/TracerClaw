@@ -18,7 +18,6 @@ export default function PaletteColorMapPanel({
   visiblePalette,
   loading,
   selectedItem,
-  closestOriginal,
   hexInput,
   mergeGroups,
   editHistory,
@@ -37,14 +36,13 @@ export default function PaletteColorMapPanel({
   onFocusRecolorControls,
   onUpdateSelectedColor,
   onSetHexInput,
-  onRestoreSelectedColor,
 }) {
   return (
     <aside className="palette-side">
       <div className="palette-side-head">
         <div>
           <span>Color Map</span>
-          <small>{paletteMode === "merge" ? "Merge is active. Drag a swatch onto another color." : "Click artwork or palette colors to inspect. Drag circles to arrange."}</small>
+          <small>{paletteMode === "merge" ? "Merge mode: drag one swatch onto another color." : "Inspect colors, arrange bubbles, then edit or merge."}</small>
         </div>
         <strong>{hasEdits ? "Edited" : "Original"}</strong>
       </div>
@@ -122,17 +120,17 @@ export default function PaletteColorMapPanel({
       </div>
 
       <div className="palette-tools">
-        <button onClick={onCompare}><GitCompareArrows size={20} /> <span>Original / Output</span></button>
-        <button className={paletteMode === "merge" ? "active" : ""} onClick={() => onSetPaletteMode(paletteMode === "merge" ? "select" : "merge")}><GitMerge size={20} /> <span>Merge</span></button>
-        <button onClick={onSplitSelectedColor} disabled={Object.keys(mergeGroups).length === 0 && editHistory.length === 0}><Split size={20} /> <span>Split</span></button>
-        <button onClick={onFocusRecolorControls}><Pencil size={20} /> <span>Edit</span></button>
+        <button onClick={onCompare}><GitCompareArrows size={18} /> <span>Compare</span></button>
+        <button className={paletteMode === "merge" ? "active" : ""} onClick={() => onSetPaletteMode(paletteMode === "merge" ? "select" : "merge")}><GitMerge size={18} /> <span>Merge</span></button>
+        <button onClick={onSplitSelectedColor} disabled={Object.keys(mergeGroups).length === 0 && editHistory.length === 0}><Split size={18} /> <span>Undo</span></button>
+        <button onClick={onFocusRecolorControls}><Pencil size={18} /> <span>Edit</span></button>
       </div>
 
       <div className="palette-list">
         <div className="palette-list-title">
           <Layers3 size={14} />
           <span>Detected Palette</span>
-          <small>{visiblePalette.length} SVG colors. Use Merge mode only when you want to reduce colors.</small>
+          <small>{visiblePalette.length} SVG colors. Select a color to inspect, or drag in Merge mode.</small>
         </div>
 
         {largeSvgWarning && (
@@ -198,11 +196,9 @@ export default function PaletteColorMapPanel({
             <PaletteRecolorPanel
               editorRef={editorRef}
               selectedItem={selectedItem}
-              closestOriginal={closestOriginal}
               hexInput={hexInput}
               onUpdateSelectedColor={onUpdateSelectedColor}
               onSetHexInput={onSetHexInput}
-              onRestoreSelectedColor={onRestoreSelectedColor}
             />
           </>
         )}

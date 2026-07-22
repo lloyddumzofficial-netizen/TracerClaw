@@ -36,7 +36,11 @@ export default function PaletteCanvas({
             ? (
               <div
                 className="palette-svg-preview"
-                style={{ transform: `translate3d(${viewPan.x}px, ${viewPan.y}px, 0) scale(${viewZoom})` }}
+                style={{
+                  width: `${Math.max(0.25, viewZoom) * 100}%`,
+                  height: `${Math.max(0.25, viewZoom) * 100}%`,
+                  transform: `translate(${viewPan.x}px, ${viewPan.y}px)`,
+                }}
                 dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
               />
             )
