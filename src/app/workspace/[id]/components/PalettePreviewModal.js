@@ -11,6 +11,7 @@ import {
   clamp,
   colorDistance,
   extractPalette,
+  getSvgDimensions,
   getSvgSize,
   normalizeColor,
   replacePaletteColor,
@@ -181,6 +182,10 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const selectedItem = palette.find(item => item.color === selectedColor) || palette[0] || null;
   const sanitizedSvg = useMemo(
     () => (editedSvgText ? sanitizeSvg(editedSvgText) : ""),
+    [editedSvgText]
+  );
+  const svgDimensions = useMemo(
+    () => (editedSvgText ? getSvgDimensions(editedSvgText) : null),
     [editedSvgText]
   );
   const hasEdits = Boolean(originalSvgText && editedSvgText && originalSvgText !== editedSvgText);
@@ -574,6 +579,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             svgUrl={svgUrl}
             sanitizedSvg={sanitizedSvg}
             selectedColor={selectedColor}
+            svgDimensions={svgDimensions}
             sizeLabel={sizeLabel}
             viewZoom={viewZoom}
             viewPan={viewPan}

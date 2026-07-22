@@ -1,24 +1,19 @@
 "use client";
 
 import { memo } from "react";
-import { Columns2, Download, Eraser, FolderDown, ImageDown, ImageMinus, Palette, Scissors } from "lucide-react";
+import { Columns2, Eraser, ImageMinus, Palette, Scissors } from "lucide-react";
 
 const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
   activeTool,
   isBusy,
   hasProject,
-  hasRaster,
   hasSvg,
-  hasUpscaled,
   onSelectTool,
   onOpenCrop,
   onOpenErase,
   onOpenRemoveBg,
   onOpenCompare,
   onOpenPalettePreview,
-  onDownloadSvg,
-  onDownloadPng,
-  onDownloadZip,
 }) {
   const openTool = (tool, handler) => {
     onSelectTool?.(tool);
@@ -83,37 +78,6 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
       </div>
 
       <div className="workspace-command-spacer" />
-
-      <div className="workspace-command-group">
-        <span className="workspace-command-label">Export</span>
-        <button
-          className="workspace-command-btn is-primary"
-          onClick={onDownloadSvg}
-          disabled={!hasSvg}
-          title="Export vector SVG"
-        >
-          <Download size={14} />
-          SVG
-        </button>
-        <button
-          className="workspace-command-btn"
-          onClick={onDownloadPng}
-          disabled={!hasUpscaled}
-          title="Export high-resolution PNG"
-        >
-          <ImageDown size={14} />
-          PNG
-        </button>
-        <button
-          className="workspace-command-btn"
-          onClick={onDownloadZip}
-          disabled={!hasRaster && !hasSvg}
-          title="Download all project files"
-        >
-          <FolderDown size={14} />
-          ZIP
-        </button>
-      </div>
     </div>
   );
 });

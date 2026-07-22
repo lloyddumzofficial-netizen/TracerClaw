@@ -298,7 +298,6 @@ export default function Workspace() {
   const savedAgo = formatSavedAgo(project?.updated_at);
   const isBusy = traceState !== "idle" || isSavingCrop;
   const hasProject = !!project;
-  const hasRaster = !!project?.upscaled_image_url || !!project?.generated_image_url;
   const hasSvg = !!project?.svg_url;
   const workspaceTitle = getWorkspaceTitle(project?.trace_type);
 
@@ -321,18 +320,13 @@ export default function Workspace() {
             activeTool={activeTool}
             isBusy={isBusy}
             hasProject={hasProject}
-            hasRaster={hasRaster}
             hasSvg={hasSvg}
-            hasUpscaled={!!project?.upscaled_image_url}
             onSelectTool={setActiveTool}
             onOpenCrop={() => setShowCropModal(true)}
             onOpenErase={() => setShowEraseModal(true)}
             onOpenRemoveBg={() => setShowRemoveBgModal(true)}
             onOpenCompare={() => setShowCompare(true)}
             onOpenPalettePreview={() => setShowPalettePreview(true)}
-            onDownloadSvg={handleDownloadSvg}
-            onDownloadPng={handleDownloadUpscaled}
-            onDownloadZip={handleDownloadAll}
           />
         )}
         statusLeft={project?.svg_url ? (

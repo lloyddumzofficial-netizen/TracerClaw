@@ -717,15 +717,16 @@ html, body {
 /* Professional production blueprint loading */
 @keyframes blueprintSweep {
   0% { transform: translateX(-145%) skewX(-10deg); opacity: 0; }
-  14% { opacity: 0.64; }
-  84% { opacity: 0.52; }
-  100% { transform: translateX(245%) skewX(-10deg); opacity: 0; }
+  12% { opacity: 0.64; }
+  78% { transform: translateX(245%) skewX(-10deg); opacity: 0.52; }
+  92%, 100% { transform: translateX(245%) skewX(-10deg); opacity: 0; }
 }
 
 @keyframes blueprintOutline {
   0% { clip-path: inset(0 100% 0 0); opacity: 0.25; }
-  36% { opacity: 0.9; }
-  100% { clip-path: inset(0 0 0 0); opacity: 0.72; }
+  12% { opacity: 0.48; }
+  78% { clip-path: inset(0 0 0 0); opacity: 0.9; }
+  92%, 100% { clip-path: inset(0 0 0 0); opacity: 0.72; }
 }
 
 @keyframes anchorPulse {
@@ -829,7 +830,7 @@ html, body {
   aspect-ratio: 478.95 / 419.48;
   transform: translate(-50%, -50%);
   clip-path: inset(0 100% 0 0);
-  animation: blueprintOutline 2.8s ease-in-out infinite;
+  animation: blueprintOutline 2.8s cubic-bezier(0.42, 0, 0.2, 1) 0.16s infinite both;
   opacity: 0.88;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.22)) drop-shadow(0 0 16px rgba(255, 215, 0, 0.14));
   pointer-events: none;
@@ -854,7 +855,7 @@ html, body {
   opacity: 0;
   background:
     radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 215, 0, 0.12) 36%, transparent 72%);
-  animation: blueprintSweep 2.8s cubic-bezier(0.42, 0, 0.2, 1) 0.16s infinite alternate both;
+  animation: blueprintSweep 2.8s cubic-bezier(0.42, 0, 0.2, 1) 0.16s infinite both;
   pointer-events: none;
   will-change: transform, opacity;
   transform: translateX(-145%) skewX(-10deg);
@@ -1351,13 +1352,28 @@ html, body {
 }
 
 .palette-svg-preview {
+  position: relative;
   width: calc(100% - 88px);
   height: calc(100% - 88px);
   transform-origin: center center;
   contain: layout paint style;
 }
 
+.palette-svg-preview.is-color-focused::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #f7f5ee;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 16px 44px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
 .palette-svg-preview svg {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;

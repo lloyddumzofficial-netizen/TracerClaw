@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Maximize2, Minus, Plus } from "lucide-react";
 import { normalizeColor } from "./PalettePreviewModal.utils";
 
@@ -28,6 +28,7 @@ export default function PaletteCanvas({
   svgUrl,
   sanitizedSvg,
   selectedColor,
+  svgDimensions,
   sizeLabel,
   viewZoom,
   viewPan,
@@ -41,6 +42,7 @@ export default function PaletteCanvas({
 }) {
   const canvasRef = useRef(null);
   const previewRef = useRef(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,6 +52,33 @@ export default function PaletteCanvas({
     canvas.addEventListener("wheel", handleWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", handleWheel);
   }, [onWheel]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setCanvasSize({ width, height });
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
+  const previewSize = useMemo(() => {
+    if (!svgDimensions || !canvasSize.width || !canvasSize.height) return null;
+    const availableWidth = Math.max(120, canvasSize.width - 88);
+    const availableHeight = Math.max(120, canvasSize.height - 88);
+    const scale = Math.min(
+      availableWidth / svgDimensions.width,
+      availableHeight / svgDimensions.height
+    );
+
+    return {
+      width: Math.max(1, Math.round(svgDimensions.width * scale)),
+      height: Math.max(1, Math.round(svgDimensions.height * scale)),
+    };
+  }, [canvasSize, svgDimensions]);
 
   useEffect(() => {
     const preview = previewRef.current;
@@ -95,6 +124,10 @@ export default function PaletteCanvas({
                 ref={previewRef}
                 className={`palette-svg-preview${selectedColor ? " is-color-focused" : ""}`}
                 style={{
+                  ...(previewSize ? {
+                    width: `${previewSize.width}px`,
+                    height: `${previewSize.height}px`,
+                  } : null),
                   transform: `translate3d(${viewPan.x}px, ${viewPan.y}px, 0) scale(${Math.max(0.25, viewZoom)})`,
                 }}
                 dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
