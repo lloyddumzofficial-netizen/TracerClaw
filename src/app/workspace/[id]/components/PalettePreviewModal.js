@@ -7,15 +7,12 @@ import PaletteColorMapPanel from "./PaletteColorMapPanel";
 import PaletteFooter from "./PaletteFooter";
 import {
   DEFAULT_BUBBLE_LAYOUT,
-  MAX_BITMAP_EXPORT_SIDE,
   MAX_SWATCHES,
   clamp,
   colorDistance,
   extractPalette,
-  getSvgDimensions,
   getSvgSize,
   normalizeColor,
-  prepareSvgForBitmap,
   replacePaletteColor,
   sanitizeSvg,
 } from "./PalettePreviewModal.utils";
@@ -29,8 +26,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   project,
   onClose,
   onCompare,
-  onDownloadAll,
-  onDownloadSvg,
   onApplyEditedSvg,
 }) {
   const [palette, setPalette] = useState([]);
@@ -49,7 +44,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const [mergeGroups, setMergeGroups] = useState({});
   const [paletteMode, setPaletteMode] = useState("select");
   const [isApplying, setIsApplying] = useState(false);
-  const [isExportingBitmap, setIsExportingBitmap] = useState(false);
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
 
   const dragRef = useRef(null);
@@ -380,73 +374,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     }
   };
 
-  const downloadEditedSvg = () => {
-    if (!editedSvgText) return;
-    const blob = new Blob([editedSvgText], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${project.name || "desaynclaw"}-palette-edited.svg`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadBitmap = async () => {
-    const sourceSvg = editedSvgText || originalSvgText;
-    if (!sourceSvg) return;
-
-    const dimensions = getSvgDimensions(sourceSvg) || { width: 2048, height: 2048 };
-    const scale = Math.min(1, MAX_BITMAP_EXPORT_SIDE / Math.max(dimensions.width, dimensions.height));
-    const width = Math.max(1, Math.round(dimensions.width * scale));
-    const height = Math.max(1, Math.round(dimensions.height * scale));
-    const svgForBitmap = prepareSvgForBitmap(sourceSvg, width, height);
-
-    setIsExportingBitmap(true);
-    try {
-      const blob = new Blob([svgForBitmap], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const image = new Image();
-      try {
-        const loaded = new Promise((resolve, reject) => {
-          image.onload = resolve;
-          image.onerror = () => reject(new Error("Failed to render SVG as bitmap."));
-        });
-        image.src = url;
-        await loaded;
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Bitmap export is not available in this browser.");
-      context.clearRect(0, 0, width, height);
-      context.drawImage(image, 0, 0, width, height);
-
-      const pngBlob = await new Promise((resolve, reject) => {
-        canvas.toBlob((output) => {
-          if (output) resolve(output);
-          else reject(new Error("Failed to export PNG."));
-        }, "image/png");
-      });
-
-      const pngUrl = URL.createObjectURL(pngBlob);
-      const link = document.createElement("a");
-      link.href = pngUrl;
-      link.download = `${project.name || "desaynclaw"}-palette-${hasEdits ? "edited" : "original"}.png`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(pngUrl);
-    } finally {
-      setIsExportingBitmap(false);
-    }
-  };
-
   const applyEditedSvg = async () => {
     if (!hasEdits || !editedSvgText || !onApplyEditedSvg) return;
     setIsApplying(true);
@@ -528,11 +455,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
         <PaletteFooter
           hasEdits={hasEdits}
           isApplying={isApplying}
-          isExportingBitmap={isExportingBitmap}
-          hasSvgText={Boolean(editedSvgText || originalSvgText)}
-          onDownloadAll={onDownloadAll}
-          onDownloadSvg={hasEdits ? downloadEditedSvg : onDownloadSvg}
-          onDownloadBitmap={downloadBitmap}
           onResetLayout={() => setBubbleLayout(DEFAULT_BUBBLE_LAYOUT)}
           onResetColors={resetEdits}
           onRequestApply={() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Columns2, Download, Eraser, FolderDown, ImageDown, ImageMinus, Scissors } from "lucide-react";
+import { Columns2, Download, Eraser, FolderDown, ImageDown, ImageMinus, Palette, Scissors } from "lucide-react";
 
 const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
   activeTool,
@@ -15,6 +15,7 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
   onOpenErase,
   onOpenRemoveBg,
   onOpenCompare,
+  onOpenPalettePreview,
   onDownloadSvg,
   onDownloadPng,
   onDownloadZip,
@@ -69,6 +70,15 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
         >
           <Columns2 size={14} />
           Compare
+        </button>
+        <button
+          className="workspace-command-btn"
+          onClick={onOpenPalettePreview}
+          disabled={!hasSvg}
+          title="Open Palette Studio"
+        >
+          <Palette size={14} />
+          Palette
         </button>
       </div>
 

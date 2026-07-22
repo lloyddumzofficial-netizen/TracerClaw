@@ -1,13 +1,8 @@
-import { Download, FolderDown, Loader2, RotateCcw, Save } from "lucide-react";
+import { Loader2, RotateCcw, Save } from "lucide-react";
 
 export default function PaletteFooter({
   hasEdits,
   isApplying,
-  isExportingBitmap,
-  hasSvgText,
-  onDownloadAll,
-  onDownloadSvg,
-  onDownloadBitmap,
   onResetLayout,
   onResetColors,
   onRequestApply,
@@ -20,19 +15,6 @@ export default function PaletteFooter({
       </div>
 
       <div className="palette-footer-actions">
-        <div className="palette-action-group" aria-label="Export options">
-          <button type="button" className="palette-action-secondary" onClick={onDownloadAll}>
-            <FolderDown size={15} /> All
-          </button>
-          <button type="button" className="palette-action-secondary" onClick={onDownloadSvg}>
-            <Download size={15} /> SVG
-          </button>
-          <button type="button" className="palette-action-secondary" onClick={onDownloadBitmap} disabled={isExportingBitmap || !hasSvgText}>
-            {isExportingBitmap ? <Loader2 className="animate-spin" size={15} /> : <Download size={15} />}
-            PNG
-          </button>
-        </div>
-
         <div className="palette-action-group" aria-label="Reset options">
           <button type="button" className="palette-action-quiet" onClick={onResetLayout} title="Reset color map layout">
             Layout

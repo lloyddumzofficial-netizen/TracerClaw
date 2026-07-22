@@ -34,6 +34,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const isBusy = traceState !== "idle" || isSavingCrop;
   const [downloading, setDownloading] = useState(null);
   const canUsePaletteStudio = Boolean(project?.svg_url);
+  const isLogoWorkspace = project?.trace_type === "logo";
+  const cropWarningCopy = isLogoWorkspace
+    ? "For best logo vectors, crop tightly around the mark and remove empty background."
+    : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
 
   const handleDownloadClick = async (type, handler) => {
     if (downloading) return;
@@ -168,7 +172,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
           </button>
         </div>
         <p style={{ marginTop: "8px", fontSize: "10px", color: "#555", lineHeight: 1.5 }}>
-          Precision is best for logos, marks, and clean artwork that needs tighter SVG paths.
+          {isLogoWorkspace
+            ? "Precision is best for logos with small text, circles, and tight curves."
+            : "Precision is best for logos, marks, and clean artwork that needs tighter SVG paths."}
         </p>
       </div>
 
@@ -202,7 +208,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
           <div style={{ padding: "0 14px 14px" }}>
             <div style={{ background: "rgba(255,68,68,0.05)", borderLeft: "2px solid #ff4444", padding: "8px 10px", marginBottom: "8px", fontSize: "10.5px", color: "#ff8888", display: "flex", gap: "8px", alignItems: "flex-start", lineHeight: 1.4 }}>
               <span style={{ fontWeight: "bold", background: "rgba(255,68,68,0.2)", borderRadius: "50%", width: "14px", height: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>!</span>
-              <span>If image shows front AND back of a shirt, use the Crop Tool to isolate one side, or AI will fail.</span>
+              <span>{cropWarningCopy}</span>
             </div>
           </div>
         )}
@@ -218,7 +224,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         {!advancedOpen && (
           <div style={{ background: "rgba(255,68,68,0.05)", borderLeft: "2px solid #ff4444", padding: "7px 9px", marginBottom: "9px", fontSize: "9.5px", color: "#ff8888", display: "flex", gap: "7px", alignItems: "flex-start", lineHeight: 1.35 }}>
             <span style={{ fontWeight: "bold", background: "rgba(255,68,68,0.2)", borderRadius: "50%", width: "13px", height: "13px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "9px" }}>!</span>
-            <span>If image shows front AND back of a shirt, use Crop Tool to isolate one side.</span>
+            <span>{cropWarningCopy}</span>
           </div>
         )}
 

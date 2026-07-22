@@ -329,6 +329,7 @@ export default function Workspace() {
             onOpenErase={() => setShowEraseModal(true)}
             onOpenRemoveBg={() => setShowRemoveBgModal(true)}
             onOpenCompare={() => setShowCompare(true)}
+            onOpenPalettePreview={() => setShowPalettePreview(true)}
             onDownloadSvg={handleDownloadSvg}
             onDownloadPng={handleDownloadUpscaled}
             onDownloadZip={handleDownloadAll}
