@@ -614,7 +614,7 @@ export default function StartScreen() {
                 {/* Refined byline */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
                   <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
-                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: "500", letterSpacing: "2.5px", textTransform: "uppercase" }}>by desaynbro</span>
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: "500", letterSpacing: "2.5px", textTransform: "uppercase" }}>Developed by Desaynbro</span>
                   <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
                 </div>
 
