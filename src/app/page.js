@@ -26,8 +26,8 @@ import OnboardingModal from "@/components/marketing/OnboardingModal";
 import RecentProjects from "@/components/marketing/RecentProjects";
 import EduSection from "@/components/marketing/EduSection";
 import BeforeAfterSlider from "@/components/marketing/BeforeAfterSlider";
-import PromoModal from "@/components/marketing/PromoModal";
-import SublibatchModal from "@/components/marketing/SublibatchModal";
+import FAQSection from "@/components/marketing/FAQSection";
+import LogoLoader from "@/components/ui/LogoLoader";
 import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
 
@@ -91,16 +91,16 @@ function AnimatedCounter({ value }) {
       if (!startTime) startTime = timestamp;
       const progress = timestamp - startTime;
       const percentage = Math.min(progress / duration, 1);
-      
+
       const easeOut = percentage === 1 ? 1 : 1 - Math.pow(2, -10 * percentage);
-      
+
       setCount(Math.round(start + (distance * easeOut)));
-      
+
       if (progress < duration) {
         frameId = requestAnimationFrame(animate);
       }
     };
-    
+
     frameId = requestAnimationFrame(animate);
 
     return () => {
@@ -121,11 +121,11 @@ function AnimatedCounter({ value }) {
       gap: "20px"
     }}>
       {/* Premium Pill Badge */}
-      <div style={{ 
-        color: "#FFD700", 
-        fontSize: "11px", 
-        fontWeight: "800", 
-        letterSpacing: "3px", 
+      <div style={{
+        color: "#FFD700",
+        fontSize: "11px",
+        fontWeight: "800",
+        letterSpacing: "3px",
         textTransform: "uppercase",
         background: "rgba(255, 215, 0, 0.08)",
         border: "1px solid rgba(255, 215, 0, 0.2)",
@@ -137,9 +137,9 @@ function AnimatedCounter({ value }) {
       </div>
 
       {/* Gradient Number */}
-      <div style={{ 
-        fontSize: "72px", 
-        fontWeight: "800", 
+      <div style={{
+        fontSize: "72px",
+        fontWeight: "800",
         fontFamily: "'Nexa', 'Nexa Bold', 'Montserrat', sans-serif",
         background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",
         WebkitBackgroundClip: "text",
@@ -610,48 +610,64 @@ export default function StartScreen() {
             <div className="hero-left" style={{ margin: "0" }}>
               <div className="start-logo" style={{ marginBottom: "30px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
                 <img src="/logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
-                <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", margin: "5px 0 0 0", fontWeight: "500" }}>Developed by desaynbro</p>
 
-                {/* PUBLIC STATS */}
+                {/* Refined byline */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+                  <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: "500", letterSpacing: "2.5px", textTransform: "uppercase" }}>by desaynbro</span>
+                  <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
+                </div>
+
+                {/* PUBLIC STATS — compact single-pill row */}
                 {publicStats.totalUsers > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "24px", gap: "12px" }}>
-                    
-                    {/* Top Row: Avatars and Users Text */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                        {publicStats.avatars.length > 0 && publicStats.avatars.map((url, i) => (
-                          <img key={i} src={url} alt="User" style={{ width: "36px", height: "36px", borderRadius: "50%", border: "2px solid #1a1a1a", marginLeft: i > 0 ? "-12px" : "0", backgroundColor: "#333", objectFit: "cover", zIndex: 10 - i, boxShadow: "0 0 0 1px rgba(0,0,0,0.1)" }} />
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "left" }}>
-                        <div style={{ fontSize: "15px", color: "#fff", fontWeight: "600", letterSpacing: "-0.2px" }}>
-                          {publicStats.totalUsers.toLocaleString()}+ creatives
-                        </div>
-                        <div style={{ fontSize: "13px", color: "#888", fontWeight: "500" }}>
-                          joined the beta
-                        </div>
-                      </div>
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0",
+                    marginTop: "24px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: "100px",
+                    padding: "6px 14px 6px 6px",
+                  }}>
+                    {/* Avatar stack */}
+                    <div style={{ display: "flex", alignItems: "center", marginRight: "10px" }}>
+                      {publicStats.avatars.length > 0 && publicStats.avatars.map((url, i) => (
+                        <img key={i} src={url} alt="User" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.08)", marginLeft: i > 0 ? "-9px" : "0", backgroundColor: "#2a2a2a", objectFit: "cover", zIndex: 10 - i }} />
+                      ))}
                     </div>
 
+                    {/* User count */}
+                    <span style={{ fontSize: "13px", color: "#fff", fontWeight: "600", marginRight: "6px" }}>
+                      {publicStats.totalUsers.toLocaleString()}+
+                    </span>
+                    <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: "400", marginRight: "10px" }}>creatives</span>
+
+                    {/* Dot divider */}
                     {publicStats.reviewCount > 0 && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div style={{ display: "flex", gap: "4px" }}>
+                      <span style={{ width: "3px", height: "3px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "inline-block", marginRight: "10px" }} />
+                    )}
+
+                    {/* Stars */}
+                    {publicStats.reviewCount > 0 && (
+                      <>
+                        <div style={{ display: "flex", gap: "2px", marginRight: "5px" }}>
                           {[1, 2, 3, 4, 5].map((_, i) => (
-                            <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" xmlns="http://www.w3.org/2000/svg">
+                            <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill="#FFD700" xmlns="http://www.w3.org/2000/svg">
                               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                             </svg>
                           ))}
                         </div>
-                        <div style={{ fontSize: "13px", color: "#aaa", fontWeight: "500" }}>
-                          Based on <span style={{ color: "#fff", fontWeight: "700" }}>{publicStats.reviewCount.toLocaleString()}</span> project review{publicStats.reviewCount === 1 ? "" : "s"}
-                        </div>
-                      </div>
+                        <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", fontWeight: "400" }}>
+                          {publicStats.reviewCount} reviews
+                        </span>
+                      </>
                     )}
-
                   </div>
                 )}
 
-                <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.9)", textAlign: "center", marginTop: "20px", maxWidth: "550px", lineHeight: "1.6", textWrap: "balance", fontWeight: "500" }}>
+                {/* Description */}
+                <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.55)", textAlign: "center", marginTop: "20px", maxWidth: "500px", lineHeight: "1.65", textWrap: "balance", fontWeight: "400" }}>
                   Instantly transform your raster images (PNG, JPG) into ultra-clean, scalable vector graphics (SVG) using our advanced AI neural engine.
                 </p>
               </div>
@@ -753,9 +769,9 @@ export default function StartScreen() {
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}>
 
         {/* SCROLLING TRUST MARQUEE (MINIMAL & ALIGNED) */}
-        <div className="marquee-container" style={{ 
+        <div className="marquee-container" style={{
           padding: "10px 0",
-          background: "transparent", 
+          background: "transparent",
           borderTop: "1px solid #2a2a2a",
           borderBottom: "1px solid #2a2a2a",
           width: "100%",
@@ -779,7 +795,7 @@ export default function StartScreen() {
               <Monitor size={16} color="#777" />
               <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Highly Scalable Infrastructure</span>
             </div>
-            
+
             {/* 2nd Set (Duplicate for seamless loop) */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
               <ShieldCheck size={16} color="#777" />
@@ -967,7 +983,7 @@ export default function StartScreen() {
             <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
               Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
             </p>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
               style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
@@ -998,7 +1014,7 @@ export default function StartScreen() {
             <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
               Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
             </p>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
               style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.background = "#444"}
@@ -1028,85 +1044,6 @@ export default function StartScreen() {
 
         <TestimonialSection />
 
-        {/* ─── SUBLIBATCH 4 Promo Section ─────────────────────────────────── */}
-        <div
-          id="sublibatch-promo"
-          style={{
-            margin: "80px 0",
-            border: "1px solid rgba(255,215,0,0.18)",
-            borderRadius: "8px",
-            overflow: "hidden",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-            position: "relative",
-          }}
-        >
-          {/* Badge */}
-          <div style={{
-            position: "absolute",
-            top: "16px",
-            left: "16px",
-            background: "linear-gradient(135deg, #FFD700, #FFA500)",
-            color: "#000",
-            fontSize: "10px",
-            fontWeight: "800",
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            padding: "5px 12px",
-            borderRadius: "100px",
-            zIndex: 2,
-            boxShadow: "0 2px 8px rgba(255,165,0,0.4)",
-          }}>
-            Limited Offer
-          </div>
-
-          <img
-            src="/sublibatch4.jpg"
-            alt="SUBLIBATCH 4 — Exclusive Limited Batch"
-            style={{ width: "100%", height: "auto", display: "block" }}
-          />
-
-          {/* CTA Bar */}
-          <div style={{
-            background: "#111",
-            borderTop: "1px solid rgba(255,215,0,0.2)",
-            padding: "20px 24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}>
-            <div>
-              <div style={{ color: "#fff", fontWeight: "700", fontSize: "18px", marginBottom: "4px" }}>SUBLIBATCH 4</div>
-              <div style={{ color: "#888", fontSize: "13px" }}>Limited slots available — message us to order.</div>
-            </div>
-            <button
-              onClick={() => window.open('https://m.me/105884602605306', '_blank', 'noopener,noreferrer')}
-              style={{
-                background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
-                color: "#000",
-                border: "none",
-                padding: "13px 32px",
-                borderRadius: "6px",
-                fontSize: "15px",
-                fontWeight: "800",
-                letterSpacing: "0.8px",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                boxShadow: "0 4px 16px rgba(255,215,0,0.3)",
-                transition: "transform 0.15s, box-shadow 0.15s",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(255,215,0,0.45)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(255,215,0,0.3)"; }}
-            >
-              🛒 Buy Now
-            </button>
-          </div>
-        </div>
 
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
@@ -1235,7 +1172,7 @@ export default function StartScreen() {
         {isUploading && !showModal && (
           <div className="modal-overlay" style={{ zIndex: 9999 }}>
             <div className="modal-content" style={{ maxWidth: "340px", textAlign: "center", padding: "40px 30px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <Loader2 size={32} color="#FFD700" className="animate-spin" style={{ marginBottom: "20px" }} />
+              <LogoLoader size={64} color="#FFD700" />
               <div style={{ fontSize: "16px", color: "#fff", fontWeight: "600", marginBottom: "8px" }}>Preparing Image...</div>
               <p style={{ color: "#aaa", margin: 0, fontSize: "13px", lineHeight: "1.6" }}>
                 Transferring your photo to the workspace.
@@ -1244,6 +1181,7 @@ export default function StartScreen() {
           </div>
         )}
 
+        <FAQSection />
 
         <footer style={{ marginTop: "100px", borderTop: "1px solid #222", padding: "40px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
@@ -1266,11 +1204,6 @@ export default function StartScreen() {
       </div>
 
 
-      {/* Promo Popup */}
-      <PromoModal onBuyClick={() => window.open('https://m.me/105884602605306', '_blank')} />
-
-      {/* Sublibatch 4 — once-a-day popup */}
-      <SublibatchModal />
 
       {/* AI Guidelines Popup */}
       <AIDisclaimerModal />

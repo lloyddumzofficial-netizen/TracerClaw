@@ -1,5 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ── Canonical domain redirect ───────────────────────────────────────────────
+  // Any request hitting desaynclaw.vercel.app is permanently redirected to
+  // the custom domain desaynclaw.com, preserving path + query string.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'desaynclaw.vercel.app' }],
+        destination: 'https://desaynclaw.com/:path*',
+        permanent: true, // 308 — browsers + search engines will update their records
+      },
+    ];
+  },
+
   async headers() {
     return [
       {
@@ -33,3 +47,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+

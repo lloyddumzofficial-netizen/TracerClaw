@@ -453,8 +453,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
             Export files from the action buttons above after reviewing the output.
           </p>
         </div>
-
-        <div className="console-area" ref={consoleRef} />
       </div>
     </aside>
   );

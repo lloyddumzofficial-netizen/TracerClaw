@@ -2,6 +2,7 @@
 
 import { memo, useState } from "react";
 import { ImageMinus, X, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import LogoLoader from "@/components/ui/LogoLoader";
 import { safeJson } from "@/lib/safeJson";
 
 /**
@@ -140,7 +141,7 @@ const RemoveBgModal = memo(function RemoveBgModal({
                 gap: "12px",
               }}>
                 <div style={{ position: "relative" }}>
-                  <Loader2 size={32} color="#FFD700" style={{ animation: "spin 1s linear infinite" }} />
+                  <LogoLoader size={60} color="#FFD700" />
                 </div>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: "13px", color: "#FFD700", fontWeight: "600", letterSpacing: "1px" }}>

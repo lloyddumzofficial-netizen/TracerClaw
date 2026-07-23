@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { CheckCircle2, Download, Image as ImageIcon, Loader2, Scissors, Settings2 } from "lucide-react";
+import LogoLoader from "@/components/ui/LogoLoader";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
@@ -195,7 +196,7 @@ export default function BgRemoverPage() {
   if (!project) {
     return (
       <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0a" }}>
-        <Loader2 size={32} className="animate-spin text-white opacity-50" />
+        <LogoLoader size={72} color="#FFD700" />
       </div>
     );
   }

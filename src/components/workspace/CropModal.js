@@ -52,6 +52,7 @@ const CropModal = memo(function CropModal({
   const [isSaving, setIsSaving] = useState(false);
   const [cropZoom, setCropZoom] = useState(DEFAULT_CROP_ZOOM);
   const imgRef = useRef(null);
+  const stageRef = useRef(null);
 
   useEffect(() => {
     if (show) {
@@ -61,6 +62,25 @@ const CropModal = memo(function CropModal({
       setCropError("");
     }
   }, [show]);
+
+  // ── Scroll-wheel zoom on the canvas stage ──────────────────────────────────
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      // deltaY > 0 → scroll down → zoom out; < 0 → scroll up → zoom in
+      const delta = e.deltaY > 0 ? -0.08 : 0.08;
+      setCropZoom(z => {
+        const next = Math.round((z + delta) * 100) / 100;
+        return Math.min(3, Math.max(0.25, next));
+      });
+    };
+
+    stage.addEventListener("wheel", handleWheel, { passive: false });
+    return () => stage.removeEventListener("wheel", handleWheel);
+  }, [show]); // re-attach whenever modal opens
 
   const handleApply = useCallback(async () => {
     if (!completedCrop || !imgRef.current || !completedCrop.width || !completedCrop.height) {
@@ -162,7 +182,6 @@ const CropModal = memo(function CropModal({
       <div className="crop-workspace-modal">
         <div className="crop-workspace-header">
           <div className="crop-workspace-title">
-            <span className="crop-tool-icon"><Scissors size={16} /></span>
             <div>
               <h3>Crop Pattern Region</h3>
               <p>Isolate the artwork area for cleaner extraction.</p>
@@ -196,7 +215,7 @@ const CropModal = memo(function CropModal({
                 </div>
               </div>
             </div>
-            <div className="crop-canvas-stage">
+            <div className="crop-canvas-stage" ref={stageRef}>
               <div className="crop-zoom-surface" style={{ width: `${cropZoom * 100}%` }}>
                 <ReactCrop
                   crop={crop}

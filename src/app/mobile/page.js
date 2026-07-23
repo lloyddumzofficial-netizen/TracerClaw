@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Camera, Upload, CheckCircle2, Loader2, Image as ImageIcon } from "lucide-react";
+import LogoLoader from "@/components/ui/LogoLoader";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
@@ -180,10 +181,7 @@ function MobileUploadContent() {
 
         {status === "uploading" && (
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ position: "absolute", width: "80px", height: "80px", border: "1px solid #444", borderRadius: "0", background: "#1a1a1a" }}></div>
-              <Loader2 size={32} color="#FFD700" className="animate-spin" />
-            </div>
+            <LogoLoader size={56} color="#FFD700" />
             <h2 style={{ margin: 0, fontSize: "14px", fontWeight: "bold", color: "#FFD700", textTransform: "uppercase", letterSpacing: "2px", marginTop: "10px" }}>TRANSMITTING DATA...</h2>
             <p style={{ color: "#888", margin: 0, fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px" }}>DO NOT CLOSE UPLINK</p>
           </div>
@@ -257,7 +255,7 @@ function MobileUploadContent() {
 
 export default function MobileUpload() {
   return (
-    <Suspense fallback={<div style={{ height: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="animate-spin" color="#FFD700" size={32} /></div>}>
+    <Suspense fallback={<div style={{ height: "100vh", background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center" }}><LogoLoader size={72} color="#FFD700" /></div>}>
       <MobileUploadContent />
     </Suspense>
   );

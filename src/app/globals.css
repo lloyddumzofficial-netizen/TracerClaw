@@ -1167,40 +1167,134 @@ html, body {
   background-color: var(--accent-hover);
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  gap: 12px;
+}
+
+.empty-state h3 {
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.btn-browse {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-browse:hover {
+  background: var(--bg-hover);
+  color: var(--text-bright);
+}
+
+/* RIGHT PROPERTIES PANEL */
+.properties-panel {
+  width: 280px;
+  background-color: var(--bg-panel);
+  border-left: 1px solid #111;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header {
+  padding: 8px 12px;
+  background-color: var(--bg-hover);
+  border-bottom: 1px solid #111;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.section-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Form Controls */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.custom-select {
+  width: 100%;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-light);
+  color: var(--text-bright);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  appearance: none;
+  cursor: pointer;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Action Buttons */
+.btn-primary {
+  width: 100%;
+  background-color: #3e3e3e;
+  color: var(--text-bright);
+  border: 1px solid var(--border-light);
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: #666;
+}
+
+.btn-primary.highlight {
+  background-color: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-primary.highlight:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* Information Console (Bottom of panel) */
-.console-area {
-  background-color: #1a1a1a;
-  border-top: 1px solid #111;
-  min-height: 0;
-  max-height: 132px;
-  padding: 0 10px;
-  font-family: Consolas, monospace;
-  font-size: 11px;
-  color: var(--text-muted);
-  overflow-y: auto;
-  transition: padding 0.15s ease, min-height 0.15s ease;
-}
-
-.console-area:not(:empty) {
-  min-height: 58px;
-  padding: 10px;
-}
-
-.console-msg {
-  margin-bottom: 4px;
-}
-
-.console-msg.success {
-  color: #4ade80;
-}
-
-.console-msg.error {
-  color: #f87171;
 }
 
 .svg-engine-option span {
@@ -1256,9 +1350,7 @@ html, body {
   justify-content: space-between;
   padding: 0 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background:
-    linear-gradient(90deg, rgba(255, 215, 0, 0.035), transparent 32%),
-    linear-gradient(180deg, #181818, #121212);
+  background: linear-gradient(180deg, #181818, #121212);
   gap: 16px;
 }
 
@@ -1324,8 +1416,7 @@ html, body {
     linear-gradient(45deg, rgba(255,255,255,0.045) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255,255,255,0.045) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.045) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.045) 75%),
-    radial-gradient(circle at center, rgba(255,215,0,0.055), transparent 56%);
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.045) 75%);
   background-color: #0d0d0d;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
   background-size: 20px 20px;
@@ -1533,9 +1624,7 @@ html, body {
   justify-content: space-between;
   padding: 0 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.065);
-  background:
-    linear-gradient(90deg, rgba(255, 215, 0, 0.03), transparent 38%),
-    #141414;
+  background: #141414;
 }
 
 .palette-side-head div {
@@ -1575,7 +1664,6 @@ html, body {
   overflow: hidden;
   user-select: none;
   background:
-    radial-gradient(circle at 46% 42%, rgba(255, 215, 0, 0.075), transparent 56%),
     radial-gradient(circle at 72% 72%, rgba(255, 255, 255, 0.035), transparent 44%),
     linear-gradient(180deg, #141414, #101010);
 }
