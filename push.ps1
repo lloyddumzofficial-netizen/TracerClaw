@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # ─────────────────────────────────────────
-#  push.ps1  —  Quick Git push to GitHub
+#  push.ps1  —  Git push + Vercel prod deploy
 # ─────────────────────────────────────────
 
 $msg = if ($args[0]) { $args[0] } else { "UI improvements and style updates" }
@@ -14,4 +14,7 @@ git commit -m $msg
 Write-Host "🚀 Pushing to GitHub..." -ForegroundColor Cyan
 git push
 
-Write-Host "`n✅ Done! All changes pushed to GitHub.`n" -ForegroundColor Green
+Write-Host "`n⚡ Deploying to Vercel (production)..." -ForegroundColor Yellow
+vercel --prod
+
+Write-Host "`n✅ Done! Pushed to GitHub + deployed to Vercel prod.`n" -ForegroundColor Green

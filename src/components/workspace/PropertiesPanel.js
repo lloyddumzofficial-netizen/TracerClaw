@@ -1,13 +1,59 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Download, Monitor, ChevronDown, FolderDown, Loader2, Palette, X, Sparkles, Check } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  X,
+  ChevronDown,
+  AlertCircle,
+  Download,
+  Palette,
+  SplitSquareHorizontal,
+  CheckCircle2,
+  HelpCircle,
+  ExternalLink
+} from "lucide-react";
+
+/* ─── Custom Icons ──────────────────────────────────────────────────────── */
+
+const IconColorRings = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="9" r="5" />
+    <circle cx="8" cy="14" r="5" />
+    <circle cx="16" cy="14" r="5" />
+  </svg>
+);
+
+const IconBezier = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* The curved arc */}
+    <path d="M5 14c4-8 10-8 14 0" />
+    {/* Left node and handle */}
+    <circle cx="5" cy="14" r="1.5" />
+    <path d="M5 15.5v3.5" />
+    <circle cx="5" cy="20" r="1" />
+    {/* Right node and handle */}
+    <circle cx="19" cy="14" r="1.5" />
+    <path d="M19 15.5v3.5" />
+    <circle cx="19" cy="20" r="1" />
+  </svg>
+);
+
+const IconFileZip = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z" />
+    <polyline points="14 2 14 8 20 8" />
+    <path d="M10 12v2" />
+    <path d="M10 16v2" />
+    <path d="M14 12v6" />
+    <path d="M10 12h4" />
+    <path d="M10 14h4" />
+  </svg>
+);
 
 
-/**
- * PropertiesPanel — Right sidebar.
- * Matches the "AI TRACE SETTINGS" design from the workspace screenshot.
- */
+/* ─── Component ───────────────────────────────────────────────────────────── */
 const PropertiesPanel = memo(function PropertiesPanel({
   project,
   traceState,
@@ -27,319 +73,313 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const [vectorColors, setVectorColors] = useState("auto");
   const [svgEngine, setSvgEngine] = useState("standard");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [downloading, setDownloading] = useState(null);
 
   const creditCost = svgEngine === "precision" ? 2 : 1;
   const noCredits = userCredits !== null && userCredits < creditCost;
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url;
   const isBusy = traceState !== "idle" || isSavingCrop;
-  const [downloading, setDownloading] = useState(null);
   const canUsePaletteStudio = Boolean(project?.svg_url);
   const isLogoWorkspace = project?.trace_type === "logo";
+
   const cropWarningCopy = isLogoWorkspace
-    ? "For best logo vectors, crop tightly around the mark and remove empty background."
+    ? "Crop tightly around the mark and remove empty background."
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
-  const handoffItems = [
-    { label: "Input", value: isCropped ? "Cropped reference" : "Original upload" },
-    { label: "Artwork", value: project?.generated_image_url ? "Flat extracted" : "Not generated" },
-    { label: "Raster", value: project?.upscaled_image_url ? "HD PNG available" : "Not generated" },
-    { label: "Vector", value: project?.svg_url ? "SVG available" : "Not generated" },
-    { label: "Review", value: canUsePaletteStudio ? "Palette Studio ready" : "Workspace tools" },
-  ];
 
   const handleDownloadClick = async (type, handler) => {
     if (downloading) return;
     setDownloading(type);
-    try {
-      await handler();
-    } finally {
-      setDownloading(null);
-    }
+    try { await handler(); } finally { setDownloading(null); }
   };
 
   const traceButtonLabel = isSavingCrop
-    ? "Saving Crop..."
+    ? "Saving Crop…"
     : traceState !== "idle"
-      ? "Processing..."
+      ? "Processing…"
       : noCredits
         ? "Get More Credits"
         : !isCropped
           ? "Crop Image First"
-          : `Run Auto-Trace  (-${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
+          : `Run Auto-Trace  (−${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
 
   const canTrace = !isBusy && (noCredits || isCropped);
-  const secondaryActionGridStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "7px",
-  };
-  const secondaryActionLabelStyle = {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "20px",
-    minWidth: "74px",
-    lineHeight: 1.12,
-    textAlign: "center",
-  };
+
+  const exportDetails = [
+    { label: "File Format", value: "SVG", gold: false },
+    { label: "Max Vectors", value: "Unlimited", gold: false },
+    { label: "Color Mode", value: "Full Color", gold: false },
+    { label: "Max Size", value: "50 MP", gold: false },
+    { label: "Credits Required", value: `${creditCost} Credit`, gold: true },
+    { label: "Processing Time", value: "10 – 30 sec", gold: false },
+  ];
 
   return (
     <aside style={{
       width: "280px",
-      background: "#181818",
-      borderLeft: "1px solid #2a2a2a",
+      background: "#161616",
+      borderLeft: "1px solid #222",
       display: "flex",
       flexDirection: "column",
       flexShrink: 0,
-      minHeight: 0,
       height: "100%",
-      overflowY: "auto",
-      scrollbarGutter: "stable",
+      overflow: "hidden",
+      fontFamily: "var(--font-inter, 'Inter', sans-serif)",
     }}>
 
-      {/* ── Header ─────────────────────────────────────────── */}
+      <style>{`
+        .pp-card {
+          width: 100%; display: flex; align-items: center; gap: 12px;
+          background: transparent; border: 1px solid #333; color: #71717a;
+          padding: 10px 12px; cursor: pointer; text-align: left;
+          transition: border-color .15s, color .15s, background .15s;
+          border-radius: 0;
+        }
+        .pp-card.on { border-color: #FFD700; color: #e4e4e7; background: rgba(255, 215, 0, 0.04); }
+        .pp-card:not(.on):hover { border-color: #555; color: #a1a1aa; }
+
+        .pp-sec {
+          background: transparent; border: 1px solid #333; color: #a1a1aa;
+          min-height: 52px; padding: 6px;
+          font-size: 9px; font-weight: 600;
+          text-transform: uppercase; letter-spacing: 0.5px;
+          cursor: pointer; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 6px;
+          transition: all .15s; line-height: 1.3; text-align: center;
+          border-radius: 0;
+        }
+        .pp-sec:not(:disabled):hover { background: #222; border-color: #444; color: #e4e4e7; }
+        .pp-sec:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .pp-svg-btn {
+          width: 100%;
+          background: #FFD700;
+          border: none; color: #000; padding: 12px 14px;
+          font-size: 11px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 1.5px; cursor: pointer; display: flex;
+          align-items: center; justify-content: center; gap: 8px;
+          transition: all .15s ease;
+          border-radius: 0;
+        }
+        .pp-svg-btn:not(:disabled):hover {
+          background: #f0c900;
+          transform: translateY(-1px);
+        }
+        .pp-svg-btn:disabled {
+          background: #2a2a2a; color: #555;
+          cursor: not-allowed; transform: none;
+        }
+
+        .pp-sel-wrap { position: relative; display: flex; align-items: center; }
+        .pp-sel-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 1; color: #a1a1aa; }
+        .pp-sel {
+          width: 100%; background: transparent; border: 1px solid #333; color: #e4e4e7;
+          padding: 8px 30px 8px 34px;
+          font-size: 11px; font-weight: 600; appearance: none;
+          cursor: pointer; outline: none; transition: border-color .15s;
+          border-radius: 0;
+        }
+        .pp-sel:focus { border-color: #FFD700; }
+        .pp-sel-arr { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #a1a1aa; pointer-events: none; }
+
+        .pp-lbl {
+          display: block;
+          font-size: 9px; font-weight: 600; color: #71717a;
+          text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+        }
+        .pp-desc {
+          font-size: 10px; color: #52525b; line-height: 1.5; margin-top: 8px;
+        }
+
+        .pp-warn {
+          background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);
+          padding: 10px; display: flex; gap: 8px; align-items: flex-start;
+          border-radius: 0;
+        }
+        .pp-warn span {
+          font-size: 10px; color: #ef4444; line-height: 1.4;
+        }
+
+        .pp-row { display: flex; align-items: center; gap: 6px; height: 18px; margin-bottom: 2px;}
+        .pp-row-lbl {
+          font-size: 10px; color: #a1a1aa; white-space: nowrap;
+        }
+        .pp-row-val {
+          font-size: 10px; font-weight: 500; white-space: nowrap;
+        }
+        .pp-row-dot { flex: 1; border-bottom: 1px dotted #333; margin: 0 4px; }
+
+        @keyframes pp-spin { to { transform: rotate(360deg); } }
+        .pp-spin { animation: pp-spin .9s linear infinite; display: inline-flex; }
+      `}</style>
+
+      {/* ── HEADER ───────────────────────────────────────── */}
       <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "11px 14px",
-        borderBottom: "1px solid #2a2a2a",
-        background: "#1e1e1e",
-        flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 16px", borderBottom: "1px solid #222", flexShrink: 0,
       }}>
-        <span style={{ fontSize: "10px", fontWeight: "700", color: "#aaa", letterSpacing: "1.5px", textTransform: "uppercase" }}>
-          AI TRACE SETTINGS
-        </span>
-        <X size={13} color="#444" style={{ cursor: "pointer" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Sparkles size={14} color="#e4e4e7" />
+          <span style={{
+            fontSize: "11px", fontWeight: "600",
+            color: "#fff", letterSpacing: "1px", textTransform: "uppercase",
+          }}>AI Trace Settings</span>
+        </div>
+        <button style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", display: "flex" }}
+          onClick={() => { }} aria-label="Close panel">
+          <X size={14} color="#71717a" />
+        </button>
       </div>
 
-      {/* ── Vector Engine ───────────────────────────────────── */}
-      <div style={{ padding: "16px 14px", borderBottom: "1px solid #2a2a2a" }}>
-        <label style={{ fontSize: "10px", color: "#666", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "8px", fontWeight: "600" }}>
-          Color Detail
-        </label>
-        <div style={{ position: "relative" }}>
-          <select
-            value={vectorColors}
-            onChange={(e) => setVectorColors(e.target.value)}
-            style={{
-              width: "100%",
-              background: "#242424",
-              border: "1px solid #383838",
-              color: "#ddd",
-              padding: "8px 32px 8px 10px",
-              fontSize: "12px",
-              appearance: "none",
-              cursor: "pointer",
-              outline: "none",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={e => e.target.style.borderColor = "#FFD700"}
-            onBlur={e => e.target.style.borderColor = "#383838"}
-          >
-            <option value="auto" style={{ background: "#242424" }}>Auto (Precision Balance)</option>
-            <option value="16" style={{ background: "#242424" }}>16 Colors (High Details)</option>
-            <option value="8" style={{ background: "#242424" }}>8 Colors (Medium Details)</option>
-            <option value="4" style={{ background: "#242424" }}>4 Colors (Merges Shadows)</option>
-            <option value="2" style={{ background: "#242424" }}>2 Colors (Solid / Line Art)</option>
+      {/* ── COLOR DETAIL ─────────────────────────────────── */}
+      <div style={{ padding: "14px 16px", flexShrink: 0 }}>
+        <span className="pp-lbl">Color Detail</span>
+        <div className="pp-sel-wrap">
+          <span className="pp-sel-ico"><IconColorRings /></span>
+          <select value={vectorColors} onChange={e => setVectorColors(e.target.value)} className="pp-sel">
+            <option value="auto" style={{ background: "#161616" }}>Auto (Precision Balance)</option>
+            <option value="16" style={{ background: "#161616" }}>16 Colors (High Details)</option>
+            <option value="8" style={{ background: "#161616" }}>8 Colors (Medium Details)</option>
+            <option value="4" style={{ background: "#161616" }}>4 Colors (Merges Shadows)</option>
+            <option value="2" style={{ background: "#161616" }}>2 Colors (Solid / Line Art)</option>
           </select>
-          <ChevronDown size={12} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#666", pointerEvents: "none" }} />
+          <span className="pp-sel-arr"><ChevronDown size={14} /></span>
         </div>
-        <p style={{ marginTop: "8px", fontSize: "10px", color: "#555", lineHeight: 1.5 }}>
-          Automatically balances detail and performance for the best vector output.
-        </p>
+        <p className="pp-desc">Automatically balances detail and performance for the best vector output.</p>
+      </div>
 
-        <label style={{ fontSize: "10px", color: "#666", textTransform: "uppercase", letterSpacing: "1px", display: "block", margin: "14px 0 8px", fontWeight: "600" }}>
-          SVG Mode
-        </label>
-        <div style={{ display: "grid", gap: "7px" }}>
-          <button
-            type="button"
-            className="svg-engine-option"
-            onClick={() => setSvgEngine("standard")}
-            style={engineButtonStyle(svgEngine === "standard")}
-            onMouseOver={e => { if (svgEngine !== "standard") { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#aaa"; } }}
-            onMouseOut={e => { if (svgEngine !== "standard") { e.currentTarget.style.borderColor = "#282828"; e.currentTarget.style.color = "#777"; } }}
-          >
-            <span>
-              <strong>Standard SVG</strong>
-              <small>1 Credit • Includes Palette Studio</small>
-            </span>
-            <b style={{ border: "none", color: svgEngine === "standard" ? "#FFD700" : "#555" }}>1</b>
+      {/* ── SVG MODE ─────────────────────────────────────── */}
+      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+        <span className="pp-lbl">SVG Mode</span>
+        <div style={{ display: "grid", gap: "8px" }}>
+
+          {/* Standard */}
+          <button type="button" className={`pp-card${svgEngine === "standard" ? " on" : ""}`}
+            onClick={() => setSvgEngine("standard")}>
+            <div style={{ color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
+              <IconBezier />
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "standard" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
+                Standard SVG
+              </div>
+              <div style={{ fontSize: "9px", color: "#71717a" }}>
+                1 Credit • Includes Palette Studio
+              </div>
+            </div>
+            <div style={{
+              width: "22px", height: "22px", border: "1px solid", borderColor: svgEngine === "standard" ? "#FFD700" : "#333",
+              background: "transparent", color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa",
+              fontSize: "11px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0
+            }}>1</div>
           </button>
-          <button
-            type="button"
-            className="svg-engine-option"
-            onClick={() => setSvgEngine("precision")}
-            style={engineButtonStyle(svgEngine === "precision")}
-            onMouseOver={e => { if (svgEngine !== "precision") { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#aaa"; } }}
-            onMouseOut={e => { if (svgEngine !== "precision") { e.currentTarget.style.borderColor = "#282828"; e.currentTarget.style.color = "#777"; } }}
-          >
-            <span>
-              <strong><Sparkles size={11} /> Precision SVG</strong>
-              <small>2 Credits • Cleaner paths + smoother Palette Studio</small>
-            </span>
-            <b style={{ border: "none", color: svgEngine === "precision" ? "#FFD700" : "#555" }}>2</b>
+
+          {/* Precision */}
+          <button type="button" className={`pp-card${svgEngine === "precision" ? " on" : ""}`}
+            onClick={() => setSvgEngine("precision")}>
+            <div style={{ color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
+              <Sparkles size={16} />
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "precision" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
+                Precision SVG
+              </div>
+              <div style={{ fontSize: "9px", color: "#71717a" }}>
+                2 Credits • Cleaner paths + smoother Palette Studio
+              </div>
+            </div>
+            <div style={{
+              width: "22px", height: "22px", border: "1px solid", borderColor: svgEngine === "precision" ? "#FFD700" : "#333",
+              background: "transparent", color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa",
+              fontSize: "11px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0
+            }}>2</div>
           </button>
         </div>
-        <p style={{ marginTop: "8px", fontSize: "10px", color: "#555", lineHeight: 1.5 }}>
+
+        <p className="pp-desc">
           {isLogoWorkspace
             ? "Precision is best for logos with small text, circles, and tight curves."
             : "Precision is best for logos, marks, and clean artwork that needs tighter SVG paths."}
         </p>
       </div>
 
-      {/* ── Advanced Settings (collapsible) ────────────────── */}
-      <div style={{ borderBottom: "1px solid #2a2a2a" }}>
-        <button
-          onClick={() => setAdvancedOpen(v => !v)}
+      {/* ── ADVANCED SETTINGS ────────────────────────────── */}
+      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+        <button onClick={() => setAdvancedOpen(v => !v)}
           style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 14px",
-            background: "none",
-            border: "none",
-            color: "#777",
-            cursor: "pointer",
-            fontSize: "11px",
-            fontWeight: "600",
-            letterSpacing: "0.5px",
-            transition: "color 0.15s",
+            width: "100%", display: "flex", alignItems: "center",
+            justifyContent: "space-between", padding: "10px 12px",
+            background: "transparent", border: "1px solid #333",
+            color: "#e4e4e7", cursor: "pointer",
+            fontSize: "9px", fontWeight: "600",
+            letterSpacing: "0.5px", textTransform: "uppercase", transition: "border-color .15s",
           }}
-          onMouseOver={e => e.currentTarget.style.color = "#ccc"}
-          onMouseOut={e => e.currentTarget.style.color = "#777"}
+          onMouseOver={e => e.currentTarget.style.borderColor = "#444"}
+          onMouseOut={e => e.currentTarget.style.borderColor = "#333"}
         >
-          Advanced Settings
-          <ChevronDown size={12} style={{ transform: advancedOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+          <span>Advanced Settings</span>
+          <ChevronDown size={14} style={{ transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
         </button>
-
         {advancedOpen && (
-          <div style={{ padding: "0 14px 14px" }}>
-            <div style={{ background: "rgba(255,68,68,0.05)", borderLeft: "2px solid #ff4444", padding: "8px 10px", marginBottom: "8px", fontSize: "10.5px", color: "#ff8888", display: "flex", gap: "8px", alignItems: "flex-start", lineHeight: 1.4 }}>
-              <span style={{ fontWeight: "bold", background: "rgba(255,68,68,0.2)", borderRadius: "50%", width: "14px", height: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>!</span>
-              <span>{cropWarningCopy}</span>
-            </div>
+          <div style={{ paddingTop: "8px" }}>
+            <div className="pp-warn"><AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span></div>
           </div>
         )}
       </div>
 
-      {/* ── ACTIONS ────────────────────────────────────────── */}
-      <div style={{ padding: "12px 12px 10px", borderBottom: "1px solid #2a2a2a", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "9px" }}>
-          <span style={{ fontSize: "10px", fontWeight: "700", color: "#aaa", letterSpacing: "1.5px", textTransform: "uppercase" }}>ACTIONS</span>
-        </div>
+      {/* ── ACTIONS ──────────────────────────────────────── */}
+      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+        <span className="pp-lbl">Actions</span>
 
-        {/* Warning if not cropped */}
+        {/* Warning — only when Advanced is closed */}
         {!advancedOpen && (
-          <div style={{ background: "rgba(255,68,68,0.05)", borderLeft: "2px solid #ff4444", padding: "7px 9px", marginBottom: "9px", fontSize: "9.5px", color: "#ff8888", display: "flex", gap: "7px", alignItems: "flex-start", lineHeight: 1.35 }}>
-            <span style={{ fontWeight: "bold", background: "rgba(255,68,68,0.2)", borderRadius: "50%", width: "13px", height: "13px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "9px" }}>!</span>
-            <span>{cropWarningCopy}</span>
+          <div className="pp-warn" style={{ marginBottom: "10px" }}>
+            <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
           </div>
         )}
 
-        {/* Primary: Export SVG — ghost yellow outline button */}
-        <button
-          onClick={() => handleDownloadClick('svg', onDownloadSvg)}
+        {/* Export as SVG */}
+        <button className="pp-svg-btn"
+          onClick={() => handleDownloadClick("svg", onDownloadSvg)}
           disabled={!project?.svg_url || !!downloading}
-          style={{
-            width: "100%",
-            background: project?.svg_url && !downloading ? "rgba(255, 215, 0, 0.12)" : "rgba(255, 255, 255, 0.02)",
-            border: "1px solid " + (project?.svg_url && !downloading ? "#FFD700" : "#2a2a2a"),
-            color: project?.svg_url && !downloading ? "#FFD700" : "#555",
-            padding: "11px 14px",
-            fontSize: "12px",
-            fontWeight: "900",
-            textTransform: "uppercase",
-            letterSpacing: "1.5px",
-            cursor: project?.svg_url && !downloading ? "pointer" : "not-allowed",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            marginBottom: "7px",
-            transition: "all 0.2s",
-          }}
-          onMouseOver={e => { 
-            if (project?.svg_url && !downloading) {
-              e.currentTarget.style.background = "#FFD700";
-              e.currentTarget.style.color = "#000";
-            }
-          }}
-          onMouseOut={e => { 
-            if (project?.svg_url && !downloading) {
-              e.currentTarget.style.background = "rgba(255, 215, 0, 0.12)";
-              e.currentTarget.style.color = "#FFD700";
-            }
-          }}
-        >
-          {downloading === 'svg' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} strokeWidth={2.5} />}
+          style={{ marginBottom: "8px" }}>
+          {downloading === "svg"
+            ? <span className="pp-spin"><Loader2 size={16} /></span>
+            : <Download size={16} />}
           Export as SVG
         </button>
 
-        <div style={secondaryActionGridStyle}>
-          {/* Download All ZIP */}
-          <button
-            onClick={() => handleDownloadClick('all', onDownloadAll)}
-            disabled={!project?.original_image_url || !!downloading}
-            style={secondaryBtnStyle(!!project?.original_image_url && !downloading)}
-            onMouseOver={e => { if (project?.original_image_url && !downloading) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
-            onMouseOut={e => { if (project?.original_image_url && !downloading) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
-          >
-            {downloading === 'all' ? <Loader2 size={13} className="animate-spin" /> : <FolderDown size={13} />}
-            <span style={secondaryActionLabelStyle}>
-              <span>Download All</span>
-              <span>(ZIP)</span>
-            </span>
+        {/* 2×2 grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          <button className="pp-sec"
+            onClick={() => handleDownloadClick("all", onDownloadAll)}
+            disabled={!project?.original_image_url || !!downloading}>
+            {downloading === "all" ? <span className="pp-spin"><Loader2 size={15} /></span> : <IconFileZip />}
+            <span>Download<br />All (ZIP)</span>
           </button>
-
-          {/* Export 4K PNG */}
-          <button
-            onClick={() => handleDownloadClick('raster', onDownloadRaster)}
-            disabled={!project?.upscaled_image_url || !!downloading}
-            style={secondaryBtnStyle(!!project?.upscaled_image_url && !downloading)}
-            onMouseOver={e => { if (project?.upscaled_image_url && !downloading) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
-            onMouseOut={e => { if (project?.upscaled_image_url && !downloading) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
-          >
-            {downloading === 'raster' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-            <span style={secondaryActionLabelStyle}>
-              <span>Export as</span>
-              <span>PNG</span>
-            </span>
+          <button className="pp-sec"
+            onClick={() => handleDownloadClick("raster", onDownloadRaster)}
+            disabled={!project?.upscaled_image_url || !!downloading}>
+            {downloading === "raster" ? <span className="pp-spin"><Loader2 size={15} /></span> : <Download size={15} />}
+            <span>Export<br />as PNG</span>
           </button>
-
-          {/* Before / After Compare */}
-          <button
+          <button className="pp-sec"
             onClick={onOpenPalettePreview}
             disabled={!project?.svg_url}
-            title={canUsePaletteStudio ? "Open Palette Studio" : "Generate SVG first"}
-            style={secondaryBtnStyle(canUsePaletteStudio)}
-            onMouseOver={e => { if (canUsePaletteStudio) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
-            onMouseOut={e => { if (canUsePaletteStudio) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
-          >
-            <Palette size={13} />
-            <span style={secondaryActionLabelStyle}>
-              <span>Palette</span>
-              <span>Preview</span>
-            </span>
+            title={canUsePaletteStudio ? "Open Palette Studio" : "Generate SVG first"}>
+            <Palette size={15} />
+            <span>Palette<br />Preview</span>
           </button>
-
-          <button
+          <button className="pp-sec"
             onClick={onOpenCompare}
-            disabled={!project?.svg_url}
-            style={secondaryBtnStyle(!!project?.svg_url)}
-            onMouseOver={e => { if (project?.svg_url) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
-            onMouseOut={e => { if (project?.svg_url) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
-          >
-            <Monitor size={13} />
-            <span style={secondaryActionLabelStyle}>
-              <span>Before / After</span>
-              <span>Compare</span>
-            </span>
+            disabled={!project?.svg_url}>
+            <SplitSquareHorizontal size={15} />
+            <span>Before /<br />After Compare</span>
           </button>
         </div>
 
+        {/* Run Trace (shown only when no SVG yet) */}
         {!project?.svg_url && (
           <button
             onClick={() => {
@@ -349,180 +389,76 @@ const PropertiesPanel = memo(function PropertiesPanel({
             }}
             disabled={isBusy || (!isCropped && !noCredits)}
             style={{
-              width: "100%",
-              background: isBusy
-                ? "transparent"
-                : (noCredits || isCropped)
-                  ? "rgba(255, 215, 0, 0.12)"
-                  : "rgba(255, 255, 255, 0.02)",
-              border: "1px solid " + (
-                isBusy ? "#2a2a2a" :
-                  (noCredits || isCropped) ? "#FFD700" : "#2a2a2a"
-              ),
-              color: isBusy
-                ? "#555"
-                : (noCredits || isCropped)
-                  ? "#FFD700"
-                  : "#555",
-              padding: "12px 16px",
-              fontSize: "11px",
-              fontWeight: "900",
-              textTransform: "uppercase",
-              letterSpacing: "1.5px",
-              whiteSpace: "nowrap",
+              marginTop: "8px", width: "100%", padding: "12px 14px",
+              fontSize: "10px", fontWeight: "700",
+              textTransform: "uppercase", letterSpacing: "1px",
               cursor: canTrace ? "pointer" : "not-allowed",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              marginTop: "7px",
-              opacity: isBusy ? 0.6 : 1,
-              transition: "all 0.2s",
-            }}
-            onMouseOver={e => {
-              if (!isBusy && (noCredits || isCropped)) {
-                e.currentTarget.style.background = "#FFD700";
-                e.currentTarget.style.color = "#000";
-              }
-            }}
-            onMouseOut={e => {
-              if (!isBusy && (noCredits || isCropped)) {
-                e.currentTarget.style.background = "rgba(255, 215, 0, 0.12)";
-                e.currentTarget.style.color = "#FFD700";
-              }
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+              transition: "all .15s",
+              background: isBusy ? "transparent" : (noCredits || isCropped) ? "rgba(255,215,0,0.1)" : "transparent",
+              border: "1px solid " + (isBusy ? "#333" : (noCredits || isCropped) ? "#FFD700" : "#333"),
+              color: isBusy ? "#555" : (noCredits || isCropped) ? "#FFD700" : "#a1a1aa",
             }}
           >
+            {isBusy && <span className="pp-spin"><Loader2 size={14} /></span>}
             {traceButtonLabel}
           </button>
         )}
       </div>
 
-      {/* ── Output details + Console area ───────────────── */}
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        background: "#171717",
-        borderTop: "1px solid #2a2a2a",
-        flexShrink: 0,
-      }}>
-        <div style={{
-          padding: "13px 12px 12px",
-          borderBottom: "1px solid #262626",
-          background: "linear-gradient(180deg, #1b1b1b, #171717)",
-        }}>
-          <div style={{ marginBottom: "12px" }}>
-            <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#e1e1e1", letterSpacing: "1.2px", textTransform: "uppercase" }}>
-              Output Details
-            </span>
-            <small style={{ display: "block", marginTop: "4px", color: "#6d6d6d", fontSize: "10px", lineHeight: 1.35 }}>
-              Clean production snapshot for this workspace.
-            </small>
-          </div>
-
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            background: "transparent",
-            padding: "8px 0 4px",
-          }}>
-            {handoffItems.map((item, index) => {
-              const isActive = item.value !== "Not generated";
-              return (
-                <div key={item.label} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  minHeight: "22px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "7px", width: "70px", flexShrink: 0 }}>
-                    <div style={{ width: "10px", display: "flex", justifyContent: "center" }}>
-                      {isActive ? (
-                        <Check size={11} color="#FFD700" strokeWidth={3.5} />
-                      ) : (
-                        <div style={{ width: "4px", height: "1px", background: "#444" }} />
-                      )}
-                    </div>
-                    <span style={{
-                      color: isActive ? "#999" : "#555",
-                      fontSize: "9px",
-                      fontWeight: "800",
-                      letterSpacing: "1px",
-                      textTransform: "uppercase",
-                    }}>
-                      {item.label}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1, borderBottom: "1px dotted #333" }} />
-                  <span style={{
-                    color: isActive ? "#fff" : "#444",
-                    fontSize: "9.5px",
-                    fontWeight: "500",
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    whiteSpace: "nowrap",
-                  }}>
-                    {item.value}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <p style={{
-            margin: "10px 0 0",
-            color: "#666",
-            fontSize: "10px",
-            lineHeight: 1.45,
-          }}>
-            Export files from the action buttons above after reviewing the output.
-          </p>
+      {/* ── EXPORT DETAILS ───────────────────────────────── */}
+      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+        <span className="pp-lbl">Export Details</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {exportDetails.map(({ label, value, gold }) => (
+            <div key={label} className="pp-row">
+              <CheckCircle2 size={12} color="#FFD700" />
+              <span className="pp-row-lbl">{label}</span>
+              <div className="pp-row-dot" />
+              <span className="pp-row-val" style={{ color: gold ? "#FFD700" : "#e4e4e7", fontWeight: gold ? "600" : "400" }}>
+                {value}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* ── HELP FOOTER ──────────────────────────────────── */}
+      <div style={{
+        padding: "16px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
+        background: "transparent", borderTop: "1px solid #222", flexShrink: 0,
+        marginTop: "auto",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <HelpCircle size={18} color="#FFD700" />
+          <div>
+            <div style={{ fontSize: "10px", fontWeight: "600", color: "#e4e4e7", marginBottom: "2px" }}>
+              Need help?
+            </div>
+            <div style={{ fontSize: "9px", color: "#a1a1aa" }}>
+              View guide or contact support.
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => window.open("https://help.desaynclaw.com", "_blank")}
+          style={{
+            background: "transparent", border: "1px solid #333", color: "#a1a1aa",
+            fontSize: "8px", fontWeight: "700", letterSpacing: "0.5px",
+            textTransform: "uppercase", padding: "6px 10px", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: "6px",
+            transition: "all .15s"
+          }}
+          onMouseOver={e => e.currentTarget.style.borderColor = "#555"}
+          onMouseOut={e => e.currentTarget.style.borderColor = "#333"}
+        >
+          View Guide <ExternalLink size={10} />
+        </button>
+      </div>
+
     </aside>
   );
 });
-
-// Secondary button style helper
-function secondaryBtnStyle(active) {
-  return {
-    width: "100%",
-    background: "#1c1c1c",
-    border: "1px solid #282828",
-    color: active ? "#b8b8b8" : "#555",
-    minHeight: "42px",
-    padding: "6px 6px",
-    fontSize: "9.8px",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    lineHeight: 1.18,
-    textAlign: "center",
-    cursor: active ? "pointer" : "not-allowed",
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    opacity: active ? 1 : 0.4,
-    transition: "color 0.2s",
-  };
-}
-
-function engineButtonStyle(active) {
-  return {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "10px",
-    background: active ? "rgba(255, 215, 0, 0.08)" : "#1c1c1c",
-    border: "1px solid " + (active ? "#FFD700" : "#282828"),
-    color: active ? "#fff" : "#777",
-    padding: "9px 10px",
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "all 0.2s",
-  };
-}
 
 export default PropertiesPanel;

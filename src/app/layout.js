@@ -1,10 +1,22 @@
-import { Inter } from "next/font/google";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { ToastContainer } from "@/components/ui/Toast";
 import MobileWarning from "@/components/shared/MobileWarning";
 import CookieConsent from "@/components/shared/CookieConsent";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-space-grotesk",
+  weight: ["400", "500", "600", "700"],
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
+  weight: ["400", "500", "600"],
+});
 
 export const metadata = {
   metadataBase: new URL("https://desaynclaw.com"),
@@ -223,7 +235,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
         {isMaintenance ? (
           <MaintenanceScreen />
         ) : (
