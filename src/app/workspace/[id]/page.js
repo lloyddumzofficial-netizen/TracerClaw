@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/utils/supabase/client";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Palette, X } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "./hooks/useTraceExecution";
@@ -29,7 +29,6 @@ import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
 import StudioShell from "@/app/components/StudioShell";
 import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
-import { formatSavedAgo } from "@/lib/formatSavedAgo";
 import { getWorkspaceTitle } from "@/lib/workspaceLabels";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
@@ -65,6 +64,7 @@ export default function Workspace() {
   const [showRemoveBgModal, setShowRemoveBgModal] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [showPalettePreview, setShowPalettePreview] = useState(false);
+  const [showPaletteNudge, setShowPaletteNudge] = useState(false);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -231,9 +231,15 @@ export default function Workspace() {
   const onExecuteTrace = useCallback(async (vectorColors, svgEngine) => {
     const result = await handleExecuteTrace(vectorColors, svgEngine);
     if (result?.success) {
-      setShowPalettePreview(true);
+      setShowPaletteNudge(true);
     }
   }, [handleExecuteTrace]);
+
+  useEffect(() => {
+    if (!showPaletteNudge) return;
+    const timer = window.setTimeout(() => setShowPaletteNudge(false), 14000);
+    return () => window.clearTimeout(timer);
+  }, [showPaletteNudge]);
 
   // ─── Crop Handlers ────────────────────────────────────────────────────────
   const handleCropApplied = useCallback((publicUrl, errorMsg) => {
@@ -294,12 +300,24 @@ export default function Workspace() {
   }, []);
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  // Format "Saved X minutes ago" for the project bar
-  const savedAgo = formatSavedAgo(project?.updated_at);
   const isBusy = traceState !== "idle" || isSavingCrop;
   const hasProject = !!project;
   const hasSvg = !!project?.svg_url;
   const workspaceTitle = getWorkspaceTitle(project?.trace_type);
+  const workspaceCommandBar = project ? (
+    <WorkspaceCommandBar
+      activeTool={activeTool}
+      isBusy={isBusy}
+      hasProject={hasProject}
+      hasSvg={hasSvg}
+      onSelectTool={setActiveTool}
+      onOpenCrop={() => setShowCropModal(true)}
+      onOpenErase={() => setShowEraseModal(true)}
+      onOpenRemoveBg={() => setShowRemoveBgModal(true)}
+      onOpenCompare={() => setShowCompare(true)}
+      onOpenPalettePreview={() => setShowPalettePreview(true)}
+    />
+  ) : null;
 
   if (isMobileDevice !== false) {
     return <DesktopRequiredNotice />;
@@ -309,26 +327,10 @@ export default function Workspace() {
     <>
       <StudioShell
         title={workspaceTitle}
-        projectName={project?.name}
-        savedAgo={savedAgo}
         credits={userCredits}
         onHome={() => router.push("/")}
         onCreditsClick={() => setShowTopUpModal(true)}
         onShortcuts={() => setShowShortcuts(true)}
-        commandBar={project && (
-          <WorkspaceCommandBar
-            activeTool={activeTool}
-            isBusy={isBusy}
-            hasProject={hasProject}
-            hasSvg={hasSvg}
-            onSelectTool={setActiveTool}
-            onOpenCrop={() => setShowCropModal(true)}
-            onOpenErase={() => setShowEraseModal(true)}
-            onOpenRemoveBg={() => setShowRemoveBgModal(true)}
-            onOpenCompare={() => setShowCompare(true)}
-            onOpenPalettePreview={() => setShowPalettePreview(true)}
-          />
-        )}
         statusLeft={project?.svg_url ? (
           <>
             <CheckCircle2 size={12} color="#4ade80" />
@@ -360,6 +362,7 @@ export default function Workspace() {
               project={project}
               traceState={traceState}
               nodeErrors={nodeErrors}
+              commandBar={workspaceCommandBar}
             />
           )}
         </div>
@@ -382,6 +385,34 @@ export default function Workspace() {
           onOpenTopUp={() => setShowTopUpModal(true)}
         />
       </main>
+
+      {showPaletteNudge && project?.svg_url && (
+        <div className="palette-ready-nudge" role="status" aria-live="polite">
+          <div>
+            <strong>Palette Studio ready</strong>
+            <span>Edit or merge SVG colors when needed.</span>
+          </div>
+          <button
+            type="button"
+            className="palette-ready-action"
+            onClick={() => {
+              setShowPaletteNudge(false);
+              setShowPalettePreview(true);
+            }}
+          >
+            <Palette size={14} />
+            View Palette
+          </button>
+          <button
+            type="button"
+            className="palette-ready-close"
+            onClick={() => setShowPaletteNudge(false)}
+            aria-label="Dismiss Palette Studio ready notice"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       </StudioShell>
 

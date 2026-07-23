@@ -7,6 +7,8 @@ import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
 
+const DEFAULT_CROP_ZOOM = 0.5;
+
 function CropGuidePhoto({ title, body, tone, imageSrc, imageAlt, boxClassName }) {
   return (
     <div className={`crop-guide-card ${tone === "good" ? "is-good" : "is-bad"}`}>
@@ -48,12 +50,12 @@ const CropModal = memo(function CropModal({
   const [completedCrop, setCompletedCrop] = useState(null);
   const [cropError, setCropError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [cropZoom, setCropZoom] = useState(1);
+  const [cropZoom, setCropZoom] = useState(DEFAULT_CROP_ZOOM);
   const imgRef = useRef(null);
 
   useEffect(() => {
     if (show) {
-      setCropZoom(1);
+      setCropZoom(DEFAULT_CROP_ZOOM);
       setCrop(undefined);
       setCompletedCrop(null);
       setCropError("");
@@ -188,7 +190,7 @@ const CropModal = memo(function CropModal({
                   <button type="button" onClick={() => setCropZoom(z => Math.min(3, Number((z + 0.1).toFixed(2))))} aria-label="Zoom in">
                     <Plus size={12} />
                   </button>
-                  <button type="button" onClick={() => setCropZoom(1)} aria-label="Fit image">
+                  <button type="button" onClick={() => setCropZoom(DEFAULT_CROP_ZOOM)} aria-label="Fit image">
                     <Maximize size={12} />
                   </button>
                 </div>

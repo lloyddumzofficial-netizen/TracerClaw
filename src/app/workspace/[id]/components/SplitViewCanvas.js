@@ -8,6 +8,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   project,
   traceState,
   nodeErrors,
+  commandBar,
 }) {
   const [activeTab, setActiveTab] = useState("generated");
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -193,29 +194,17 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   else if (activeTab === "upscaled") activeUrl = proxyUpscaled;
   else if (activeTab === "svg") activeUrl = proxySvg;
 
-  const hasShownSvgAlert = useRef(false);
-  const [showSvgAlert, setShowSvgAlert] = useState(false);
-
   // Auto-switch tabs when new stages complete OR start
   useEffect(() => {
     if (traceState === "step1") setActiveTab("generated");
     else if (traceState === "step2") setActiveTab("upscaled");
     else if (traceState === "step3") setActiveTab("svg");
     else if (traceState === "idle") {
-      if (project?.svg_url) setActiveTab("svg");
-      else if (project?.upscaled_image_url) setActiveTab("upscaled");
+      if (project?.upscaled_image_url) setActiveTab("upscaled");
+      else if (project?.svg_url) setActiveTab("svg");
       else if (project?.generated_image_url) setActiveTab("generated");
     }
   }, [traceState, project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
-
-  useEffect(() => {
-    if (project?.svg_url && !hasShownSvgAlert.current && activeTab !== "svg") {
-      setShowSvgAlert(true);
-      hasShownSvgAlert.current = true;
-      const t = setTimeout(() => setShowSvgAlert(false), 12000);
-      return () => clearTimeout(t);
-    }
-  }, [project?.svg_url, activeTab]);
 
   useEffect(() => {
     if (traceState !== "idle") {
@@ -338,33 +327,30 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   return (
     <div ref={containerRef} style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
 
-      {/* ── Sub-toolbar: context LEFT, zoom controls CENTER ── */}
-      <div style={{ display: "flex", alignItems: "center", padding: "0 16px", background: "#1e1e1e", borderBottom: "1px solid #333", height: "38px", flexShrink: 0, gap: "8px" }}>
-
-        {/* Left: workspace context */}
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <span style={{ color: "#555", fontSize: "10px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px", marginRight: "4px" }}>ORIGINAL UPLOAD</span>
-        </div>
-
-        {/* Center: zoom */}
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "6px" }}>
+      {/* ── Stage toolbar ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", background: "#1e1e1e", borderBottom: "1px solid #333", height: "38px", flexShrink: 0 }}>
+        <div style={{ minWidth: 0, display: "flex", alignItems: "center", padding: "0 12px", gap: "10px", borderRight: "1px solid #2a2a2a", overflow: "hidden" }}>
+          {commandBar || (
+            <span style={{ color: "#555", fontSize: "10px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px", marginRight: "auto" }}>ORIGINAL UPLOAD</span>
+          )}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
           <button onClick={() => setZoomLevel(z => Math.max(0.25, z - 0.25))} style={zoomBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor="#333"}>−</button>
           <span style={{ color: "#FFD700", fontSize: "11px", minWidth: "42px", textAlign: "center", fontWeight: "600", fontFamily: "monospace" }}>{Math.round(zoomLevel * 100)}%</span>
           <button onClick={() => setZoomLevel(z => Math.min(5, z + 0.25))} style={zoomBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor="#333"}>+</button>
-          <div style={{ width: "1px", height: "14px", background: "#333", margin: "0 4px" }} />
           <button onClick={() => setZoomLevel(1)} style={{ ...zoomBtnStyle, border: "none", color: "#888", padding: "4px 8px" }} onMouseOver={e => e.currentTarget.style.color="#FFD700"} onMouseOut={e => e.currentTarget.style.color="#888"}>
             <Maximize size={12} style={{ display: "inline", marginRight: "4px", verticalAlign: "middle" }} />Fit
           </button>
+          </div>
         </div>
 
-        {/* Right: right-panel tab label */}
-        <div style={{ display: "flex", gap: "0", alignItems: "stretch", height: "100%" }}>
+        <div style={{ minWidth: 0, display: "flex", alignItems: "stretch" }}>
+          <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", height: "100%" }}>
           {tabs.map((tab, i) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setShowSvgAlert(false); }}
+              onClick={() => setActiveTab(tab.id)}
               style={{
-                padding: "0 14px",
+                padding: "0 10px",
                 background: activeTab === tab.id ? "#111" : "transparent",
                 border: "none",
                 borderLeft: i > 0 ? "1px solid #333" : "1px solid #333",
@@ -387,20 +373,9 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               {activeTab === tab.id && (
                 <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", background: "#FFD700" }} />
               )}
-              {/* SVG ready tooltip */}
-              {tab.id === "svg" && showSvgAlert && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-                  background: "#FFD700", color: "#000", padding: "6px 12px",
-                  fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", whiteSpace: "nowrap", zIndex: 100,
-                  boxShadow: "0 4px 16px rgba(255, 215, 0, 0.4)", pointerEvents: "none"
-                }}>
-                  <div style={{ position: "absolute", top: "-5px", left: "50%", transform: "translateX(-50%)", borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "5px solid #FFD700" }} />
-                  Vector is Ready! Click here.
-                </div>
-              )}
             </button>
           ))}
+          </div>
         </div>
       </div>
 

@@ -57,61 +57,15 @@ function HomepageWorkflowPreview() {
       </div>
 
       <div className="workflow-mockup" aria-hidden="true">
-        <div className="mock-window mock-window-main">
-          <div className="mock-window-dots"><span /><span /><span /></div>
-          <div className="mock-toolbar">
-            <div className="mock-tool active"><ImageIcon size={13} /></div>
-            <div className="mock-tool"><Scissors size={13} /></div>
-            <div className="mock-tool"><Scan size={13} /></div>
-            <div className="mock-tool"><Code2 size={13} /></div>
-          </div>
-          <div className="mock-artboard">
-            <div className="mock-sale-type">
-              <span>SVG</span>
-              <strong>VECTOR</strong>
-            </div>
-            <div className="mock-jersey">
-              <img src="/samples/workflow-crop-front.webp" alt="" />
-            </div>
-            <div className="mock-crop-line" />
-          </div>
-        </div>
-
-        <div className="mock-window mock-window-panel">
-          <div className="mock-window-dots"><span /><span /><span /></div>
-          <div className="mock-control-row">
-            <div>
-              <span>Shadow Killer</span>
-              <strong>8 Colors</strong>
-            </div>
-            <Scissors size={19} />
-          </div>
-          <div className="mock-slider">
-            <span className="mock-checker" />
-            <div><span /></div>
-          </div>
-          <div className="mock-control-row">
-            <div>
-              <span>Export</span>
-              <strong>Illustrator-ready SVG</strong>
-            </div>
-            <Code2 size={20} />
-          </div>
-          <div className="mock-color-row">
-            <span>Background</span>
-            <div><i /> Transparent</div>
-          </div>
-        </div>
-
-        <div className="mock-output-card">
-          <div className="checker-card">
-            <img src="/samples/workflow-crop-front.webp" alt="" />
-          </div>
-          <div>
-            <strong>Vector Ready</strong>
-            <span>SVG + 4K PNG + ZIP</span>
-          </div>
-        </div>
+        <figure className="production-shot production-shot-main">
+          <img src="/samples/production-preview/workspace-result.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure className="production-shot production-shot-process">
+          <img src="/samples/production-preview/processing.jpg" alt="" loading="lazy" />
+        </figure>
+        <figure className="production-shot production-shot-palette">
+          <img src="/samples/production-preview/palette-studio.jpg" alt="" loading="lazy" />
+        </figure>
       </div>
     </section>
   );

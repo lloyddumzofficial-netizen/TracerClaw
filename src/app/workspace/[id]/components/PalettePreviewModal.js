@@ -495,9 +495,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     if (Math.abs(event.clientX - drag.startX) > 3 || Math.abs(event.clientY - drag.startY) > 3) {
       drag.moved = true;
     }
-    // Allow child bubbles to leave their source cluster so users can drop them
-    // onto another color cluster, matching the Vectorizer-style interaction.
-    drag.nextChild = { left: clamp(x, -80, 180), top: clamp(y, -80, 180) };
+    drag.nextChild = { left: clamp(x, 16, 84), top: clamp(y, 16, 84) };
     if (childBubbleFrameRef.current) return;
 
     childBubbleFrameRef.current = requestAnimationFrame(() => {

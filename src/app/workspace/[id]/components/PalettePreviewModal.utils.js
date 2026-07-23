@@ -146,15 +146,15 @@ export function getClusterChildPosition(index) {
     { left: 12, top: 76 },
     { left: 48, top: 79 },
     { left: 84, top: 76 },
-    { left: 48, top: 102 },
+    { left: 48, top: 72 },
   ];
   if (positions[index]) return positions[index];
 
   const angle = index * 2.399963229728653;
-  const radius = 28 + index * 4.8;
+  const radius = 18 + (index % 6) * 4;
   return {
-    left: 50 + Math.cos(angle) * radius,
-    top: 50 + Math.sin(angle) * radius,
+    left: clamp(50 + Math.cos(angle) * radius, 18, 82),
+    top: clamp(50 + Math.sin(angle) * radius, 18, 82),
   };
 }
 
