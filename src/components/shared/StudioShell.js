@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import Image from "next/image";
 import { CheckCircle2, Home, Keyboard, Pencil } from "lucide-react";
 
 const StudioShell = memo(function StudioShell({
@@ -19,6 +20,16 @@ const StudioShell = memo(function StudioShell({
   return (
     <div className="app-container studio-shell">
       <header className="studio-topbar">
+        <button className="studio-logo-btn" onClick={onHome} aria-label="Go to Home">
+          <Image
+            src="/logo.png"
+            alt="DesaynClaw"
+            width={145}
+            height={36}
+            priority
+            className="studio-logo-img"
+          />
+        </button>
         <button className="studio-nav-btn" onClick={onHome}>
           <Home size={14} /> Home
         </button>
@@ -39,6 +50,7 @@ const StudioShell = memo(function StudioShell({
           </button>
         </div>
       </header>
+
 
       {projectName && (
         <div className="studio-projectbar">

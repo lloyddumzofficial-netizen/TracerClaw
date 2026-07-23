@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Download, Monitor, ChevronDown, FolderDown, Loader2, Palette, X, Sparkles } from "lucide-react";
+import { Download, Monitor, ChevronDown, FolderDown, Loader2, Palette, X, Sparkles, Check } from "lucide-react";
 
 
 /**
@@ -158,24 +158,28 @@ const PropertiesPanel = memo(function PropertiesPanel({
             className="svg-engine-option"
             onClick={() => setSvgEngine("standard")}
             style={engineButtonStyle(svgEngine === "standard")}
+            onMouseOver={e => { if (svgEngine !== "standard") { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#aaa"; } }}
+            onMouseOut={e => { if (svgEngine !== "standard") { e.currentTarget.style.borderColor = "#282828"; e.currentTarget.style.color = "#777"; } }}
           >
             <span>
               <strong>Standard SVG</strong>
               <small>1 Credit • Includes Palette Studio</small>
             </span>
-            <b>1</b>
+            <b style={{ border: "none", color: svgEngine === "standard" ? "#FFD700" : "#555" }}>1</b>
           </button>
           <button
             type="button"
             className="svg-engine-option"
             onClick={() => setSvgEngine("precision")}
             style={engineButtonStyle(svgEngine === "precision")}
+            onMouseOver={e => { if (svgEngine !== "precision") { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#aaa"; } }}
+            onMouseOut={e => { if (svgEngine !== "precision") { e.currentTarget.style.borderColor = "#282828"; e.currentTarget.style.color = "#777"; } }}
           >
             <span>
               <strong><Sparkles size={11} /> Precision SVG</strong>
               <small>2 Credits • Cleaner paths + smoother Palette Studio</small>
             </span>
-            <b>2</b>
+            <b style={{ border: "none", color: svgEngine === "precision" ? "#FFD700" : "#555" }}>2</b>
           </button>
         </div>
         <p style={{ marginTop: "8px", fontSize: "10px", color: "#555", lineHeight: 1.5 }}>
@@ -235,20 +239,20 @@ const PropertiesPanel = memo(function PropertiesPanel({
           </div>
         )}
 
-        {/* Primary: Export SVG — big yellow button */}
+        {/* Primary: Export SVG — ghost yellow outline button */}
         <button
           onClick={() => handleDownloadClick('svg', onDownloadSvg)}
           disabled={!project?.svg_url || !!downloading}
           style={{
             width: "100%",
-            background: project?.svg_url && !downloading ? "#FFD700" : "rgba(255,215,0,0.08)",
-            border: "1px solid " + (project?.svg_url ? "#FFD700" : "#383838"),
-            color: project?.svg_url && !downloading ? "#000" : "#555",
+            background: project?.svg_url && !downloading ? "rgba(255, 215, 0, 0.12)" : "rgba(255, 255, 255, 0.02)",
+            border: "1px solid " + (project?.svg_url && !downloading ? "#FFD700" : "#2a2a2a"),
+            color: project?.svg_url && !downloading ? "#FFD700" : "#555",
             padding: "11px 14px",
             fontSize: "12px",
-            fontWeight: "700",
+            fontWeight: "900",
             textTransform: "uppercase",
-            letterSpacing: "1px",
+            letterSpacing: "1.5px",
             cursor: project?.svg_url && !downloading ? "pointer" : "not-allowed",
             display: "flex",
             alignItems: "center",
@@ -257,8 +261,18 @@ const PropertiesPanel = memo(function PropertiesPanel({
             marginBottom: "7px",
             transition: "all 0.2s",
           }}
-          onMouseOver={e => { if (project?.svg_url && !downloading) e.currentTarget.style.background = "#FFC800"; }}
-          onMouseOut={e => { if (project?.svg_url && !downloading) e.currentTarget.style.background = "#FFD700"; }}
+          onMouseOver={e => { 
+            if (project?.svg_url && !downloading) {
+              e.currentTarget.style.background = "#FFD700";
+              e.currentTarget.style.color = "#000";
+            }
+          }}
+          onMouseOut={e => { 
+            if (project?.svg_url && !downloading) {
+              e.currentTarget.style.background = "rgba(255, 215, 0, 0.12)";
+              e.currentTarget.style.color = "#FFD700";
+            }
+          }}
         >
           {downloading === 'svg' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} strokeWidth={2.5} />}
           Export as SVG
@@ -270,8 +284,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
             onClick={() => handleDownloadClick('all', onDownloadAll)}
             disabled={!project?.original_image_url || !!downloading}
             style={secondaryBtnStyle(!!project?.original_image_url && !downloading)}
-            onMouseOver={e => { if (project?.original_image_url && !downloading) e.currentTarget.style.borderColor = "#555"; }}
-            onMouseOut={e => { if (project?.original_image_url && !downloading) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+            onMouseOver={e => { if (project?.original_image_url && !downloading) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
+            onMouseOut={e => { if (project?.original_image_url && !downloading) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
           >
             {downloading === 'all' ? <Loader2 size={13} className="animate-spin" /> : <FolderDown size={13} />}
             <span style={secondaryActionLabelStyle}>
@@ -285,8 +299,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
             onClick={() => handleDownloadClick('raster', onDownloadRaster)}
             disabled={!project?.upscaled_image_url || !!downloading}
             style={secondaryBtnStyle(!!project?.upscaled_image_url && !downloading)}
-            onMouseOver={e => { if (project?.upscaled_image_url && !downloading) e.currentTarget.style.borderColor = "#555"; }}
-            onMouseOut={e => { if (project?.upscaled_image_url && !downloading) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+            onMouseOver={e => { if (project?.upscaled_image_url && !downloading) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
+            onMouseOut={e => { if (project?.upscaled_image_url && !downloading) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
           >
             {downloading === 'raster' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             <span style={secondaryActionLabelStyle}>
@@ -301,8 +315,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
             disabled={!project?.svg_url}
             title={canUsePaletteStudio ? "Open Palette Studio" : "Generate SVG first"}
             style={secondaryBtnStyle(canUsePaletteStudio)}
-            onMouseOver={e => { if (canUsePaletteStudio) e.currentTarget.style.borderColor = "#555"; }}
-            onMouseOut={e => { if (canUsePaletteStudio) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+            onMouseOver={e => { if (canUsePaletteStudio) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
+            onMouseOut={e => { if (canUsePaletteStudio) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
           >
             <Palette size={13} />
             <span style={secondaryActionLabelStyle}>
@@ -315,8 +329,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
             onClick={onOpenCompare}
             disabled={!project?.svg_url}
             style={secondaryBtnStyle(!!project?.svg_url)}
-            onMouseOver={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#555"; }}
-            onMouseOut={e => { if (project?.svg_url) e.currentTarget.style.borderColor = "#2e2e2e"; }}
+            onMouseOver={e => { if (project?.svg_url) { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "#242424"; e.currentTarget.style.borderColor = "#444"; } }}
+            onMouseOut={e => { if (project?.svg_url) { e.currentTarget.style.color = "#b8b8b8"; e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.borderColor = "#282828"; } }}
           >
             <Monitor size={13} />
             <span style={secondaryActionLabelStyle}>
@@ -326,7 +340,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
           </button>
         </div>
 
-        {/* Run Auto-Trace — show only before SVG is done */}
         {!project?.svg_url && (
           <button
             onClick={() => {
@@ -338,22 +351,22 @@ const PropertiesPanel = memo(function PropertiesPanel({
             style={{
               width: "100%",
               background: isBusy
-                ? "rgba(255,215,0,0.08)"
+                ? "transparent"
                 : (noCredits || isCropped)
-                  ? "#FFD700"
-                  : "#2a2a2a",
+                  ? "rgba(255, 215, 0, 0.12)"
+                  : "rgba(255, 255, 255, 0.02)",
               border: "1px solid " + (
-                isBusy ? "#333" :
-                  (noCredits || isCropped) ? "#FFD700" : "#3a3a3a"
+                isBusy ? "#2a2a2a" :
+                  (noCredits || isCropped) ? "#FFD700" : "#2a2a2a"
               ),
               color: isBusy
-                ? "#666"
+                ? "#555"
                 : (noCredits || isCropped)
-                  ? "#000"
+                  ? "#FFD700"
                   : "#555",
               padding: "12px 16px",
               fontSize: "11px",
-              fontWeight: "800",
+              fontWeight: "900",
               textTransform: "uppercase",
               letterSpacing: "1.5px",
               whiteSpace: "nowrap",
@@ -368,12 +381,14 @@ const PropertiesPanel = memo(function PropertiesPanel({
             }}
             onMouseOver={e => {
               if (!isBusy && (noCredits || isCropped)) {
-                e.currentTarget.style.background = "#FFC800";
+                e.currentTarget.style.background = "#FFD700";
+                e.currentTarget.style.color = "#000";
               }
             }}
             onMouseOut={e => {
               if (!isBusy && (noCredits || isCropped)) {
-                e.currentTarget.style.background = "#FFD700";
+                e.currentTarget.style.background = "rgba(255, 215, 0, 0.12)";
+                e.currentTarget.style.color = "#FFD700";
               }
             }}
           >
@@ -405,43 +420,52 @@ const PropertiesPanel = memo(function PropertiesPanel({
           </div>
 
           <div style={{
-            display: "grid",
-            border: "1px solid #292929",
-            background: "#141414",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            background: "transparent",
+            padding: "8px 0 4px",
           }}>
-            {handoffItems.map((item, index) => (
-              <div key={item.label} style={{
-                minHeight: "31px",
-                display: "grid",
-                gridTemplateColumns: "76px 1fr",
-                alignItems: "center",
-                gap: "10px",
-                padding: "0 10px",
-                borderTop: index === 0 ? 0 : "1px solid #242424",
-              }}>
-                <span style={{
-                  color: "#777",
-                  fontSize: "9.5px",
-                  fontWeight: "800",
-                  letterSpacing: "0.9px",
-                  textTransform: "uppercase",
+            {handoffItems.map((item, index) => {
+              const isActive = item.value !== "Not generated";
+              return (
+                <div key={item.label} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  minHeight: "22px",
                 }}>
-                  {item.label}
-                </span>
-                <strong style={{
-                  minWidth: 0,
-                  color: item.value === "Not generated" ? "#5f5f5f" : "#d7d7d7",
-                  fontSize: "10.5px",
-                  fontWeight: "750",
-                  textAlign: "right",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}>
-                  {item.value}
-                </strong>
-              </div>
-            ))}
+                  <div style={{ display: "flex", alignItems: "center", gap: "7px", width: "70px", flexShrink: 0 }}>
+                    <div style={{ width: "10px", display: "flex", justifyContent: "center" }}>
+                      {isActive ? (
+                        <Check size={11} color="#FFD700" strokeWidth={3.5} />
+                      ) : (
+                        <div style={{ width: "4px", height: "1px", background: "#444" }} />
+                      )}
+                    </div>
+                    <span style={{
+                      color: isActive ? "#999" : "#555",
+                      fontSize: "9px",
+                      fontWeight: "800",
+                      letterSpacing: "1px",
+                      textTransform: "uppercase",
+                    }}>
+                      {item.label}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, borderBottom: "1px dotted #333" }} />
+                  <span style={{
+                    color: isActive ? "#fff" : "#444",
+                    fontSize: "9.5px",
+                    fontWeight: "500",
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {item.value}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           <p style={{
@@ -462,9 +486,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
 function secondaryBtnStyle(active) {
   return {
     width: "100%",
-    background: "#1e1e1e",
-    border: "1px solid #2e2e2e",
-    color: active ? "#bbb" : "#444",
+    background: "#1c1c1c",
+    border: "1px solid #282828",
+    color: active ? "#b8b8b8" : "#555",
     minHeight: "42px",
     padding: "6px 6px",
     fontSize: "9.8px",
@@ -480,7 +504,7 @@ function secondaryBtnStyle(active) {
     justifyContent: "center",
     gap: "8px",
     opacity: active ? 1 : 0.4,
-    transition: "all 0.2s",
+    transition: "color 0.2s",
   };
 }
 
@@ -491,9 +515,9 @@ function engineButtonStyle(active) {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "10px",
-    background: active ? "rgba(255,215,0,0.12)" : "#202020",
-    border: "1px solid " + (active ? "#FFD700" : "#333"),
-    color: active ? "#fff" : "#aaa",
+    background: active ? "rgba(255, 215, 0, 0.08)" : "#1c1c1c",
+    border: "1px solid " + (active ? "#FFD700" : "#282828"),
+    color: active ? "#fff" : "#777",
     padding: "9px 10px",
     cursor: "pointer",
     textAlign: "left",

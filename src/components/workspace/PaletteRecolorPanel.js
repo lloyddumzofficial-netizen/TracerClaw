@@ -1,5 +1,4 @@
 import { SlidersHorizontal } from "lucide-react";
-import { QUICK_COLORS } from "./PalettePreviewModal.utils";
 
 export default function PaletteRecolorPanel({
   editorRef,
@@ -42,18 +41,6 @@ export default function PaletteRecolorPanel({
         />
       </label>
       <small>{selectedItem ? `Selected: ${selectedItem.color} · ${selectedItem.count} SVG paths` : "Generate SVG first"}</small>
-      <div className="palette-quick-colors">
-        {QUICK_COLORS.map(color => (
-          <button
-            key={color}
-            type="button"
-            style={{ backgroundColor: color }}
-            onClick={() => onUpdateSelectedColor(color)}
-            title={`Apply ${color}`}
-            disabled={!selectedItem}
-          />
-        ))}
-      </div>
     </div>
   );
 }

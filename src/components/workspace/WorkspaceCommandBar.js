@@ -24,13 +24,14 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
     <div className="workspace-command-bar">
       <div className="workspace-command-group">
         <span className="workspace-command-label">Edit</span>
+        <div className="workspace-command-btns">
         <button
           className={`workspace-command-btn is-accent ${activeTool === "crop" ? "is-active" : ""}`}
           onClick={() => openTool("crop", onOpenCrop)}
           disabled={!hasProject || isBusy}
           title="Crop pattern region"
         >
-          <Scissors size={14} />
+          <Scissors size={13} />
           Crop
         </button>
         <button
@@ -39,7 +40,7 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
           disabled={!hasProject || isBusy}
           title="Erase noise manually"
         >
-          <Eraser size={14} />
+          <Eraser size={13} />
           Erase
         </button>
         <button
@@ -48,22 +49,22 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
           disabled={!hasProject || isBusy}
           title="Remove background"
         >
-          <ImageMinus size={14} />
+          <ImageMinus size={13} />
           Remove BG
         </button>
+        </div>
       </div>
-
-      <div className="workspace-command-divider" />
 
       <div className="workspace-command-group">
         <span className="workspace-command-label">View</span>
+        <div className="workspace-command-btns">
         <button
           className="workspace-command-btn"
           onClick={onOpenCompare}
           disabled={!hasSvg}
           title="Compare before and after"
         >
-          <Columns2 size={14} />
+          <Columns2 size={13} />
           Compare
         </button>
         <button
@@ -72,9 +73,10 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
           disabled={!hasSvg}
           title="Open Palette Studio"
         >
-          <Palette size={14} />
+          <Palette size={13} />
           Palette
         </button>
+        </div>
       </div>
 
       <div className="workspace-command-spacer" />
