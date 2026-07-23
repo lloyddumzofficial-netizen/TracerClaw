@@ -1,20 +1,21 @@
 #!/usr/bin/env pwsh
-# ─────────────────────────────────────────
-#  push.ps1  —  Git push + Vercel prod deploy
-# ─────────────────────────────────────────
+# -----------------------------------------
+#  push.ps1  --  Git push to GitHub
+# -----------------------------------------
 
 $msg = if ($args[0]) { $args[0] } else { "UI improvements and style updates" }
 
-Write-Host "`n📦 Staging all changes..." -ForegroundColor Cyan
+Write-Host "`nStaging all changes..." -ForegroundColor Cyan
 git add -A
 
-Write-Host "💬 Committing: $msg" -ForegroundColor Cyan
+Write-Host "Committing: $msg" -ForegroundColor Cyan
 git commit -m $msg
 
-Write-Host "🚀 Pushing to GitHub..." -ForegroundColor Cyan
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Nothing new to commit." -ForegroundColor Yellow
+}
+
+Write-Host "Pushing to GitHub..." -ForegroundColor Cyan
 git push
 
-Write-Host "`n⚡ Deploying to Vercel (production)..." -ForegroundColor Yellow
-vercel --prod
-
-Write-Host "`n✅ Done! Pushed to GitHub + deployed to Vercel prod.`n" -ForegroundColor Green
+Write-Host "`nDone! Pushed to GitHub.`n" -ForegroundColor Green
