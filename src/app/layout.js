@@ -129,6 +129,15 @@ export const metadata = {
     // Add your Google Search Console verification token here when ready:
     // google: "YOUR_GOOGLE_VERIFICATION_TOKEN",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+  },
 };
 
 import MaintenanceScreen from "@/components/shared/MaintenanceScreen";
