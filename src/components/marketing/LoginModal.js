@@ -2,7 +2,7 @@
 
 import { memo, useState, useEffect } from "react";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
 
 const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {

@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
-import { ToastContainer } from "@/components/Toast";
-import MobileWarning from "./components/MobileWarning";
-import CookieConsent from "./components/CookieConsent";
+import { ToastContainer } from "@/components/ui/Toast";
+import MobileWarning from "@/components/shared/MobileWarning";
+import CookieConsent from "@/components/shared/CookieConsent";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -131,8 +131,8 @@ export const metadata = {
   },
 };
 
-import MaintenanceScreen from "./components/MaintenanceScreen";
-import GlobalMobileSync from "@/components/GlobalMobileSync";
+import MaintenanceScreen from "@/components/shared/MaintenanceScreen";
+import GlobalMobileSync from "@/components/shared/GlobalMobileSync";
 
 const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'; // Emergency maintenance mode
 

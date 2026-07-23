@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Maximize, AlertCircle, CheckCircle2 } from "lucide-react";
-import SafeInlineSVG from "@/app/components/SafeInlineSVG";
+import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 const SplitViewCanvas = memo(function SplitViewCanvas({
   project,

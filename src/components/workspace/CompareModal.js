@@ -2,7 +2,7 @@
 
 import { memo, useRef } from "react";
 import { CheckCircle, X, FolderDown, Download } from "lucide-react";
-import SafeInlineSVG from "@/app/components/SafeInlineSVG";
+import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 /**
  * CompareModal — Before/After slider comparison modal.

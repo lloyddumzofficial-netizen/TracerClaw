@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react";
 import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, CreditCard, AlertTriangle } from "lucide-react";
-import { toast } from "@/components/Toast";
+import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
 import { safeJson } from "@/lib/safeJson";

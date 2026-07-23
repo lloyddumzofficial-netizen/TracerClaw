@@ -12,22 +12,22 @@ import { createClient } from "@/utils/supabase/client";
 import { CheckCircle2, Palette, X } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-import { useTraceExecution } from "./hooks/useTraceExecution";
+import { useTraceExecution } from "@/hooks/useTraceExecution";
 
 // ─── Components ───────────────────────────────────────────────────────────────
-import SplitViewCanvas from "./components/SplitViewCanvas";
-import PropertiesPanel from "./components/PropertiesPanel";
-import CropModal from "./components/CropModal";
-import EraseModal from "./components/EraseModal";
-import RemoveBgModal from "./components/RemoveBgModal";
-import CompareModal from "./components/CompareModal";
-import PalettePreviewModal from "./components/PalettePreviewModal";
-import NoCreditsModal from "./components/NoCreditsModal";
-import ShortcutsModal from "./components/ShortcutsModal";
-import WorkspaceCommandBar from "./components/WorkspaceCommandBar";
-import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
-import StudioShell from "@/app/components/StudioShell";
-import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import SplitViewCanvas from "@/components/workspace/SplitViewCanvas";
+import PropertiesPanel from "@/components/workspace/PropertiesPanel";
+import CropModal from "@/components/workspace/CropModal";
+import EraseModal from "@/components/workspace/EraseModal";
+import RemoveBgModal from "@/components/workspace/RemoveBgModal";
+import CompareModal from "@/components/workspace/CompareModal";
+import PalettePreviewModal from "@/components/workspace/PalettePreviewModal";
+import NoCreditsModal from "@/components/workspace/NoCreditsModal";
+import ShortcutsModal from "@/components/workspace/ShortcutsModal";
+import WorkspaceCommandBar from "@/components/workspace/WorkspaceCommandBar";
+import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
+import StudioShell from "@/components/shared/StudioShell";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { getWorkspaceTitle } from "@/lib/workspaceLabels";
 
@@ -43,7 +43,7 @@ function svgTextToBase64(svgText) {
   return window.btoa(binary);
 }
 
-const TopUpModal = dynamic(() => import("@/components/TopUpModal"), { ssr: false });
+const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
 
 export default function Workspace() {

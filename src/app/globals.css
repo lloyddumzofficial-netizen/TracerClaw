@@ -262,6 +262,24 @@ html, body {
   flex-shrink: 0;
 }
 
+.studio-commandbar-shell {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: #1b1b1b;
+  border-bottom: 1px solid #2d2d2d;
+}
+
+.studio-commandbar-shell > .workspace-command-bar {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  background: transparent;
+  border-bottom: 0;
+  flex: 1 1 auto;
+}
+
 .studio-statusbar {
   height: 28px;
   background: #141414;
@@ -1156,14 +1174,21 @@ html, body {
 
 /* Information Console (Bottom of panel) */
 .console-area {
-  flex: 1;
   background-color: #1a1a1a;
   border-top: 1px solid #111;
-  padding: 10px;
+  min-height: 0;
+  max-height: 132px;
+  padding: 0 10px;
   font-family: Consolas, monospace;
   font-size: 11px;
   color: var(--text-muted);
   overflow-y: auto;
+  transition: padding 0.15s ease, min-height 0.15s ease;
+}
+
+.console-area:not(:empty) {
+  min-height: 58px;
+  padding: 10px;
 }
 
 .console-msg {

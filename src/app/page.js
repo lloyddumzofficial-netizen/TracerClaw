@@ -7,10 +7,10 @@ import dynamic from "next/dynamic";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
-import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
@@ -20,18 +20,18 @@ import "./globals.css";
 import "./home.css";
 
 // ─── Components ───────────────────────────────────────────────────────────────
-import LoginModal from "./components/LoginModal";
-import NewProjectModal from "./components/NewProjectModal";
-import OnboardingModal from "./components/OnboardingModal";
-import RecentProjects from "./components/RecentProjects";
-import EduSection from "./components/EduSection";
-import BeforeAfterSlider from "./components/BeforeAfterSlider";
-import PromoModal from "./components/PromoModal";
-import SublibatchModal from "./components/SublibatchModal";
-import AIDisclaimerModal from "./components/AIDisclaimerModal";
-import TestimonialSection from "./components/TestimonialSection";
+import LoginModal from "@/components/marketing/LoginModal";
+import NewProjectModal from "@/components/marketing/NewProjectModal";
+import OnboardingModal from "@/components/marketing/OnboardingModal";
+import RecentProjects from "@/components/marketing/RecentProjects";
+import EduSection from "@/components/marketing/EduSection";
+import BeforeAfterSlider from "@/components/marketing/BeforeAfterSlider";
+import PromoModal from "@/components/marketing/PromoModal";
+import SublibatchModal from "@/components/marketing/SublibatchModal";
+import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
+import TestimonialSection from "@/components/marketing/TestimonialSection";
 
-const TopUpModal = dynamic(() => import("@/components/TopUpModal"), { ssr: false });
+const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 
 function HomepageWorkflowPreview() {

@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { CheckCircle2, Download, Image as ImageIcon, Loader2, Scissors, Settings2 } from "lucide-react";
-import DesktopRequiredNotice from "@/app/components/DesktopRequiredNotice";
-import StudioShell from "@/app/components/StudioShell";
-import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
+import StudioShell from "@/components/shared/StudioShell";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { formatSavedAgo } from "@/lib/formatSavedAgo";
 
@@ -25,7 +25,7 @@ export default function BgRemoverPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [zoom, setZoom] = useState(1);
-  
+
   const isDraggingCompare = useRef(false);
   const currentZoom = useRef(1);
   const scrollContainerRef = useRef(null);
@@ -51,7 +51,7 @@ export default function BgRemoverPage() {
           router.push("/");
           return;
         }
-        
+
         if (isMounted) setProject(projData);
 
         if (session?.user) {
@@ -77,7 +77,7 @@ export default function BgRemoverPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      
+
       const res = await fetch("/api/remove-bg", {
         method: "POST",
         headers: {
@@ -101,12 +101,12 @@ export default function BgRemoverPage() {
       }
 
       setProject(prev => ({ ...prev, generated_image_url: data.transparent_image_url }));
-      
+
       // Update credits locally
       if (userCredits !== null) {
         setUserCredits(prev => prev - 1);
       }
-      
+
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message);
@@ -173,7 +173,7 @@ export default function BgRemoverPage() {
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-    
+
     const handleWheel = (e) => {
       e.preventDefault();
       const z = currentZoom.current;
@@ -183,7 +183,7 @@ export default function BgRemoverPage() {
         setZoom(newZ);
       }
     };
-    
+
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [isCompleted]);
@@ -252,27 +252,27 @@ export default function BgRemoverPage() {
       {/* Main Content */}
       <main className="main-workspace" style={{ padding: 0 }}>
         {/* Canvas Area */}
-        <div 
+        <div
           className="canvas-area"
-          style={{ 
+          style={{
             padding: 0,
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center", 
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             background: "#111",
             position: "relative",
             overflow: "hidden"
           }}
         >
-          <div 
+          <div
             ref={scrollContainerRef}
-            style={{ 
-              width: "100%", height: "100%", 
-              overflow: "auto", 
+            style={{
+              width: "100%", height: "100%",
+              overflow: "auto",
               display: "flex", alignItems: "center", justifyContent: "center"
             }}
           >
-            <div 
+            <div
               style={{
                 zoom: zoom,
                 transition: "zoom 0.1s ease-out",
@@ -286,7 +286,7 @@ export default function BgRemoverPage() {
                 const rect = container.getBoundingClientRect();
                 let newPos = ((e.clientX - rect.left) / rect.width) * 100;
                 newPos = Math.max(0, Math.min(100, newPos));
-                
+
                 const overlayImg = document.getElementById("compare-overlay-img");
                 const sliderLine = document.getElementById("compare-slider-line");
                 if (overlayImg) {
@@ -298,8 +298,8 @@ export default function BgRemoverPage() {
                   sliderLine.style.left = `${newPos}%`;
                 }
               }}
-              onMouseUp={() => { 
-                isDraggingCompare.current = false; 
+              onMouseUp={() => {
+                isDraggingCompare.current = false;
                 // Re-enable transition for smooth snaps later if needed
                 const overlayImg = document.getElementById("compare-overlay-img");
                 const sliderLine = document.getElementById("compare-slider-line");
@@ -310,11 +310,11 @@ export default function BgRemoverPage() {
             >
               {!isCompleted ? (
                 // PRE-PROCESS VIEW
-                <img 
-                  src={project.original_image_url} 
-                  alt="Original" 
+                <img
+                  src={project.original_image_url}
+                  alt="Original"
                   draggable={false}
-                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)", background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px" }} 
+                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)", background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px" }}
                 />
               ) : (
                 // BEFORE/AFTER SLIDER VIEW
@@ -344,10 +344,10 @@ export default function BgRemoverPage() {
                   }}
                 >
                   {/* INVISIBLE PLACEHOLDER to dictate the exact aspect ratio */}
-                  <img 
-                    src={project.original_image_url} 
-                    style={{ display: "block", maxHeight: "80vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }} 
-                    alt="" 
+                  <img
+                    src={project.original_image_url}
+                    style={{ display: "block", maxHeight: "80vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }}
+                    alt=""
                   />
 
                   {/* AFTER layer (Transparent Image) — stretched to fill */}
@@ -413,7 +413,7 @@ export default function BgRemoverPage() {
           {/* PROPERTIES SECTION */}
           <div className="panel-section">
             <div className="section-header" style={{ background: "#222", borderBottom: "1px solid #444", padding: "12px 16px", fontSize: "11px", letterSpacing: "1px", color: "#888", textTransform: "uppercase" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><ImageIcon size={14} color="#888"/> IMAGE PROPERTIES</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><ImageIcon size={14} color="#888" /> IMAGE PROPERTIES</span>
             </div>
             <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <div className="property-row">
@@ -432,7 +432,7 @@ export default function BgRemoverPage() {
           {/* ACTIONS SECTION */}
           <div className="panel-section">
             <div className="section-header" style={{ background: "#222", borderBottom: "1px solid #444", padding: "12px 16px", fontSize: "11px", letterSpacing: "1px", color: "#888", textTransform: "uppercase" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><Settings2 size={14} color="#888"/> ACTIONS</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><Settings2 size={14} color="#888" /> ACTIONS</span>
             </div>
             <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {errorMsg && (

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
 import { safeJson } from "@/lib/safeJson";

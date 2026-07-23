@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import DesktopRequiredNotice from "./DesktopRequiredNotice";
-import { useIsMobileDevice } from "@/app/hooks/useIsMobileDevice";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 
 export default function MobileWarning() {
   const pathname = usePathname();

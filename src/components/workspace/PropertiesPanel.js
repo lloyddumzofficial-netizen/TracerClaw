@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import { Download, Monitor, ChevronDown, FolderDown, Loader2, Palette, X, Sparkles } from "lucide-react";
-import FeedbackWidget from "./FeedbackWidget";
+
 
 /**
  * PropertiesPanel — Right sidebar.
@@ -38,6 +38,13 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const cropWarningCopy = isLogoWorkspace
     ? "For best logo vectors, crop tightly around the mark and remove empty background."
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
+  const handoffItems = [
+    { label: "Input", value: isCropped ? "Cropped reference" : "Original upload" },
+    { label: "Artwork", value: project?.generated_image_url ? "Flat extracted" : "Not generated" },
+    { label: "Raster", value: project?.upscaled_image_url ? "HD PNG available" : "Not generated" },
+    { label: "Vector", value: project?.svg_url ? "SVG available" : "Not generated" },
+    { label: "Review", value: canUsePaletteStudio ? "Palette Studio ready" : "Workspace tools" },
+  ];
 
   const handleDownloadClick = async (type, handler) => {
     if (downloading) return;
@@ -52,12 +59,12 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const traceButtonLabel = isSavingCrop
     ? "Saving Crop..."
     : traceState !== "idle"
-    ? "Processing..."
-    : noCredits
-    ? "Get More Credits"
-    : !isCropped
-    ? "Crop Image First"
-    : `Run Auto-Trace  (-${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
+      ? "Processing..."
+      : noCredits
+        ? "Get More Credits"
+        : !isCropped
+          ? "Crop Image First"
+          : `Run Auto-Trace  (-${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
 
   const canTrace = !isBusy && (noCredits || isCropped);
   const secondaryActionGridStyle = {
@@ -130,11 +137,11 @@ const PropertiesPanel = memo(function PropertiesPanel({
             onFocus={e => e.target.style.borderColor = "#FFD700"}
             onBlur={e => e.target.style.borderColor = "#383838"}
           >
-            <option value="auto"  style={{ background: "#242424" }}>Auto (Precision Balance)</option>
-            <option value="16"    style={{ background: "#242424" }}>16 Colors (High Details)</option>
-            <option value="8"     style={{ background: "#242424" }}>8 Colors (Medium Details)</option>
-            <option value="4"     style={{ background: "#242424" }}>4 Colors (Merges Shadows)</option>
-            <option value="2"     style={{ background: "#242424" }}>2 Colors (Solid / Line Art)</option>
+            <option value="auto" style={{ background: "#242424" }}>Auto (Precision Balance)</option>
+            <option value="16" style={{ background: "#242424" }}>16 Colors (High Details)</option>
+            <option value="8" style={{ background: "#242424" }}>8 Colors (Medium Details)</option>
+            <option value="4" style={{ background: "#242424" }}>4 Colors (Merges Shadows)</option>
+            <option value="2" style={{ background: "#242424" }}>2 Colors (Solid / Line Art)</option>
           </select>
           <ChevronDown size={12} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#666", pointerEvents: "none" }} />
         </div>
@@ -337,7 +344,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                   : "#2a2a2a",
               border: "1px solid " + (
                 isBusy ? "#333" :
-                (noCredits || isCropped) ? "#FFD700" : "#3a3a3a"
+                  (noCredits || isCropped) ? "#FFD700" : "#3a3a3a"
               ),
               color: isBusy
                 ? "#666"
@@ -375,18 +382,80 @@ const PropertiesPanel = memo(function PropertiesPanel({
         )}
       </div>
 
-      {/* ── Feedback Widget ─────────────────────────────────── */}
-      {project?.svg_url && (
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid #2a2a2a", flexShrink: 0 }}>
-          <FeedbackWidget
-            projectId={project.id}
-            initialRating={project.rating}
-          />
-        </div>
-      )}
+      {/* ── Output details + Console area ───────────────── */}
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        background: "#171717",
+        borderTop: "1px solid #2a2a2a",
+        flexShrink: 0,
+      }}>
+        <div style={{
+          padding: "13px 12px 12px",
+          borderBottom: "1px solid #262626",
+          background: "linear-gradient(180deg, #1b1b1b, #171717)",
+        }}>
+          <div style={{ marginBottom: "12px" }}>
+            <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#e1e1e1", letterSpacing: "1.2px", textTransform: "uppercase" }}>
+              Output Details
+            </span>
+            <small style={{ display: "block", marginTop: "4px", color: "#6d6d6d", fontSize: "10px", lineHeight: 1.35 }}>
+              Clean production snapshot for this workspace.
+            </small>
+          </div>
 
-      {/* ── Console area ────────────────────────────────────── */}
-      <div className="console-area" ref={consoleRef} style={{ flex: 1 }} />
+          <div style={{
+            display: "grid",
+            border: "1px solid #292929",
+            background: "#141414",
+          }}>
+            {handoffItems.map((item, index) => (
+              <div key={item.label} style={{
+                minHeight: "31px",
+                display: "grid",
+                gridTemplateColumns: "76px 1fr",
+                alignItems: "center",
+                gap: "10px",
+                padding: "0 10px",
+                borderTop: index === 0 ? 0 : "1px solid #242424",
+              }}>
+                <span style={{
+                  color: "#777",
+                  fontSize: "9.5px",
+                  fontWeight: "800",
+                  letterSpacing: "0.9px",
+                  textTransform: "uppercase",
+                }}>
+                  {item.label}
+                </span>
+                <strong style={{
+                  minWidth: 0,
+                  color: item.value === "Not generated" ? "#5f5f5f" : "#d7d7d7",
+                  fontSize: "10.5px",
+                  fontWeight: "750",
+                  textAlign: "right",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}>
+                  {item.value}
+                </strong>
+              </div>
+            ))}
+          </div>
+
+          <p style={{
+            margin: "10px 0 0",
+            color: "#666",
+            fontSize: "10px",
+            lineHeight: 1.45,
+          }}>
+            Export files from the action buttons above after reviewing the output.
+          </p>
+        </div>
+
+        <div className="console-area" ref={consoleRef} />
+      </div>
     </aside>
   );
 });

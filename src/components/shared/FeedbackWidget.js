@@ -12,11 +12,7 @@ function getReviewedProjectKey(projectId) {
 
 function hasStoredReview(projectId) {
   const key = getReviewedProjectKey(projectId);
-
-  if (!key || typeof window === "undefined") {
-    return false;
-  }
-
+  if (!key || typeof window === "undefined") return false;
   return window.localStorage.getItem(key) === "1";
 }
 
@@ -34,7 +30,6 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
 
   useEffect(() => {
     const shouldHide = Boolean(initialRating) || hasStoredReview(projectId);
-
     setRating(initialRating || 0);
     setHoverRating(0);
     setFeedbackText("");
@@ -45,35 +40,25 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
 
   useEffect(() => {
     return () => {
-      if (hideTimerRef.current) {
-        window.clearTimeout(hideTimerRef.current);
-      }
+      if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     };
   }, []);
 
   const handleSubmit = async () => {
     if (!projectId || rating === 0 || submitted) return;
     setIsSubmitting(true);
-
     try {
       const res = await fetch(`/api/projects/${projectId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating, feedback_text: feedbackText }),
       });
-      
-      if (!res.ok) {
-        throw new Error("API returned error");
-      }
-
+      if (!res.ok) throw new Error("API returned error");
       if (reviewedStorageKey && typeof window !== "undefined") {
         window.localStorage.setItem(reviewedStorageKey, "1");
       }
-
       setSubmitted(true);
-      hideTimerRef.current = window.setTimeout(() => {
-        setIsHidden(true);
-      }, 1600);
+      hideTimerRef.current = window.setTimeout(() => setIsHidden(true), 1600);
     } catch (err) {
       console.error("Failed to save rating:", err);
       alert("Failed to save review! Have you run the SQL migration?");
@@ -82,9 +67,7 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
     }
   };
 
-  if (!projectId || isHidden) {
-    return null;
-  }
+  if (!projectId || isHidden) return null;
 
   if (submitted) {
     return (
@@ -106,14 +89,12 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
       <div className={styles.headerRow}>
         <div>
           <h3 className={styles.title}>Rate this generation</h3>
-          <p className={styles.subtitle}>{isExpanded ? "Optional note helps improve output quality." : "One quick rating after export."}</p>
+          <p className={styles.subtitle}>
+            {isExpanded ? "Optional note helps improve output quality." : "One quick rating after export."}
+          </p>
         </div>
         {!isExpanded && (
-          <button
-            type="button"
-            className={styles.expandBtn}
-            onClick={() => setIsExpanded(true)}
-          >
+          <button type="button" className={styles.expandBtn} onClick={() => setIsExpanded(true)}>
             Review
           </button>
         )}
@@ -128,7 +109,7 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
             onMouseLeave={() => setHoverRating(0)}
             onClick={() => selectRating(value)}
             disabled={isSubmitting}
-            title={`${value} Star${value > 1 ? 's' : ''}`}
+            title={`${value} Star${value > 1 ? "s" : ""}`}
           >
             <Star
               size={isExpanded ? 24 : 20}
@@ -140,7 +121,7 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
           </button>
         ))}
       </div>
-      
+
       {isExpanded && (
         <div className={styles.optionalFeedback}>
           <textarea
@@ -158,8 +139,8 @@ export default function FeedbackWidget({ projectId, initialRating = null }) {
             >
               Minimize
             </button>
-            <button 
-              onClick={handleSubmit} 
+            <button
+              onClick={handleSubmit}
               disabled={rating === 0 || isSubmitting}
               className={styles.submitBtn}
             >

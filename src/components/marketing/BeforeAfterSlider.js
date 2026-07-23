@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import SafeInlineSVG from "./SafeInlineSVG";
+import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 export default function BeforeAfterSlider({ 
   title, 

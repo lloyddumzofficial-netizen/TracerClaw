@@ -3,7 +3,7 @@
 import { memo, useMemo, useState } from "react";
 import { ImageIcon, Brain, Scan, PenTool, Scissors } from "lucide-react";
 import NodeCard from "./NodeCard";
-import SafeInlineSVG from "@/app/components/SafeInlineSVG";
+import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 /**
  * PipelineCanvas — The scrollable/pannable canvas that renders all 4 pipeline nodes.

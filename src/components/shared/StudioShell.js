@@ -48,7 +48,11 @@ const StudioShell = memo(function StudioShell({
         </div>
       )}
 
-      {commandBar}
+      {commandBar && (
+        <div className="studio-commandbar-shell">
+          {commandBar}
+        </div>
+      )}
 
       {children}
 
