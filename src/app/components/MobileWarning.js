@@ -9,7 +9,7 @@ export default function MobileWarning() {
   const isMobileDevice = useIsMobileDevice();
 
   if (!isMobileDevice) return null;
-  if (pathname === "/" || pathname === "/mobile") return null;
+  if (pathname === "/" || pathname === "/mobile" || pathname === "/admin") return null;
 
   return (
     <div style={{
