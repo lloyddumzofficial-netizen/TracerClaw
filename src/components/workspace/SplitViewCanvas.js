@@ -328,8 +328,8 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     <div ref={containerRef} style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
 
       {/* ── Stage toolbar ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", background: "#1e1e1e", borderBottom: "1px solid #333", height: "38px", flexShrink: 0 }}>
-        <div style={{ minWidth: 0, display: "flex", alignItems: "center", padding: "0 12px", gap: "10px", borderRight: "1px solid #2a2a2a", overflow: "hidden" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", background: "#161616", borderBottom: "1px solid #222", height: "38px", flexShrink: 0 }}>
+        <div style={{ minWidth: 0, display: "flex", alignItems: "center", padding: "0 12px", gap: "10px", borderRight: "1px solid #222", overflow: "hidden" }}>
           {commandBar || (
             <span style={{ color: "#555", fontSize: "10px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px", marginRight: "auto" }}>ORIGINAL UPLOAD</span>
           )}
@@ -351,7 +351,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               onClick={() => setActiveTab(tab.id)}
               style={{
                 padding: "0 10px",
-                background: activeTab === tab.id ? "#111" : "transparent",
+                background: activeTab === tab.id ? "#1a1a1a" : "#161616",
                 border: "none",
                 borderLeft: i > 0 ? "1px solid #333" : "1px solid #333",
                 borderRight: i === tabs.length - 1 ? "1px solid #333" : "none",

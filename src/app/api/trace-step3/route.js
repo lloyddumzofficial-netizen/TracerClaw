@@ -300,6 +300,6 @@ export async function POST(request) {
       console.error(`[Billing] Refund failed:`, refundErr.message);
     }
 
-    return NextResponse.json({ error: error.message || "Failed to process trace step" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to process trace step." }, { status: 500 });
   }
 }

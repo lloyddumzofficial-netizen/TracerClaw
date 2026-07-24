@@ -179,7 +179,7 @@ const NewProjectModal = memo(function NewProjectModal({
                     current={traceType}
                     onChange={setTraceType}
                     title="Extract Pattern Only"
-                    description="Removes names, numbers, and logos — outputs a clean background pattern ready for re-printing."
+                    description="Removes text, numbers, logos, mascots, and badges — outputs only the clean background pattern."
                   />
                   <TraceOptionCard
                     value="mockup_preserve"

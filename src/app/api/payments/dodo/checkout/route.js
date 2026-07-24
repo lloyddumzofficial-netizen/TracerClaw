@@ -100,6 +100,6 @@ export async function POST(request) {
     return NextResponse.json({ checkoutUrl });
   } catch (error) {
     console.error("[Dodo Checkout] Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to create Dodo checkout" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create Dodo checkout." }, { status: 500 });
   }
 }

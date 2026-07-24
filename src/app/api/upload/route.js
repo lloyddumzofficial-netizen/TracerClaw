@@ -67,7 +67,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error in upload route:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Failed to create project." },
       { status: 500 }
     );
   }

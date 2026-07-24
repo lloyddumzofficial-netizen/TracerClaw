@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 import {
   Loader2,
   Sparkles,
@@ -75,11 +75,53 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [downloading, setDownloading] = useState(null);
 
+  // ── Live processing timer ──────────────────────────────────────────────────
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const [finalSec, setFinalSec] = useState(null);
+  const timerRef = useRef(null);
+  const startTimeRef = useRef(null);
+
+  useEffect(() => {
+    const isProcessing = traceState !== "idle";
+    if (isProcessing) {
+      // Start fresh timer when processing begins
+      if (!timerRef.current) {
+        startTimeRef.current = Date.now();
+        setElapsedSec(0);
+        setFinalSec(null);
+        timerRef.current = setInterval(() => {
+          setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        }, 1000);
+      }
+    } else {
+      // Processing finished — freeze the timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setFinalSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }
+    }
+    return () => { };
+  }, [traceState]);
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  const stepsDone = traceState === "step2" ? 1 : traceState === "step3" ? 2 : traceState === "idle" && finalSec !== null ? 3 : 0;
+  const isProcessing = traceState !== "idle";
+  const steps = [
+    { label: "Neural Extract", active: traceState === "step1" },
+    { label: "Upscale", active: traceState === "step2" },
+    { label: "Vectorize", active: traceState === "step3" },
+  ];
+  const fmtTime = (s) => s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
+
   const creditCost = svgEngine === "precision" ? 2 : 1;
   const noCredits = userCredits !== null && userCredits < creditCost;
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url;
   const isBusy = traceState !== "idle" || isSavingCrop;
-  const canUsePaletteStudio = Boolean(project?.svg_url);
+  const hasSvg = Boolean(project?.svg_url);          // ← permanent gate: SVG already exists
+  const canUsePaletteStudio = hasSvg;
   const isLogoWorkspace = project?.trace_type === "logo";
 
   const cropWarningCopy = isLogoWorkspace
@@ -92,17 +134,19 @@ const PropertiesPanel = memo(function PropertiesPanel({
     try { await handler(); } finally { setDownloading(null); }
   };
 
-  const traceButtonLabel = isSavingCrop
-    ? "Saving Crop…"
-    : traceState !== "idle"
-      ? "Processing…"
-      : noCredits
-        ? "Get More Credits"
-        : !isCropped
-          ? "Crop Image First"
-          : `Run Auto-Trace  (−${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
+  const traceButtonLabel = hasSvg
+    ? "SVG Generated"
+    : isSavingCrop
+      ? "Saving Crop…"
+      : traceState !== "idle"
+        ? "Processing…"
+        : noCredits
+          ? "Get More Credits"
+          : !isCropped
+            ? "Crop Image First"
+            : `Run Auto-Trace  (−${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
 
-  const canTrace = !isBusy && (noCredits || isCropped);
+  const canTrace = !isBusy && !hasSvg && (noCredits || isCropped);
 
   const exportDetails = [
     { label: "File Format", value: "SVG", gold: false },
@@ -110,7 +154,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
     { label: "Color Mode", value: "Full Color", gold: false },
     { label: "Max Size", value: "50 MP", gold: false },
     { label: "Credits Required", value: `${creditCost} Credit`, gold: true },
-    { label: "Processing Time", value: "10 – 30 sec", gold: false },
   ];
 
   return (
@@ -210,6 +253,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
         @keyframes pp-spin { to { transform: rotate(360deg); } }
         .pp-spin { animation: pp-spin .9s linear infinite; display: inline-flex; }
+        @keyframes pp-shimmer { 0% { left: -100%; } 100% { left: 200%; } }
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────── */}
@@ -332,6 +376,67 @@ const PropertiesPanel = memo(function PropertiesPanel({
       <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
         <span className="pp-lbl">Actions</span>
 
+        {/* ── RUN AUTO-TRACE — always visible ── */}
+        <button
+          onClick={() => {
+            if (isBusy) return;
+            if (noCredits) { onOpenTopUp?.(); return; }
+            if (isCropped) onExecuteTrace(vectorColors, svgEngine);
+          }}
+          disabled={isBusy || hasSvg || (!isCropped && !noCredits)}
+          style={{
+            width: "100%", padding: "9px 14px", marginBottom: "10px",
+            fontSize: "10px", fontWeight: "700",
+            textTransform: "uppercase", letterSpacing: "1px",
+            cursor: (isBusy || hasSvg || (!isCropped && !noCredits)) ? "not-allowed" : "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            transition: "all .2s ease",
+            background: hasSvg
+              ? "transparent"
+              : isBusy
+                ? "transparent"
+                : (noCredits || isCropped)
+                  ? "#FFD700"
+                  : "rgba(255,215,0,0.06)",
+            border: "2px solid " + (
+              hasSvg ? "#2a2a2a"
+              : isBusy ? "#333"
+              : (noCredits || isCropped) ? "#FFD700"
+              : "#FFD70066"
+            ),
+            color: hasSvg
+              ? "#3f3f46"
+              : isBusy
+                ? "#555"
+                : (noCredits || isCropped)
+                  ? "#000"
+                  : "#FFD70099",
+            boxShadow: (!hasSvg && !isBusy && (noCredits || isCropped))
+              ? "0 0 18px rgba(255,215,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)"
+              : "none",
+            opacity: hasSvg ? 0.45 : 1,
+          }}
+          onMouseOver={e => {
+            if (!isBusy && !hasSvg && (noCredits || isCropped)) {
+              e.currentTarget.style.background = "#f0c900";
+              e.currentTarget.style.boxShadow = "0 0 28px rgba(255,215,0,0.4)";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }
+          }}
+          onMouseOut={e => {
+            e.currentTarget.style.background = hasSvg ? "transparent" : isBusy ? "transparent" : (noCredits || isCropped) ? "#FFD700" : "rgba(255,215,0,0.06)";
+            e.currentTarget.style.boxShadow = (!hasSvg && !isBusy && (noCredits || isCropped)) ? "0 0 18px rgba(255,215,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)" : "none";
+            e.currentTarget.style.transform = "none";
+          }}
+        >
+          {hasSvg
+            ? <CheckCircle2 size={15} color="#3f3f46" />
+            : isBusy
+              ? <span className="pp-spin"><Loader2 size={15} /></span>
+              : <Sparkles size={15} />}
+          {traceButtonLabel}
+        </button>
+
         {/* Warning — only when Advanced is closed */}
         {!advancedOpen && (
           <div className="pp-warn" style={{ marginBottom: "10px" }}>
@@ -378,32 +483,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>Before /<br />After Compare</span>
           </button>
         </div>
-
-        {/* Run Trace (shown only when no SVG yet) */}
-        {!project?.svg_url && (
-          <button
-            onClick={() => {
-              if (isBusy) return;
-              if (noCredits) { onOpenTopUp?.(); return; }
-              if (isCropped) onExecuteTrace(vectorColors, svgEngine);
-            }}
-            disabled={isBusy || (!isCropped && !noCredits)}
-            style={{
-              marginTop: "8px", width: "100%", padding: "12px 14px",
-              fontSize: "10px", fontWeight: "700",
-              textTransform: "uppercase", letterSpacing: "1px",
-              cursor: canTrace ? "pointer" : "not-allowed",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-              transition: "all .15s",
-              background: isBusy ? "transparent" : (noCredits || isCropped) ? "rgba(255,215,0,0.1)" : "transparent",
-              border: "1px solid " + (isBusy ? "#333" : (noCredits || isCropped) ? "#FFD700" : "#333"),
-              color: isBusy ? "#555" : (noCredits || isCropped) ? "#FFD700" : "#a1a1aa",
-            }}
-          >
-            {isBusy && <span className="pp-spin"><Loader2 size={14} /></span>}
-            {traceButtonLabel}
-          </button>
-        )}
       </div>
 
       {/* ── EXPORT DETAILS ───────────────────────────────── */}
@@ -420,6 +499,65 @@ const PropertiesPanel = memo(function PropertiesPanel({
               </span>
             </div>
           ))}
+
+          {/* ── Processing Time — live progress ── */}
+          <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: "1px solid #222" }}>
+            <div className="pp-row" style={{ marginBottom: "6px" }}>
+              <span className="pp-row-lbl" style={{ fontSize: "9px" }}>Processing Time</span>
+              <div className="pp-row-dot" />
+              <span style={{
+                fontSize: "10px", fontWeight: "600", fontVariantNumeric: "tabular-nums",
+                color: isProcessing ? "#FFD700" : finalSec !== null ? "#e4e4e7" : "#52525b",
+                minWidth: "32px", textAlign: "right",
+              }}>
+                {isProcessing
+                  ? `${fmtTime(elapsedSec)}…`
+                  : finalSec !== null
+                    ? fmtTime(finalSec)
+                    : "10 – 30 sec"}
+              </span>
+            </div>
+
+            {/* Step pills */}
+            <div style={{ display: "flex", gap: "4px" }}>
+              {steps.map((step, i) => {
+                const done = i < stepsDone;
+                const active = step.active;
+                return (
+                  <div key={step.label} style={{
+                    flex: 1, display: "flex", flexDirection: "column",
+                    alignItems: "center", gap: "3px",
+                  }}>
+                    <div style={{
+                      width: "100%", height: "4px", borderRadius: "2px",
+                      background: done
+                        ? "#FFD700"
+                        : active
+                          ? "linear-gradient(90deg, #FFD700 40%, #333 100%)"
+                          : "#2a2a2a",
+                      transition: "background 0.4s ease",
+                      boxShadow: done ? "0 0 6px rgba(255,215,0,0.5)" : active ? "0 0 4px rgba(255,215,0,0.3)" : "none",
+                      position: "relative", overflow: active ? "hidden" : "visible",
+                    }}>
+                      {active && (
+                        <div style={{
+                          position: "absolute", top: 0, left: "-100%", width: "60%", height: "100%",
+                          background: "linear-gradient(90deg, transparent, rgba(255,215,0,0.6), transparent)",
+                          animation: "pp-shimmer 1.2s ease-in-out infinite",
+                        }} />
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: "7.5px", fontWeight: "600", letterSpacing: "0.3px",
+                      textTransform: "uppercase",
+                      color: done ? "#FFD700" : active ? "#a1a1aa" : "#3f3f46",
+                      transition: "color 0.3s",
+                    }}>{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

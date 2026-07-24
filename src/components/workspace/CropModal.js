@@ -1,19 +1,30 @@
 "use client";
 
 import { memo, useState, useRef, useCallback, useEffect } from "react";
-import { Maximize, Minus, Plus, RotateCcw, Scissors, X } from "lucide-react";
-import ReactCrop from "react-image-crop";
+import { ArrowRight, CheckCircle2, Crosshair, Info, Loader2, Maximize, Minus, Plus, RotateCcw, ScanLine, X, XCircle } from "lucide-react";
+import ReactCrop, { convertToPixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
 
 const DEFAULT_CROP_ZOOM = 0.5;
+const MIN_CROP_ZOOM = 0.35;
+const MAX_CROP_ZOOM = 4;
+const CROP_ZOOM_STEP = 0.25;
+const WHEEL_ZOOM_STEP = 0.1;
+const CROP_STAGE_PADDING = 18;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function CropGuidePhoto({ title, body, tone, imageSrc, imageAlt, boxClassName }) {
+  const Icon = tone === "good" ? CheckCircle2 : XCircle;
+
   return (
     <div className={`crop-guide-card ${tone === "good" ? "is-good" : "is-bad"}`}>
       <div className="crop-guide-label">
-        <span />
+        <Icon size={14} />
         {title}
       </div>
       <p>{body}</p>
@@ -51,6 +62,8 @@ const CropModal = memo(function CropModal({
   const [cropError, setCropError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [cropZoom, setCropZoom] = useState(DEFAULT_CROP_ZOOM);
+  const [imageSize, setImageSize] = useState(null);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const imgRef = useRef(null);
   const stageRef = useRef(null);
 
@@ -60,29 +73,93 @@ const CropModal = memo(function CropModal({
       setCrop(undefined);
       setCompletedCrop(null);
       setCropError("");
+      setImageSize(null);
     }
   }, [show]);
 
-  // ── Scroll-wheel zoom on the canvas stage ──────────────────────────────────
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
+    if (!stage || !show) return;
 
-    const handleWheel = (e) => {
-      e.preventDefault();
-      // deltaY > 0 → scroll down → zoom out; < 0 → scroll up → zoom in
-      const delta = e.deltaY > 0 ? -0.08 : 0.08;
-      setCropZoom(z => {
-        const next = Math.round((z + delta) * 100) / 100;
-        return Math.min(3, Math.max(0.25, next));
+    const updateStageSize = () => {
+      setStageSize({
+        width: stage.clientWidth,
+        height: stage.clientHeight,
       });
     };
 
-    stage.addEventListener("wheel", handleWheel, { passive: false });
-    return () => stage.removeEventListener("wheel", handleWheel);
-  }, [show]); // re-attach whenever modal opens
+    updateStageSize();
+    const observer = new ResizeObserver(updateStageSize);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [show]);
+
+  const fitScale = imageSize && stageSize.width && stageSize.height
+    ? Math.min(
+        1,
+        Math.max(0.05, (stageSize.width - CROP_STAGE_PADDING * 2) / imageSize.width),
+        Math.max(0.05, (stageSize.height - CROP_STAGE_PADDING * 2) / imageSize.height)
+      )
+    : 1;
+
+  const displayWidth = imageSize ? Math.max(1, Math.round(imageSize.width * fitScale * cropZoom)) : undefined;
+  const displayHeight = imageSize ? Math.max(1, Math.round(imageSize.height * fitScale * cropZoom)) : undefined;
+  const surfaceOffsetX = displayWidth && stageSize.width ? Math.max(0, Math.round((stageSize.width - displayWidth - CROP_STAGE_PADDING * 2) / 2)) : 0;
+  const surfaceOffsetY = displayHeight && stageSize.height ? Math.max(0, Math.round((stageSize.height - displayHeight - CROP_STAGE_PADDING * 2) / 2)) : 0;
+
+  const setZoomKeepingPoint = useCallback((nextZoom, anchorPoint) => {
+    const stage = stageRef.current;
+    const previousZoom = cropZoom;
+    const zoomValue = clamp(
+      typeof nextZoom === "function" ? nextZoom(previousZoom) : nextZoom,
+      MIN_CROP_ZOOM,
+      MAX_CROP_ZOOM
+    );
+
+    if (!stage || Math.abs(zoomValue - previousZoom) < 0.001) {
+      setCropZoom(zoomValue);
+      return;
+    }
+
+    const stageRect = stage.getBoundingClientRect();
+    const anchorX = anchorPoint ? anchorPoint.clientX - stageRect.left : stage.clientWidth / 2;
+    const anchorY = anchorPoint ? anchorPoint.clientY - stageRect.top : stage.clientHeight / 2;
+    const contentX = stage.scrollLeft + anchorX;
+    const contentY = stage.scrollTop + anchorY;
+    const relativeX = stage.scrollWidth > 0 ? contentX / stage.scrollWidth : 0.5;
+    const relativeY = stage.scrollHeight > 0 ? contentY / stage.scrollHeight : 0.5;
+
+    setCropZoom(zoomValue);
+    requestAnimationFrame(() => {
+      stage.scrollLeft = relativeX * stage.scrollWidth - anchorX;
+      stage.scrollTop = relativeY * stage.scrollHeight - anchorY;
+    });
+  }, [cropZoom]);
+
+  const setZoomKeepingCenter = useCallback((nextZoom) => {
+    setZoomKeepingPoint(nextZoom);
+  }, [setZoomKeepingPoint]);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !show) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setZoomKeepingPoint(
+        z => z + (e.deltaY > 0 ? -WHEEL_ZOOM_STEP : WHEEL_ZOOM_STEP),
+        { clientX: e.clientX, clientY: e.clientY }
+      );
+    };
+
+    stage.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+    return () => stage.removeEventListener("wheel", handleWheel, true);
+  }, [setZoomKeepingPoint, show]);
 
   const handleApply = useCallback(async () => {
+    if (isSaving) return;
+
     if (!completedCrop || !imgRef.current || !completedCrop.width || !completedCrop.height) {
       if (!project?.generated_image_url) {
         setCropError("Please draw a crop area first! You must choose either the front or the back.");
@@ -92,14 +169,21 @@ const CropModal = memo(function CropModal({
       return;
     }
 
+    setIsSaving(true);
+    setCropError("");
+
     const canvas = document.createElement("canvas");
     const image = imgRef.current;
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
+    const imageRect = image.getBoundingClientRect();
+    const pixelCrop = completedCrop.unit === "%"
+      ? convertToPixelCrop(completedCrop, imageRect.width, imageRect.height)
+      : completedCrop;
+    const scaleX = image.naturalWidth / imageRect.width;
+    const scaleY = image.naturalHeight / imageRect.height;
 
     const MAX_SIZE = 1536;
-    let targetWidth = completedCrop.width * scaleX;
-    let targetHeight = completedCrop.height * scaleY;
+    let targetWidth = pixelCrop.width * scaleX;
+    let targetHeight = pixelCrop.height * scaleY;
 
     if (targetWidth > MAX_SIZE || targetHeight > MAX_SIZE) {
       const ratio = Math.min(MAX_SIZE / targetWidth, MAX_SIZE / targetHeight);
@@ -112,15 +196,12 @@ const CropModal = memo(function CropModal({
     const ctx = canvas.getContext("2d");
     ctx.drawImage(
       image,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      pixelCrop.x * scaleX,
+      pixelCrop.y * scaleY,
+      pixelCrop.width * scaleX,
+      pixelCrop.height * scaleY,
       0, 0, targetWidth, targetHeight
     );
-
-    onClose();
-    setIsSaving(true);
 
     try {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.90));
@@ -164,30 +245,40 @@ const CropModal = memo(function CropModal({
       if (!res.ok) throw new Error(data.error);
 
       onCropApplied?.(urlData.publicUrl);
+      onClose();
     } catch (err) {
-      onCropApplied?.(null, err.message);
+      const message = err.message || "Failed to apply crop.";
+      setCropError(message);
+      onCropApplied?.(null, message);
     } finally {
       setIsSaving(false);
     }
-  }, [completedCrop, project, supabase, onClose, onCropApplied, onLoginRequired]);
+  }, [completedCrop, isSaving, project, supabase, onClose, onCropApplied, onLoginRequired]);
 
   if (!show || !project) return null;
 
-  const cropSizeLabel = completedCrop?.width && completedCrop?.height
-    ? `${Math.round(completedCrop.width)} x ${Math.round(completedCrop.height)} px`
+  const cropSizeLabel = completedCrop?.width && completedCrop?.height && imageSize
+    ? `${Math.round((completedCrop.width / 100) * imageSize.width)} x ${Math.round((completedCrop.height / 100) * imageSize.height)} px`
     : "No selection";
+  const sourceMetaLabel = imageSize ? `JPG · ${imageSize.width} x ${imageSize.height}px` : "Loading image";
+  const isLogoMode = project?.trace_type === 'logo';
 
   return (
     <div className="modal-overlay crop-workspace-overlay">
       <div className="crop-workspace-modal">
         <div className="crop-workspace-header">
           <div className="crop-workspace-title">
+            <div className="crop-tool-mark">
+              <Crosshair size={17} />
+            </div>
             <div>
-              <h3>Crop Pattern Region</h3>
-              <p>Isolate the artwork area for cleaner extraction.</p>
+              <div className="crop-title-line">
+                <h3>Crop Pattern Region</h3>
+              </div>
+              <p>Frame the artwork area for cleaner and more accurate extraction.</p>
             </div>
           </div>
-          <button className="crop-close-btn" onClick={onClose} aria-label="Close crop modal">
+          <button className="crop-close-btn" onClick={onClose} aria-label="Close crop modal" disabled={isSaving}>
             <X size={16} />
           </button>
         </div>
@@ -195,41 +286,75 @@ const CropModal = memo(function CropModal({
         <div className="crop-workspace-body">
           <div className="crop-canvas-panel">
             <div className="crop-canvas-toolbar">
-              <span>Source Image</span>
+              <div className="crop-source-meta">
+                <ScanLine size={14} />
+                <div>
+                  <strong>Source Image</strong>
+                  <span>{sourceMetaLabel}</span>
+                </div>
+              </div>
               <div className="crop-toolbar-right">
                 <span>{cropSizeLabel}</span>
                 <div className="crop-zoom-controls" aria-label="Crop zoom controls">
                   <button type="button" onClick={() => { setCrop(undefined); setCompletedCrop(null); setCropError(""); }} aria-label="Reset selection">
                     <RotateCcw size={12} />
                   </button>
-                  <button type="button" onClick={() => setCropZoom(z => Math.max(0.5, Number((z - 0.1).toFixed(2))))} aria-label="Zoom out">
+                  <button type="button" onClick={() => setZoomKeepingCenter(z => z - CROP_ZOOM_STEP)} aria-label="Zoom out" disabled={cropZoom <= MIN_CROP_ZOOM}>
                     <Minus size={12} />
                   </button>
                   <strong>{Math.round(cropZoom * 100)}%</strong>
-                  <button type="button" onClick={() => setCropZoom(z => Math.min(3, Number((z + 0.1).toFixed(2))))} aria-label="Zoom in">
+                  <button type="button" onClick={() => setZoomKeepingCenter(z => z + CROP_ZOOM_STEP)} aria-label="Zoom in" disabled={cropZoom >= MAX_CROP_ZOOM}>
                     <Plus size={12} />
                   </button>
-                  <button type="button" onClick={() => setCropZoom(DEFAULT_CROP_ZOOM)} aria-label="Fit image">
+                  <button type="button" onClick={() => setZoomKeepingCenter(DEFAULT_CROP_ZOOM)} aria-label="Fit image">
                     <Maximize size={12} />
                   </button>
                 </div>
               </div>
             </div>
-            <div className="crop-canvas-stage" ref={stageRef}>
-              <div className="crop-zoom-surface" style={{ width: `${cropZoom * 100}%` }}>
+            <div className={`crop-canvas-stage ${isSaving ? "is-saving" : ""}`} ref={stageRef}>
+              <div
+                className="crop-zoom-surface"
+                style={{
+                  width: displayWidth ? `${displayWidth}px` : "1px",
+                  height: displayHeight ? `${displayHeight}px` : "1px",
+                  marginLeft: `${surfaceOffsetX}px`,
+                  marginTop: `${surfaceOffsetY}px`,
+                }}
+              >
                 <ReactCrop
                   crop={crop}
-                  onChange={c => { setCrop(c); setCropError(""); }}
-                  onComplete={c => setCompletedCrop(c)}
+                  onChange={(pixelCrop, percentCrop) => {
+                    setCrop(percentCrop);
+                    setCompletedCrop(null);
+                    setCropError("");
+                  }}
+                  onComplete={(pixelCrop, percentCrop) => setCompletedCrop(percentCrop)}
+                  onDragStart={() => setCompletedCrop(null)}
+                  ruleOfThirds
                   className="designer-crop"
+                  style={{ width: displayWidth ? `${displayWidth}px` : "auto" }}
                 >
                   <img
                     ref={imgRef}
                     src={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
                     alt="Crop source"
                     className="crop-source-image"
+                    width={displayWidth || 1}
+                    height={displayHeight || 1}
+                    style={{
+                      width: displayWidth ? `${displayWidth}px` : "1px",
+                      height: displayHeight ? `${displayHeight}px` : "1px",
+                      opacity: imageSize ? 1 : 0,
+                    }}
                     crossOrigin="anonymous"
-                    onLoad={e => { imgRef.current = e.currentTarget; }}
+                    onLoad={e => {
+                      imgRef.current = e.currentTarget;
+                      setImageSize({
+                        width: e.currentTarget.naturalWidth,
+                        height: e.currentTarget.naturalHeight,
+                      });
+                    }}
                   />
                 </ReactCrop>
               </div>
@@ -239,13 +364,13 @@ const CropModal = memo(function CropModal({
           <aside className="crop-guide-panel">
             <div className="crop-guide-header">
               <span>Guide</span>
-              <strong>{project?.trace_type === 'logo' ? "Logo Mode" : "Pattern Mode"}</strong>
+              <strong>{isLogoMode ? "Logo Mode" : "Pattern Mode"}</strong>
             </div>
-            {project?.trace_type === 'logo' ? (
+            {isLogoMode ? (
               <>
                 <div className="crop-guide-card is-good">
                   <div className="crop-guide-label">
-                    <span />
+                    <CheckCircle2 size={14} />
                     DO: Crop Tightly Around Logo
                   </div>
                   <p>Remove empty background. Keep the box snug to the logo edges.</p>
@@ -261,7 +386,7 @@ const CropModal = memo(function CropModal({
                 </div>
                 <div className="crop-guide-card is-bad">
                   <div className="crop-guide-label">
-                    <span />
+                    <XCircle size={14} />
                     DON'T: Include Extra Space
                   </div>
                   <p>Huge margins reduce effective AI detail and weaken the result.</p>
@@ -296,20 +421,6 @@ const CropModal = memo(function CropModal({
                 />
               </>
             )}
-            <div className="crop-inspector-panel">
-              <div className="crop-inspector-row">
-                <span>Selection</span>
-                <strong>{cropSizeLabel}</strong>
-              </div>
-              <div className="crop-inspector-row">
-                <span>Output</span>
-                <strong>JPG · max 1536px</strong>
-              </div>
-              <div className="crop-inspector-row">
-                <span>Focus</span>
-                <strong>{project?.trace_type === 'logo' ? "Logo artwork" : "Main body"}</strong>
-              </div>
-            </div>
           </aside>
         </div>
 
@@ -319,11 +430,37 @@ const CropModal = memo(function CropModal({
           </div>
         )}
         <div className="crop-workspace-actions">
+          <div className="crop-tip-block">
+            <Info size={17} />
+            <div>
+              <strong>Tip</strong>
+              <span>Use the handles to tightly frame only the target artwork. Scroll on the canvas to zoom.</span>
+            </div>
+          </div>
           {project?.generated_image_url && (
-            <button className="btn-secondary crop-secondary-action" onClick={onClose}>Cancel</button>
+            <button className="btn-secondary crop-secondary-action" onClick={onClose} disabled={isSaving}>Cancel</button>
           )}
+          <button
+            type="button"
+            className="crop-secondary-action crop-reset-action"
+            disabled={isSaving}
+            onClick={() => { setCrop(undefined); setCompletedCrop(null); setCropError(""); setZoomKeepingCenter(DEFAULT_CROP_ZOOM); }}
+          >
+            <RotateCcw size={13} />
+            Reset
+          </button>
           <button className="btn-primary crop-primary-action" onClick={handleApply} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Apply Crop & Extract"}
+            {isSaving ? (
+              <>
+                <Loader2 size={14} className="crop-saving-spinner" />
+                Cropping...
+              </>
+            ) : (
+              <>
+                <ArrowRight size={14} />
+                Apply Crop & Extract
+              </>
+            )}
           </button>
         </div>
       </div>
