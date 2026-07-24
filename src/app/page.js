@@ -56,15 +56,9 @@ function HomepageWorkflowPreview() {
         </div>
       </div>
 
-      <div className="workflow-mockup" aria-hidden="true">
-        <figure className="production-shot production-shot-main">
-          <img src="/samples/production-preview/workspace-result.jpg" alt="" loading="lazy" />
-        </figure>
-        <figure className="production-shot production-shot-process">
-          <img src="/samples/production-preview/processing.jpg" alt="" loading="lazy" />
-        </figure>
-        <figure className="production-shot production-shot-palette">
-          <img src="/samples/production-preview/palette-studio.jpg" alt="" loading="lazy" />
+      <div className="workflow-mockup" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <figure style={{ margin: 0, width: '80%' }}>
+          <img src="/samples/production-preview/Hue_Saturation.png" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
         </figure>
       </div>
     </section>
