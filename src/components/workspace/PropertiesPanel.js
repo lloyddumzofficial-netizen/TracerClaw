@@ -163,6 +163,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       borderLeft: "1px solid #222",
       display: "flex",
       flexDirection: "column",
+      justifyContent: "space-between",
       flexShrink: 0,
       height: "100%",
       overflow: "hidden",
@@ -173,7 +174,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         .pp-card {
           width: 100%; display: flex; align-items: center; gap: 12px;
           background: transparent; border: 1px solid #333; color: #71717a;
-          padding: 10px 12px; cursor: pointer; text-align: left;
+          padding: 8px 12px; cursor: pointer; text-align: left;
           transition: border-color .15s, color .15s, background .15s;
           border-radius: 0;
         }
@@ -182,7 +183,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
         .pp-sec {
           background: transparent; border: 1px solid #333; color: #a1a1aa;
-          min-height: 52px; padding: 6px;
+          min-height: 42px; padding: 4px;
           font-size: 9px; font-weight: 600;
           text-transform: uppercase; letter-spacing: 0.5px;
           cursor: pointer; display: flex; flex-direction: column;
@@ -196,7 +197,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         .pp-svg-btn {
           width: 100%;
           background: #FFD700;
-          border: none; color: #000; padding: 12px 14px;
+          border: none; color: #000; padding: 8px 14px;
           font-size: 11px; font-weight: 700; text-transform: uppercase;
           letter-spacing: 1.5px; cursor: pointer; display: flex;
           align-items: center; justify-content: center; gap: 8px;
@@ -227,22 +228,22 @@ const PropertiesPanel = memo(function PropertiesPanel({
         .pp-lbl {
           display: block;
           font-size: 9px; font-weight: 600; color: #71717a;
-          text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+          text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
         }
         .pp-desc {
-          font-size: 10px; color: #52525b; line-height: 1.5; margin-top: 8px;
+          font-size: 10px; color: #52525b; line-height: 1.3; margin-top: 4px;
         }
 
         .pp-warn {
           background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);
-          padding: 10px; display: flex; gap: 8px; align-items: flex-start;
+          padding: 8px; display: flex; gap: 8px; align-items: flex-start;
           border-radius: 0;
         }
         .pp-warn span {
           font-size: 10px; color: #ef4444; line-height: 1.4;
         }
 
-        .pp-row { display: flex; align-items: center; gap: 6px; height: 18px; margin-bottom: 2px;}
+        .pp-row { display: flex; align-items: center; gap: 6px; height: 16px; margin-bottom: 0px;}
         .pp-row-lbl {
           font-size: 10px; color: #a1a1aa; white-space: nowrap;
         }
@@ -259,7 +260,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       {/* ── HEADER ───────────────────────────────────────── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 16px", borderBottom: "1px solid #222", flexShrink: 0,
+        padding: "8px 14px", borderBottom: "1px solid #222", flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Sparkles size={14} color="#e4e4e7" />
@@ -275,7 +276,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── COLOR DETAIL ─────────────────────────────────── */}
-      <div style={{ padding: "14px 16px", flexShrink: 0 }}>
+      <div style={{ padding: "8px 14px", flexShrink: 0 }}>
         <span className="pp-lbl">Color Detail</span>
         <div className="pp-sel-wrap">
           <span className="pp-sel-ico"><IconColorRings /></span>
@@ -292,9 +293,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── SVG MODE ─────────────────────────────────────── */}
-      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">SVG Mode</span>
-        <div style={{ display: "grid", gap: "8px" }}>
+        <div style={{ display: "grid", gap: "6px" }}>
 
           {/* Standard */}
           <button type="button" className={`pp-card${svgEngine === "standard" ? " on" : ""}`}
@@ -349,11 +350,11 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── ADVANCED SETTINGS ────────────────────────────── */}
-      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <button onClick={() => setAdvancedOpen(v => !v)}
           style={{
             width: "100%", display: "flex", alignItems: "center",
-            justifyContent: "space-between", padding: "10px 12px",
+            justifyContent: "space-between", padding: "8px 12px",
             background: "transparent", border: "1px solid #333",
             color: "#e4e4e7", cursor: "pointer",
             fontSize: "9px", fontWeight: "600",
@@ -366,14 +367,14 @@ const PropertiesPanel = memo(function PropertiesPanel({
           <ChevronDown size={14} style={{ transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
         </button>
         {advancedOpen && (
-          <div style={{ paddingTop: "8px" }}>
+          <div style={{ paddingTop: "6px" }}>
             <div className="pp-warn"><AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span></div>
           </div>
         )}
       </div>
 
       {/* ── ACTIONS ──────────────────────────────────────── */}
-      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">Actions</span>
 
         {/* ── RUN AUTO-TRACE — always visible ── */}
@@ -385,7 +386,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
           }}
           disabled={isBusy || hasSvg || (!isCropped && !noCredits)}
           style={{
-            width: "100%", padding: "9px 14px", marginBottom: "10px",
+            width: "100%", padding: "7px 14px", marginBottom: "6px",
             fontSize: "10px", fontWeight: "700",
             textTransform: "uppercase", letterSpacing: "1px",
             cursor: (isBusy || hasSvg || (!isCropped && !noCredits)) ? "not-allowed" : "pointer",
@@ -439,7 +440,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
         {/* Warning — only when Advanced is closed */}
         {!advancedOpen && (
-          <div className="pp-warn" style={{ marginBottom: "10px" }}>
+          <div className="pp-warn" style={{ marginBottom: "6px" }}>
             <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
           </div>
         )}
@@ -448,7 +449,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         <button className="pp-svg-btn"
           onClick={() => handleDownloadClick("svg", onDownloadSvg)}
           disabled={!project?.svg_url || !!downloading}
-          style={{ marginBottom: "8px" }}>
+          style={{ marginBottom: "6px" }}>
           {downloading === "svg"
             ? <span className="pp-spin"><Loader2 size={16} /></span>
             : <Download size={16} />}
@@ -456,7 +457,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </button>
 
         {/* 2×2 grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
           <button className="pp-sec"
             onClick={() => handleDownloadClick("all", onDownloadAll)}
             disabled={!project?.original_image_url || !!downloading}>
@@ -486,7 +487,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── EXPORT DETAILS ───────────────────────────────── */}
-      <div style={{ padding: "0 16px 14px", flexShrink: 0 }}>
+      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">Export Details</span>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           {exportDetails.map(({ label, value, gold }) => (
@@ -501,8 +502,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
           ))}
 
           {/* ── Processing Time — live progress ── */}
-          <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: "1px solid #222" }}>
-            <div className="pp-row" style={{ marginBottom: "6px" }}>
+          <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #222" }}>
+            <div className="pp-row" style={{ marginBottom: "4px" }}>
               <span className="pp-row-lbl" style={{ fontSize: "9px" }}>Processing Time</span>
               <div className="pp-row-dot" />
               <span style={{
@@ -563,10 +564,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
       {/* ── HELP FOOTER ──────────────────────────────────── */}
       <div style={{
-        padding: "16px",
+        padding: "8px 14px",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
         background: "transparent", borderTop: "1px solid #222", flexShrink: 0,
-        marginTop: "auto",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <HelpCircle size={18} color="#FFD700" />
@@ -580,18 +580,18 @@ const PropertiesPanel = memo(function PropertiesPanel({
           </div>
         </div>
         <button
-          onClick={() => window.open("https://help.desaynclaw.com", "_blank")}
+          onClick={() => window.open("https://www.facebook.com/profile.php?id=61564332563389", "_blank")}
           style={{
             background: "transparent", border: "1px solid #333", color: "#a1a1aa",
             fontSize: "8px", fontWeight: "700", letterSpacing: "0.5px",
             textTransform: "uppercase", padding: "6px 10px", cursor: "pointer",
             display: "flex", alignItems: "center", gap: "6px",
-            transition: "all .15s"
+            transition: "all .15s", whiteSpace: "nowrap", flexShrink: 0
           }}
           onMouseOver={e => e.currentTarget.style.borderColor = "#555"}
           onMouseOut={e => e.currentTarget.style.borderColor = "#333"}
         >
-          View Guide <ExternalLink size={10} />
+          Contact Us <ExternalLink size={10} />
         </button>
       </div>
 
