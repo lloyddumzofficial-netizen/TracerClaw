@@ -11,16 +11,39 @@ import {
   clamp,
   colorDistance,
   extractPalette,
+  filterPalette,
   getSvgDimensions,
   getSvgSize,
   normalizeColor,
   replacePaletteColor,
   sanitizeSvg,
+  sortPalette,
 } from "./PalettePreviewModal.utils";
 
 const LARGE_COLOR_THRESHOLD = 120;
 const LARGE_PAINT_THRESHOLD = 2500;
 const LARGE_SVG_KB_THRESHOLD = 900;
+
+// History holds full SVG snapshots. Capping only the entry count meant a 900KB
+// SVG could retain ~11MB, so bound the retained bytes too and drop the oldest
+// entries first. Both limits are generous for normal artwork.
+const HISTORY_MAX_ENTRIES = 24;
+const HISTORY_MAX_BYTES = 8 * 1024 * 1024;
+
+// Recoloring re-parses and re-serializes the whole SVG, so live preview while
+// dragging the picker is only affordable below this size. Larger files still
+// recolor, just on release instead of continuously.
+const LIVE_PREVIEW_MAX_BYTES = 400 * 1024;
+
+function pushHistoryEntry(entries, entry) {
+  const next = [...entries, entry];
+  let bytes = next.reduce((sum, item) => sum + (item.svgText?.length || 0), 0);
+  while (next.length > 1 && (next.length > HISTORY_MAX_ENTRIES || bytes > HISTORY_MAX_BYTES)) {
+    bytes -= next[0].svgText?.length || 0;
+    next.shift();
+  }
+  return next;
+}
 
 function getPaletteItem(palette, color) {
   return palette.find(item => item.color === color) || null;
@@ -95,6 +118,11 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const [viewZoom, setViewZoom] = useState(1);
   const [viewPan, setViewPan] = useState({ x: 0, y: 0 });
   const [editHistory, setEditHistory] = useState([]);
+  const [redoHistory, setRedoHistory] = useState([]);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const [paletteSort, setPaletteSort] = useState("usage");
+  // Non-committed recolor shown while the picker is being dragged.
+  const [previewSvgText, setPreviewSvgText] = useState(null);
   const [dragMergeColor, setDragMergeColor] = useState(null);
   const [mergeTargetColor, setMergeTargetColor] = useState(null);
   const [mergeGroups, setMergeGroups] = useState({});
@@ -110,6 +138,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const childBubbleFrameRef = useRef(null);
   const editorRef = useRef(null);
   const suppressClickRef = useRef(false);
+  const livePreviewRef = useRef({ frame: null, pending: null });
 
   const svgUrl = useMemo(() => (
     project?.svg_url ? `/api/proxy?url=${encodeURIComponent(project.svg_url)}` : null
@@ -143,6 +172,10 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
         setViewZoom(1);
         setViewPan({ x: 0, y: 0 });
         setEditHistory([]);
+        setRedoHistory([]);
+        setPreviewSvgText(null);
+        setPaletteQuery("");
+        setPaletteSort("usage");
         setDragMergeColor(null);
         setMergeTargetColor(null);
         setMergeGroups({});
@@ -162,6 +195,8 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
       if (previewPanFrameRef.current) cancelAnimationFrame(previewPanFrameRef.current);
       if (bubbleFrameRef.current) cancelAnimationFrame(bubbleFrameRef.current);
       if (childBubbleFrameRef.current) cancelAnimationFrame(childBubbleFrameRef.current);
+      if (livePreviewRef.current.frame) cancelAnimationFrame(livePreviewRef.current.frame);
+      livePreviewRef.current = { frame: null, pending: null };
     };
   }, [show, svgUrl]);
 
@@ -179,10 +214,17 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     });
   }, [featured, visiblePalette]);
 
+  const displayPalette = useMemo(
+    () => sortPalette(filterPalette(visiblePalette, paletteQuery), paletteSort),
+    [visiblePalette, paletteQuery, paletteSort]
+  );
+
   const selectedItem = palette.find(item => item.color === selectedColor) || palette[0] || null;
+  // While the picker is being dragged the canvas shows the uncommitted preview.
+  const renderedSvgText = previewSvgText || editedSvgText;
   const sanitizedSvg = useMemo(
-    () => (editedSvgText ? sanitizeSvg(editedSvgText) : ""),
-    [editedSvgText]
+    () => (renderedSvgText ? sanitizeSvg(renderedSvgText) : ""),
+    [renderedSvgText]
   );
   const svgDimensions = useMemo(
     () => (editedSvgText ? getSvgDimensions(editedSvgText) : null),
@@ -204,19 +246,57 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     if (svgComplexity.sizeKb > LARGE_SVG_KB_THRESHOLD) return `${svgComplexity.sizeKb} KB SVG file. Browser export/editing may take a moment.`;
     return null;
   }, [svgComplexity]);
+  // Populated just before render returns, so the keyboard effect below always
+  // calls the current handlers without re-subscribing on every state change.
+  const actionsRef = useRef({});
+
+  useEffect(() => {
+    if (!show) return undefined;
+
+    const onKeyDown = (event) => {
+      const target = event.target;
+      const isTextField = target instanceof HTMLElement
+        && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+
+      if (event.key === "Escape") {
+        // Let a focused field bail out first rather than closing the whole studio.
+        if (isTextField) {
+          target.blur();
+          return;
+        }
+        event.preventDefault();
+        actionsRef.current.close?.();
+        return;
+      }
+
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        actionsRef.current.undo?.();
+      } else if ((key === "z" && event.shiftKey) || key === "y") {
+        event.preventDefault();
+        actionsRef.current.redo?.();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [show]);
+
   if (!show || !project) return null;
 
   const commitPaletteEdit = (nextSvgText, preferredColor = selectedColor, options = {}) => {
     if (!nextSvgText || nextSvgText === editedSvgText) return;
     if (options.rememberHistory !== false) {
-      setEditHistory(prev => [
-        ...prev.slice(-11),
-        {
-          svgText: editedSvgText,
-          selectedColor,
-          mergeGroups,
-        },
-      ]);
+      setEditHistory(prev => pushHistoryEntry(prev, {
+        svgText: editedSvgText,
+        selectedColor,
+        mergeGroups,
+      }));
+      // A fresh edit invalidates anything that was undone before it.
+      setRedoHistory([]);
     }
 
     const nextPalette = extractPalette(nextSvgText);
@@ -229,7 +309,37 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     setChildBubbleLayout({});
   };
 
+  const cancelLivePreview = () => {
+    const state = livePreviewRef.current;
+    if (state.frame) cancelAnimationFrame(state.frame);
+    state.frame = null;
+    state.pending = null;
+    setPreviewSvgText(null);
+  };
+
+  const canLivePreview = editedSvgText.length > 0 && editedSvgText.length <= LIVE_PREVIEW_MAX_BYTES;
+
+  /**
+   * Repaint the canvas with an uncommitted color so dragging the picker shows
+   * the result immediately. Throttled to one recolor per frame, and always
+   * derived from the committed SVG so repeated previews never stack up.
+   */
+  const previewSelectedColor = (nextColor) => {
+    if (!canLivePreview || !selectedItem || !/^#[0-9a-f]{6}$/i.test(nextColor)) return;
+    const state = livePreviewRef.current;
+    state.pending = nextColor.toLowerCase();
+    if (state.frame) return;
+
+    state.frame = requestAnimationFrame(() => {
+      state.frame = null;
+      const color = livePreviewRef.current.pending;
+      if (!color) return;
+      setPreviewSvgText(replacePaletteColor(editedSvgText, selectedItem, color));
+    });
+  };
+
   const updateSelectedColor = (nextColor) => {
+    cancelLivePreview();
     if (!selectedItem || !/^#[0-9a-f]{6}$/i.test(nextColor)) return;
     const nextNormalizedColor = nextColor.toLowerCase();
     const updated = replacePaletteColor(editedSvgText, selectedItem, nextNormalizedColor);
@@ -238,12 +348,14 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   };
 
   const resetEdits = () => {
+    cancelLivePreview();
     setEditedSvgText(originalSvgText);
     const nextPalette = extractPalette(originalSvgText);
     setPalette(nextPalette);
     setSelectedColor(nextPalette[0]?.color || null);
     setHexInput(nextPalette[0]?.color || "#ffd700");
     setEditHistory([]);
+    setRedoHistory([]);
     setMergeGroups({});
     setChildBubbleLayout({});
     setShowApplyConfirm(false);
@@ -260,21 +372,38 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     commitPaletteEdit(updated, targetItem.color, { nextMergeGroups });
   };
 
-  const undoLastEdit = () => {
-    setEditHistory(prev => {
-      const previous = prev[prev.length - 1];
-      if (!previous) return prev;
+  /** Restore a saved snapshot without touching either history stack. */
+  const applySnapshot = (snapshot) => {
+    const nextPalette = extractPalette(snapshot.svgText);
+    const nextSelected = nextPalette.find(item => item.color === snapshot.selectedColor)?.color
+      || nextPalette[0]?.color
+      || null;
+    setEditedSvgText(snapshot.svgText);
+    setPalette(nextPalette);
+    setSelectedColor(nextSelected);
+    setHexInput(nextSelected || "#ffd700");
+    setMergeGroups(snapshot.mergeGroups || {});
+    setChildBubbleLayout({});
+  };
 
-      const nextPalette = extractPalette(previous.svgText);
-      const nextSelected = nextPalette.find(item => item.color === previous.selectedColor)?.color || nextPalette[0]?.color || null;
-      setEditedSvgText(previous.svgText);
-      setPalette(nextPalette);
-      setSelectedColor(nextSelected);
-      setHexInput(nextSelected || "#ffd700");
-      setMergeGroups(previous.mergeGroups || {});
-      setChildBubbleLayout({});
-      return prev.slice(0, -1);
-    });
+  const currentSnapshot = () => ({ svgText: editedSvgText, selectedColor, mergeGroups });
+
+  const undoLastEdit = () => {
+    if (editHistory.length === 0) return;
+    cancelLivePreview();
+    const previous = editHistory[editHistory.length - 1];
+    setRedoHistory(prev => pushHistoryEntry(prev, currentSnapshot()));
+    setEditHistory(prev => prev.slice(0, -1));
+    applySnapshot(previous);
+  };
+
+  const redoLastEdit = () => {
+    if (redoHistory.length === 0) return;
+    cancelLivePreview();
+    const next = redoHistory[redoHistory.length - 1];
+    setEditHistory(prev => pushHistoryEntry(prev, currentSnapshot()));
+    setRedoHistory(prev => prev.slice(0, -1));
+    applySnapshot(next);
   };
 
   const selectColor = (color, fallbackColor = null) => {
@@ -557,6 +686,8 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
     }
   };
 
+  actionsRef.current = { undo: undoLastEdit, redo: redoLastEdit, close: onClose };
+
   return (
     <div className="modal-overlay">
       <div className="palette-modal">
@@ -601,11 +732,21 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             paletteMode={paletteMode}
             hasEdits={hasEdits}
             visiblePalette={visiblePalette}
+            displayPalette={displayPalette}
+            paletteQuery={paletteQuery}
+            paletteSort={paletteSort}
+            onSetPaletteQuery={setPaletteQuery}
+            onSetPaletteSort={setPaletteSort}
             loading={loading}
             selectedItem={selectedItem}
             hexInput={hexInput}
             mergeGroups={mergeGroups}
-            editHistory={editHistory}
+            canUndo={editHistory.length > 0}
+            canRedo={redoHistory.length > 0}
+            canLivePreview={canLivePreview}
+            onRedo={redoLastEdit}
+            onPreviewSelectedColor={previewSelectedColor}
+            onCancelLivePreview={cancelLivePreview}
             editorRef={editorRef}
             largeSvgWarning={largeSvgWarning}
             onStartBubbleDrag={startBubbleDrag}
@@ -620,7 +761,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             onSelectColor={handleSelectColor}
             onSetPaletteMode={setPaletteMode}
             onCompare={onCompare}
-            onSplitSelectedColor={undoLastEdit}
+            onUndo={undoLastEdit}
             onFocusRecolorControls={() => {
               setPaletteMode("select");
               editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });

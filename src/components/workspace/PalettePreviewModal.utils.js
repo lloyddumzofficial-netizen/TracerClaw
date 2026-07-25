@@ -112,6 +112,12 @@ export function replacePaletteColor(svgText, paletteItem, nextColor) {
   return serializeSvgDocument(document);
 }
 
+// Parsing hex is cheap, but clustering does featured x palette comparisons on
+// every edit, so the same handful of colors get re-parsed thousands of times.
+// Cache them, bounded so a long session across many projects cannot grow forever.
+const COLOR_METRIC_CACHE_LIMIT = 4096;
+const colorMetricCache = new Map();
+
 export function hexToRgb(hex) {
   const clean = expandHex(hex);
   if (!clean) return null;
@@ -122,11 +128,127 @@ export function hexToRgb(hex) {
   };
 }
 
+/**
+ * RGB plus HSL and relative luminance for one hex color. Cached by hex string.
+ * Returns null for anything unparseable so callers can skip it.
+ */
+export function getColorMetrics(hex) {
+  if (!hex) return null;
+  const key = String(hex).toLowerCase();
+  const cached = colorMetricCache.get(key);
+  if (cached !== undefined) return cached;
+
+  const rgb = hexToRgb(key);
+  let metrics = null;
+
+  if (rgb) {
+    const r = rgb.r / 255;
+    const g = rgb.g / 255;
+    const b = rgb.b / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    const l = (max + min) / 2;
+
+    let h = 0;
+    if (delta !== 0) {
+      if (max === r) h = ((g - b) / delta) % 6;
+      else if (max === g) h = (b - r) / delta + 2;
+      else h = (r - g) / delta + 4;
+      h *= 60;
+      if (h < 0) h += 360;
+    }
+    const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+
+    // WCAG relative luminance — used to pick readable label text on a swatch.
+    const channel = (value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+
+    metrics = { ...rgb, h, s, l, luminance, isGrey: delta < 0.02 };
+  }
+
+  if (colorMetricCache.size >= COLOR_METRIC_CACHE_LIMIT) colorMetricCache.clear();
+  colorMetricCache.set(key, metrics);
+  return metrics;
+}
+
+/** Compact path count that still fits inside a small swatch (e.g. 1240 -> 1.2k). */
+export function formatCount(count) {
+  const value = Number(count) || 0;
+  if (value < 1000) return String(value);
+  if (value < 10000) return `${(value / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${Math.round(value / 1000)}k`;
+}
+
+/** Text color that stays readable on top of the given swatch color. */
+export function getReadableTextColor(hex) {
+  const metrics = getColorMetrics(hex);
+  if (!metrics) return "#ffffff";
+  return metrics.luminance > 0.45 ? "#111111" : "#ffffff";
+}
+
 export function colorDistance(a, b) {
-  const ca = hexToRgb(a);
-  const cb = hexToRgb(b);
+  const ca = getColorMetrics(a);
+  const cb = getColorMetrics(b);
   if (!ca || !cb) return 999;
   return Math.sqrt((ca.r - cb.r) ** 2 + (ca.g - cb.g) ** 2 + (ca.b - cb.b) ** 2);
+}
+
+export const PALETTE_SORTS = [
+  { id: "usage", label: "Most used" },
+  { id: "hue", label: "By hue" },
+  { id: "light", label: "Light to dark" },
+];
+
+/**
+ * Sort a palette for display. Never mutates the input, and always falls back to
+ * usage order so two colors can't swap places between renders.
+ */
+export function sortPalette(items, mode) {
+  const list = [...items];
+  const byUsage = (a, b) => b.count - a.count || a.color.localeCompare(b.color);
+
+  if (mode === "hue") {
+    return list.sort((a, b) => {
+      const ma = getColorMetrics(a.color);
+      const mb = getColorMetrics(b.color);
+      if (!ma || !mb) return byUsage(a, b);
+      // Greys have a meaningless hue, so park them together at the end.
+      if (ma.isGrey !== mb.isGrey) return ma.isGrey ? 1 : -1;
+      if (ma.isGrey && mb.isGrey) return mb.l - ma.l || byUsage(a, b);
+      return ma.h - mb.h || mb.l - ma.l || byUsage(a, b);
+    });
+  }
+
+  if (mode === "light") {
+    return list.sort((a, b) => {
+      const ma = getColorMetrics(a.color);
+      const mb = getColorMetrics(b.color);
+      if (!ma || !mb) return byUsage(a, b);
+      return mb.l - ma.l || byUsage(a, b);
+    });
+  }
+
+  return list.sort(byUsage);
+}
+
+/**
+ * Filter by hex fragment. A bare "f00" matches #ff0000-ish entries by text, and
+ * a full 3- or 6-digit hex also matches visually-near colors so a user pasting a
+ * brand color still finds the closest swatch actually present in the artwork.
+ */
+export function filterPalette(items, query) {
+  const raw = (query || "").trim().toLowerCase();
+  if (!raw) return items;
+
+  const term = raw.replace(/^#/, "");
+  if (!term) return items;
+
+  const exact = expandHex(term);
+  return items.filter((item) => {
+    if (item.color.replace("#", "").includes(term)) return true;
+    return exact ? colorDistance(item.color, exact) <= 40 : false;
+  });
 }
 
 export function clamp(value, min, max) {

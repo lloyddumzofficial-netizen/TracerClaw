@@ -1,9 +1,12 @@
-import { GitCompareArrows, GitMerge, Layers3, Loader2, Pencil, Split } from "lucide-react";
+import { GitCompareArrows, GitMerge, Layers3, Loader2, Pencil, Redo2, Search, Undo2, X } from "lucide-react";
 import PaletteRecolorPanel from "./PaletteRecolorPanel";
 import {
   DEFAULT_BUBBLE_LAYOUT,
   MAX_CLUSTER_CHILDREN,
+  PALETTE_SORTS,
+  formatCount,
   getClusterChildPosition,
+  getReadableTextColor,
 } from "./PalettePreviewModal.utils";
 
 export default function PaletteColorMapPanel({
@@ -17,11 +20,21 @@ export default function PaletteColorMapPanel({
   paletteMode,
   hasEdits,
   visiblePalette,
+  displayPalette,
+  paletteQuery,
+  paletteSort,
+  onSetPaletteQuery,
+  onSetPaletteSort,
   loading,
   selectedItem,
   hexInput,
   mergeGroups,
-  editHistory,
+  canUndo,
+  canRedo,
+  canLivePreview,
+  onRedo,
+  onPreviewSelectedColor,
+  onCancelLivePreview,
   editorRef,
   largeSvgWarning,
   onStartBubbleDrag,
@@ -36,11 +49,19 @@ export default function PaletteColorMapPanel({
   onSelectColor,
   onSetPaletteMode,
   onCompare,
-  onSplitSelectedColor,
+  onUndo,
   onFocusRecolorControls,
   onUpdateSelectedColor,
   onSetHexInput,
 }) {
+  // DEFAULT_BUBBLE_LAYOUT only defines the five featured slots. Fall back to the
+  // last slot rather than indexing past the end if that count ever changes.
+  const layoutFor = (index) => (
+    bubbleLayout?.[index]
+    || DEFAULT_BUBBLE_LAYOUT[index]
+    || DEFAULT_BUBBLE_LAYOUT[DEFAULT_BUBBLE_LAYOUT.length - 1]
+  );
+
   return (
     <aside className="palette-side">
       <div className="palette-side-head">
@@ -75,10 +96,10 @@ export default function PaletteColorMapPanel({
               className={`palette-cluster palette-cluster-${index}${item.color === selectedColor ? " active" : ""}${item.color === mergeTargetColor ? " merge-target" : ""}`}
               style={{
                 backgroundColor: item.color,
-                width: `${bubbleLayout[index]?.size || DEFAULT_BUBBLE_LAYOUT[index].size}px`,
-                height: `${bubbleLayout[index]?.size || DEFAULT_BUBBLE_LAYOUT[index].size}px`,
-                left: `${bubbleLayout[index]?.x ?? DEFAULT_BUBBLE_LAYOUT[index].x}%`,
-                top: `${bubbleLayout[index]?.y ?? DEFAULT_BUBBLE_LAYOUT[index].y}%`,
+                width: `${layoutFor(index).size}px`,
+                height: `${layoutFor(index).size}px`,
+                left: `${layoutFor(index).x}%`,
+                top: `${layoutFor(index).y}%`,
               }}
               onPointerDown={(event) => onStartBubbleDrag(event, index)}
               onPointerMove={(event) => onMoveBubble(event, index)}
@@ -139,17 +160,66 @@ export default function PaletteColorMapPanel({
       </div>
 
       <div className="palette-tools">
-        <button onClick={onCompare}><GitCompareArrows size={18} /> <span>Compare</span></button>
-        <button className={paletteMode === "merge" ? "active" : ""} onClick={() => onSetPaletteMode(paletteMode === "merge" ? "select" : "merge")}><GitMerge size={18} /> <span>Merge</span></button>
-        <button onClick={onSplitSelectedColor} disabled={Object.keys(mergeGroups).length === 0 && editHistory.length === 0}><Split size={18} /> <span>Undo</span></button>
-        <button onClick={onFocusRecolorControls}><Pencil size={18} /> <span>Edit</span></button>
+        <button onClick={onCompare} title="Compare against the original"><GitCompareArrows size={18} /> <span>Compare</span></button>
+        <button
+          className={paletteMode === "merge" ? "active" : ""}
+          onClick={() => onSetPaletteMode(paletteMode === "merge" ? "select" : "merge")}
+          aria-pressed={paletteMode === "merge"}
+          title="Drag one swatch onto another to merge them"
+        >
+          <GitMerge size={18} /> <span>Merge</span>
+        </button>
+        <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)"><Undo2 size={18} /> <span>Undo</span></button>
+        <button onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"><Redo2 size={18} /> <span>Redo</span></button>
+        <button onClick={onFocusRecolorControls} title="Jump to the recolor controls"><Pencil size={18} /> <span>Edit</span></button>
       </div>
 
       <div className="palette-list">
         <div className="palette-list-title">
           <Layers3 size={14} />
           <span>Detected Palette</span>
-          <small>{visiblePalette.length} SVG colors. Select a color to inspect, or drag in Merge mode.</small>
+          <small>
+            {paletteQuery
+              ? `${displayPalette.length} of ${visiblePalette.length} colors match "${paletteQuery}".`
+              : `${visiblePalette.length} SVG colors. Select a color to inspect, or drag in Merge mode.`}
+          </small>
+        </div>
+
+        <div className="palette-filters">
+          <div className="palette-search">
+            <Search size={13} aria-hidden="true" />
+            <input
+              type="text"
+              value={paletteQuery}
+              onChange={(event) => onSetPaletteQuery(event.target.value)}
+              placeholder="Search hex, e.g. 1a1 or #ff0000"
+              aria-label="Search palette colors by hex"
+              spellCheck={false}
+            />
+            {paletteQuery && (
+              <button
+                type="button"
+                className="palette-search-clear"
+                onClick={() => onSetPaletteQuery("")}
+                aria-label="Clear color search"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <div className="palette-sort" role="group" aria-label="Sort palette">
+            {PALETTE_SORTS.map(option => (
+              <button
+                key={option.id}
+                type="button"
+                className={paletteSort === option.id ? "active" : ""}
+                onClick={() => onSetPaletteSort(option.id)}
+                aria-pressed={paletteSort === option.id}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {largeSvgWarning && (
@@ -163,8 +233,14 @@ export default function PaletteColorMapPanel({
           <div className="palette-loading"><Loader2 size={16} className="animate-spin" /> Detecting colors</div>
         ) : (
           <>
+            {displayPalette.length === 0 ? (
+              <div className="palette-empty">
+                <strong>No colors match “{paletteQuery}”.</strong>
+                <button type="button" onClick={() => onSetPaletteQuery("")}>Clear search</button>
+              </div>
+            ) : (
             <div className="palette-swatch-grid palette-swatch-grid-priority">
-              {visiblePalette.map((item, index) => (
+              {displayPalette.map((item) => (
                 <button
                   key={item.color}
                   className={[
@@ -172,6 +248,8 @@ export default function PaletteColorMapPanel({
                     item.color === dragMergeColor ? "merge-source" : "",
                     item.color === mergeTargetColor ? "merge-target" : "",
                   ].filter(Boolean).join(" ")}
+                  aria-label={`${item.color}, used by ${item.count} path${item.count === 1 ? "" : "s"}`}
+                  aria-pressed={item.color === selectedColor}
                   draggable={paletteMode === "merge"}
                   onDragStart={(event) => {
                     if (paletteMode !== "merge") {
@@ -205,18 +283,27 @@ export default function PaletteColorMapPanel({
                     onSetMergeTargetColor(null);
                   }}
                   onClick={() => onSelectColor(item.color)}
-                  title={`${item.color} · ${item.count} paths`}
+                  title={`${item.color} · ${item.count} path${item.count === 1 ? "" : "s"}`}
                 >
-                  <span style={{ backgroundColor: item.color }}>{index + 1}</span>
+                  <span
+                    style={{ backgroundColor: item.color, color: getReadableTextColor(item.color) }}
+                    data-len={formatCount(item.count).length}
+                  >
+                    {formatCount(item.count)}
+                  </span>
                 </button>
               ))}
             </div>
+            )}
 
             <PaletteRecolorPanel
               editorRef={editorRef}
               selectedItem={selectedItem}
               hexInput={hexInput}
+              canLivePreview={canLivePreview}
               onUpdateSelectedColor={onUpdateSelectedColor}
+              onPreviewSelectedColor={onPreviewSelectedColor}
+              onCancelLivePreview={onCancelLivePreview}
               onSetHexInput={onSetHexInput}
             />
           </>

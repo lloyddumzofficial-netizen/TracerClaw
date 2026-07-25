@@ -471,6 +471,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>Export<br />as PNG</span>
           </button>
           <button className="pp-sec"
+            // Anchor target for the "Palette Studio ready" nudge, which measures
+            // this button's position instead of using fixed offsets.
+            data-palette-preview-anchor="true"
             onClick={onOpenPalettePreview}
             disabled={!project?.svg_url}
             title={canUsePaletteStudio ? "Open Palette Studio" : "Generate SVG first"}>

@@ -1,7 +1,7 @@
 "use client";
 
 // ─── React & Routing ──────────────────────────────────────────────────────────
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
@@ -30,6 +30,7 @@ import StudioShell from "@/components/shared/StudioShell";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { getWorkspaceTitle } from "@/lib/workspaceLabels";
+import { computeNudgePlacement } from "@/lib/anchoredNudge";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
@@ -65,6 +66,7 @@ export default function Workspace() {
   const [showCompare, setShowCompare] = useState(false);
   const [showPalettePreview, setShowPalettePreview] = useState(false);
   const [showPaletteNudge, setShowPaletteNudge] = useState(false);
+  const paletteNudgeRef = useRef(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -241,6 +243,56 @@ export default function Workspace() {
     return () => window.clearTimeout(timer);
   }, [showPaletteNudge]);
 
+  // Pin the nudge to the actual Palette Preview button. It used to sit at fixed
+  // right/bottom offsets, which drifted away from the button whenever the panel
+  // layout, viewport, or scroll position changed.
+  useEffect(() => {
+    if (!showPaletteNudge || !project?.svg_url) return undefined;
+
+    let frame = null;
+    const place = () => {
+      frame = null;
+      const nudge = paletteNudgeRef.current;
+      const anchor = document.querySelector('[data-palette-preview-anchor="true"]');
+      if (!nudge || !anchor) return;
+
+      const a = anchor.getBoundingClientRect();
+      const n = nudge.getBoundingClientRect();
+
+      const { left, top, side, arrowY } = computeNudgePlacement({
+        anchor: { left: a.left, right: a.right, top: a.top, height: a.height },
+        nudge: { width: n.width, height: n.height },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      });
+
+      nudge.style.left = `${left}px`;
+      nudge.style.top = `${top}px`;
+      nudge.dataset.arrow = side;
+      nudge.style.setProperty("--nudge-arrow-y", `${arrowY}px`);
+      nudge.dataset.ready = "true";
+    };
+
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(place);
+    };
+
+    place();
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+
+    const anchor = document.querySelector('[data-palette-preview-anchor="true"]');
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
+    if (observer && anchor) observer.observe(anchor);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
+      observer?.disconnect();
+    };
+  }, [showPaletteNudge, project?.svg_url]);
+
   // ─── Crop Handlers ────────────────────────────────────────────────────────
   const handleCropApplied = useCallback((publicUrl, errorMsg) => {
     if (errorMsg) {
@@ -387,7 +439,7 @@ export default function Workspace() {
       </main>
 
       {showPaletteNudge && project?.svg_url && (
-        <div className="palette-ready-nudge" role="status" aria-live="polite">
+        <div className="palette-ready-nudge" ref={paletteNudgeRef} role="status" aria-live="polite">
           <div>
             <strong>Palette Studio ready</strong>
             <span>Edit or merge SVG colors when needed.</span>

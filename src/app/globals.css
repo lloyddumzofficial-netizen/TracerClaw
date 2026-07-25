@@ -1758,41 +1758,91 @@ body {
 }
 
 .palette-ready-nudge {
+  /* left/top are set in JS from the Palette Preview button's measured position.
+     Hidden until that first measurement lands so it never flashes in the wrong
+     place, and never re-enters the old hardcoded right/bottom corner. */
   position: fixed;
-  right: 312px;
-  bottom: 86px;
+  left: 0;
+  top: 0;
   z-index: 40;
-  width: min(292px, calc(100vw - 340px));
+  width: 288px;
+  max-width: calc(100vw - 24px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 9px;
-  padding: 10px 10px 10px 12px;
-  background: rgba(18, 18, 18, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.46), inset 2px 0 0 #ffd700;
+  gap: 10px;
+  padding: 11px 11px 11px 13px;
+  background: rgba(20, 20, 20, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 3px;
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 2px 0 0 #ffd700;
   backdrop-filter: blur(12px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  transform: translateX(6px);
 }
 
+.palette-ready-nudge[data-ready="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  animation: palette-nudge-in 0.28s ease both;
+}
+
+@keyframes palette-nudge-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Pointer arrow. --nudge-arrow-y is set in JS so it stays level with the button
+   even when the card is clamped against a viewport edge. */
 .palette-ready-nudge::before,
 .palette-ready-nudge::after {
   content: "";
   position: absolute;
-  right: -9px;
-  top: 50%;
+  top: var(--nudge-arrow-y, 50%);
   width: 0;
   height: 0;
   border-top: 9px solid transparent;
   border-bottom: 9px solid transparent;
-  border-left: 9px solid rgba(255, 255, 255, 0.12);
   transform: translateY(-50%);
 }
 
-.palette-ready-nudge::after {
+.palette-ready-nudge[data-arrow="right"]::before {
+  right: -9px;
+  border-left: 9px solid rgba(255, 255, 255, 0.13);
+}
+
+.palette-ready-nudge[data-arrow="right"]::after {
   right: -8px;
   border-top-width: 8px;
   border-bottom-width: 8px;
-  border-left: 8px solid rgba(18, 18, 18, 0.96);
+  border-left: 8px solid rgba(20, 20, 20, 0.97);
+}
+
+.palette-ready-nudge[data-arrow="left"]::before {
+  left: -9px;
+  border-right: 9px solid rgba(255, 255, 255, 0.13);
+}
+
+.palette-ready-nudge[data-arrow="left"]::after {
+  left: -8px;
+  border-top-width: 8px;
+  border-bottom-width: 8px;
+  border-right: 8px solid rgba(20, 20, 20, 0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palette-ready-nudge,
+  .palette-ready-nudge[data-ready="true"] {
+    transition: none;
+    animation: none;
+    transform: none;
+  }
 }
 
 .palette-ready-nudge strong,
@@ -1826,32 +1876,51 @@ body {
   background: #1a1a1a;
   color: #f0f0f0;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
+/* Primary action reads as a real CTA, matching the gold Export button. */
 .palette-ready-action {
   gap: 6px;
-  padding: 0 10px;
+  padding: 0 12px;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   white-space: nowrap;
-  border-color: rgba(255, 215, 0, 0.32);
+  background: #ffd700;
+  border-color: #ffd700;
+  color: #111;
 }
 
-.palette-ready-action:hover,
-.palette-ready-close:hover {
-  background: #242424;
-  border-color: rgba(255, 215, 0, 0.55);
-  color: #ffd700;
+.palette-ready-action svg {
+  flex-shrink: 0;
+}
+
+.palette-ready-action:hover {
+  background: #ffe34d;
+  border-color: #ffe34d;
+  color: #111;
+}
+
+.palette-ready-action:focus-visible,
+.palette-ready-close:focus-visible {
+  outline: 2px solid #ffd700;
+  outline-offset: 2px;
 }
 
 .palette-ready-close {
-  width: 30px;
+  width: 28px;
   padding: 0;
-  border-color: #333;
-  background: #181818;
-  color: #9b9b9b;
+  border-color: transparent;
+  background: transparent;
+  color: #8a8a8a;
+}
+
+.palette-ready-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .palette-side-head {
@@ -2049,7 +2118,10 @@ body {
 
 .palette-tools {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Auto-flow columns so the row never wraps onto a second line and overlaps
+     the panel below, regardless of how many tools are rendered. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.065);
@@ -2064,7 +2136,9 @@ body {
   align-items: center;
   justify-content: center;
   gap: 3px;
+  min-width: 0;
   min-height: 46px;
+  padding: 0 3px;
   background: #121212;
   border: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.065);
@@ -2075,6 +2149,20 @@ body {
   letter-spacing: 0.5px;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+/* Labels must never widen a column or spill past it. */
+.palette-tools button span {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+
+.palette-tools button svg {
+  flex-shrink: 0;
 }
 
 .palette-tools button:last-child {
@@ -3401,4 +3489,173 @@ body {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* ── Palette Studio: search, sort, usage bars, quick colors ────────────── */
+
+.palette-filters {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.palette-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+}
+
+.palette-search:focus-within {
+  border-color: rgba(255, 215, 0, 0.45);
+}
+
+.palette-search > svg {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.palette-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ededed;
+  font-size: 11.5px;
+  font-family: inherit;
+}
+
+.palette-search input::placeholder {
+  color: #5a5a5a;
+}
+
+.palette-search-clear {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 50%;
+  color: #bbb;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.palette-search-clear:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.palette-sort {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.palette-sort button {
+  padding: 6px 4px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  color: #808080;
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.14s, border-color 0.14s, background 0.14s;
+}
+
+.palette-sort button:hover {
+  color: #d8d8d8;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.palette-sort button.active {
+  color: #ffd700;
+  border-color: rgba(255, 215, 0, 0.45);
+  background: rgba(255, 215, 0, 0.07);
+}
+
+.palette-empty {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  padding: 26px 12px;
+  margin-bottom: 12px;
+  background: #101010;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  text-align: center;
+}
+
+.palette-empty strong {
+  color: #b9b9b9;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.palette-empty button {
+  padding: 6px 13px;
+  background: transparent;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.palette-empty button:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.palette-swatch-grid span[data-len="3"] {
+  font-size: 9px;
+}
+
+.palette-swatch-grid span[data-len="4"] {
+  font-size: 8px;
+  letter-spacing: -0.2px;
+}
+
+.palette-quick-colors {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.palette-quick-colors button {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.palette-quick-colors button:hover:not(:disabled),
+.palette-quick-colors button:focus-visible {
+  transform: scale(1.16);
+  border-color: #ffd700;
+  outline: none;
+}
+
+.palette-quick-colors button:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.palette-editor input[type="text"][aria-invalid="true"] {
+  border-color: rgba(239, 68, 68, 0.6);
 }
