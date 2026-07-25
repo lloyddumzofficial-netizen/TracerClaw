@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
-import { buildNanoBananaPrompt, getNanoBananaInputTuning, isPatternOnlyPrompt } from "@/lib/tracePrompts";
+import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning } from "@/lib/tracePrompts";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -163,8 +163,8 @@ export async function POST(request) {
       }
 
       const prompt = buildNanoBananaPrompt(project?.ai_prompt);
-      const isPatternOnlyExtraction = isPatternOnlyPrompt(project?.ai_prompt);
-      const nanoBananaTuning = getNanoBananaInputTuning(project?.ai_prompt);
+      const systemPrompt = buildNanoBananaSystemPrompt(project?.ai_prompt);
+      const nanoBananaTuning = getNanoBananaInputTuning();
 
       let generatedImageBuffer;
       let generatedMimeType = "image/png";
@@ -190,6 +190,7 @@ export async function POST(request) {
           input: {
             image_urls: [finalImageUrl],
             prompt: prompt,
+            system_prompt: systemPrompt,
             aspect_ratio: targetAspectRatio,
             ...nanoBananaTuning,
           },
@@ -218,6 +219,48 @@ export async function POST(request) {
         generatedImageBuffer = generatedBuffer;
         generatedMimeType = result.data.images[0].content_type || "image/jpeg";
         geminiThinking = "Generated via fal.ai Nano Banana Pro Edit";
+
+        // ── Re-registration: restore the source aspect ratio ──
+        // fal only accepts a fixed enum of aspect ratios, so `targetAspectRatio` is the
+        // *nearest* match and can be several percent off the real source ratio. That
+        // offset makes the before/after slider tear. Stretch the output back onto the
+        // exact source ratio so the two layers register pixel-for-pixel. We scale up
+        // rather than down so none of the 2K detail is thrown away.
+        if (metadata?.width && metadata?.height) {
+          try {
+            const genMeta = await sharp(generatedBuffer).metadata();
+            const sourceRatio = metadata.width / metadata.height;
+            const generatedRatio = genMeta.width / genMeta.height;
+
+            if (Math.abs(generatedRatio - sourceRatio) / sourceRatio > 0.005) {
+              // Area-preserving reshape: keep roughly the same pixel budget the model
+              // produced and just redistribute it onto the source ratio. Growing the
+              // short edge instead (the obvious approach) inflates the image, and that
+              // inflation then gets multiplied by the step-2 upscaler.
+              const genArea = genMeta.width * genMeta.height;
+              let targetH = Math.round(Math.sqrt(genArea / sourceRatio));
+              let targetW = Math.round(targetH * sourceRatio);
+
+              const MAX_EDGE = 4096;
+              const longest = Math.max(targetW, targetH);
+              if (longest > MAX_EDGE) {
+                const shrink = MAX_EDGE / longest;
+                targetW = Math.round(targetW * shrink);
+                targetH = Math.round(targetH * shrink);
+              }
+
+              generatedImageBuffer = await sharp(generatedBuffer)
+                .resize(targetW, targetH, { fit: 'fill', kernel: 'lanczos3' })
+                .png()
+                .toBuffer();
+              generatedMimeType = "image/png";
+              console.log(`[Trace] Re-registered ${genMeta.width}x${genMeta.height} → ${targetW}x${targetH} to match source ratio ${sourceRatio.toFixed(4)}`);
+            }
+          } catch (registrationErr) {
+            // Non-fatal: a slightly mis-registered image still beats a failed generation.
+            console.warn("[Trace] Aspect re-registration skipped:", registrationErr.message);
+          }
+        }
 
       } catch (err) {
         console.error("[fal.ai Error]:", err);
@@ -256,12 +299,44 @@ export async function POST(request) {
         return NextResponse.json({ error: "Invalid or unauthorized generated image URL" }, { status: 400 });
       }
 
+      // ── Adaptive upscale factor ──
+      // A fixed 4x was sized for the old 1K step-1 output. Step 1 now emits 2K, and a
+      // blind 4x on that produced a 6144x11160 PNG that blew past the 60MB save-asset
+      // ceiling ("Remote file is too large"). Pick the factor from the actual input
+      // dimensions so the result always lands under the cap.
+      const UPSCALE_TARGET_EDGE = 6000;   // keep any single edge sane
+      const UPSCALE_TARGET_PIXELS = 20e6; // and keep the encoded PNG well under 60MB
+      let upscaleFactor = 4;
+      try {
+        const sharp = (await import('sharp')).default;
+        const { buffer: stepOneBuffer } = await fetchWithSSRFProtection(upscaleInputUrl, {
+          allowedHosts: getAllowedStorageHosts(),
+          maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+          allowedContentTypes: ['image/'],
+        });
+        const stepOneMeta = await sharp(stepOneBuffer).metadata();
+        const longestEdge = Math.max(stepOneMeta.width || 0, stepOneMeta.height || 0);
+        const area = (stepOneMeta.width || 0) * (stepOneMeta.height || 0);
+        if (longestEdge > 0 && area > 0) {
+          const byEdge = UPSCALE_TARGET_EDGE / longestEdge;
+          const byArea = Math.sqrt(UPSCALE_TARGET_PIXELS / area);
+          // Round down to 0.5 steps so we never exceed either ceiling.
+          upscaleFactor = Math.floor(Math.min(byEdge, byArea) * 2) / 2;
+          upscaleFactor = Math.min(4, Math.max(1, upscaleFactor));
+        }
+        console.log(`[API Step 2] Step-1 image is ${stepOneMeta.width}x${stepOneMeta.height}; using ${upscaleFactor}x upscale.`);
+      } catch (sizeErr) {
+        // Could not measure — fall back to the conservative factor rather than 4x.
+        upscaleFactor = 2;
+        console.warn("[API Step 2] Could not measure step-1 image, defaulting to 2x:", sizeErr.message);
+      }
+
       console.log("[API Step 2] Upscaling with fal-ai/esrgan...");
 
       const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
         input: {
           image_url: upscaleInputUrl,
-          scale: 4, // 4x upscale (increased from 2x)
+          scale: upscaleFactor,
         },
         logs: true,
         onQueueUpdate: (update) => {
