@@ -2,6 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react";
 import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, CreditCard, AlertTriangle } from "lucide-react";
+import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
@@ -10,10 +11,10 @@ import { safeJson } from "@/lib/safeJson";
 // Derived from CREDIT_PLANS — single source of truth.
 // To change prices, edit src/lib/paymentPlans.js only.
 const PLANS_META = {
-  tingi:   { desc: 'Small package for quick tests.',                          features: ['2 HD Vector Traces', 'Standard Processing'] },
-  basic:   { desc: 'Great for hobbyists printing occasionally.',               features: ['5 HD Vector Traces', 'Standard Processing'] },
-  starter: { desc: 'Ideal for small businesses taking their first steps.',     features: ['10 HD Vector Traces', 'Priority Processing', 'Email support'] },
-  pro:     { desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['35 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
+  tingi:   { icon: '/Claws/6f530a46-652b-4f20-8d6c-2a7c9f587698.png', desc: 'Small package for quick tests.',                          features: ['2 HD Vector Traces', 'Standard Processing'] },
+  basic:   { icon: '/Claws/a15960f4-04ea-43bf-b226-20b9923767a4.png', desc: 'Great for hobbyists printing occasionally.',               features: ['5 HD Vector Traces', 'Standard Processing'] },
+  starter: { icon: '/Claws/f05da7d4-2019-4c80-9c92-cfc2ba752ef5.png', desc: 'Ideal for small businesses taking their first steps.',     features: ['10 HD Vector Traces', 'Priority Processing', 'Email support'] },
+  pro:     { icon: '/Claws/e21d7ba5-f8c9-4e19-8653-f9d7db6eeedb.png', desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['35 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
 };
 
 const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
@@ -23,11 +24,12 @@ const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
   price:    plan.price,
   desc:     PLANS_META[plan.key]?.desc || '',
   best:     PLANS_META[plan.key]?.best || false,
+  icon:     PLANS_META[plan.key]?.icon || null,
   features: PLANS_META[plan.key]?.features || [],
 }));
 
 const PLAN_LABELS = Object.fromEntries(
-  Object.values(CREDIT_PLANS).map((p) => [p.key, `${p.label} — ${p.credits} Credits`])
+  Object.values(CREDIT_PLANS).map((p) => [p.key, `${p.label} — ${p.credits} Claws`])
 );
 const PLAN_PRICES = Object.fromEntries(
   Object.values(CREDIT_PLANS).map((p) => [p.key, p.price])
@@ -155,7 +157,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
       // If this reference was already approved, credits are already in their account.
       // Treat this as success/info — not an error — so users aren't confused.
       if (data.alreadyApproved) {
-        toast.success("✅ Your credits were already added! Please check your balance.");
+        toast.success("✅ Your claws were already added! Please check your balance.");
         setSubmitted(true);
         return;
       }
@@ -204,7 +206,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             onClick={() => { setActiveTab('history'); setStep(1); }} 
             style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'history' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'history' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <History size={16} /> Token Logs
+            <History size={16} /> Claw Logs
           </button>
         </div>
 
@@ -212,12 +214,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
           {activeTab === 'history' ? (
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>
-                <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#fff' }}>Token History</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>View your recent credit transactions and usage. Logs are automatically deleted after 3 days.</p>
+                <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#fff' }}>Claw History</h2>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>View your recent claw transactions and usage. Logs are automatically deleted after 3 days.</p>
               </div>
               
               {!user ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Please log in to view your token history.</div>
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Please log in to view your claw history.</div>
               ) : isLoadingLogs ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Loading logs...</div>
               ) : logs.length === 0 ? (
@@ -253,7 +255,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <p style={{ margin: '0 0 10px', color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Tag size={14} style={{ marginRight: '8px', color: '#555' }} /> Ref No: <strong style={{ color: '#fff', marginLeft: '6px' }}>{form.txnRef || '—'}</strong></p>
                 <p style={{ margin: 0, color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Mail size={14} style={{ marginRight: '8px', color: '#555' }} /> Account: <strong style={{ color: '#fff', marginLeft: '6px' }}>{user?.email}</strong></p>
               </div>
-              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 24px' }}>Credits are usually added within <strong style={{ color: '#FFD700' }}>10-30 minutes</strong>. Thank you.</p>
+              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 24px' }}>Claws are usually added within <strong style={{ color: '#FFD700' }}>10-30 minutes</strong>. Thank you.</p>
               <button onClick={handleClose} style={{ width: '100%', padding: '14px', background: 'transparent', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#333'; e.currentTarget.style.borderColor = '#777'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#444'; }}>Close</button>
             </div>
           ) : step === 1 ? (
@@ -261,25 +263,28 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                 {!user && (
                   <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid #FFD700', color: '#FFD700', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
-                    Welcome. You need credits to trace images. Please select a plan and log in.
+                    Welcome. You need claws to trace images. Please select a plan and log in.
                   </div>
                 )}
                 <div style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Pricing Plan</div>
                 <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>Affordable pricing</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Choose the credit package that fits your workflow.</p>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Choose the claw package that fits your workflow.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {PLANS.map(p => (
                   <div key={p.key} style={{ background: p.best ? '#333' : '#2a2a2a', border: `1px solid ${p.best ? '#FFD700' : '#444'}`, padding: '32px 24px', display: 'flex', flexDirection: 'column', position: 'relative', borderRadius: '6px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '16px' }}>
-                      <div style={{ fontSize: '16px', fontWeight: '500', color: '#fff' }}>{p.label}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {p.icon && <Image src={p.icon} alt={p.label} width={32} height={32} style={{ objectFit: 'contain' }} />}
+                        <div style={{ fontSize: '16px', fontWeight: '500', color: '#fff' }}>{p.label}</div>
+                      </div>
                       {p.best && <div style={{ background: '#FFD700', color: '#000', fontSize: '11px', fontWeight: '800', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> Most popular</div>}
                     </div>
 
                     <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                       <span style={{ fontSize: '36px', fontWeight: '700', color: '#fff', letterSpacing: '-1px' }}>{p.price}</span>
-                      <span style={{ fontSize: '12px', color: '#888' }}>/ {p.traces} credits</span>
+                      <span style={{ fontSize: '12px', color: '#888' }}>/ {p.traces} claws</span>
                     </div>
                     
                     <p style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.5', margin: '0 0 24px', minHeight: '40px' }}>{p.desc}</p>
@@ -348,12 +353,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   disabled={isStartingDodo || form.plan === 'tingi'}
                   style={{ background: '#333', border: '1px solid #FFD700', color: '#fff', padding: '24px', textAlign: 'left', cursor: (isStartingDodo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: (isStartingDodo || form.plan === 'tingi') ? 0.55 : 1 }}
                 >
-                  <CreditCard size={26} color="#FFD700" />
+                  <Image src="/Claws/Claws.png" alt="Claws" width={26} height={26} style={{ objectFit: 'contain' }} />
                   <span style={{ fontSize: '18px', fontWeight: '700' }}>Card / International</span>
                   <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>
                     {form.plan === 'tingi'
                       ? 'Not available for Mini because card fees are too high for micro-payments.'
-                      : 'Pay through Dodo Payments hosted checkout. Credits are added automatically after payment confirmation.'}
+                      : 'Pay through Dodo Payments hosted checkout. Claws are added automatically after payment confirmation.'}
                   </span>
                   <span style={{ color: '#FFD700', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {form.plan === 'tingi' ? 'Choose Basic or higher' : isStartingDodo ? 'Starting checkout...' : 'Automated checkout'}
@@ -375,7 +380,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               <div style={{ background: 'rgba(255, 215, 0, 0.05)', borderLeft: '3px solid #FFD700', borderRadius: '4px', padding: '16px', marginBottom: '32px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <AlertTriangle size={20} color="#FFD700" style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ color: '#ccc', fontSize: '13px', lineHeight: 1.6 }}>
-                  <strong style={{ color: '#FFD700' }}>Manual GCash is not automated.</strong> Submit only once after paying. Duplicate or repeated proof submissions after credits are already added may be blocked for 7 days. Use the same email/account you want credited.
+                  <strong style={{ color: '#FFD700' }}>Manual GCash is not automated.</strong> Submit only once after paying. Duplicate or repeated proof submissions after claws are already added may be blocked for 7 days. Use the same email/account you want credited.
                 </div>
               </div>
 
@@ -409,7 +414,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     <label style={{ display: 'block', color: '#666', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Email (Auto-filled)</label>
                     <input type="text" value={user?.email || ''} readOnly style={{ width: '100%', background: 'transparent', border: '1px solid #222', borderRadius: '8px', padding: '14px 16px', color: '#555', fontSize: '15px', outline: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }} />
                   </div>
-                  <p style={{ margin: '4px 0 0', color: '#888', fontSize: '13px', lineHeight: 1.6 }}>After paying, fill in the number, attach screenshot and submit. Credits arrive within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>.</p>
+                  <p style={{ margin: '4px 0 0', color: '#888', fontSize: '13px', lineHeight: 1.6 }}>After paying, fill in the number, attach screenshot and submit. Claws arrive within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>.</p>
                 </div>
               </div>
 

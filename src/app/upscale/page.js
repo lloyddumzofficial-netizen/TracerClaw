@@ -206,7 +206,7 @@ export default function UpscalePage() {
       if (!res.ok) throw new Error(data.error || "Failed to process image");
 
       setUpscaledImage(data.upscaledUrl);
-      toast.success("Image upscaled successfully! (1 Credit deducted)");
+      toast.success("Image upscaled successfully! (1 Claw deducted)");
       fetchCredits(user.id);
       fetchRecentUpscales(user.id);
 

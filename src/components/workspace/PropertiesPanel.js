@@ -141,10 +141,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
       : traceState !== "idle"
         ? "Processing…"
         : noCredits
-          ? "Get More Credits"
+          ? "Get More Claws"
           : !isCropped
             ? "Crop Image First"
-            : `Run Auto-Trace  (−${creditCost} Credit${creditCost > 1 ? "s" : ""})`;
+            : `Run Auto-Trace  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
   const canTrace = !isBusy && !hasSvg && (noCredits || isCropped);
 
@@ -153,7 +153,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
     { label: "Max Vectors", value: "Unlimited", gold: false },
     { label: "Color Mode", value: "Full Color", gold: false },
     { label: "Max Size", value: "50 MP", gold: false },
-    { label: "Credits Required", value: `${creditCost} Credit`, gold: true },
+    { label: "Claws Required", value: `${creditCost} Claw`, gold: true },
   ];
 
   return (
@@ -308,7 +308,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 Standard SVG
               </div>
               <div style={{ fontSize: "9px", color: "#71717a" }}>
-                1 Credit • Includes Palette Studio
+                1 Claw • Includes Palette Studio
               </div>
             </div>
             <div style={{
@@ -330,7 +330,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 Precision SVG
               </div>
               <div style={{ fontSize: "9px", color: "#71717a" }}>
-                2 Credits • Cleaner paths + smoother Palette Studio
+                2 Claws • Cleaner paths + smoother Palette Studio
               </div>
             </div>
             <div style={{
@@ -434,7 +434,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
             ? <CheckCircle2 size={15} color="#3f3f46" />
             : isBusy
               ? <span className="pp-spin"><Loader2 size={15} /></span>
-              : <Sparkles size={15} />}
+              : null}
           {traceButtonLabel}
         </button>
 

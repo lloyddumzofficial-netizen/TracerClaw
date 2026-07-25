@@ -203,7 +203,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
           });
           const refundData = await safeJson(refundRes, "Refund request failed");
           if (refundData.success) {
-            logToConsole("[System] Generation failed. Charged credits were restored.", "success");
+            logToConsole("[System] Generation failed. Charged claws were restored.", "success");
           }
 
           const { data: profile } = await supabase

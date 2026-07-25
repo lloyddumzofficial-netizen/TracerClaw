@@ -1,7 +1,8 @@
 "use client";
 
 import { memo, useState } from "react";
-import { ImageMinus, X, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { ImageMinus, X, Loader2, Sparkles, ShieldCheck, AlertCircle } from "lucide-react";
+import Image from "next/image";
 import LogoLoader from "@/components/ui/LogoLoader";
 import { safeJson } from "@/lib/safeJson";
 
@@ -197,8 +198,8 @@ const RemoveBgModal = memo(function RemoveBgModal({
             padding: "8px 12px",
             fontSize: "11px",
           }}>
-            <span style={{ fontSize: "14px" }}>🪙</span>
-            <span style={{ color: "#888" }}>This action will consume <strong style={{ color: "#FFD700" }}>1 Credit</strong> from your account.</span>
+            <Image src="/Claws/Claws.png" alt="Claw" width={14} height={14} style={{ objectFit: 'contain' }} />
+            <span style={{ color: "#888" }}>This action will consume <strong style={{ color: "#FFD700" }}>1 Claw</strong> from your account.</span>
           </div>
 
           {/* Error */}
@@ -276,7 +277,7 @@ const RemoveBgModal = memo(function RemoveBgModal({
             ) : (
               <>
                 <ImageMinus size={13} strokeWidth={2.5} />
-                Remove Background  (−1 Credit)
+                Remove Background  (−1 Claw)
               </>
             )}
           </button>

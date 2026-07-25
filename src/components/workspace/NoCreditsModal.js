@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { CreditCard } from "lucide-react";
+import Image from "next/image";
 
 const NoCreditsModal = memo(function NoCreditsModal({ show, onClose, onTopUp }) {
   if (!show) return null;
@@ -9,11 +10,11 @@ const NoCreditsModal = memo(function NoCreditsModal({ show, onClose, onTopUp }) 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: "400px", textAlign: "center", padding: "30px" }} onClick={e => e.stopPropagation()}>
         <div style={{ marginBottom: "16px", display: "flex", justifyContent: "center" }}>
-          <CreditCard size={48} color="#FFD700" strokeWidth={1.5} />
+          <Image src="/Claws/Claws.png" alt="Claws" width={48} height={48} style={{ objectFit: 'contain' }} />
         </div>
         <h3 style={{ margin: "0 0 10px", color: "#fff", fontWeight: "700", fontSize: "20px" }}>0 Traces Remaining</h3>
         <p style={{ color: "#aaa", fontSize: "14px", marginBottom: "24px", lineHeight: 1.5 }}>
-          You don't have enough credits to run this generation. Please top up your account to continue.
+          You don't have enough claws to run this generation. Please top up your account to continue.
         </p>
         <div style={{ display: "flex", gap: "10px" }}>
           <button
