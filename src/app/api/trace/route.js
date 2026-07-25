@@ -270,10 +270,25 @@ export async function POST(request) {
         throw new Error(err.message || "Failed to generate image with fal.ai");
       }
 
+      // Upload server-side and hand the client a URL.
+      // Returning multi-MB base64 for the browser to POST back to /api/save-asset
+      // blows the platform's ~4.5MB serverless request body cap and fails with a
+      // 413 before the function even runs — which is invisible locally, where no
+      // such cap exists. Step 2 already worked this way; step 1 now matches it.
+      const extractExt = generatedMimeType === 'image/jpeg'
+        ? 'jpg'
+        : (generatedMimeType.split('/')[1] || 'png');
+      const { uploadToR2 } = await import("@/lib/cloudflare");
+      const extractedUrl = await uploadToR2(
+        generatedImageBuffer,
+        `projects/${projectId}/generated_flat_${Date.now()}.${extractExt}`,
+        generatedMimeType
+      );
+
       return NextResponse.json({
         success: true,
         step: 1,
-        base64: generatedImageBuffer.toString('base64'),
+        fileUrl: extractedUrl,
         mimeType: generatedMimeType,
         thinking: geminiThinking,
       });

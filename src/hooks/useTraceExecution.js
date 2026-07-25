@@ -101,7 +101,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
           "Content-Type": "application/json",
           ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ projectId: project.id, step: 1, base64: data1.base64, mimeType: data1.mimeType }),
+        body: JSON.stringify({ projectId: project.id, step: 1, fileUrl: data1.fileUrl, mimeType: data1.mimeType }),
       });
       const saveData1 = await safeJson(save1, "Failed to save image");
       if (!save1.ok) throw new Error(saveData1.error || "Failed to save image");
