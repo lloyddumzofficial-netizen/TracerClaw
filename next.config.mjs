@@ -1,5 +1,46 @@
+import { execSync } from 'node:child_process';
+
+/**
+ * Build-time commit stamp.
+ *
+ * Deploys here run `vercel --prod` from a local working directory rather than
+ * through the Git integration, so Vercel does not populate
+ * VERCEL_GIT_COMMIT_SHA. Without a stamp there is no way to tell what is
+ * actually running in production — which is how production and the repository
+ * silently drifted apart before.
+ *
+ * Prefer Vercel's own value when a Git-integrated deploy is used; otherwise
+ * read the local HEAD at build time.
+ */
+function resolveBuildCommit() {
+  if (process.env.VERCEL_GIT_COMMIT_SHA) return process.env.VERCEL_GIT_COMMIT_SHA;
+  try {
+    return execSync('git rev-parse HEAD', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+function resolveBuildDirty() {
+  if (process.env.VERCEL_GIT_COMMIT_SHA) return 'false';
+  try {
+    const out = execSync('git status --porcelain', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return out.length > 0 ? 'true' : 'false';
+  } catch {
+    return 'unknown';
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    BUILD_COMMIT: resolveBuildCommit(),
+    // "true" means the deploy was built from a working tree with uncommitted
+    // changes, i.e. production does NOT match any commit in the repository.
+    BUILD_DIRTY: resolveBuildDirty(),
+    BUILD_TIME: new Date().toISOString(),
+  },
+
   // ── Canonical domain redirect ───────────────────────────────────────────────
   // Any request hitting desaynclaw.vercel.app is permanently redirected to
   // the custom domain desaynclaw.com, preserving path + query string.
