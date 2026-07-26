@@ -10,6 +10,11 @@ const EVENT_NAMES = {
   checkoutStarted: "checkout_started",
   creditsPurchased: "credits_purchased",
   affiliateReferral: "affiliate_referral",
+  seoLandingPageView: "seo_landing_page_view",
+  seoCtaClick: "seo_cta_click",
+  uploadFunnelStarted: "upload_funnel_started",
+  tracingFunnelStep: "tracing_funnel_step",
+  downloadFunnelCompleted: "download_funnel_completed",
   error: "error_event",
 };
 
@@ -348,6 +353,11 @@ export const analytics = {
   checkoutStarted: (properties) => trackEvent(EVENT_NAMES.checkoutStarted, properties),
   creditsPurchased: (properties) => trackEvent(EVENT_NAMES.creditsPurchased, properties),
   affiliateReferral: (properties) => trackEvent(EVENT_NAMES.affiliateReferral, properties),
+  seoLandingPageView: (properties) => trackEvent(EVENT_NAMES.seoLandingPageView, properties),
+  seoCtaClick: (properties) => trackEvent(EVENT_NAMES.seoCtaClick, properties),
+  uploadFunnelStarted: (properties) => trackEvent(EVENT_NAMES.uploadFunnelStarted, properties),
+  tracingFunnelStep: (properties) => trackEvent(EVENT_NAMES.tracingFunnelStep, properties),
+  downloadFunnelCompleted: (properties) => trackEvent(EVENT_NAMES.downloadFunnelCompleted, properties),
   error: trackError,
   identify: identifyUser,
   authSession: trackAuthSession,

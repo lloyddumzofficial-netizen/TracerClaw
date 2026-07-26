@@ -5,7 +5,7 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin', '/api/', '/workspace/', '/mobile'],
+      disallow: ['/admin', '/api/', '/workspace/', '/mobile', '/sentry-test', '/bg-remover/*'],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   }
