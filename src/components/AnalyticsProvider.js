@@ -2,7 +2,7 @@
 
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { initializeAnalytics, trackPageView, analytics } from "@/lib/analytics";
+import { initializeAnalytics, trackPageView, analytics, installMonitoringDebug } from "@/lib/analytics";
 
 function AnalyticsRouteTracker() {
   const pathname = usePathname();
@@ -11,6 +11,7 @@ function AnalyticsRouteTracker() {
   useEffect(() => {
     const onConsent = () => initializeAnalytics();
     window.addEventListener("desaynclaw:cookie-consent", onConsent);
+    installMonitoringDebug();
     initializeAnalytics();
     return () => window.removeEventListener("desaynclaw:cookie-consent", onConsent);
   }, []);

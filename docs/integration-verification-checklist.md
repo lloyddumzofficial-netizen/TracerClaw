@@ -11,8 +11,11 @@
 
 ## Browser Runtime
 
-- Before cookie consent, no GA4, Clarity, PostHog, or Sentry scripts load.
-- After accepting cookies, configured services initialize lazily.
+- Sentry initializes from `instrumentation-client.js` when `NEXT_PUBLIC_SENTRY_DSN` is present; it does not wait for cookie consent.
+- Before cookie consent, GA4, Clarity, and PostHog do not load.
+- After accepting cookies, configured marketing analytics services initialize lazily.
+- In the browser console, `window.desaynclawMonitoringStatus()` reports configured and loaded providers.
+- In the browser console, `await window.desaynclawTestSentry()` sends a safe browser exception to Sentry.
 - Route changes send `page_view`.
 - `?ref=test` sends `affiliate_referral`.
 - Login session sends `user_login`; fresh user sessions send `user_signup` once.

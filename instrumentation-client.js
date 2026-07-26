@@ -27,6 +27,10 @@ if (dsn) {
     replaysOnErrorSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE || 0.1),
     integrations,
   });
+
+  if (typeof window !== "undefined") {
+    window.Sentry = Sentry;
+  }
 }
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

@@ -28,6 +28,7 @@ function getConfig() {
     clarityId: process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "",
     posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY || "",
     posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+    sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN || "",
   };
 }
 
@@ -113,7 +114,7 @@ function sendPostHogEvent(eventName, properties = {}) {
 }
 
 function getSentry() {
-  if (!isBrowser() || !process.env.NEXT_PUBLIC_SENTRY_DSN) return null;
+  if (!isBrowser() || !getConfig().sentryDsn) return null;
   sentryModulePromise = sentryModulePromise || import("@sentry/nextjs");
   return sentryModulePromise;
 }
@@ -152,6 +153,51 @@ export function initializeAnalytics() {
   } else {
     window.setTimeout(start, 1200);
   }
+}
+
+export function getMonitoringStatus() {
+  if (!isBrowser()) {
+    return { browser: false };
+  }
+
+  const config = getConfig();
+  const sentryClient = window.Sentry?.getClient?.();
+
+  return {
+    browser: true,
+    consent: window.localStorage.getItem("cookie_consent") || null,
+    marketingAnalyticsInitialized: initialized,
+    configured: {
+      ga4: Boolean(config.gaId),
+      clarity: Boolean(config.clarityId),
+      posthog: Boolean(config.posthogKey),
+      sentry: Boolean(config.sentryDsn),
+    },
+    loaded: {
+      ga4: typeof window.gtag === "function",
+      clarity: typeof window.clarity === "function",
+      clarityScript: Boolean(document.getElementById("desaynclaw-clarity")),
+      sentry: Boolean(sentryClient),
+    },
+    captureReady: {
+      posthog: Boolean(config.posthogKey) && hasAnalyticsConsent(),
+    },
+  };
+}
+
+export function installMonitoringDebug() {
+  if (!isBrowser()) return;
+  window.desaynclawMonitoringStatus = getMonitoringStatus;
+  window.desaynclawTestSentry = async function desaynclawTestSentry(message = "DesaynClaw browser Sentry test") {
+    const Sentry = await getSentry();
+    if (!Sentry) return { sent: false, reason: "NEXT_PUBLIC_SENTRY_DSN is not configured in the browser bundle" };
+    const eventId = Sentry.captureException(new Error(message), {
+      tags: { source: "desaynclaw-monitoring-debug" },
+      extra: getMonitoringStatus(),
+    });
+    await Sentry.flush?.(2000);
+    return { sent: true, eventId };
+  };
 }
 
 export function trackEvent(eventName, properties = {}) {
@@ -230,4 +276,6 @@ export const analytics = {
   identify: identifyUser,
   authSession: trackAuthSession,
   reset: resetAnalytics,
+  status: getMonitoringStatus,
+  installDebug: installMonitoringDebug,
 };

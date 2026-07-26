@@ -86,7 +86,7 @@ const nextConfig = {
               // challenges.cloudflare.com: the Turnstile captcha on the login
               // modal loads its script from there and renders itself in an
               // iframe, so it needs both script-src and frame-src.
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://browser.sentry-cdn.com",
               "frame-src 'self' https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline'",
               // Fonts come from next/font/google, which self-hosts them at build
@@ -95,7 +95,7 @@ const nextConfig = {
               "img-src 'self' data: blob: https:",
               // wss: is required for the Supabase realtime socket (mobile sync
               // and the admin dashboard). "https:" does NOT cover wss:.
-              "connect-src 'self' https: wss:",
+              "connect-src 'self' https: wss: https://www.google-analytics.com https://region1.google-analytics.com https://*.clarity.ms https://*.posthog.com https://*.i.posthog.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
               "worker-src 'self' blob:",
               // The directives that actually carry weight and cost nothing:
               // no plugin embeds, no <base> hijacking, no framing, no

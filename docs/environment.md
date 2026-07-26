@@ -22,3 +22,9 @@ All growth and monitoring configuration is environment-driven.
 - `SENTRY_AUTH_TOKEN`: optional; enables Sentry source map upload when paired with project settings in the deployment environment.
 
 Unset variables are safe. The matching integration simply stays disabled.
+
+## Browser Runtime Notes
+
+Sentry browser monitoring is initialized independently from cookie consent so production error monitoring works immediately when `NEXT_PUBLIC_SENTRY_DSN` is present in the browser bundle.
+
+GA4, Microsoft Clarity, and PostHog are consent-gated. They initialize only after `localStorage.cookie_consent` is set to `accepted` by the cookie banner.
