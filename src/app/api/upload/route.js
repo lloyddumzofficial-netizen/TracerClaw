@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { isAllowedStorageUrl, normalizeUserImageUrl } from "@/lib/ssrf";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request) {
   try {
@@ -19,6 +20,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:upload:user",
+      identifier: user.id,
+      max: 30,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
 
     const { imageUrl, traceType, projectName } = await request.json();
 
