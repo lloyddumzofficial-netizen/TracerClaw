@@ -86,7 +86,7 @@ const nextConfig = {
               // challenges.cloudflare.com: the Turnstile captcha on the login
               // modal loads its script from there and renders itself in an
               // iframe, so it needs both script-src and frame-src.
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://browser.sentry-cdn.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://scripts.clarity.ms https://*.i.posthog.com https://browser.sentry-cdn.com",
               "frame-src 'self' https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline'",
               // Fonts come from next/font/google, which self-hosts them at build

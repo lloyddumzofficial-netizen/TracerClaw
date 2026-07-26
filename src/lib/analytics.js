@@ -78,6 +78,69 @@ function initClarity(projectId) {
   loadScript(`https://www.clarity.ms/tag/${encodeURIComponent(projectId)}`, "desaynclaw-clarity");
 }
 
+function initPostHog(posthogKey, posthogHost) {
+  if (!posthogKey || !hasAnalyticsConsent()) return;
+  if (window.posthog?.__SV) return;
+
+  const apiHost = posthogHost.replace(/\/$/, "");
+  const assetHost = apiHost
+    .replace("https://us.i.posthog.com", "https://us-assets.i.posthog.com")
+    .replace("https://eu.i.posthog.com", "https://eu-assets.i.posthog.com");
+
+  window.posthog = window.posthog || [];
+  window.posthog._i = [];
+  window.posthog.init = function init(apiKey, options, name) {
+    function bindMethod(target, methodName) {
+      const parts = methodName.split(".");
+      if (parts.length === 2) {
+        target = target[parts[0]] = target[parts[0]] || [];
+        methodName = parts[1];
+      }
+      target[methodName] = function posthogQueuedMethod() {
+        target.push([methodName].concat(Array.prototype.slice.call(arguments, 0)));
+      };
+    }
+
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.async = true;
+    script.src = `${assetHost}/static/array.js`;
+    const firstScript = document.getElementsByTagName("script")[0];
+    firstScript.parentNode.insertBefore(script, firstScript);
+
+    const instance = name ? (window.posthog[name] = []) : window.posthog;
+    instance.people = instance.people || [];
+    instance.toString = function toString(noStub) {
+      return `posthog${name ? `.${name}` : ""}${noStub ? "" : " (stub)"}`;
+    };
+    instance.people.toString = function peopleToString() {
+      return `${instance.toString(1)}.people (stub)`;
+    };
+
+    [
+      "capture",
+      "identify",
+      "alias",
+      "people.set",
+      "people.set_once",
+      "register",
+      "register_once",
+      "unregister",
+      "reset",
+    ].forEach((methodName) => bindMethod(instance, methodName));
+
+    window.posthog._i.push([apiKey, options, name]);
+  };
+  window.posthog.__SV = 1;
+  window.posthog.init(posthogKey, {
+    api_host: apiHost,
+    capture_pageview: false,
+    loaded: (posthog) => {
+      posthog.register?.({ app: "desaynclaw" });
+    },
+  });
+}
+
 function normalizeProperties(properties = {}) {
   return {
     app: "desaynclaw",
@@ -91,11 +154,17 @@ function sendPostHogEvent(eventName, properties = {}) {
   const { posthogKey, posthogHost } = getConfig();
   if (!posthogKey || !hasAnalyticsConsent()) return;
   const { distinct_id: distinctIdOverride, ...eventProperties } = properties;
+  const distinctId = distinctIdOverride || getDistinctId();
+
+  if (window.posthog?.capture) {
+    window.posthog.capture(eventName, eventProperties, { $set: { distinct_id: distinctId } });
+    return;
+  }
 
   const payload = JSON.stringify({
     api_key: posthogKey,
     event: eventName,
-    distinct_id: distinctIdOverride || getDistinctId(),
+    distinct_id: distinctId,
     properties: eventProperties,
     timestamp: new Date().toISOString(),
   });
@@ -140,6 +209,7 @@ export function initializeAnalytics() {
   const start = () => {
     initGoogleAnalytics(config.gaId);
     initClarity(config.clarityId);
+    initPostHog(config.posthogKey, config.posthogHost);
     initialized = true;
     initializing = false;
     while (pendingEvents.length) {
@@ -177,6 +247,8 @@ export function getMonitoringStatus() {
       ga4: typeof window.gtag === "function",
       clarity: typeof window.clarity === "function",
       clarityScript: Boolean(document.getElementById("desaynclaw-clarity")),
+      posthog: typeof window.posthog === "object" || typeof window.posthog === "function",
+      posthogScript: [...document.scripts].some((script) => /posthog\.com\/static\/array\.js/.test(script.src)),
       sentry: Boolean(sentryClient),
     },
     captureReady: {
@@ -223,6 +295,9 @@ export function identifyUser(user) {
   if (window.gtag) {
     window.gtag("set", { user_id: user.id });
   }
+  if (window.posthog?.identify) {
+    window.posthog.identify(user.id, traits);
+  }
   sendPostHogEvent("$identify", { $anon_distinct_id: getDistinctId(), $set: traits, distinct_id: user.id });
   getSentry()?.then((Sentry) => Sentry.setUser({ id: user.id, email: user.email }));
 }
@@ -248,6 +323,7 @@ export function trackAuthSession(user, properties = {}) {
 
 export function resetAnalytics() {
   if (!isBrowser()) return;
+  window.posthog?.reset?.();
   getSentry()?.then((Sentry) => Sentry.setUser(null));
 }
 
