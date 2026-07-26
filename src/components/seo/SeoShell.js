@@ -132,6 +132,14 @@ const styles = {
     borderRadius: "8px",
     background: "#111",
   },
+  footer: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "14px",
+    paddingTop: "48px",
+    marginTop: "64px",
+    borderTop: "1px solid #202020",
+  },
 };
 
 export { styles };
@@ -149,10 +157,19 @@ export default function SeoShell({ children, jsonLd = [], pageType, slug, title 
           <div style={styles.navLinks}>
             <Link href="/blog" style={styles.navLink}>Blog</Link>
             <Link href="/gallery" style={styles.navLink}>Gallery</Link>
+            <Link href="/bg-remover" style={styles.navLink}>BG Remover</Link>
             <Link href="/upscale" style={styles.navLink}>Upscaler</Link>
           </div>
         </nav>
         {children}
+        <footer style={styles.footer} aria-label="SEO footer links">
+          <Link href="/screen-printing-vector" style={styles.navLink}>Screen Printing Vector Prep</Link>
+          <Link href="/copyright" style={styles.navLink}>Copyright</Link>
+          <Link href="/acceptable-use" style={styles.navLink}>Acceptable Use</Link>
+          <Link href="/copyright-takedown" style={styles.navLink}>Copyright Takedown</Link>
+          <Link href="/privacy" style={styles.navLink}>Privacy</Link>
+          <Link href="/terms" style={styles.navLink}>Terms</Link>
+        </footer>
       </div>
     </main>
   );

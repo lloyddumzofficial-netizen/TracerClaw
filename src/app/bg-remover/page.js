@@ -22,7 +22,7 @@ export default function BgRemoverLandingPage() {
   return (
     <SeoShell jsonLd={jsonLd} pageType="tool_landing" slug="bg-remover" title="AI Background Remover">
       <p style={styles.eyebrow}>Transparent PNG workflow</p>
-      <h1 style={styles.h1}>AI Background Remover</h1>
+      <h1 style={styles.h1}>Remove Backgrounds with AI</h1>
       <p style={styles.lead}>{page.description}</p>
       <div style={styles.actions}>
         <PrimaryCta properties={{ page_type: "tool_landing", slug: "bg-remover", cta: "hero" }}>

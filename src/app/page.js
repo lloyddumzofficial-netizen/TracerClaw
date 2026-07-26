@@ -520,6 +520,9 @@ export default function StartScreen() {
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="start-screen-container" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
+      <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
+        DesaynClaw AI Vector Tracer and Sublimation Design Extractor
+      </h1>
       {/* Global Drag & Drop Overlay */}
       {isDraggingGlobal && (
         <div

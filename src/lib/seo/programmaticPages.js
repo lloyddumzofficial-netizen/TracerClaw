@@ -165,7 +165,7 @@ export const programmaticPages = [
       { question: "Do DTF shops need vector files?", answer: "Not always, but vector artwork makes scaling, cleanup, and production handoff easier for many jobs." },
       { question: "Can this help with customer-supplied files?", answer: "Yes. DesaynClaw helps clean up imperfect PNG or JPG files before production." },
     ],
-    relatedSlugs: ["sublimation-vector", "logo-to-svg", "image-upscaler"],
+    relatedSlugs: ["sublimation-vector", "screen-printing-vector", "logo-to-svg", "image-upscaler"],
   },
   {
     slug: "screen-printing-vector",
