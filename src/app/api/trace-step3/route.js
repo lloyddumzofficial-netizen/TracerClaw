@@ -271,31 +271,40 @@ export async function POST(request) {
   } catch (error) {
     console.error(`[Trace Step 3 Error]:`, error.message);
     
-    // Attempt automatic refund on server-side failure
     try {
+      // Refund the EXTRA precision claw — that service genuinely was not
+      // delivered. Check the result rather than assuming it moved.
       if (precisionCreditDeducted && userId) {
-        await safeRefundCredit(userId);
-        await adminSupabase.from('credit_logs').insert({
-          user_id: userId,
-          action: 'Refund Precision SVG Engine',
-          amount: 1
-        });
-      }
-
-      if (projectId) {
-        const { data: updatedProj } = await adminSupabase
-          .from('projects')
-          .update({ generated_image_url: 'REFUNDED', refunded: true })
-          .eq('id', projectId)
-          .eq('user_id', userId)
-          .eq('credit_deducted', true)
-          .eq('refunded', false)
-          .select('user_id');
-          
-        if (updatedProj && updatedProj.length > 0) {
-           await safeRefundCredit(updatedProj[0].user_id);
+        const credited = await safeRefundCredit(userId);
+        if (credited) {
+          await adminSupabase.from('credit_logs').insert({
+            user_id: userId,
+            action: 'Refund Precision SVG Engine',
+            amount: 1
+          });
+        } else {
+          console.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`);
         }
       }
+
+      // Record the failure so /api/refund can distinguish it from a completed run.
+      if (projectId && userId) {
+        await adminSupabase
+          .from('projects')
+          .update({ failed_at: new Date().toISOString(), failed_step: 'step3' })
+          .eq('id', projectId)
+          .eq('user_id', userId);
+      }
+
+      // Deliberately NOT refunding the base claw here, and deliberately NOT
+      // blanking generated_image_url.
+      //
+      // Reaching step 3 means step 1 (flat extract) and step 2 (4K upscale)
+      // both succeeded and are saved in R2. The old code refunded the base claw
+      // anyway and overwrote generated_image_url with the string 'REFUNDED' —
+      // giving the money back while the user kept both deliverables, and
+      // destroying the DB pointer to an image they had paid for. Only the
+      // vectorization failed; the run was not a total loss.
     } catch (refundErr) {
       console.error(`[Billing] Refund failed:`, refundErr.message);
     }

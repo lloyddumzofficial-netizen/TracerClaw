@@ -32,6 +32,38 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           // Basic XSS protection header (older browsers)
           { key: 'X-XSS-Protection', value: '1; mode=block' },
+          // Baseline CSP. Deliberately permissive on scripts/styles because Next
+          // injects inline bootstrap scripts and the app uses inline styles
+          // throughout — tightening those needs a nonce pass and would break the
+          // app today. The value here is object-src/base-uri/frame-ancestors,
+          // which blocks plugin embeds, <base> hijacking and framing outright.
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // challenges.cloudflare.com: the Turnstile captcha on the login
+              // modal loads its script from there and renders itself in an
+              // iframe, so it needs both script-src and frame-src.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+              "frame-src 'self' https://challenges.cloudflare.com",
+              "style-src 'self' 'unsafe-inline'",
+              // Fonts come from next/font/google, which self-hosts them at build
+              // time — no external font origin is needed.
+              "font-src 'self' data:",
+              "img-src 'self' data: blob: https:",
+              // wss: is required for the Supabase realtime socket (mobile sync
+              // and the admin dashboard). "https:" does NOT cover wss:.
+              "connect-src 'self' https: wss:",
+              "worker-src 'self' blob:",
+              // The directives that actually carry weight and cost nothing:
+              // no plugin embeds, no <base> hijacking, no framing, no
+              // cross-origin form posts.
+              "object-src 'none'",
+              "base-uri 'self'",
+              "frame-ancestors 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
         ],
       },
       {

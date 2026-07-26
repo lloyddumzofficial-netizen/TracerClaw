@@ -107,9 +107,13 @@ export async function POST(request) {
     if (step === 1) {
       const finalUrl = passthroughUrl
         || await uploadToR2(buffer, `projects/${projectId}/generated_flat_${Date.now()}.${ext}`, finalMimeType);
+      // ai_prompt is the project's EXTRACTION MODE (ERASE_LOGOS /
+      // PRESERVE_LOGOS), not transient state. It used to be nulled here, so any
+      // re-run after a failed step 2 or 3 fell through to the DEFAULT prompt —
+      // silently turning "Extract Pattern Only" into "Keep All Artwork" and
+      // charging another claw for the wrong output. Leave it alone.
       await adminSupabase.from('projects').update({
         generated_image_url: finalUrl,
-        ai_prompt: null,
         zip_url: null,
         zip_signature: null,
         zip_generated_at: null

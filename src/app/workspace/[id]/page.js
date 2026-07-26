@@ -35,15 +35,6 @@ import { computeNudgePlacement } from "@/lib/anchoredNudge";
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
 
-function svgTextToBase64(svgText) {
-  const bytes = new TextEncoder().encode(svgText);
-  let binary = "";
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return window.btoa(binary);
-}
-
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
 
@@ -66,6 +57,9 @@ export default function Workspace() {
   const [showCompare, setShowCompare] = useState(false);
   const [showPalettePreview, setShowPalettePreview] = useState(false);
   const [showPaletteNudge, setShowPaletteNudge] = useState(false);
+  // Set when a generation finishes; converted into the visible nudge once the
+  // auto-opened comparison is closed.
+  const [paletteNudgeQueued, setPaletteNudgeQueued] = useState(false);
   const paletteNudgeRef = useRef(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -155,6 +149,31 @@ export default function Workspace() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Please log in again before saving.");
 
+      // Upload straight to R2 and hand save-asset a URL. Sending the SVG as
+      // base64 in the request body 413s on the platform's ~4.5MB cap for any
+      // detailed vector — the same failure already fixed for /api/trace step 1.
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
+
+      const urlRes = await fetch("/api/svg-upload-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ projectId: project.id, fileSize: svgBlob.size }),
+      });
+      const urlData = await safeJson(urlRes, "Could not prepare the upload");
+      if (!urlRes.ok || !urlData.uploadUrl) {
+        throw new Error(urlData.error || "Could not prepare the upload");
+      }
+
+      const putRes = await fetch(urlData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "image/svg+xml" },
+        body: svgBlob,
+      });
+      if (!putRes.ok) throw new Error("Failed to upload the edited SVG");
+
       const res = await fetch("/api/save-asset", {
         method: "POST",
         headers: {
@@ -165,11 +184,12 @@ export default function Workspace() {
           projectId: project.id,
           step: 3,
           mimeType: "image/svg+xml",
-          base64: svgTextToBase64(svgText),
+          fileUrl: urlData.publicUrl,
         }),
       });
 
       const data = await safeJson(res, "Failed to apply edited SVG");
+      if (!res.ok) throw new Error(data.error || "Failed to apply edited SVG");
       setProject(prev => prev ? ({
         ...prev,
         svg_url: data.url,
@@ -233,9 +253,21 @@ export default function Workspace() {
   const onExecuteTrace = useCallback(async (vectorColors, svgEngine) => {
     const result = await handleExecuteTrace(vectorColors, svgEngine);
     if (result?.success) {
-      setShowPaletteNudge(true);
+      // Show the finished result straight away — the whole point of the wait.
+      setShowCompare(true);
+      // Hold the Palette Studio nudge until the comparison is dismissed, so the
+      // two don't fight for attention on top of each other.
+      setPaletteNudgeQueued(true);
     }
   }, [handleExecuteTrace]);
+
+  const handleCloseCompare = useCallback(() => {
+    setShowCompare(false);
+    setPaletteNudgeQueued(queued => {
+      if (queued) setShowPaletteNudge(true);
+      return false;
+    });
+  }, []);
 
   useEffect(() => {
     if (!showPaletteNudge) return;
@@ -498,7 +530,7 @@ export default function Workspace() {
       <CompareModal
         show={showCompare}
         project={project}
-        onClose={() => setShowCompare(false)}
+        onClose={handleCloseCompare}
         onDownloadAll={handleDownloadAll}
         onDownloadSvg={handleDownloadSvg}
       />

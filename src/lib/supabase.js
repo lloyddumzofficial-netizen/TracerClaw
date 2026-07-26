@@ -20,6 +20,14 @@ export const adminSupabase =
       })
     : null);
 
+// Optimistic-lock retries used to re-run instantly, so two concurrent requests
+// would simply re-collide and burn the whole retry budget in microseconds.
+// Small jittered backoff gives the competing write time to land.
+function backoff(attempt) {
+  const base = 40 * (attempt + 1);
+  return new Promise(resolve => setTimeout(resolve, base + Math.random() * 40));
+}
+
 // Atomic credit deduction using optimistic locking retry loop.
 // Returns false when the user does not have enough credits or a concurrent
 // request wins the update race.
@@ -45,7 +53,9 @@ export async function safeDeductCredit(userId, amount = 1) {
       return true;
     }
     retries--;
+    if (retries > 0) await backoff(3 - retries);
   }
+  console.error(`[Billing] safeDeductCredit exhausted retries for user ${userId}`);
   return false;
 }
 
@@ -72,6 +82,9 @@ export async function safeRefundCredit(userId, amount = 1) {
       return true; // Success
     }
     retries--;
+    if (retries > 0) await backoff(3 - retries);
   }
+  // Callers MUST check this. Returning false means the credit did not move.
+  console.error(`[Billing] safeRefundCredit exhausted retries for user ${userId} — credit NOT restored`);
   return false;
 }

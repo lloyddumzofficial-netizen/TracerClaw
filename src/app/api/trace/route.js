@@ -12,6 +12,7 @@ export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is sa
 export async function POST(request) {
   let projectId;
   let userId;
+  let failedStep = "unknown";
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -38,6 +39,7 @@ export async function POST(request) {
     const body = await request.json();
     projectId = body.projectId;
     const { step, croppedImageUrl } = body;
+    failedStep = String(step);
 
     if (!projectId || !step) {
       return NextResponse.json({ error: "Missing required fields (projectId, step)" }, { status: 400 });
@@ -128,11 +130,50 @@ export async function POST(request) {
         amount: -1
       });
 
-      await adminSupabase
+      // Clear the refund/failure state for this NEW charge.
+      // `refunded` used to be a one-way latch that nothing ever reset, so once a
+      // project had been refunded a second attempt could be charged but never
+      // refunded — the guard `.eq('refunded', false)` matched zero rows forever.
+      // This write must succeed, otherwise the failure path cannot refund, so
+      // unlike before its error is checked.
+      const { error: flagErr } = await adminSupabase
         .from('projects')
-        .update({ credit_deducted: true })
+        .update({
+          credit_deducted: true,
+          refunded: false,
+        })
         .eq('id', projectId)
         .eq('user_id', user.id);
+
+      // Clearing the failure stamp is best-effort and deliberately separate:
+      // failed_at/failed_step only exist after add_project_failure_tracking.sql
+      // has been run. Folding them into the update above would make every
+      // generation fail on a deployment where the migration has not landed yet.
+      await adminSupabase
+        .from('projects')
+        .update({ failed_at: null, failed_step: null })
+        .eq('id', projectId)
+        .eq('user_id', user.id);
+
+      if (flagErr) {
+        // If the columns themselves are absent, the deployment is simply ahead
+        // of database/add_billing_columns.sql. Refunds cannot work in that
+        // state (they never have), but generations must not hard-fail — so log
+        // loudly and continue rather than taking every user's run down.
+        const missingColumns = /column .* does not exist/i.test(flagErr.message || '');
+        if (missingColumns) {
+          console.error(
+            '[Billing] CRITICAL: credit_deducted/refunded columns are missing — refunds are disabled. ' +
+            'Run database/add_billing_columns.sql.'
+          );
+        } else {
+          // A real write failure: give the claw straight back rather than
+          // charging for a run we could never refund.
+          console.error('[Billing] Could not set credit_deducted; refunding immediately:', flagErr.message);
+          await safeRefundCredit(project.user_id);
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
+      }
     }
 
     if (step === 1) {
@@ -186,23 +227,37 @@ export async function POST(request) {
         // Flow: Extract → Upscale (step 2) → Vectorize (step 3)
         console.log("[API Step 1] Extracting flat design with fal.ai (nano-banana-pro/edit)...");
 
-        const result = await fal.subscribe("fal-ai/nano-banana-pro/edit", {
-          input: {
-            image_urls: [finalImageUrl],
-            prompt: prompt,
-            system_prompt: systemPrompt,
-            aspect_ratio: targetAspectRatio,
-            ...nanoBananaTuning,
-          },
-          logs: true,
-          onQueueUpdate: (update) => {
-            if (update.status === "IN_PROGRESS") {
-              update.logs.map((log) => log.message).forEach(console.log);
-            }
-          },
-        });
+        // fal.subscribe polls the queue with no timeout of its own. Left
+        // unbounded it can outlive maxDuration, and when the platform kills the
+        // function mid-flight the catch block never runs — so the user is
+        // charged with no server-side refund. Bound it with headroom for the
+        // download, resize and R2 upload that still have to happen after this.
+        const FAL_BUDGET_MS = 75_000;
+        const result = await Promise.race([
+          fal.subscribe("fal-ai/nano-banana-pro/edit", {
+            input: {
+              image_urls: [finalImageUrl],
+              prompt: prompt,
+              system_prompt: systemPrompt,
+              aspect_ratio: targetAspectRatio,
+              ...nanoBananaTuning,
+            },
+            logs: true,
+            onQueueUpdate: (update) => {
+              if (update.status === "IN_PROGRESS") {
+                update.logs.map((log) => log.message).forEach(console.log);
+              }
+            },
+          }),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("The AI engine took too long to respond. Please try again.")),
+              FAL_BUDGET_MS
+            )
+          ),
+        ]);
 
-        console.log("[fal.ai RAW Response]:", JSON.stringify(result, null, 2));
+        console.log("[fal.ai response images]:", result?.data?.images?.length ?? 0);
 
         if (!result || !result.data || !result.data.images || result.data.images.length === 0) {
           throw new Error("fal.ai did not return a valid image URL. Response: " + JSON.stringify(result));
@@ -251,7 +306,10 @@ export async function POST(request) {
 
               generatedImageBuffer = await sharp(generatedBuffer)
                 .resize(targetW, targetH, { fit: 'fill', kernel: 'lanczos3' })
-                .png()
+                // effort:1 like step 3 — full-effort PNG encoding on a 16MP
+                // image costs seconds of the function's remaining budget for a
+                // marginal size win.
+                .png({ effort: 1 })
                 .toBuffer();
               generatedMimeType = "image/png";
               console.log(`[Trace] Re-registered ${genMeta.width}x${genMeta.height} → ${targetW}x${targetH} to match source ratio ${sourceRatio.toFixed(4)}`);
@@ -379,22 +437,56 @@ export async function POST(request) {
   } catch (error) {
     console.error(`[Trace API Error]:`, error.message);
 
-    // Attempt automatic refund on server-side failure
+    let didRefund = false;
     try {
       if (projectId) {
-        let refundQuery = adminSupabase
+        // Record the failure. /api/refund requires this stamp, so a successful
+        // run can no longer be passed off as a failed one.
+        let stampQuery = adminSupabase
           .from('projects')
-          .update({ generated_image_url: 'REFUNDED', refunded: true })
-          .eq('id', projectId)
-          .eq('credit_deducted', true)
-          .eq('refunded', false)
-        if (userId) {
-          refundQuery = refundQuery.eq('user_id', userId);
-        }
-        const { data: updatedProj } = await refundQuery.select('user_id');
+          .update({ failed_at: new Date().toISOString(), failed_step: `step${failedStep}` })
+          .eq('id', projectId);
+        if (userId) stampQuery = stampQuery.eq('user_id', userId);
+        await stampQuery;
 
-        if (updatedProj && updatedProj.length > 0) {
-          await safeRefundCredit(updatedProj[0].user_id);
+        // Only refund when the run produced nothing the user can keep.
+        // Step 1 succeeding and step 2 failing is NOT refundable: the flat
+        // extract is already saved and downloadable. The old code refunded
+        // anyway AND overwrote generated_image_url with the string 'REFUNDED',
+        // destroying the pointer to an R2 object the user had paid for.
+        const { data: current } = await adminSupabase
+          .from('projects')
+          .select('user_id, credit_deducted, refunded, generated_image_url, upscaled_image_url, svg_url')
+          .eq('id', projectId)
+          .single();
+
+        const hasUsableOutput = Boolean(
+          current?.svg_url ||
+          current?.upscaled_image_url ||
+          (current?.generated_image_url && current.generated_image_url !== 'REFUNDED')
+        );
+
+        if (current?.credit_deducted && !current.refunded && !hasUsableOutput) {
+          // Move the money FIRST, then mark it. The old order set refunded=true
+          // before the transfer, so a failed transfer left the ledger and the
+          // balance disagreeing with no way to retry.
+          const credited = await safeRefundCredit(current.user_id);
+          if (credited) {
+            await adminSupabase
+              .from('projects')
+              .update({ generated_image_url: 'REFUNDED', refunded: true })
+              .eq('id', projectId)
+              .eq('user_id', current.user_id)
+              .eq('refunded', false);
+            await adminSupabase.from('credit_logs').insert({
+              user_id: current.user_id,
+              action: 'Refund',
+              amount: 1,
+            });
+            didRefund = true;
+          } else {
+            console.error(`[Billing] safeRefundCredit FAILED for project ${projectId} — left unrefunded for retry.`);
+          }
         }
       }
     } catch (refundErr) {
@@ -402,8 +494,11 @@ export async function POST(request) {
     }
 
     // Never expose raw internal error messages (API keys, stack traces) to the client
-    const safeMessage = error.message?.includes('FAL') || error.message?.includes('fal') || error.message?.includes('API')
-      ? 'AI processing failed. Your credit has been refunded automatically.'
+    const isProviderError = error.message?.includes('FAL') || error.message?.includes('fal') || error.message?.includes('API');
+    const safeMessage = isProviderError
+      ? (didRefund
+          ? 'AI processing failed. Your claw has been refunded automatically.'
+          : 'AI processing failed. Please try again.')
       : (error.message || 'Failed to process trace step');
     return NextResponse.json({ error: safeMessage }, { status: 500 });
   }

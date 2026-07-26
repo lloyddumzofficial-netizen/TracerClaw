@@ -119,10 +119,26 @@ export async function POST(request) {
 
   } catch (error) {
     console.error(`[Upscale API Error]:`, error.message);
+    let didRefund = false;
     if (creditDeducted && userId) {
-      await safeRefundCredit(userId);
+      // Check the result — this used to be fire-and-forget, so a failed transfer
+      // silently left the user out of pocket while the message claimed a refund.
+      didRefund = await safeRefundCredit(userId);
+      if (didRefund) {
+        await adminSupabase.from('credit_logs').insert({
+          user_id: userId,
+          action: 'Refund (Upscale Error)',
+          amount: 1,
+        });
+      } else {
+        console.error(`[Upscale] CRITICAL: safeRefundCredit failed for user ${userId} — left unrefunded for retry.`);
+      }
     }
-    const safeMessage = error.message?.includes('fal') ? 'AI processing failed. Your credit has been refunded.' : (error.message || 'Failed to process upscale');
+    const safeMessage = error.message?.includes('fal')
+      ? (didRefund
+          ? 'AI processing failed. Your claw has been refunded.'
+          : 'AI processing failed. Please try again.')
+      : (error.message || 'Failed to process upscale');
     return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }

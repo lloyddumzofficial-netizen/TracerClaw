@@ -69,7 +69,15 @@ export async function GET(request) {
 
     const { data: { user }, error: authErr } = await adminSupabase.auth.getUser(token);
     const adminEmail = process.env.ADMIN_EMAIL;
-    if (authErr || !user || user.email !== adminEmail) {
+    // Guard every side of the comparison. With ADMIN_EMAIL unset and an account
+    // that has no email (anonymous / phone auth), `user.email !== adminEmail`
+    // reduces to `undefined !== undefined` — false — and grants admin.
+    const isAdmin = Boolean(
+      adminEmail &&
+      user?.email &&
+      user.email.toLowerCase() === adminEmail.toLowerCase()
+    );
+    if (authErr || !isAdmin) {
       return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
     }
 

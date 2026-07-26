@@ -59,14 +59,19 @@ export default function SafeInlineSVG({ url, style, fallbackToImage = false, loa
       .then((text) => {
         if (cancelled) return;
 
-        const safe = DOMPurify.sanitize(text, {
+        // Sanitize LAST. scaleSvgToContainer rewrites the <svg …> tag with a
+        // regex that stops at the first ">", and attribute values are not
+        // ">"-escaped — so running it after DOMPurify lets a surviving
+        // data-* attribute containing ">&lt;img src=x onerror=…>" split the tag
+        // and smuggle a live element past sanitization.
+        const safe = DOMPurify.sanitize(scaleSvgToContainer(text), {
           USE_PROFILES: { svg: true, svgFilters: true },
           FORBID_TAGS: ["script", "foreignObject", "iframe", "object", "embed"],
           FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onbegin", "onend"],
         });
 
         if (safe.includes("<svg")) {
-          setSvgHtml(scaleSvgToContainer(safe));
+          setSvgHtml(safe);
         } else if (fallbackToImage) {
           setUseImageFallback(true);
         }

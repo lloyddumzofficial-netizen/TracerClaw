@@ -1105,10 +1105,15 @@ body {
   z-index: 5;
   width: min(520px, calc(100% - 40px));
   transform: translateX(-50%);
-  background: rgba(18, 18, 18, 0.94);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%),
+    rgba(16, 16, 16, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 14px 16px 15px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.46);
+  border-radius: 0;
+  border-left: 2px solid #ffd700;
+  padding: 13px 16px 14px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
 }
 
 .processing-layer-header {
@@ -1123,38 +1128,122 @@ body {
   text-transform: uppercase;
 }
 
+.processing-layer-header > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Percentage readout — fixed width so a 1→2 digit change can't shift the row. */
+.processing-layer-header strong > span {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pulsing dot: cheap, constant proof the pipeline is still alive. */
+.processing-stage-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  background: #ffd700;
+  animation: processingDotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes processingDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.72); }
+}
+
 .processing-layer-header strong {
-  color: #cfcfcf;
-  font-family: monospace;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  color: #ffd700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.processing-layer-header strong em {
+  color: #6d6d6d;
+  font-family: inherit;
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .processing-progress-track {
-  height: 2px;
-  margin: 10px 0 10px;
-  background: #303030;
+  position: relative;
+  height: 4px;
+  margin: 11px 0 11px;
+  background: #242424;
+  border-radius: 0;
   overflow: hidden;
 }
 
+/* Faint travelling sheen across the empty track. */
+.processing-progress-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+  transform: translateX(-100%);
+  animation: processingTrackSweep 2.1s linear infinite;
+}
+
+@keyframes processingTrackSweep {
+  to { transform: translateX(100%); }
+}
+
 .processing-progress-track i {
+  position: relative;
   display: block;
   height: 100%;
-  background: #ffd700;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.22);
-  transition: width 0.35s ease;
+  background: linear-gradient(90deg, #b38f00, #ffd700 68%, #fff0a3);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+  /* Deliberately NO width transition. The width is re-set every 180ms by the
+     progress tick, which restarts the transition before it can resolve and
+     leaves the computed width pinned at 0 — an empty bar. The tick itself is
+     fine-grained enough to look smooth. Verified: any width transition here
+     renders 0px; without one it tracks the percentage exactly. */
+  overflow: hidden;
+}
+
+/* Diagonal barber-pole inside the filled portion. */
+.processing-progress-track i b {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    115deg,
+    rgba(0, 0, 0, 0.16) 25%, transparent 25%,
+    transparent 50%, rgba(0, 0, 0, 0.16) 50%,
+    rgba(0, 0, 0, 0.16) 75%, transparent 75%
+  );
+  background-size: 14px 14px;
+  animation: processingBarberPole 0.75s linear infinite;
+}
+
+@keyframes processingBarberPole {
+  to { background-position: 14px 0; }
 }
 
 .processing-layer-panel p {
-  margin: 0 0 12px;
+  margin: 0 0 11px;
   color: #c9c9c9;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
 .processing-layer-stack {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
 }
 
 .processing-layer-stack div {
@@ -1162,26 +1251,84 @@ body {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #6f6f6f;
-  background: #161616;
-  border: 1px solid #2a2a2a;
   padding: 8px 9px;
+  border-radius: 0;
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.65px;
   white-space: nowrap;
+  overflow: hidden;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
+.processing-layer-stack div span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Not started: dim, numbered, clearly not a completed step. */
+.processing-layer-stack div.is-pending {
+  color: #5c5c5c;
+  background: #131313;
+  border: 1px solid #262626;
+}
+
+/* Running now: gold, with a top rule so it reads as the current stage. */
 .processing-layer-stack div.is-active {
-  color: #ededed;
-  border-color: #3f3f3f;
-  background: #1d1d1d;
+  color: #ffd700;
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.03));
+  border: 1px solid rgba(255, 215, 0, 0.42);
+  box-shadow: inset 0 2px 0 #ffd700;
+}
+
+/* Finished: green check, calm. */
+.processing-layer-stack div.is-done {
+  color: #cfcfcf;
+  background: #171717;
+  border: 1px solid #313131;
+}
+
+.processing-layer-stack div.is-done svg {
+  color: #4ade80;
+}
+
+.processing-layer-stack div.is-active svg {
+  color: #ffd700;
 }
 
 .processing-layer-stack svg {
-  color: #b8b8b8;
   flex-shrink: 0;
+}
+
+.processing-stage-spin {
+  animation: processingSpin 0.9s linear infinite;
+}
+
+@keyframes processingSpin {
+  to { transform: rotate(360deg); }
+}
+
+.processing-stage-pip {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #3a3a3a;
+  color: #6a6a6a;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .processing-stage-dot,
+  .processing-progress-track::after,
+  .processing-progress-track i b,
+  .processing-stage-spin {
+    animation: none;
+  }
 }
 
 @keyframes outputRevealIn {
@@ -2403,6 +2550,14 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
   gap: 8px;
+  /* The container has min-height:150px. Grid defaults to align-content:stretch,
+     so with only one row of swatches that row stretched to fill the whole box
+     and every button stretched with it — the selected swatch's border became a
+     tall rectangle around a 27px circle. Pin rows and items to their natural
+     size so the border always traces the disc, at any swatch count. */
+  align-content: start;
+  align-items: start;
+  justify-items: center;
 }
 
 .palette-swatch-grid-priority {

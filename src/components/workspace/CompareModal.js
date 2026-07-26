@@ -1,12 +1,27 @@
 "use client";
 
-import { memo, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { CheckCircle, X, FolderDown, Download } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 /**
- * CompareModal — Before/After slider comparison modal.
- * DOM-direct clip-path manipulation for zero-lag slider dragging.
+ * CompareModal — Before/After slider.
+ *
+ * Cost notes, because this opens automatically after every generation:
+ *
+ *  - The AFTER image loads STRAIGHT FROM R2, not through /api/proxy. Proxying it
+ *    spent a serverless invocation and billed Vercel egress to stream what can
+ *    be a 17-20MP upscaled PNG, every single time the modal opened. R2 egress is
+ *    free and the BEFORE image already loaded this way. If a direct load ever
+ *    fails (an old fal.media URL, a CORS quirk) it falls back to the proxy once.
+ *  - The slider writes to the DOM directly, batched into one rAF per frame, with
+ *    element references captured on open instead of two getElementById calls on
+ *    every mousemove.
+ *
+ * Mouse events, not pointer events, are used deliberately. The workspace is
+ * desktop-only (DesktopRequiredNotice gates it), so pointer events would add no
+ * users while changing the input path of a modal that now opens automatically
+ * after every generation.
  */
 const CompareModal = memo(function CompareModal({
   show,
@@ -15,28 +30,70 @@ const CompareModal = memo(function CompareModal({
   onDownloadAll,
   onDownloadSvg,
 }) {
-  const isDraggingCompare = useRef(false);
+  const containerRef = useRef(null);
+  const overlayRef = useRef(null);
+  const lineRef = useRef(null);
+  const draggingRef = useRef(false);
+  const frameRef = useRef(0);
+  const rafIdRef = useRef(0);
+  const pendingRef = useRef(null);
+
+  // One DOM write per frame, no matter how fast the mouse moves.
+  const paint = useCallback(() => {
+    frameRef.current = 0;
+    const pct = pendingRef.current;
+    if (pct == null) return;
+    if (overlayRef.current) overlayRef.current.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    if (lineRef.current) lineRef.current.style.left = `${pct}%`;
+  }, []);
+
+  const setPositionFromEvent = useCallback((clientX) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (!rect.width) return;
+    pendingRef.current = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+
+    if (frameRef.current) return;
+    // Mark as scheduled BEFORE requesting the frame. Assigning the rAF id after
+    // the call would leave a stale non-zero id if the callback ever ran before
+    // the assignment completed, and the slider would freeze after one move.
+    frameRef.current = 1;
+    rafIdRef.current = requestAnimationFrame(paint);
+  }, [paint]);
+
+  useEffect(() => {
+    if (!show) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = 0;
+      frameRef.current = 0;
+      pendingRef.current = null;
+      draggingRef.current = false;
+    };
+  }, [show, onClose]);
 
   if (!show || !project) return null;
+
+  const rasterAfter = project.upscaled_image_url || project.generated_image_url;
+
+  // Direct R2 first; proxy only if that genuinely fails.
+  const onRasterError = (event) => {
+    const img = event.currentTarget;
+    if (img.dataset.viaProxy === "1") return;
+    img.dataset.viaProxy = "1";
+    img.src = `/api/proxy?url=${encodeURIComponent(rasterAfter)}`;
+  };
 
   return (
     <div
       className="modal-overlay"
-      onMouseMove={(e) => {
-        if (!isDraggingCompare.current) return;
-        const container = document.getElementById("compare-container");
-        if (!container) return;
-        const rect = container.getBoundingClientRect();
-        let newPos = ((e.clientX - rect.left) / rect.width) * 100;
-        newPos = Math.max(0, Math.min(100, newPos));
-        // DIRECT DOM MANIPULATION — prevents massive lag vs setState
-        const overlayImg = document.getElementById("compare-overlay-img");
-        const sliderLine = document.getElementById("compare-slider-line");
-        if (overlayImg) overlayImg.style.clipPath = `inset(0 ${100 - newPos}% 0 0)`;
-        if (sliderLine) sliderLine.style.left = `${newPos}%`;
-      }}
-      onMouseUp={() => { isDraggingCompare.current = false; }}
-      onMouseLeave={() => { isDraggingCompare.current = false; }}
+      onMouseMove={(e) => { if (draggingRef.current) setPositionFromEvent(e.clientX); }}
+      onMouseUp={() => { draggingRef.current = false; }}
+      onMouseLeave={() => { draggingRef.current = false; }}
     >
       <div className="modal-content" style={{ maxWidth: "1400px", width: "fit-content", padding: "0", overflow: "hidden" }}>
         {/* Header */}
@@ -46,7 +103,7 @@ const CompareModal = memo(function CompareModal({
             <span style={{ fontWeight: "700", fontSize: "15px", color: "#fff" }}>Generation Complete!</span>
             <span style={{ color: "#666", fontSize: "12px", marginLeft: "10px" }}>Drag slider to compare</span>
           </div>
-          <button className="icon-btn-small" onClick={onClose}><X size={16} /></button>
+          <button className="icon-btn-small" onClick={onClose} aria-label="Close comparison"><X size={16} /></button>
         </div>
 
         {/* Slider Compare Area */}
@@ -58,6 +115,7 @@ const CompareModal = memo(function CompareModal({
           }}
         >
           <div
+            ref={containerRef}
             id="compare-container"
             style={{
               position: "relative",
@@ -66,28 +124,28 @@ const CompareModal = memo(function CompareModal({
               maxWidth: "100%",
             }}
             onMouseDown={(e) => {
-              isDraggingCompare.current = true;
-              const rect = e.currentTarget.getBoundingClientRect();
-              const pct = ((e.clientX - rect.left) / rect.width) * 100;
-              const overlayImg = document.getElementById("compare-overlay-img");
-              const sliderLine = document.getElementById("compare-slider-line");
-              if (overlayImg) overlayImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
-              if (sliderLine) sliderLine.style.left = `${pct}%`;
+              draggingRef.current = true;
+              setPositionFromEvent(e.clientX);
             }}
           >
-            {/* INVISIBLE PLACEHOLDER to dictate the exact aspect ratio of the original image */}
+            {/* INVISIBLE PLACEHOLDER dictating the exact aspect ratio of the original.
+                Same src as the BEFORE layer, so the browser serves it from cache. */}
             <img
               src={project.original_image_url}
               style={{ display: "block", height: "80vh", width: "auto", maxWidth: "85vw", objectFit: "contain", opacity: 0, pointerEvents: "none" }}
               alt=""
+              aria-hidden="true"
+              decoding="async"
             />
 
             {/* AFTER layer */}
-            {project.upscaled_image_url || project.generated_image_url ? (
+            {rasterAfter ? (
               <img
-                src={`/api/proxy?url=${encodeURIComponent(project.upscaled_image_url || project.generated_image_url)}`}
+                src={rasterAfter}
+                onError={onRasterError}
                 style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", objectFit: "contain" }}
                 alt="After"
+                decoding="async"
               />
             ) : (
               <SafeInlineSVG
@@ -98,6 +156,7 @@ const CompareModal = memo(function CompareModal({
 
             {/* BEFORE layer — stretched to fill */}
             <div
+              ref={overlayRef}
               id="compare-overlay-img"
               style={{
                 position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
@@ -110,12 +169,14 @@ const CompareModal = memo(function CompareModal({
                 draggable={false}
                 src={project.original_image_url}
                 alt="Original"
+                decoding="async"
                 style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
               />
             </div>
 
             {/* Slider Line */}
             <div
+              ref={lineRef}
               id="compare-slider-line"
               style={{
                 position: "absolute", top: 0, bottom: 0, left: "50%",
@@ -138,7 +199,7 @@ const CompareModal = memo(function CompareModal({
             {/* Labels */}
             <div style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>ORIGINAL (BEFORE)</div>
             <div style={{ position: "absolute", bottom: "14px", right: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>
-              {(project.upscaled_image_url || project.generated_image_url) ? "AI UPSCALED (AFTER)" : "VECTOR (AFTER)"}
+              {rasterAfter ? "AI UPSCALED (AFTER)" : "VECTOR (AFTER)"}
             </div>
           </div>
         </div>

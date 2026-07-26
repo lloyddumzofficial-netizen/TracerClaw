@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, DEFAULT_MAX_ZIP_BYTES, fetchWithSSRFProtection, validateUrlForSSRF } from "@/lib/ssrf";
+import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 
 // SSRF Protection: only allow proxying from our own Cloudflare R2 domains.
 // Never fetch arbitrary URLs from the server — that opens internal metadata attacks.
@@ -23,7 +24,20 @@ export async function GET(request) {
     // It is used in browser <img src="..."> tags which cannot send auth headers.
     // Security is provided by:
     // 1. Host allowlist below (SSRF protection — only R2 URLs allowed)
-    // 2. Rate limiting in middleware (60 req/min per IP)
+    // 2. The per-IP limit right here. This used to say "rate limiting in
+    //    middleware", but src/utils/proxy.js is never loaded by Next (wrong
+    //    directory), so that layer did not exist and this route was an
+    //    unthrottled public read proxy over the whole bucket.
+    // 3. SVG responses are sent as sandboxed attachments — see below.
+    const ipLimit = await enforceRateLimit({
+      namespace: "api:proxy:ip",
+      identifier: getClientIp(request),
+      max: 120,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!ipLimit.success) return ipLimit.response;
+
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
     const downloadName = searchParams.get('download');
@@ -85,6 +99,8 @@ export async function GET(request) {
         headers: {
           'Content-Type': contentType,
           ...(downloadName ? { 'Content-Disposition': `attachment; filename="${downloadName.replace(/[^a-zA-Z0-9_.-]/g, '_')}"` } : {}),
+          // Stop the browser sniffing a mislabelled upload back into HTML/SVG.
+          'X-Content-Type-Options': 'nosniff',
           'Cache-Control': 'public, max-age=86400, no-transform'
         }
       });
@@ -115,11 +131,25 @@ export async function GET(request) {
       }
     }
 
+    // SVG served from our own origin is executable content. If a user is
+    // navigated to this URL the browser would run any script inside it as
+    // desaynclaw.com, exposing the Supabase session token in localStorage.
+    //
+    // Always send it as an attachment and sandbox it. Neither affects the app:
+    // every SVG consumer reads this endpoint with fetch() (SafeInlineSVG,
+    // PalettePreviewModal), and fetch ignores both headers. No <img> renders an
+    // SVG through the proxy.
+    const svgFilename = downloadName
+      ? downloadName.replace(/[^a-zA-Z0-9_.-]/g, '_')
+      : (parsedUrl.pathname.split('/').pop() || 'vector.svg').replace(/[^a-zA-Z0-9_.-]/g, '_');
+
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        ...(downloadName ? { 'Content-Disposition': `attachment; filename="${downloadName.replace(/[^a-zA-Z0-9_.-]/g, '_')}"` } : {}),
+        'Content-Disposition': `attachment; filename="${svgFilename}"`,
+        'Content-Security-Policy': "sandbox; default-src 'none'; script-src 'none'; style-src 'none'",
+        'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'public, max-age=86400'
       }
     });
