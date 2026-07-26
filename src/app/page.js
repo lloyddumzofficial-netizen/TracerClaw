@@ -14,7 +14,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star, Play } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";
@@ -61,6 +61,49 @@ function HomepageWorkflowPreview() {
         <figure style={{ margin: 0, width: '80%' }}>
           <img src="/samples/production-preview/Hue_Saturation.png" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
         </figure>
+      </div>
+    </section>
+  );
+}
+
+function MarketingVideoPreview() {
+  const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handlePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.play();
+  };
+
+  return (
+    <section className="marketing-video-section" aria-label="DesaynClaw marketing video">
+      <div className="marketing-video-copy">
+        <div className="section-kicker">Watch The Workflow</div>
+        <h2>See how artwork becomes print-ready.</h2>
+      </div>
+      <div className="marketing-video-frame">
+        <video
+          ref={videoRef}
+          className="marketing-video"
+          controls
+          playsInline
+          preload="metadata"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+        >
+          <source src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/Video%20Demo/Marketing%20Video/MARKETING%20VIDEO%202.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        {!isPlaying && (
+          <button className="marketing-play-button" type="button" onClick={handlePlay} aria-label="Play DesaynClaw marketing video">
+            <span className="marketing-play-ring">
+              <Play size={34} fill="currentColor" strokeWidth={2.2} />
+            </span>
+            <span className="marketing-play-label">Play Demo</span>
+          </button>
+        )}
       </div>
     </section>
   );
@@ -821,19 +864,9 @@ export default function StartScreen() {
           </div>
         </div>
 
-        <section className="marketing-video-section" aria-label="DesaynClaw marketing video">
-          <video
-            className="marketing-video"
-            controls
-            playsInline
-            preload="metadata"
-          >
-            <source src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/Video%20Demo/Marketing%20Video/MARKETING%20VIDEO%202.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </section>
-
         <HomepageWorkflowPreview />
+
+        <MarketingVideoPreview />
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
