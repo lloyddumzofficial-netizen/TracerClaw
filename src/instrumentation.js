@@ -1,6 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
+import { validateProductionEnv } from "@/lib/healthChecks";
 
 export async function register() {
+  validateProductionEnv();
+
   if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
 
   if (process.env.NEXT_RUNTIME === "nodejs") {

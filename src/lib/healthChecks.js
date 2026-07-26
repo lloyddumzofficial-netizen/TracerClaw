@@ -40,7 +40,26 @@ export const OPTIONAL_ENV = [
   "CRON_SECRET",
   "ADMIN_EMAIL",
   "DODO_PAYMENTS_API_KEY",
+  "DODO_PAYMENTS_ENVIRONMENT",
   "DODO_PAYMENTS_WEBHOOK_SECRET",
+  "DODO_PRODUCT_TINGI",
+  "DODO_PRODUCT_BASIC",
+  "DODO_PRODUCT_STARTER",
+  "DODO_PRODUCT_PRO",
+  "NEXT_PUBLIC_GA4_MEASUREMENT_ID",
+  "NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION",
+  "NEXT_PUBLIC_CLARITY_PROJECT_ID",
+  "NEXT_PUBLIC_POSTHOG_KEY",
+  "NEXT_PUBLIC_POSTHOG_HOST",
+  "NEXT_PUBLIC_SENTRY_DSN",
+  "NEXT_PUBLIC_SENTRY_ENVIRONMENT",
+  "NEXT_PUBLIC_SENTRY_RELEASE",
+  "NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE",
+  "NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
+  "NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE",
+  "SENTRY_AUTH_TOKEN",
+  "NEXT_PUBLIC_MAINTENANCE_MODE",
+  "LOG_LEVEL",
 ];
 
 /** Columns the billing and refund logic depends on, per table. */
@@ -62,6 +81,14 @@ export function checkEnv() {
     missingRequired,
     missingOptional,
   };
+}
+
+export function validateProductionEnv() {
+  if (process.env.NODE_ENV !== "production") return;
+  const env = checkEnv();
+  if (!env.ok) {
+    throw new Error(`Missing required production environment variables: ${env.missingRequired.join(", ")}`);
+  }
 }
 
 /**
