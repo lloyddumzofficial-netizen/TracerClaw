@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
-import { Resend } from "resend";
 import { getCreditPlan } from "@/lib/paymentPlans";
 import { logger } from "@/lib/logger";
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+import { sendEmail } from "@/lib/email";
 
 export async function POST(request) {
   try {
@@ -84,59 +82,24 @@ export async function POST(request) {
       });
     }
 
-    // --- SEND EMAIL NOTIFICATION VIA RESEND ---
-    if (!markOnly && resend && claimedRequest.email) {
-      try {
-        const htmlTemplate = `
-          <div style="background-color: #1a1a1a; color: #ffffff; font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; text-align: center;">
-            <div style="max-width: 500px; margin: 0 auto; background-color: #262626; border: 1px solid #444444; padding: 40px 30px; border-radius: 8px;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <img src="https://desaynclaw.com/logo.png" alt="DesaynClaw Logo" style="max-width: 240px; height: auto; display: inline-block;" />
-              </div>
-              <hr style="border: 0; border-top: 1px solid #444; margin: 24px 0;">
-              <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #ffffff;">Payment Approved! 🎉</h2>
-              <p style="color: #cccccc; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">
-                Good news! Your GCash payment has been verified and your credits have been successfully added to your account.
-              </p>
-              
-              <div style="background-color: #1a1a1a; border: 1px solid #333333; padding: 20px; border-radius: 6px; margin-bottom: 30px; text-align: left;">
-                <p style="margin: 0 0 10px 0; color: #888888; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Package Details</p>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                  <span style="color: #aaaaaa; font-size: 14px;">Plan:</span>
-                  <strong style="color: #ffffff; text-transform: capitalize; font-size: 14px;">${claimedRequest.plan}</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                  <span style="color: #aaaaaa; font-size: 14px;">Credits Added:</span>
-                  <strong style="color: #FFD700; font-size: 15px;">+${creditsToAdd} Traces</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #aaaaaa; font-size: 14px;">Reference No:</span>
-                  <strong style="color: #ffffff; font-size: 14px;">${claimedRequest.reference_number || 'N/A'}</strong>
-                </div>
-              </div>
+    // We do not fail the request if email fails; credits were already added.
+    if (!markOnly && claimedRequest.email) {
+      const emailResult = await sendEmail({
+        to: claimedRequest.email,
+        subject: 'Payment Approved - Credits Added! 🎉',
+        template: "creditsAdded",
+        data: {
+          plan: claimedRequest.plan,
+          credits: creditsToAdd,
+          reference: claimedRequest.reference_number || "N/A",
+        },
+      });
 
-              <a href="https://desaynclaw.com" style="display: inline-block; background-color: #FFD700; color: #000000; text-decoration: none; padding: 14px 28px; font-weight: 700; border-radius: 4px; font-size: 15px; transition: opacity 0.2s;">
-                Start Tracing Now
-              </a>
-              
-              <p style="color: #666666; font-size: 12px; margin-top: 40px; line-height: 1.5;">
-                If you have any questions or need help, just reply to this email.<br>
-                &copy; 2026 DesaynClaw. All rights reserved.
-              </p>
-            </div>
-          </div>
-        `;
-
-        await resend.emails.send({
-          from: 'DesaynClaw <hello@desaynclaw.com>',
-          to: claimedRequest.email,
-          subject: 'Payment Approved - Credits Added! 🎉',
-          html: htmlTemplate,
+      if (!emailResult.success) {
+        logger.warn("[Admin Approval] Failed to send email", {
+          email: claimedRequest.email,
+          error: emailResult.error,
         });
-        logger.info("[Admin Approval] Email sent", { email: claimedRequest.email });
-      } catch (emailErr) {
-        console.error("Failed to send email:", emailErr);
-        // We do not fail the request if email fails, credits were already added.
       }
     }
 
