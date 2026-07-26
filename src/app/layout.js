@@ -7,6 +7,8 @@ import {
   defaultDescription,
   siteName,
   siteUrl,
+  openGraphImage,
+  rootJsonLdGraph,
 } from "@/lib/siteMetadata";
 import "./globals.css";
 
@@ -116,7 +118,7 @@ export const metadata = {
     siteName,
     images: [
       {
-        url: "/DESAYNCLAW-Image.JPG",
+        url: openGraphImage,
         width: 1230,
         height: 807,
         alt: "DesaynClaw AI Sublimation Design Extractor and Vector Tracer",
@@ -128,7 +130,7 @@ export const metadata = {
     title: "DesaynClaw | AI Sublimation Design Extractor & Vector Tracer",
     description:
       "Extract sublimation flat files, vectorize logos, remove backgrounds & upscale designs using AI. Perfect for print shops in the Philippines.",
-    images: ["/DESAYNCLAW-Image.JPG"],
+    images: [openGraphImage],
     creator: "@desaynbro",
   },
   robots: {
@@ -165,77 +167,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* JSON-LD Structured Data — SoftwareApplication */}
+        {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              "name": "DesaynClaw",
-              "url": "https://desaynclaw.com",
-              "image": "https://desaynclaw.com/DESAYNCLAW-Image.JPG",
-              "sameAs": [
-                "https://desaynclaw.com"
-              ],
-              "applicationCategory": "DesignApplication",
-              "applicationSubCategory": "AI image vectorizer and sublimation design tool",
-              "operatingSystem": "Web",
-              "description":
-                "AI-powered tool for sublimation jersey design extraction, vector auto-tracing, logo enhancement, background removal, and 4K image upscaling. Used by print shops and apparel designers.",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "PHP",
-                "description": "Free credits on sign up. Pay-per-use credit system.",
-              },
-              "featureList": [
-                "Sublimation jersey flat file extraction",
-                "AI vector auto-tracer (SVG output)",
-                "Logo enhancer and vectorizer",
-                "AI background remover",
-                "4K AI image upscaler",
-                "Flat sublimation print file export",
-              ],
-              "creator": {
-                "@type": "Person",
-                "name": "desaynbro",
-                "url": "https://desaynclaw.com",
-              },
-              "publisher": {
-                "@type": "Organization",
-                "name": "DesaynClaw",
-                "url": "https://desaynclaw.com",
-                "logo": "https://desaynclaw.com/logo.png"
-              }
-            }),
-          }}
-        />
-        {/* JSON-LD — Organization and WebSite */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@graph": [
-                {
-                  "@type": "Organization",
-                  "name": "DesaynClaw",
-                  "url": "https://desaynclaw.com",
-                  "logo": "https://desaynclaw.com/logo.png",
-                  "image": "https://desaynclaw.com/DESAYNCLAW-Image.JPG"
-                },
-                {
-                  "@type": "WebSite",
-                  "name": "DesaynClaw",
-                  "url": "https://desaynclaw.com",
-                  "publisher": {
-                    "@type": "Organization",
-                    "name": "DesaynClaw"
-                  }
-                }
-              ],
-            }),
+            __html: JSON.stringify(rootJsonLdGraph),
           }}
         />
       </head>

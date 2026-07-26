@@ -7,14 +7,16 @@ export const siteName = "DesaynClaw";
 export const defaultDescription =
   "DesaynClaw is the #1 AI-powered tool for sublimation jersey design extraction, vector auto-tracing, logo enhancement, background removal, and 4K upscaling. Convert jersey mockups to flat print-ready SVG files instantly. Trusted by print shops and apparel designers in the Philippines and worldwide.";
 
-export const openGraphImage = "/a-clean--minimal-social-media-promotional-banner-f-01.jpg";
+export const openGraphImage = "/DESAYNCLAW-Image.JPG";
 
 export const softwareApplicationJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: siteName,
   url: siteUrl,
+  image: `${siteUrl}${openGraphImage}`,
   applicationCategory: "DesignApplication",
+  applicationSubCategory: "AI image vectorizer and sublimation design tool",
   operatingSystem: "Web",
   description:
     "AI-powered tool for sublimation jersey design extraction, vector auto-tracing, logo enhancement, background removal, and 4K image upscaling. Used by print shops and apparel designers.",
@@ -37,6 +39,17 @@ export const softwareApplicationJsonLd = {
     name: "desaynbro",
     url: siteUrl,
   },
+  publisher: {
+    "@type": "Organization",
+    name: siteName,
+    url: siteUrl,
+    logo: `${siteUrl}/logo.png`,
+  },
+};
+
+export const webApplicationJsonLd = {
+  ...softwareApplicationJsonLd,
+  "@type": "WebApplication",
 };
 
 export const websiteJsonLd = {
@@ -60,5 +73,16 @@ export const organizationJsonLd = {
   name: siteName,
   url: siteUrl,
   logo: `${siteUrl}/logo.png`,
-  sameAs: ["https://desaynclaw.com"],
+  image: `${siteUrl}${openGraphImage}`,
+  sameAs: [siteUrl],
+};
+
+export const rootJsonLdGraph = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { ...softwareApplicationJsonLd, "@context": undefined },
+    { ...webApplicationJsonLd, "@context": undefined },
+    { ...organizationJsonLd, "@context": undefined },
+    { ...websiteJsonLd, "@context": undefined },
+  ],
 };
