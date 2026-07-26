@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -12,6 +12,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
+  const turnstileRef = useRef(null);
 
   // Use the production key by default; localhost switches to Cloudflare's dummy testing key below.
   const [turnstileSiteKey, setTurnstileSiteKey] = useState('0x4AAAAAAD26TJ8T3jCD57hp');
@@ -21,6 +22,27 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
       setTurnstileSiteKey('1x00000000000000000000AA'); // Cloudflare official dummy testing key
     }
   }, []);
+
+  /**
+   * A Turnstile token is SINGLE USE. Supabase forwards it to Cloudflare, which
+   * rejects any replay with "captcha protection: request disallowed
+   * (timeout-or-duplicate)". Without this, the token stayed in state after the
+   * first submit and every retry replayed the spent token — so a user whose
+   * first attempt failed (or who simply submitted twice) could not log in at
+   * all until they hard-reloaded the page.
+   *
+   * Always discard the token and ask the widget for a fresh challenge after an
+   * attempt, whether it succeeded or failed.
+   */
+  const consumeTurnstile = useCallback(() => {
+    setTurnstileToken(null);
+    try { turnstileRef.current?.reset(); } catch { /* widget already unmounted */ }
+  }, []);
+
+  // Reopening the modal must not carry a stale token across from last time.
+  useEffect(() => {
+    if (show) consumeTurnstile();
+  }, [show, consumeTurnstile]);
 
   if (!show) return null;
 
@@ -43,6 +65,8 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
       analytics.error(err, { area: "google_login" });
       toast.error("Google login failed. Please try again.");
       setIsLoadingGoogle(false);
+      // The token was spent by the attempt above; get a fresh one before retry.
+      consumeTurnstile();
     }
   };
 
@@ -74,9 +98,16 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
       toast.success("Magic link sent! Check your email.");
     } catch (err) {
       analytics.error(err, { area: "email_login" });
-      toast.error(err.message || "Failed to send login link.");
+      const isSpentToken = /timeout-or-duplicate|captcha/i.test(err.message || "");
+      toast.error(
+        isSpentToken
+          ? "Security check expired. Please try again."
+          : (err.message || "Failed to send login link.")
+      );
     } finally {
       setIsLoadingEmail(false);
+      // Always spend-and-refresh: the token is dead either way now.
+      consumeTurnstile();
     }
   };
 
@@ -286,11 +317,12 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
 
                 {/* Turnstile Widget */}
                 <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '20px', marginBottom: '8px', minHeight: '65px' }}>
-                  <Turnstile 
-                    siteKey={turnstileSiteKey} 
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={turnstileSiteKey}
                     onSuccess={(token) => setTurnstileToken(token)}
                     onError={() => { toast.error("Security check failed."); setTurnstileToken(null); }}
-                    onExpire={() => setTurnstileToken(null)}
+                    onExpire={() => { setTurnstileToken(null); try { turnstileRef.current?.reset(); } catch {} }}
                     options={{
                       theme: 'dark'
                     }}
