@@ -821,6 +821,18 @@ export default function StartScreen() {
           </div>
         </div>
 
+        <section className="marketing-video-section" aria-label="DesaynClaw marketing video">
+          <video
+            className="marketing-video"
+            controls
+            playsInline
+            preload="metadata"
+          >
+            <source src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/Video%20Demo/Marketing%20Video/MARKETING%20VIDEO%202.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </section>
+
         <HomepageWorkflowPreview />
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}

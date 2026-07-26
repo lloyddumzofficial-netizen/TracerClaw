@@ -587,6 +587,21 @@
           animation-play-state: paused;
         }
 
+        .marketing-video-section {
+          margin-top: 36px;
+          width: 100%;
+        }
+
+        .marketing-video {
+          display: block;
+          width: 100%;
+          max-height: 680px;
+          aspect-ratio: 16 / 9;
+          background: #111;
+          border: 1px solid rgba(255,255,255,0.08);
+          object-fit: contain;
+        }
+
         /* Homepage workflow preview */
         .workflow-preview-section {
           margin-top: 56px;
@@ -910,6 +925,10 @@
             padding-bottom: 34px;
             min-height: auto;
             width: 100%;
+          }
+
+          .marketing-video-section {
+            margin-top: 24px;
           }
 
           .workflow-preview-copy h2 {
