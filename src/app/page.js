@@ -78,10 +78,6 @@ function MarketingVideoPreview() {
 
   return (
     <section className="marketing-video-section" aria-label="DesaynClaw marketing video">
-      <div className="marketing-video-copy">
-        <div className="section-kicker">Watch The Workflow</div>
-        <h2>See how artwork becomes print-ready.</h2>
-      </div>
       <div className="marketing-video-frame">
         <video
           ref={videoRef}
@@ -98,10 +94,7 @@ function MarketingVideoPreview() {
         </video>
         {!isPlaying && (
           <button className="marketing-play-button" type="button" onClick={handlePlay} aria-label="Play DesaynClaw marketing video">
-            <span className="marketing-play-ring">
-              <Play size={34} fill="currentColor" strokeWidth={2.2} />
-            </span>
-            <span className="marketing-play-label">Play Demo</span>
+            <Play size={58} fill="currentColor" strokeWidth={1.8} />
           </button>
         )}
       </div>

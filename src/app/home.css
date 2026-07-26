@@ -588,32 +588,10 @@
         }
 
         .marketing-video-section {
-          margin-top: 44px;
-          padding: 48px 0 58px;
+          margin-top: 36px;
+          padding: 0 0 48px;
           width: 100%;
           border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .marketing-video-copy {
-          display: flex;
-          align-items: end;
-          justify-content: space-between;
-          gap: 24px;
-          margin-bottom: 22px;
-        }
-
-        .marketing-video-copy .section-kicker {
-          margin-bottom: 0;
-        }
-
-        .marketing-video-copy h2 {
-          color: #fff;
-          font-size: 30px;
-          line-height: 1.08;
-          font-weight: 850;
-          margin: 0;
-          max-width: 420px;
-          text-align: right;
         }
 
         .marketing-video-frame {
@@ -648,43 +626,22 @@
           top: 50%;
           transform: translate(-50%, -50%);
           z-index: 2;
-          display: inline-flex;
-          align-items: center;
-          gap: 14px;
-          min-height: 78px;
-          padding: 10px 24px 10px 10px;
-          border: 1px solid rgba(255,215,0,0.55);
-          background: rgba(10,10,10,0.78);
-          color: #FFD700;
-          box-shadow: 0 18px 44px rgba(0,0,0,0.45), 0 0 0 8px rgba(255,215,0,0.06);
+          display: grid;
+          place-items: center;
+          width: 86px;
+          height: 86px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: #fff;
+          filter: drop-shadow(0 6px 18px rgba(0,0,0,0.65));
           cursor: pointer;
-          backdrop-filter: blur(10px);
-          transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+          transition: transform 0.18s ease, opacity 0.18s ease;
         }
 
         .marketing-play-button:hover {
-          transform: translate(-50%, -50%) scale(1.035);
-          border-color: rgba(255,215,0,0.9);
-          background: rgba(14,14,14,0.9);
-        }
-
-        .marketing-play-ring {
-          width: 58px;
-          height: 58px;
-          display: grid;
-          place-items: center;
-          color: #111;
-          background: #FFD700;
-          clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%);
-        }
-
-        .marketing-play-label {
-          color: #fff;
-          font-size: 11px;
-          font-weight: 850;
-          letter-spacing: 1.8px;
-          text-transform: uppercase;
-          white-space: nowrap;
+          transform: translate(-50%, -50%) scale(1.08);
+          opacity: 0.92;
         }
 
         /* Homepage workflow preview */
@@ -1014,34 +971,17 @@
 
           .marketing-video-section {
             margin-top: 24px;
-            padding: 32px 0 38px;
-          }
-
-          .marketing-video-copy {
-            display: block;
-            margin-bottom: 18px;
-          }
-
-          .marketing-video-copy h2 {
-            margin-top: 14px;
-            font-size: 24px;
-            text-align: left;
+            padding-bottom: 34px;
           }
 
           .marketing-play-button {
-            min-height: 64px;
-            padding: 8px 16px 8px 8px;
-            gap: 10px;
+            width: 68px;
+            height: 68px;
           }
 
-          .marketing-play-ring {
-            width: 48px;
-            height: 48px;
-          }
-
-          .marketing-play-ring svg {
-            width: 28px;
-            height: 28px;
+          .marketing-play-button svg {
+            width: 46px;
+            height: 46px;
           }
 
           .workflow-preview-copy h2 {
