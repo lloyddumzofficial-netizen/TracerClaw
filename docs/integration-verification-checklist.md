@@ -3,6 +3,7 @@
 ## Build-Time
 
 - `npm run build` completes.
+- `npm ls @sentry/nextjs` shows an installed `@sentry/nextjs` package.
 - `/sitemap.xml` renders and includes public tool/legal routes.
 - `/robots.txt` renders and points to the configured sitemap.
 - `/api/health` returns `200` JSON for `GET`.
@@ -28,7 +29,7 @@
 - Search Console accepts the verification meta tag.
 - Clarity shows new sessions and custom events.
 - PostHog Activity shows captured events.
-- Sentry receives a test browser error.
+- Sentry receives a test browser error from `/sentry-test`.
 - UptimeRobot can monitor `https://desaynclaw.com/api/health`.
 
 ## Performance Guardrails

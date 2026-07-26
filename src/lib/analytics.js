@@ -15,8 +15,8 @@ const EVENT_NAMES = {
 
 let initialized = false;
 let initializing = false;
-let sentryReady = false;
 const pendingEvents = [];
+let sentryModulePromise = null;
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -28,12 +28,6 @@ function getConfig() {
     clarityId: process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "",
     posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY || "",
     posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-    sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN || "",
-    sentryEnvironment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV || "production",
-    sentryRelease: process.env.NEXT_PUBLIC_SENTRY_RELEASE || "",
-    sentryCdn:
-      process.env.NEXT_PUBLIC_SENTRY_BROWSER_CDN_URL ||
-      "https://browser.sentry-cdn.com/10.66.0/bundle.tracing.replay.min.js",
   };
 }
 
@@ -83,22 +77,6 @@ function initClarity(projectId) {
   loadScript(`https://www.clarity.ms/tag/${encodeURIComponent(projectId)}`, "desaynclaw-clarity");
 }
 
-function initSentry(config) {
-  if (!config.sentryDsn) return;
-  loadScript(config.sentryCdn, "desaynclaw-sentry", () => {
-    if (!window.Sentry?.init || sentryReady) return;
-    window.Sentry.init({
-      dsn: config.sentryDsn,
-      environment: config.sentryEnvironment,
-      release: config.sentryRelease || undefined,
-      tracesSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE || 0.05),
-      replaysSessionSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE || 0),
-      replaysOnErrorSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE || 0.1),
-    });
-    sentryReady = true;
-  });
-}
-
 function normalizeProperties(properties = {}) {
   return {
     app: "desaynclaw",
@@ -134,6 +112,12 @@ function sendPostHogEvent(eventName, properties = {}) {
   }).catch(() => {});
 }
 
+function getSentry() {
+  if (!isBrowser() || !process.env.NEXT_PUBLIC_SENTRY_DSN) return null;
+  sentryModulePromise = sentryModulePromise || import("@sentry/nextjs");
+  return sentryModulePromise;
+}
+
 function sendToLoadedProviders(eventName, properties) {
   if (window.gtag) {
     window.gtag("event", eventName, properties);
@@ -142,9 +126,9 @@ function sendToLoadedProviders(eventName, properties) {
     window.clarity("event", eventName);
   }
   sendPostHogEvent(eventName, properties);
-  if (window.Sentry?.addBreadcrumb) {
-    window.Sentry.addBreadcrumb({ category: "analytics", message: eventName, data: properties, level: "info" });
-  }
+  getSentry()?.then((Sentry) => {
+    Sentry.addBreadcrumb({ category: "analytics", message: eventName, data: properties, level: "info" });
+  });
 }
 
 export function initializeAnalytics() {
@@ -155,7 +139,6 @@ export function initializeAnalytics() {
   const start = () => {
     initGoogleAnalytics(config.gaId);
     initClarity(config.clarityId);
-    initSentry(config);
     initialized = true;
     initializing = false;
     while (pendingEvents.length) {
@@ -195,9 +178,7 @@ export function identifyUser(user) {
     window.gtag("set", { user_id: user.id });
   }
   sendPostHogEvent("$identify", { $anon_distinct_id: getDistinctId(), $set: traits, distinct_id: user.id });
-  if (window.Sentry?.setUser) {
-    window.Sentry.setUser({ id: user.id, email: user.email });
-  }
+  getSentry()?.then((Sentry) => Sentry.setUser({ id: user.id, email: user.email }));
 }
 
 export function trackAuthSession(user, properties = {}) {
@@ -221,15 +202,15 @@ export function trackAuthSession(user, properties = {}) {
 
 export function resetAnalytics() {
   if (!isBrowser()) return;
-  if (window.Sentry?.setUser) window.Sentry.setUser(null);
+  getSentry()?.then((Sentry) => Sentry.setUser(null));
 }
 
 export function trackError(error, properties = {}) {
   const message = error?.message || String(error);
   trackEvent(EVENT_NAMES.error, { ...properties, message });
-  if (isBrowser() && window.Sentry?.captureException) {
-    window.Sentry.captureException(error instanceof Error ? error : new Error(message), { extra: properties });
-  }
+  getSentry()?.then((Sentry) => {
+    Sentry.captureException(error instanceof Error ? error : new Error(message), { extra: properties });
+  });
 }
 
 export const analyticsEvents = EVENT_NAMES;

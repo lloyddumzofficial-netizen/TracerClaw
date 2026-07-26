@@ -19,6 +19,6 @@ All growth and monitoring configuration is environment-driven.
 - `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`: defaults to `0.05`.
 - `NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE`: defaults to `0`.
 - `NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE`: defaults to `0.1`.
-- `NEXT_PUBLIC_SENTRY_BROWSER_CDN_URL`: override for the browser bundle URL.
+- `SENTRY_AUTH_TOKEN`: optional; enables Sentry source map upload when paired with project settings in the deployment environment.
 
 Unset variables are safe. The matching integration simply stays disabled.

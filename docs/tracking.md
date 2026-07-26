@@ -10,7 +10,7 @@ Analytics loads only after the user accepts the existing cookie banner. If a req
 - Google Search Console: verification meta tag through Next metadata.
 - Microsoft Clarity: lazy-loaded Clarity script plus custom event calls.
 - PostHog Free Cloud: capture API calls for page views, identity, and custom events.
-- Sentry Free: lazy-loaded browser bundle for error capture and breadcrumbs.
+- Sentry Free: `@sentry/nextjs` browser, server, edge, tracing, replay, and breadcrumbs.
 - UptimeRobot: `GET` or `HEAD /api/health`.
 
 ## Event Map
@@ -38,3 +38,7 @@ analytics.error(error, { area: "example_area" });
 ```
 
 Keep event properties small, avoid raw image URLs, and never send secrets or payment proof details.
+
+## Sentry Test
+
+Visit `/sentry-test` in an environment with `NEXT_PUBLIC_SENTRY_DSN` configured. Click `Capture Test Error` for a handled browser exception, or `Throw Unhandled Error` for an unhandled browser exception. Confirm the event appears in Sentry Issues with the message `DesaynClaw Sentry browser test error` or `DesaynClaw Sentry unhandled browser test error`.
