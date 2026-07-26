@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { analytics } from "@/lib/analytics";
 
 /**
  * useTraceExecution — Manages the full 3-step AI pipeline execution.
@@ -49,6 +50,11 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
     // Reset per-node errors
     setNodeErrors({ step1: null, step2: null, step3: null });
+    analytics.traceStarted({
+      project_id: project.id,
+      trace_type: project.trace_type,
+      vector_colors: vectorColors,
+    });
 
     // Deduct locally in UI for immediate feedback
     if (userCredits > 0) setUserCredits(prev => prev - 1);
@@ -172,6 +178,11 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       const data3 = await res3.json();
       setProject(prev => ({ ...prev, svg_url: data3.svg_url }));
       logToConsole("[Success] Vectorization Complete!", "success");
+      analytics.traceCompleted({
+        project_id: project.id,
+        trace_type: project.trace_type,
+        vector_colors: vectorColors,
+      });
 
       setTraceState("idle");
       return { success: true }; // Signal to page to open compare modal
@@ -212,6 +223,12 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         console.error("[Trace Error]", error);
       }
 
+      analytics.error(error, {
+        area: "trace_execution",
+        project_id: project.id,
+        trace_type: project.trace_type,
+        timeout: isTimeout,
+      });
       logToConsole(`[Error] ${displayMsg}`, "error");
       setTraceState("idle");
       return { success: false };

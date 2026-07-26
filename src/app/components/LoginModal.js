@@ -4,6 +4,7 @@ import { memo, useState } from "react";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
+import { analytics } from "@/lib/analytics";
 
 const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
   const [email, setEmail] = useState("");
@@ -33,6 +34,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
       });
       if (error) throw error;
     } catch (err) {
+      analytics.error(err, { area: "google_login" });
       toast.error("Google login failed. Please try again.");
       setIsLoadingGoogle(false);
     }
@@ -61,9 +63,11 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
       
       if (error) throw error;
       
+      analytics.userLogin({ method: "magic_link_requested" });
       setEmailSent(true);
       toast.success("Magic link sent! Check your email.");
     } catch (err) {
+      analytics.error(err, { area: "email_login" });
       toast.error(err.message || "Failed to send login link.");
     } finally {
       setIsLoadingEmail(false);

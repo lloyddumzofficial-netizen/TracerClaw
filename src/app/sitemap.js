@@ -1,42 +1,43 @@
+import { siteUrl } from "@/lib/siteMetadata";
+
 export default function sitemap() {
-  const baseUrl = 'https://desaynclaw.com';
   const now = new Date();
 
   return [
     // ─── Core Tool Pages ──────────────────────────────────────────────────────
     {
-      url: baseUrl,
+      url: siteUrl,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/upscale`,
+      url: `${siteUrl}/upscale`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/bg-remover`,
+      url: `${siteUrl}/bg-remover`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     // ─── Legal & Policy Pages ────────────────────────────────────────────────
     {
-      url: `${baseUrl}/terms`,
+      url: `${siteUrl}/terms`,
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
-      url: `${baseUrl}/privacy`,
+      url: `${siteUrl}/privacy`,
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
-      url: `${baseUrl}/refunds`,
+      url: `${siteUrl}/refunds`,
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.3,

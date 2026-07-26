@@ -1,3 +1,5 @@
+import { siteUrl } from "@/lib/siteMetadata";
+
 export default function robots() {
   return {
     rules: {
@@ -5,6 +7,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/admin', '/api/', '/workspace/'],
     },
-    sitemap: 'https://desaynclaw.com/sitemap.xml',
+    sitemap: `${siteUrl}/sitemap.xml`,
   }
 }

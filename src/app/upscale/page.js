@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import TopUpModal from "@/components/TopUpModal";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import FeedbackWidget from "@/app/workspace/[id]/components/FeedbackWidget";
+import { analytics } from "@/lib/analytics";
 import "../globals.css";
 import "../home.css";
 
@@ -57,6 +58,7 @@ export default function UpscalePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
+        analytics.authSession(session.user, { source: "upscale" });
         fetchCredits(session.user.id);
         fetchRecentUpscales(session.user.id);
       } else {
@@ -152,6 +154,7 @@ export default function UpscalePage() {
       return publicUrl;
     } catch (error) {
       console.error(error);
+      analytics.error(error, { area: "upscale_upload" });
       throw new Error("Image upload failed");
     }
   };
@@ -197,6 +200,7 @@ export default function UpscalePage() {
       fetchRecentUpscales(user.id);
 
     } catch (err) {
+      analytics.error(err, { area: "upscale_processing" });
       toast.error(err.message || "An error occurred");
     } finally {
       setIsProcessing(false);
@@ -216,6 +220,7 @@ export default function UpscalePage() {
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
+      analytics.error(err, { area: "upscale_download" });
       toast.error("Failed to download image");
     }
   };

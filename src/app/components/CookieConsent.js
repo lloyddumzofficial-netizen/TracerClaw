@@ -18,11 +18,13 @@ export default function CookieConsent() {
 
   const accept = () => {
     localStorage.setItem("cookie_consent", "accepted");
+    window.dispatchEvent(new CustomEvent("desaynclaw:cookie-consent", { detail: "accepted" }));
     dismiss();
   };
 
   const decline = () => {
     localStorage.setItem("cookie_consent", "declined");
+    window.dispatchEvent(new CustomEvent("desaynclaw:cookie-consent", { detail: "declined" }));
     dismiss();
   };
 

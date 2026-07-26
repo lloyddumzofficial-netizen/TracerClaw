@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Scissors, Download, Home, Loader2, ArrowRight, Settings2, Image as ImageIcon, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { analytics } from "@/lib/analytics";
 
 const supabase = createClient();
 
@@ -35,7 +36,10 @@ export default function BgRemoverPage() {
     async function fetchData() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) setUser(session.user);
+        if (session) {
+          setUser(session.user);
+          analytics.authSession(session.user, { source: "bg_remover" });
+        }
 
         const { data: projData, error: projError } = await supabase
           .from("projects").select("*").eq("id", projectId).single();
@@ -54,6 +58,7 @@ export default function BgRemoverPage() {
         }
       } catch (err) {
         console.error("Data fetch error:", err);
+        analytics.error(err, { area: "bg_remover_fetch", project_id: projectId });
       }
     }
     fetchData();
@@ -102,6 +107,7 @@ export default function BgRemoverPage() {
       
     } catch (err) {
       console.error(err);
+      analytics.error(err, { area: "bg_remove_processing", project_id: project.id });
       setErrorMsg(err.message);
 
       // Fix #6: Re-fetch actual credit balance after failure
@@ -143,6 +149,7 @@ export default function BgRemoverPage() {
     try {
       const proxyUrl = `/api/proxy?url=${encodeURIComponent(project.generated_image_url)}`;
       await forceDownload(proxyUrl, `DesaynClaw_${project.name}_Transparent.png`);
+      analytics.trackEvent?.("download_transparent_png", { project_id: project.id, trace_type: "bg_remover" });
     } finally {
       setIsDownloading(false);
     }

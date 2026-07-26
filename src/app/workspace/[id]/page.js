@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
+import { analytics } from "@/lib/analytics";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 import { Home, Keyboard } from "lucide-react";
@@ -69,7 +70,10 @@ export default function Workspace() {
     const fetchData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) setUser(session.user);
+        if (session) {
+          setUser(session.user);
+          analytics.authSession(session.user, { source: "workspace" });
+        }
 
         const { data: projData, error: projError } = await supabase
           .from("projects").select("*").eq("id", projectId).single();
@@ -91,6 +95,7 @@ export default function Workspace() {
         }
       } catch (err) {
         console.error("[Workspace] Data fetch error:", err);
+        analytics.error(err, { area: "workspace_fetch", project_id: projectId });
       }
     };
     fetchData();
@@ -118,6 +123,7 @@ export default function Workspace() {
     if (!project?.svg_url) return;
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(project.svg_url)}`;
     await forceDownload(proxyUrl, `DesaynClaw_${project.name}_Vector.svg`);
+    analytics.downloadSvg({ project_id: project.id, trace_type: project.trace_type, source: "workspace" });
   }, [project, forceDownload]);
 
   const handleDownloadRaster = useCallback(async () => {
@@ -159,6 +165,7 @@ export default function Workspace() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       logToConsole(data.cached ? "[Success] Cached ZIP download started!" : "[Success] ZIP prepared and download started!", "success");
     } catch (err) {
+      analytics.error(err, { area: "zip_download", project_id: project.id });
       logToConsole(`[Error] Failed to zip: ${err.message}`, "error");
     }
   }, [project, logToConsole, forceDownload]);
@@ -174,6 +181,7 @@ export default function Workspace() {
   // ─── Crop Handlers ────────────────────────────────────────────────────────
   const handleCropApplied = useCallback((publicUrl, errorMsg) => {
     if (errorMsg) {
+      analytics.error(new Error(errorMsg), { area: "crop_save", project_id: project?.id });
       logToConsole(`[Error] Failed to save crop: ${errorMsg}`, "error");
     } else {
       setProject(prev => ({
@@ -190,6 +198,7 @@ export default function Workspace() {
 
   const handleEraseApplied = useCallback((publicUrl, errorMsg) => {
     if (errorMsg) {
+      analytics.error(new Error(errorMsg), { area: "erase_save", project_id: project?.id });
       logToConsole(`[Error] Failed to save erased image: ${errorMsg}`, "error");
     } else {
       setProject(prev => ({
@@ -205,6 +214,7 @@ export default function Workspace() {
 
   const handleRemoveBgApplied = useCallback((publicUrl, errorMsg) => {
     if (errorMsg) {
+      analytics.error(new Error(errorMsg), { area: "remove_bg_modal", project_id: project?.id });
       logToConsole(`[Error] Failed to remove background: ${errorMsg}`, "error");
     } else if (publicUrl) {
       setProject(prev => ({

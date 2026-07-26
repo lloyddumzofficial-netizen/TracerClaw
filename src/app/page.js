@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
+import { analytics } from "@/lib/analytics";
 
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Table2, Scan, Scissors, ShieldCheck, Code2 } from "lucide-react";
 
@@ -139,6 +140,7 @@ export default function StartScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
+        analytics.authSession(session.user, { source: "home" });
         fetchRecentProjects(session.user.id);
         fetchCredits(session.user.id);
       } else {
@@ -200,6 +202,7 @@ export default function StartScreen() {
           }
         } catch (error) {
           console.error("Failed to process routed mobile upload:", error);
+          analytics.error(error, { area: "mobile_upload_routing" });
           toast.error("Failed to load received image.");
         }
       }
@@ -278,6 +281,7 @@ export default function StartScreen() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    analytics.reset();
     setUser(null);
     setRecentProjects([]);
   };
@@ -303,6 +307,7 @@ export default function StartScreen() {
       if (res.ok) setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, name: editValue } : p));
     } catch (err) {
       console.error("Failed to rename", err);
+      analytics.error(err, { area: "project_rename" });
     }
     setEditingId(null);
   };
@@ -322,6 +327,7 @@ export default function StartScreen() {
       });
     } catch (err) {
       console.error("Failed to delete", err);
+      analytics.error(err, { area: "project_delete" });
       fetchRecentProjects(user?.id);
     }
   };
@@ -393,6 +399,7 @@ export default function StartScreen() {
       }
     } catch (error) {
       console.error("Upload error:", error);
+      analytics.error(error, { area: "project_upload", trace_type: isBgRemover ? "bg_remover" : (mobileTraceType || modalTraceType) });
       toast.error("Failed to create project: " + error.message);
       setIsUploading(false);
     }

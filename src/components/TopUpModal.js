@@ -3,6 +3,7 @@
 import { memo, useState, useCallback, useEffect } from "react";
 import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock } from "lucide-react";
 import { toast } from "@/components/Toast";
+import { analytics } from "@/lib/analytics";
 
 const PLANS = [
   { 
@@ -100,8 +101,15 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
       });
       if (dbError) throw dbError;
 
+      analytics.creditsPurchased({
+        plan: form.plan,
+        price: PLAN_PRICES[form.plan],
+        credits: PLANS.find((plan) => plan.key === form.plan)?.traces,
+        status: "payment_request_submitted",
+      });
       setSubmitted(true);
     } catch (err) {
+      analytics.error(err, { area: "credits_purchase", plan: form.plan });
       toast.error(`Error submitting request: ${err.message}`);
     } finally {
       setIsSubmitting(false);
@@ -228,6 +236,11 @@ const TopUpModal = memo(function TopUpModal({ show, user, supabase, onClose, onL
                           onLoginRequired?.();
                           return;
                         }
+                        analytics.checkoutStarted({
+                          plan: p.key,
+                          price: PLAN_PRICES[p.key],
+                          credits: p.traces,
+                        });
                         setForm(f => ({ ...f, plan: p.key })); 
                         setStep(2); 
                       }}
