@@ -3,94 +3,152 @@
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
-import { toast } from "@/components/Toast";
+import { toast } from "@/components/ui/Toast";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { analytics } from "@/lib/analytics";
+import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
+import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Table2, Scan, Scissors, ShieldCheck, Code2 } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";
 import "./home.css";
 
 // ─── Components ───────────────────────────────────────────────────────────────
-import TopUpModal from "@/components/TopUpModal";
-import LoginModal from "./components/LoginModal";
-import NewProjectModal from "./components/NewProjectModal";
-import OnboardingModal from "./components/OnboardingModal";
-import RecentProjects from "./components/RecentProjects";
-import EduSection from "./components/EduSection";
-import TraceIcon from "./components/TraceIcon";
-import BeforeAfterSlider from "./components/BeforeAfterSlider";
-import PromoModal from "./components/PromoModal";
-import AIDisclaimerModal from "./components/AIDisclaimerModal";
-import TestimonialSection from "./components/TestimonialSection";
-import QRCode from "react-qr-code";
+import LoginModal from "@/components/marketing/LoginModal";
+import NewProjectModal from "@/components/marketing/NewProjectModal";
+import OnboardingModal from "@/components/marketing/OnboardingModal";
+import RecentProjects from "@/components/marketing/RecentProjects";
+import EduSection from "@/components/marketing/EduSection";
+import BeforeAfterSlider from "@/components/marketing/BeforeAfterSlider";
+import FAQSection from "@/components/marketing/FAQSection";
+import LogoLoader from "@/components/ui/LogoLoader";
+import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
+import TestimonialSection from "@/components/marketing/TestimonialSection";
 
-function AnimatedCounter() {
+const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
+const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
+
+function HomepageWorkflowPreview() {
+  return (
+    <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
+      <div className="workflow-preview-copy">
+        <div className="section-kicker">Production Preview</div>
+        <h2>From messy mockup to print-ready files.</h2>
+        <p>
+          Preview the full handoff after upload: cleaned artwork, vector controls, transparent output, and export-ready files for real print shop work.
+        </p>
+        <div className="workflow-output-grid">
+          <div><CheckCircle2 size={15} /> Editable SVG</div>
+          <div><CheckCircle2 size={15} /> 4K PNG</div>
+          <div><CheckCircle2 size={15} /> Transparent BG</div>
+          <div><CheckCircle2 size={15} /> ZIP Package</div>
+        </div>
+        <div className="workflow-trust-row" aria-label="Workflow trust notes">
+          <span><ShieldCheck size={14} /> Files auto-expire after 3 days</span>
+          <span><Monitor size={14} /> Desktop workspace protected</span>
+          <span><Star size={14} /> Real extraction stats</span>
+        </div>
+      </div>
+
+      <div className="workflow-mockup" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <figure style={{ margin: 0, width: '80%' }}>
+          <img src="/samples/production-preview/Hue_Saturation.png" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
+        </figure>
+      </div>
+    </section>
+  );
+}
+
+function AnimatedCounter({ value }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    // Generate a growing target based on time so it never stays exactly the same day by day
-    const launchDate = new Date('2026-07-15T00:00:00Z').getTime();
-    const now = Date.now();
-    const hoursPassed = Math.max(0, (now - launchDate) / (1000 * 60 * 60));
-    
-    // Base is 14,582. We add roughly ~5 "fake" extractions every hour that passes.
-    const target = 14582 + Math.floor(hoursPassed * 5.2);
-    
+    if (!Number.isFinite(value)) return;
+
+    const target = Math.max(0, value);
+    const start = count;
+    const distance = target - start;
+
+    if (distance === 0) return;
+
     const duration = 2500; // 2.5 seconds
     let startTime = null;
+    let frameId = null;
 
     const animate = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = timestamp - startTime;
       const percentage = Math.min(progress / duration, 1);
-      
+
       const easeOut = percentage === 1 ? 1 : 1 - Math.pow(2, -10 * percentage);
-      
-      setCount(Math.floor(easeOut * target));
-      
+
+      setCount(Math.round(start + (distance * easeOut)));
+
       if (progress < duration) {
-        requestAnimationFrame(animate);
+        frameId = requestAnimationFrame(animate);
       }
     };
-    
-    requestAnimationFrame(animate);
-  }, []);
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [value]);
 
   return (
     <div style={{
       marginTop: "60px",
-      padding: "60px 40px",
-      background: "linear-gradient(145deg, #161616, #111)",
-      border: "1px solid #222",
-      borderRadius: "0",
+      padding: "50px 40px",
+      background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(26,26,26,0.8) 100%)",
+      borderBottom: "1px solid #2a2a2a",
       textAlign: "center",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: "12px",
-      boxShadow: "0 20px 40px rgba(0,0,0,0.4)"
+      gap: "20px"
     }}>
-      <div style={{ color: "#FFD700", fontSize: "12px", fontWeight: "800", letterSpacing: "3px", textTransform: "uppercase" }}>
+      {/* Premium Pill Badge */}
+      <div style={{
+        color: "#FFD700",
+        fontSize: "11px",
+        fontWeight: "800",
+        letterSpacing: "3px",
+        textTransform: "uppercase",
+        background: "rgba(255, 215, 0, 0.08)",
+        border: "1px solid rgba(255, 215, 0, 0.2)",
+        padding: "6px 16px",
+        borderRadius: "100px",
+        boxShadow: "0 0 20px rgba(255, 215, 0, 0.1)"
+      }}>
         TRUSTED NATIONWIDE
       </div>
-      <div style={{ 
-        fontSize: "72px", 
-        fontWeight: "900", 
-        color: "#fff", 
-        lineHeight: "1",
+
+      {/* Gradient Number */}
+      <div style={{
+        fontSize: "72px",
+        fontWeight: "800",
+        fontFamily: "'Nexa', 'Nexa Bold', 'Montserrat', sans-serif",
+        background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        lineHeight: "1.1",
         letterSpacing: "-2px",
-        fontVariantNumeric: "tabular-nums"
+        filter: "drop-shadow(0px 10px 20px rgba(255, 215, 0, 0.15))"
       }}>
-        {count.toLocaleString()}+
+        {Number.isFinite(value) ? count.toLocaleString() : "--"}
       </div>
-      <div style={{ color: "#888", fontSize: "15px", maxWidth: "400px", lineHeight: "1.6" }}>
-        Designs successfully extracted and vectorized by print shops and freelancers.
+
+      {/* Clean Description */}
+      <div style={{ color: "#aaa", fontSize: "16px", maxWidth: "420px", lineHeight: "1.6", fontWeight: "400" }}>
+        Real completed SVG extractions from DesaynClaw projects.
       </div>
     </div>
   );
@@ -99,6 +157,7 @@ function AnimatedCounter() {
 export default function StartScreen() {
   const router = useRouter();
   const supabase = createClient();
+  const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
   const containerRef = useRef(null);
@@ -121,6 +180,7 @@ export default function StartScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showCopyrightNotice, setShowCopyrightNotice] = useState(true);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   // ─── Modal Specific State ───────────────────────────────────────────────────
@@ -129,12 +189,16 @@ export default function StartScreen() {
   const [projectToDelete, setProjectToDelete] = useState(null);
 
   // ─── Public Stats State ─────────────────────────────────────────────────────
-  const [publicStats, setPublicStats] = useState({ totalUsers: 0, avatars: [] });
+  const [publicStats, setPublicStats] = useState({ totalUsers: 0, completedExtractions: null, reviewCount: 0, avatars: [] });
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // ─── Initialization ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    setShowCopyrightNotice(localStorage.getItem("desaynclaw-copyright-notice-dismissed") !== "1");
+  }, []);
+
   useEffect(() => {
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -221,10 +285,15 @@ export default function StartScreen() {
   useEffect(() => {
     const fetchStats = () => {
       fetch(`/api/public-stats?t=${Date.now()}`)
-        .then(res => res.json())
+        .then(res => safeJson(res, "Failed to load public stats"))
         .then(data => {
           if (data.success) {
-            setPublicStats({ totalUsers: data.totalUsers, avatars: data.avatars });
+            setPublicStats({
+              totalUsers: data.totalUsers || 0,
+              completedExtractions: Number.isFinite(data.completedExtractions) ? data.completedExtractions : 0,
+              reviewCount: data.reviewCount || 0,
+              avatars: data.avatars || []
+            });
           }
         })
         .catch(console.error);
@@ -335,11 +404,15 @@ export default function StartScreen() {
   // ─── Upload Logic ───────────────────────────────────────────────────────────
   const handleFileUpload = async (file, isBgRemover = false, mobileTraceType = null) => {
     if (!file || !file.type.startsWith("image/")) return;
+    if (isMobileDevice) {
+      toast.info("Desktop required: please use a computer or laptop to process designs.");
+      return;
+    }
 
     // Limit upload to 10MB to save bandwidth and prevent AI processing timeouts
-    const maxSizeInMB = isBgRemover ? 20 : 10;
-    if (file.size > maxSizeInMB * 1024 * 1024) {
-      toast.error(`File is too large! Maximum allowed size is ${maxSizeInMB}MB.`);
+    const maxUploadBytes = resolveImageUploadLimit({ purpose: isBgRemover ? "bg_remover" : "standard" });
+    if (file.size > maxUploadBytes) {
+      toast.error(`File is too large! Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
       return;
     }
 
@@ -353,6 +426,11 @@ export default function StartScreen() {
         console.warn("Compression failed, uploading original:", compressErr);
       }
 
+      if (fileToUpload.size > maxUploadBytes) {
+        toast.error(`Compressed file is still too large. Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
+        return;
+      }
+
       const sessionRes = await supabase.auth.getSession();
       const token = sessionRes.data.session?.access_token;
       if (!token) { setIsUploading(false); handleLogin(); return; }
@@ -360,10 +438,15 @@ export default function StartScreen() {
       const urlRes = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ fileName: fileToUpload.name, contentType: fileToUpload.type })
+        body: JSON.stringify({
+          fileName: fileToUpload.name,
+          contentType: fileToUpload.type,
+          fileSize: fileToUpload.size,
+          purpose: isBgRemover ? "bg_remover" : "standard",
+        })
       });
 
-      const urlData = await urlRes.json();
+      const urlData = await safeJson(urlRes, "Failed to get upload URL");
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
 
       const putRes = await fetch(urlData.uploadUrl, {
@@ -389,8 +472,8 @@ export default function StartScreen() {
         })
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.details || "Project creation failed");
+      const data = await safeJson(response, "Project creation failed");
+      if (!response.ok) throw new Error(data.details || data.error || "Project creation failed");
 
       if (isBgRemover) {
         router.push(`/bg-remover/${data.projectId}`);
@@ -414,6 +497,10 @@ export default function StartScreen() {
   // Open type-selection modal with a pre-selected file (from drop or file picker)
   const openModalWithFile = (file) => {
     if (!file || !file.type.startsWith("image/")) return;
+    if (isMobileDevice) {
+      toast.info("Desktop required: workspace tools are available on computer or laptop only.");
+      return;
+    }
     if (!user) { setShowLoginModal(true); return; }
     const maxSizeInMB = 10;
     if (file.size > maxSizeInMB * 1024 * 1024) {
@@ -422,6 +509,12 @@ export default function StartScreen() {
     }
     setPendingFile(file);
     setShowModal(true);
+  };
+
+  const requireDesktopTool = () => {
+    if (!isMobileDevice) return false;
+    toast.info("Desktop required: please use a computer or laptop to open DesaynClaw tools.");
+    return true;
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -448,7 +541,7 @@ export default function StartScreen() {
       )}
 
       {/* Top Navigation Bar */}
-      <header style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
+      <header style={{ boxSizing: "border-box", position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
 
         <div style={{ display: "flex", width: "100%", maxWidth: "1200px", alignItems: "center", justifyContent: "space-between" }}>
           {/* Left: Brand/Logo Mini (Hidden at top to avoid redundancy) */}
@@ -457,13 +550,14 @@ export default function StartScreen() {
           </div>
 
           {/* Right: Auth & Credits */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto" }}>
             {user ? (
               <>
                 {/* Premium Credits Badge */}
                 <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#2a2a2a", padding: "6px 12px", borderRadius: "0", cursor: "pointer", border: "1px solid #444", transition: "border-color 0.2s" }} onMouseOver={e => e.currentTarget.style.borderColor = "#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor = "#444"}>
+                  <img src="/Claws/Claws.png" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
                   <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}>{credits}</span>
-                  <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CREDITS</span>
+                  <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CLAWS</span>
                 </div>
 
                 {/* Profile Pill */}
@@ -490,6 +584,27 @@ export default function StartScreen() {
 
       {/* FULL WIDTH HERO SECTION */}
       <div style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
+        {showCopyrightNotice && (
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", background: "#111", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 3 }}>
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "14px", color: "#d8d8d8", fontSize: "12px", lineHeight: "1.5", textAlign: "center" }}>
+              <ShieldCheck size={15} color="#FFD700" style={{ flexShrink: 0 }} />
+              <span>
+                Copyright reminder: only upload or generate designs you own, are authorized to use, or have rights to process. Unauthorized copyrighted or trademarked content may be removed.
+              </span>
+              <button
+                type="button"
+                aria-label="Dismiss copyright notice"
+                onClick={() => {
+                  localStorage.setItem("desaynclaw-copyright-notice-dismissed", "1");
+                  setShowCopyrightNotice(false);
+                }}
+                style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "auto" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 2 }}>
 
           <div className="hero-section" style={{ justifyContent: "flex-start", margin: 0 }}>
@@ -497,52 +612,83 @@ export default function StartScreen() {
             <div className="hero-left" style={{ margin: "0" }}>
               <div className="start-logo" style={{ marginBottom: "30px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
                 <img src="/logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
-                <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.8)", margin: "5px 0 0 0", fontWeight: "500" }}>Developed by desaynbro</p>
 
-                {/* PUBLIC STATS */}
+                {/* Refined byline */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+                  <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: "500", letterSpacing: "2.5px", textTransform: "uppercase" }}>Developed by Desaynbro</span>
+                  <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
+                </div>
+
+                {/* PUBLIC STATS — compact single-pill row */}
                 {publicStats.totalUsers > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: "24px", gap: "16px" }}>
-
-                    {/* FlyonUI-style Avatar Group (Avatars ONLY) */}
-                    <div style={{ display: "flex", alignItems: "center" }}>
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0",
+                    marginTop: "24px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: "100px",
+                    padding: "6px 14px 6px 6px",
+                  }}>
+                    {/* Avatar stack */}
+                    <div style={{ display: "flex", alignItems: "center", marginRight: "10px" }}>
                       {publicStats.avatars.length > 0 && publicStats.avatars.map((url, i) => (
-                        <img key={i} src={url} alt="User" style={{ width: "42px", height: "42px", borderRadius: "50%", border: "2px solid #1a1a1a", marginLeft: i > 0 ? "-16px" : "0", backgroundColor: "#333", objectFit: "cover", zIndex: 10 - i, boxShadow: "0 0 0 1px rgba(0,0,0,0.1)" }} />
+                        <img key={i} src={url} alt="User" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.08)", marginLeft: i > 0 ? "-9px" : "0", backgroundColor: "#2a2a2a", objectFit: "cover", zIndex: 10 - i }} />
                       ))}
                     </div>
 
-                    {/* Clean Text Label */}
-                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "left" }}>
-                      <div style={{ fontSize: "14px", color: "#e0e0e0", fontWeight: "600", letterSpacing: "-0.2px" }}>
-                        {publicStats.totalUsers.toLocaleString()}+ creatives
-                      </div>
-                      <div style={{ fontSize: "13px", color: "#888", fontWeight: "500" }}>
-                        joined the beta
-                      </div>
-                    </div>
+                    {/* User count */}
+                    <span style={{ fontSize: "13px", color: "#fff", fontWeight: "600", marginRight: "6px" }}>
+                      {publicStats.totalUsers.toLocaleString()}+
+                    </span>
+                    <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: "400", marginRight: "10px" }}>creatives</span>
 
+                    {/* Dot divider */}
+                    {publicStats.reviewCount > 0 && (
+                      <span style={{ width: "3px", height: "3px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "inline-block", marginRight: "10px" }} />
+                    )}
+
+                    {/* Stars */}
+                    {publicStats.reviewCount > 0 && (
+                      <>
+                        <div style={{ display: "flex", gap: "2px", marginRight: "5px" }}>
+                          {[1, 2, 3, 4, 5].map((_, i) => (
+                            <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill="#FFD700" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", fontWeight: "400" }}>
+                          {publicStats.reviewCount} reviews
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
 
-                <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.9)", textAlign: "center", marginTop: "20px", maxWidth: "550px", lineHeight: "1.6", textWrap: "balance", fontWeight: "500" }}>
+                {/* Description */}
+                <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.55)", textAlign: "center", marginTop: "20px", maxWidth: "500px", lineHeight: "1.65", textWrap: "balance", fontWeight: "400" }}>
                   Instantly transform your raster images (PNG, JPG) into ultra-clean, scalable vector graphics (SVG) using our advanced AI neural engine.
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: "6px", marginBottom: "20px", flexWrap: "nowrap", justifyContent: "space-between", width: "100%", overflowX: "auto" }}>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  {isUploading ? <><Monitor size={14} className="animate-pulse" /> Creating...</> : <><FilePlus size={14} /> New Project</>}
+              <div className="hero-action-bar" style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflowX: "auto", paddingBottom: "2px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  {isUploading ? <><Monitor size={13} className="animate-pulse" /> Creating...</> : <><FilePlus size={13} /> New Project</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  {isUploading ? <><Monitor size={14} className="animate-pulse" /> Uploading...</> : <><Monitor size={14} /> Open PC</>}
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  {isUploading ? <><Monitor size={13} className="animate-pulse" /> Uploading...</> : <><Monitor size={13} /> Open PC</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  <Scan size={14} /> Scan Phone
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  <Scan size={13} /> Scan Phone
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                  <ImageIcon size={14} /> Image Upscale
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                  <ImageIcon size={13} /> Image Upscale
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "8px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <Scissors size={14} color="#FFD700" /> BG Remover
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <Scissors size={13} color="#FFD700" /> BG Remover
                 </button>
               </div>
 
@@ -562,7 +708,7 @@ export default function StartScreen() {
                   <label htmlFor="aiEnhance" style={{ fontSize: "14px", color: "#ccc", cursor: "pointer" }}><strong>Enhance image with AI</strong> (Removes noise)</label>
                 </div>
 
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ background: "transparent", color: "#e0e0e0", border: "1px solid #444", borderRadius: "0", fontSize: "16px", padding: "16px 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontWeight: "500", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#333"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ background: "transparent", color: "#e0e0e0", border: "1px solid #444", borderRadius: "0", fontSize: "16px", padding: "16px 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontWeight: "500", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#333"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                   {isUploading ? <><Monitor size={18} className="animate-pulse" /> Uploading...</> : <><Monitor size={18} /> Upload Images</>}
                 </button>
                 <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "4px", alignItems: "center" }}>
@@ -595,15 +741,16 @@ export default function StartScreen() {
               <div className="hero-right" style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
                   <BeforeAfterSlider
-                    title="Untitled Design 1"
-                    rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1783990134382_crop_1783990137133.jpg"
-                    vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/5fca148b-6565-440c-b323-5a345bd2f15a/generated_flat_1783990173901.png"
+                    title="Untitled Design 2"
+                    rasterUrl="/samples/Reference.png"
+                    vectorUrl="/samples/DesaynClaw_Tshirt_Design_4K.webp"
                     height="220px"
+                    objectPosition="center 40%"
                   />
                   <BeforeAfterSlider
-                    title="Untitled Design 2"
-                    rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1784032953717_crop_1784032953314.jpg"
-                    vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/1fb04f02-72a0-4ee5-9011-3f3005f4d45a/generated_flat_1784032985488.png"
+                    title="Polo Shirt Pattern"
+                    rasterUrl="/samples/polo-original.png"
+                    vectorUrl="/samples/polo-vector.webp"
                     height="220px"
                   />
                 </div>
@@ -624,9 +771,9 @@ export default function StartScreen() {
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}>
 
         {/* SCROLLING TRUST MARQUEE (MINIMAL & ALIGNED) */}
-        <div className="marquee-container" style={{ 
+        <div className="marquee-container" style={{
           padding: "10px 0",
-          background: "transparent", 
+          background: "transparent",
           borderTop: "1px solid #2a2a2a",
           borderBottom: "1px solid #2a2a2a",
           width: "100%",
@@ -650,7 +797,7 @@ export default function StartScreen() {
               <Monitor size={16} color="#777" />
               <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Highly Scalable Infrastructure</span>
             </div>
-            
+
             {/* 2nd Set (Duplicate for seamless loop) */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
               <ShieldCheck size={16} color="#777" />
@@ -671,8 +818,11 @@ export default function StartScreen() {
           </div>
         </div>
 
+        <HomepageWorkflowPreview />
+
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
+
           {/* Section Header */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
             <div style={{
@@ -695,7 +845,7 @@ export default function StartScreen() {
           {/* Cards Grid */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
             gap: "1px",
             background: "#333",
             border: "1px solid #333",
@@ -790,10 +940,18 @@ export default function StartScreen() {
             </div>
 
           </div>
+
+          <div style={{ width: '100%', marginTop: '40px' }}>
+            <img src="/small_banner.jpg" alt="Promo Banner" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid #333' }} />
+          </div>
         </div>
-        
         {/* Animated Counter Section */}
-        <AnimatedCounter />
+        <AnimatedCounter value={publicStats.completedExtractions} />
+
+        {/* Banner Image (banner-webapp-2.jpg) */}
+        <div style={{ marginTop: "40px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
+          <img src="/banner-webapp-2.jpg" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
+        </div>
 
         {/* ────────────────────────────────────────────────────────────────────── */}
 
@@ -803,25 +961,95 @@ export default function StartScreen() {
         <div id="samples-section" style={{ marginTop: '80px', marginBottom: '60px' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Sample Extractions</h3>
-            <h2 style={{ color: "#fff", fontSize: "24px", margin: "8px 0 0 0", fontWeight: "700" }}>Pixel-Perfect Vectorization</h2>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "8px 0 0 0", fontWeight: "600", letterSpacing: "-1px" }}>Pixel-Perfect Vectorization</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-            <BeforeAfterSlider
-              title="Basketball Jersey Pattern (4K Vectorized)"
-              rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1783990134382_crop_1783990137133.jpg"
-              vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/5fca148b-6565-440c-b323-5a345bd2f15a/generated_flat_1783990173901.png"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <BeforeAfterSlider
               title="Esports Gaming Apparel (Flat Extracted)"
-              rasterUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/users/30f2a02b-2b1a-4ce3-9ec2-585a21b741b1/1784032953717_crop_1784032953314.jpg"
-              vectorUrl="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/projects/1fb04f02-72a0-4ee5-9011-3f3005f4d45a/generated_flat_1784032985488.png"
+              rasterUrl="/samples/esports-original.jpg"
+              vectorUrl="/samples/esports-vector.png"
+            />
+            <BeforeAfterSlider
+              title="Polo Shirt Pattern (Flat Extracted)"
+              rasterUrl="/samples/polo-original.png"
+              vectorUrl="/samples/polo-vector.webp"
             />
           </div>
         </div>
+
+        {/* BG Remover Sample Section */}
+        <div style={{ marginBottom: '80px', width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Background Remover</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Flawless Subject Cutouts</h2>
+            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+              Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
+              style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
+              onMouseLeave={e => e.currentTarget.style.background = "#FFD700"}
+            >
+              <Scissors size={18} color="#000" />
+              Try Background Remover
+            </button>
+          </div>
+          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
+            <BeforeAfterSlider
+              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.png"
+              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.png"
+              leftLabel="NO BACKGROUND"
+              rightLabel="ORIGINAL"
+              layout="vertical"
+              aspectRatio="1 / 1"
+              showCheckerboard={true}
+            />
+          </div>
+        </div>
+
+        {/* Upscaler Sample Section */}
+        <div style={{ marginBottom: '100px', width: '100%', display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Image Upscaler</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Enhance to 4K Quality</h2>
+            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+              Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
+              style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#444"}
+              onMouseLeave={e => e.currentTarget.style.background = "#333"}
+            >
+              <ImageIcon size={18} />
+              Try Image Upscaler
+            </button>
+          </div>
+          <div style={{ flex: '1 1 450px', minWidth: '280px' }}>
+            <BeforeAfterSlider
+              rasterUrl="/samples/upscale-original.png"
+              vectorUrl="/samples/upscale-hq.png"
+              leftLabel="4K UPSCALE"
+              rightLabel="PIXELATED"
+              layout="vertical"
+              aspectRatio="1 / 1"
+              pixelateRaster={true}
+            />
+          </div>
+        </div>
+
+        {/* Banner Image (COVER PAGE.png) */}
+        <div style={{ width: '100%', marginBottom: '100px', display: 'flex', justifyContent: 'center' }}>
+          <img src="/cover-page.webp" alt="DesaynClaw Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }} />
+        </div>
+
         <TestimonialSection />
+
+
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
-        <input type="file" ref={bgRemoveInputRef} onChange={(e) => { if (e.target.files[0]) handleFileUpload(e.target.files[0], true); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
+        <input type="file" ref={bgRemoveInputRef} onChange={(e) => { if (e.target.files[0]) { if (requireDesktopTool()) { e.target.value = ""; return; } handleFileUpload(e.target.files[0], true); } e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
 
         {/* ─── Modals ────────────────────────────────────────────────────────── */}
         <NewProjectModal
@@ -831,6 +1059,7 @@ export default function StartScreen() {
           isUploading={isUploading}
           onClose={() => { setShowModal(false); setPendingFile(null); }}
           onSelectImage={() => {
+            if (requireDesktopTool()) return;
             if (pendingFile) {
               handleFileUpload(pendingFile);
             } else {
@@ -838,6 +1067,7 @@ export default function StartScreen() {
             }
           }}
           onSelectBgRemover={() => {
+            if (requireDesktopTool()) return;
             bgRemoveInputRef.current.click();
           }}
         />
@@ -847,13 +1077,15 @@ export default function StartScreen() {
           onClose={() => setShowOnboarding(false)}
         />
 
-        <TopUpModal
-          show={showTopUpModal}
-          user={user}
-          supabase={supabase}
-          onClose={() => setShowTopUpModal(false)}
-          onLoginRequired={() => { setShowTopUpModal(false); setShowLoginModal(true); }}
-        />
+        {showTopUpModal && (
+          <TopUpModal
+            show={showTopUpModal}
+            user={user}
+            supabase={supabase}
+            onClose={() => setShowTopUpModal(false)}
+            onLoginRequired={() => { setShowTopUpModal(false); setShowLoginModal(true); }}
+          />
+        )}
 
         <LoginModal
           show={showLoginModal}
@@ -942,7 +1174,7 @@ export default function StartScreen() {
         {isUploading && !showModal && (
           <div className="modal-overlay" style={{ zIndex: 9999 }}>
             <div className="modal-content" style={{ maxWidth: "340px", textAlign: "center", padding: "40px 30px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <Loader2 size={32} color="#FFD700" className="animate-spin" style={{ marginBottom: "20px" }} />
+              <LogoLoader size={64} color="#FFD700" />
               <div style={{ fontSize: "16px", color: "#fff", fontWeight: "600", marginBottom: "8px" }}>Preparing Image...</div>
               <p style={{ color: "#aaa", margin: 0, fontSize: "13px", lineHeight: "1.6" }}>
                 Transferring your photo to the workspace.
@@ -951,6 +1183,7 @@ export default function StartScreen() {
           </div>
         )}
 
+        <FAQSection />
 
         <footer style={{ marginTop: "100px", borderTop: "1px solid #222", padding: "40px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
@@ -973,8 +1206,6 @@ export default function StartScreen() {
       </div>
 
 
-      {/* Promo Popup */}
-      <PromoModal onBuyClick={() => window.open('https://m.me/105884602605306', '_blank')} />
 
       {/* AI Guidelines Popup */}
       <AIDisclaimerModal />

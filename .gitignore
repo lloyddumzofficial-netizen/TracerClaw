@@ -29,6 +29,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.npm-cache/
+.tmp/
+.codex-local/
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -47,3 +50,6 @@ test_*.mjs
 next-env.d.ts
 
 .vercel
+
+# Claude Code machine-local settings
+.claude/settings.local.json

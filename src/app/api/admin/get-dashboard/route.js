@@ -1,6 +1,64 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+async function fetchPaymentRequestsByStatus(status) {
+  const pageSize = 1000;
+  let from = 0;
+  const rows = [];
+
+  while (true) {
+    const { data, error } = await adminSupabase
+      .from('payment_requests')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const page = data || [];
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      return rows;
+    }
+
+    from += pageSize;
+  }
+}
+
+async function fetchActiveCreditsTotal() {
+  const pageSize = 1000;
+  let from = 0;
+  let total = 0;
+
+  while (true) {
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .select('credits')
+      .gt('credits', 0)
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = data || [];
+    total += rows.reduce((sum, row) => sum + Number(row.credits || 0), 0);
+
+    if (rows.length < pageSize) {
+      return total;
+    }
+
+    from += pageSize;
+  }
+}
+
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -11,18 +69,42 @@ export async function GET(request) {
 
     const { data: { user }, error: authErr } = await adminSupabase.auth.getUser(token);
     const adminEmail = process.env.ADMIN_EMAIL;
-    if (authErr || !user || user.email !== adminEmail) {
+    // Guard every side of the comparison. With ADMIN_EMAIL unset and an account
+    // that has no email (anonymous / phone auth), `user.email !== adminEmail`
+    // reduces to `undefined !== undefined` — false — and grants admin.
+    const isAdmin = Boolean(
+      adminEmail &&
+      user?.email &&
+      user.email.toLowerCase() === adminEmail.toLowerCase()
+    );
+    if (authErr || !isAdmin) {
       return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
     }
 
-    // Fetch all payment requests (Bypasses RLS using Service Role Key)
-    const { data: requests, error: reqError } = await adminSupabase
-      .from('payment_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Fetch manual GCash requests by status with explicit pagination.
+    // Supabase otherwise caps result sets, which can hide pending payments once
+    // the table grows.
+    const [pendingRequests, approvedRequests] = await Promise.all([
+      fetchPaymentRequestsByStatus('pending'),
+      fetchPaymentRequestsByStatus('approved'),
+    ]);
+    const requests = [...pendingRequests, ...approvedRequests];
 
-    if (reqError) {
-      throw reqError;
+    let dodoPayments = [];
+    try {
+      const { data: dodoRows, error: dodoErr } = await adminSupabase
+        .from('dodo_payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (dodoErr) {
+        console.error("Failed to fetch Dodo payments:", dodoErr);
+      } else {
+        dodoPayments = dodoRows || [];
+      }
+    } catch (dodoFetchErr) {
+      console.error("Error fetching Dodo payments:", dodoFetchErr);
     }
 
     // Fetch total generations (projects) count
@@ -45,6 +127,8 @@ export async function GET(request) {
     if (reviewError) {
       console.error("Failed to fetch reviews:", reviewError);
     }
+
+    const activeCreditsTotal = await fetchActiveCreditsTotal();
 
     // Fetch users with credits (SCALABLE APPROACH)
     let paidUsers = [];
@@ -108,9 +192,17 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       requests: requests || [],
+      pendingRequestCount: pendingRequests.length,
+      approvedRequestCount: approvedRequests.length,
+      dodoPayments,
       totalProjects: projCount || 0,
+      activeCreditsTotal,
       reviews: reviews || [],
       paidUsers: paidUsers
+    }, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0"
+      }
     });
   } catch (error) {
     console.error("Admin Dashboard Fetch Error:", error);

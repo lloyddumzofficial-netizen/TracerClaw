@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning } from "@/lib/tracePrompts";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -11,6 +12,7 @@ export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is sa
 export async function POST(request) {
   let projectId;
   let userId;
+  let failedStep = "unknown";
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -37,6 +39,7 @@ export async function POST(request) {
     const body = await request.json();
     projectId = body.projectId;
     const { step, croppedImageUrl } = body;
+    failedStep = String(step);
 
     if (!projectId || !step) {
       return NextResponse.json({ error: "Missing required fields (projectId, step)" }, { status: 400 });
@@ -127,11 +130,50 @@ export async function POST(request) {
         amount: -1
       });
 
-      await adminSupabase
+      // Clear the refund/failure state for this NEW charge.
+      // `refunded` used to be a one-way latch that nothing ever reset, so once a
+      // project had been refunded a second attempt could be charged but never
+      // refunded — the guard `.eq('refunded', false)` matched zero rows forever.
+      // This write must succeed, otherwise the failure path cannot refund, so
+      // unlike before its error is checked.
+      const { error: flagErr } = await adminSupabase
         .from('projects')
-        .update({ credit_deducted: true })
+        .update({
+          credit_deducted: true,
+          refunded: false,
+        })
         .eq('id', projectId)
         .eq('user_id', user.id);
+
+      // Clearing the failure stamp is best-effort and deliberately separate:
+      // failed_at/failed_step only exist after add_project_failure_tracking.sql
+      // has been run. Folding them into the update above would make every
+      // generation fail on a deployment where the migration has not landed yet.
+      await adminSupabase
+        .from('projects')
+        .update({ failed_at: null, failed_step: null })
+        .eq('id', projectId)
+        .eq('user_id', user.id);
+
+      if (flagErr) {
+        // If the columns themselves are absent, the deployment is simply ahead
+        // of database/add_billing_columns.sql. Refunds cannot work in that
+        // state (they never have), but generations must not hard-fail — so log
+        // loudly and continue rather than taking every user's run down.
+        const missingColumns = /column .* does not exist/i.test(flagErr.message || '');
+        if (missingColumns) {
+          console.error(
+            '[Billing] CRITICAL: credit_deducted/refunded columns are missing — refunds are disabled. ' +
+            'Run database/add_billing_columns.sql.'
+          );
+        } else {
+          // A real write failure: give the claw straight back rather than
+          // charging for a run we could never refund.
+          console.error('[Billing] Could not set credit_deducted; refunding immediately:', flagErr.message);
+          await safeRefundCredit(project.user_id);
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
+      }
     }
 
     if (step === 1) {
@@ -146,397 +188,24 @@ export async function POST(request) {
       // Calculate closest aspect ratio for fal.ai Nano Banana Pro
       let targetAspectRatio = "auto";
       if (metadata && metadata.width && metadata.height) {
-         const ratio = metadata.width / metadata.height;
-         const allowedRatios = {
-             "21:9": 21/9, "16:9": 16/9, "3:2": 3/2, "4:3": 4/3, "5:4": 5/4,
-             "1:1": 1/1, "4:5": 4/5, "3:4": 3/4, "2:3": 2/3, "9:16": 9/16
-         };
-         let minDiff = Infinity;
-         for (const [str, val] of Object.entries(allowedRatios)) {
-             const diff = Math.abs(ratio - val);
-             if (diff < minDiff) {
-                 minDiff = diff;
-                 targetAspectRatio = str;
-             }
-         }
-      }
-
-      let prompt = "";
-      if (project) {
-        if (project.ai_prompt === 'ERASE_LOGOS') {
-          prompt = `🔴 CRITICAL REFERENCE LOCK — THIS IS THE MOST IMPORTANT INSTRUCTION:
-You are given an INPUT IMAGE. That input image IS the source of truth. Every color, every shape, every stripe, every pattern in your output MUST be copied EXACTLY from that input image. Do NOT invent. Do NOT approximate. Do NOT be creative. COPY EXACTLY.
-If you deviate from the input image in ANY way — wrong color, wrong stripe angle, wrong shape position, wrong pattern — you have FAILED.
-
-⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
-DO NOT DRAW A SHIRT. DO NOT DRAW A JERSEY SHAPE. DO NOT DRAW A NECKLINE. DO NOT DRAW ARMHOLES. DO NOT DRAW SLEEVES. DO NOT DRAW ANY CLOTHING SILHOUETTE WHATSOEVER.
-Your output canvas is a PLAIN RECTANGLE filled edge-to-edge with design pattern ONLY.
-
-== REFERENCE IMAGE ANALYSIS — DO THIS FIRST, BEFORE ANYTHING ELSE ==
-Step 0 (mandatory): Look at the input image. Count every color. Note every stripe direction and angle. Note every shape. Memorize the exact color of each zone (top-left, top-right, center, bottom-left, bottom-right). You will reproduce ALL of this exactly.
-
-== FINAL OUTPUT STANDARD — THIS IS YOUR TARGET ==
-Your output must look EXACTLY like the flat rectangular source artwork panel shown next to a jersey product mockup image — the kind you see on stock design websites where the jersey photo is on the LEFT and the flat pattern file is on the RIGHT. That flat pattern on the RIGHT is your target output:
-- A perfectly flat rectangle filled completely edge-to-edge with the jersey's design
-- Zero shirt shape — no collar outline, no sleeve silhouette, no armhole curve
-- Preserve ALL intricate design details: halftones, dot patterns, fine lines, and design gradients.
-- ONLY remove 3D lighting: no fabric wrinkles, no fold shadows, no lens vignette.
-- All lines are perfectly geometric (straight or smoothly curved AS DESIGNED — not distorted by the 3D shirt/body)
-- It looks like a professional Adobe Illustrator sublimation print file, ready to send to a fabric printer
-- The SAME pattern that is on the jersey — not a reinterpretation, not a reinvention — the EXACT same design
-
-You are a FORENSIC COPY ARTIST. Your ONLY task is to make a pixel-accurate flat rectangular replica of the DESIGN PATTERN on this jersey. You are NOT allowed to be creative. You are NOT allowed to invent anything.
-
-== STEP 1: ANALYZE THE REFERENCE IMAGE (DO THIS FIRST) ==
-Before drawing anything, mentally catalog EVERY design element with surgical precision:
-- What are the EXACT background colors? (list every color zone)
-- What geometric shapes exist? (stripes, polygons, chevrons, curves, sublimation patterns — describe each one's exact angle, thickness, size, and position)
-- Where exactly is each color zone? (top-left corner, center-left, bottom-right, etc. — use a mental grid)
-- What exact colors are used? (e.g. "navy blue", "golden yellow", "white", "black")
-- How many stripes, polygons, or pattern repeats are there? Count them exactly.
-
-== STEP 2: PERSPECTIVE CORRECTION (MANDATORY) ==
-- The photo may show the jersey worn on a person, hung on a hanger, or shot at an angle. Mentally "cut open" the fabric and lay it completely flat.
-- Output the design as if the jersey fabric is unfolded into a flat rectangle — 100% straight-on, no perspective, no tilt, no 3D.
-- If both front and back panels are visible, ONLY reproduce the FRONT panel. Completely ignore the back.
-- The output must be a perfect upright rectangle — never crooked, never skewed.
-
-== STEP 2B: DE-PERSPECTIVE & STRAIGHTEN ALL LINES (MANDATORY) ==
-- ANY line, stripe, border, or panel edge that appears curved or diagonal in the photo ONLY because of fabric drape, body curvature, or camera angle MUST be straightened to a perfect geometric line in the output.
-- Side panels (left stripe, right stripe) that look curved because of the shirt shape must be output as perfectly straight vertical bands.
-- If a stripe appears to curve inward at the waist due to the body shape — straighten it. Output it as a ruler-straight vertical or diagonal line.
-- The output must look like the design was drawn in Adobe Illustrator with straight crisp lines and no fabric distortion whatsoever.
-- CRITICAL DISTINCTION: Lines that are curved IN THE DESIGN ITSELF (intentional artistic curves/waves) must remain. But lines that are only curved because of the 3D shirt/body/camera angle — must be output as straight.
-
-== STEP 3: CANVAS REQUIREMENTS ==
-- The output is a RECTANGLE. No shirt shape. No neckline cutout. No sleeve cutouts. No armholes. JUST A SOLID RECTANGLE.
-- Fill the entire canvas completely edge-to-edge with the design pattern.
-- Every color zone, stripe, and shape must bleed fully to all four canvas edges — no white space, no padding, no border.
-
-== STEP 4: SHAPE & COLOR ACCURACY — THIS IS ABSOLUTE LAW ==
-- EXACT HEX COLORS: You MUST extract and use the exact same color hex codes as the original. Do not saturate, brighten, or wash out the colors.
-- COPY EVERY SHAPE EXACTLY: same position on the canvas, same angle, same size, same color. No exceptions.
-- ANTI-HALLUCINATION RULE (CRITICAL): Do NOT substitute real design elements with invented ones.
-  If you see HOT PINK, output HOT PINK. If you see diagonal straight stripes, output STRAIGHT STRIPES — NOT wavy swirls.
-  Do NOT reimagine or "improve" any element. COPY IT EXACTLY.
-- SUBLIMATION PATTERNS: Reproduce the EXACT SAME sublimation shapes, colors, waves, or geometric polygons. Do not replace them with a generic pattern.
-- Zero tolerance for invented elements: every output pixel must correspond to a real element in the reference image.
-
-== STEP 5: TEXT AND LOGO REMOVAL (ZERO TOLERANCE) ==
-- ABSOLUTELY NO TEXT, NO LETTERS, NO NUMBERS, NO WORDS, NO LOGOS, NO BADGES.
-- REMOVE ALL player names, team names, jersey numbers, sponsor logos, chest badges, quotes, years, and taglines.
-- Erase them completely and replace them with the BACKGROUND PATTERN that logically continues underneath.
-- There must be ZERO text in the final output.
-- No white boxes, no smudges, no blank gaps. The pattern must flow seamlessly.
-
-== STEP 6: FINISHING ==
-- Flatten all fabric wrinkles, fold shadows, and photographic lighting into clean 2D artwork.
-- CRITICAL: Do NOT flatten intentional design gradients, halftone dots, or intricate patterns into solid blocks. Reproduce them exactly.
-- The final output must look like a professional rectangular sublimation print file — perfectly clean, print-ready.
-
-== STEP 7: SHAPE PLACEMENT LOCK — CRITICAL FOR ACCURACY ==
-- Divide the canvas into a 4x4 grid (16 cells). Before outputting, verify every shape is in the correct grid cell matching the reference.
-- Left-side shapes stay left. Right-side shapes stay right. Center shapes stay center. Top shapes stay top. Bottom shapes stay bottom.
-- Do NOT mirror, flip, or reposition any element. Shape drift is a failure.
-- EXACT COLOR MATCHING: You MUST sample the exact HEX color codes from the reference image. Do NOT brighten, do NOT over-saturate, do NOT shift the hue. If the reference is dark navy blue, the output must be the exact same dark navy blue.
-- STRIPE/POLYGON COUNT LOCK: If there are 3 yellow stripes in the reference, output exactly 3 yellow stripes — not 2, not 4.
-
-== STEP 8: NO MIRRORING — ABSOLUTE RULE ==
-- DO NOT mirror, reflect, or symmetrize the design. The output must NOT be left-right symmetric unless the reference design itself is symmetric.
-- If the left side has a pattern and the right side is different — reproduce them differently, exactly as in the reference.
-- DO NOT create a butterfly/kaleidoscope/mirror effect. This is a real design file.
-- Every asymmetric element (logo position, stripe layout, patch placement) must remain asymmetric exactly as in the original.
-
-== STEP 9: EXACT GEOMETRY PRESERVATION — ZERO TOLERANCE ==
-You are now operating as a FORENSIC GEOMETRY ENGINE. Every polygon in the original image has a specific shape. You must preserve it with absolute precision.
-- Preserve every original polygon, every angle, every corner, every cut, every notch, every diagonal, every intersection, every edge, every offset, every taper, every thickness, every spacing, every proportion, every alignment, every symmetry.
-- No approximations. No simplification. No smoothing. No redesign. Zero tolerance for invented geometry.
-
-== STEP 10: EXACT SHAPE MATCHING ==
-- Every visible blue shape must be reconstructed exactly.
-- Every dark navy panel must keep identical borders.
-- Every chevron must match the original width, height, taper, angle, overlap, spacing, offset, clipping, layering, and intersection.
-- Every stripe angle must remain identical.
-- Every lightning cut, triangular notch, zigzag, beveled edge, clipped corner, overlapping panel, hidden continuation, and internal contour must be reproduced.
-- Nothing may be guessed. Nothing may be replaced. Nothing may be stylized.
-
-== STEP 11: FORCE PIXEL ANALYSIS (MANDATORY) ==
-- Inspect the image pixel-by-pixel. Analyze at maximum zoom.
-- Compare neighboring pixels. Trace every color boundary. Follow every edge transition.
-- Reconstruct directly from observed pixels.
-- Never infer missing shapes. Never hallucinate geometry. Never invent symmetry. Never "clean up" irregularities.
-
-== STEP 12: VECTOR TRACE MODE ==
-Behave like Adobe Illustrator Image Trace combined with manual Pen Tool tracing — not like an illustrator, not a concept artist, not a designer.
-- Every path must follow the original image exactly.
-- No artistic interpretation whatsoever.
-
-== STEP 13: CHEVRON RECONSTRUCTION — HIGHEST PRIORITY ==
-The layered V patterns and chevron shapes are the highest priority elements.
-Each chevron must preserve: identical width, identical height, identical taper, identical angle, identical overlap, identical spacing, identical offsets, identical clipping, identical layering, identical intersections.
-- Do not replace with generic V stripes. Each layer is independent and unique.
-
-== STEP 14: MICRO DETAILS — MUST SURVIVE ==
-Preserve all of the following without exception:
-- micro triangles, micro slashes, tiny bevels, tiny chamfers, small clipped corners, micro zigzags, micro offsets, hidden intersections, partial shapes, cropped polygons, thin connectors, tiny angular cuts, subtle breaks, edge discontinuities.
-Every one of these must survive extraction intact.
-
-== STEP 15: COLOR REGION PRESERVATION ==
-- Never merge two adjacent blue regions, even if they appear similar.
-- Never merge similar navy colors. Every color island must remain independent.
-- Every boundary must remain intact.
-- Do not average colors. Do not simplify gradients into flat fills. Keep every distinct region separate.
-
-== STEP 16: TOPOLOGY LOCK ==
-- Preserve the exact topology of the original artwork.
-- The number of visible shapes in the output should remain nearly identical to the original.
-- The hierarchy of overlapping panels must remain identical.
-- Do not reduce complexity. Do not merge polygons. Do not split polygons unless required by the source image.
-
-== STEP 17: STRUCTURAL FIDELITY OVER CLEANLINESS ==
-- Prioritize structural fidelity over visual cleanliness.
-- If the original contains asymmetry, preserve it. If the original contains irregular cuts, preserve them. If the original contains imperfect geometry, preserve it.
-- Never beautify. Never improve. Never redesign. Only reconstruct.
-
-== STEP 18: ANTI-HALLUCINATION — STRICT EVIDENCE ONLY ==
-- If any shape is partially obscured, reconstruct it ONLY from visible evidence in the image.
-- Never fabricate hidden geometry. Never invent missing edges. Never continue lines based on assumptions.
-- Never replace unknown details with generic esports patterns.
-
-== STEP 19: FINAL VALIDATION (MANDATORY BEFORE OUTPUT) ==
-Before producing the final output, internally compare your reconstruction against the original image.
-Verify every single one of the following:
-- overall geometry, every polygon, every stripe, every chevron, every angle, every border, every spacing, every notch, every layer, every color region, every intersection.
-If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original. Only then produce the final output.`;
-
-        } else if (project.ai_prompt === 'LOGO_FLATTEN') {
-          prompt = `You are a FORENSIC LOGO REPRODUCTION ARTIST. Your task is to create a 100% pixel-accurate, flat vector-ready copy of the logo in this reference image. You are NOT allowed to be creative. You are NOT allowed to simplify, stylize, or interpret. Copy it EXACTLY.
-
-== ACCURACY IS THE ONLY RULE (TARGET: 99%+ MATCH) ==
-- Reproduce the logo with MATHEMATICAL EXACTNESS. Every shape, curve, angle, and proportion must be a perfect copy of the reference.
-- Every color must be the EXACT same solid flat color as the reference. Do not shift the hue. Do not change the lightness. Copy it exactly.
-- If the logo has multiple color layers or regions, reproduce ALL of them in their exact positions, sizes, and proportions.
-- ZERO HALLUCINATION: Do not add any element that does not exist in the reference. Do not remove any element that does exist.
-
-== TEXT & TYPOGRAPHY \u2014 ABSOLUTE RULE: COPY VERBATIM ==
-- If the logo contains any text, letterforms, numbers, or words \u2014 reproduce EVERY SINGLE CHARACTER EXACTLY as written.
-- Same font style, same weight (bold/thin/italic), same letter-spacing, same capitalization, same arrangement.
-- Do NOT autocorrect spelling. Do NOT rewrite any word. Do NOT change any letter's shape.
-- Even if the font looks unusual or custom, copy the letterforms exactly as they appear.
-
-== ELEMENTS TO PRESERVE \u2014 ALL OF THEM ==
-- Every icon, symbol, mascot, crest, shield, crown, star, swoosh, and decorative element.
-- Every border, outline, ring, frame, and inner detail stroke.
-- Every secondary piece of text: taglines, year numbers, location text, sub-brand text.
-
-== BACKGROUND ==
-- Preserve the original background exactly (transparent, white, or solid color).
-- Do NOT add shadows, glows, gradients, or decorative borders that are not in the original.
-
-== FINISHING ==
-- Strip out all fabric texture, photo noise, compression artifacts, lighting shadows, and 3D shading.
-- Output only pure, clean, flat solid colors \u2014 as if redrawn in Adobe Illustrator from scratch.
-- Maintain the exact original proportions and centering.
-
-== SHAPE PLACEMENT LOCK ==
-- Divide the logo into a 3x3 grid. Every element must be in the correct grid cell matching the reference.
-- Do NOT drift, shift, or reposition any element. Position accuracy is as important as color accuracy.
-
-== ADDITIONAL: EXACT GEOMETRY PRESERVATION — ZERO TOLERANCE ==
-You are now operating as a FORENSIC GEOMETRY ENGINE. Every polygon in the original image has a specific shape. You must preserve it with absolute precision.
-- Preserve every original polygon, every angle, every corner, every cut, every notch, every diagonal, every intersection, every edge, every offset, every taper, every thickness, every spacing, every proportion, every alignment, every symmetry.
-- No approximations. No simplification. No smoothing. No redesign. Zero tolerance for invented geometry.
-
-== ADDITIONAL: EXACT SHAPE MATCHING ==
-- Every visible shape must be reconstructed exactly as it appears in the reference.
-- Every boundary, border, and outline must keep identical dimensions and angles.
-- Every clipped corner, beveled edge, notch, and internal contour must be reproduced faithfully.
-- Nothing may be guessed. Nothing may be replaced. Nothing may be stylized.
-
-== ADDITIONAL: FORCE PIXEL ANALYSIS (MANDATORY) ==
-- Inspect the image pixel-by-pixel. Analyze at maximum zoom.
-- Compare neighboring pixels. Trace every color boundary. Follow every edge transition.
-- Reconstruct directly from observed pixels.
-- Never infer missing shapes. Never hallucinate geometry. Never invent symmetry. Never "clean up" irregularities.
-
-== ADDITIONAL: VECTOR TRACE MODE ==
-Behave like Adobe Illustrator Image Trace combined with manual Pen Tool tracing — not like an illustrator, not a concept artist, not a designer.
-- Every path must follow the original image exactly. No artistic interpretation whatsoever.
-
-== ADDITIONAL: MICRO DETAILS — MUST SURVIVE ==
-Preserve all of the following without exception:
-- micro details, tiny bevels, tiny chamfers, small clipped corners, micro offsets, hidden intersections, partial shapes, cropped polygons, thin connectors, tiny angular cuts, subtle breaks, edge discontinuities.
-Every one of these must survive extraction intact.
-
-== ADDITIONAL: COLOR REGION PRESERVATION ==
-- Never merge two adjacent regions, even if they appear similar in color.
-- Every color island must remain independent. Every boundary must remain intact.
-- Do not average colors. Keep every distinct region separate.
-
-== ADDITIONAL: TOPOLOGY LOCK ==
-- Preserve the exact topology of the original artwork.
-- The number of visible shapes in the output should remain nearly identical to the original.
-- Do not reduce complexity. Do not merge polygons unless required by the source.
-
-== ADDITIONAL: STRUCTURAL FIDELITY OVER CLEANLINESS ==
-- Prioritize structural fidelity over visual cleanliness.
-- Never beautify. Never improve. Never redesign. Only reconstruct.
-
-== ADDITIONAL: ANTI-HALLUCINATION — STRICT EVIDENCE ONLY ==
-- If any shape is partially obscured, reconstruct it ONLY from visible evidence.
-- Never fabricate hidden geometry. Never invent missing edges. Never replace unknown details with generic patterns.
-
-== ADDITIONAL: FINAL VALIDATION (MANDATORY BEFORE OUTPUT) ==
-Before producing the final output, internally compare your reconstruction against the original image.
-Verify: overall geometry, every polygon, every shape, every angle, every border, every spacing, every notch, every layer, every color region, every intersection.
-If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original.`;
-
-        } else {
-          prompt = `🔴 CRITICAL REFERENCE LOCK — THIS IS THE MOST IMPORTANT INSTRUCTION:
-You are given an INPUT IMAGE. That input image IS the source of truth. Every color, every shape, every stripe, every pattern in your output MUST be copied EXACTLY from that input image. Do NOT invent. Do NOT approximate. Do NOT be creative. COPY EXACTLY.
-If you deviate from the input image in ANY way — wrong color, wrong stripe angle, wrong shape position, wrong pattern — you have FAILED.
-
-⚠️ HARDEST RULE — READ THIS FIRST AND OBEY IT ALWAYS:
-DO NOT DRAW A SHIRT. DO NOT DRAW A JERSEY SHAPE. DO NOT DRAW A NECKLINE. DO NOT DRAW ARMHOLES. DO NOT DRAW SLEEVES. DO NOT DRAW ANY CLOTHING SILHOUETTE WHATSOEVER.
-Your output canvas is a PLAIN RECTANGLE filled edge-to-edge with design pattern ONLY.
-
-== REFERENCE IMAGE ANALYSIS — DO THIS FIRST, BEFORE ANYTHING ELSE ==
-Step 0 (mandatory): Look at the input image. Count every color. Note every stripe direction and angle. Note every shape. Memorize the exact color of each zone (top-left, top-right, center, bottom-left, bottom-right). You will reproduce ALL of this exactly.
-
-== FINAL OUTPUT STANDARD — THIS IS YOUR TARGET ==
-Your output must look EXACTLY like the flat rectangular source artwork panel shown next to a jersey product mockup image — the kind you see on stock design websites where the jersey photo is on the LEFT and the flat pattern file is on the RIGHT. That flat pattern on the RIGHT is your target output:
-- A perfectly flat rectangle filled completely edge-to-edge with the jersey's design
-- Zero shirt shape — no collar outline, no sleeve silhouette, no armhole curve anywhere in the output
-- Preserve ALL intricate design details: halftones, dot patterns, fine lines, and design gradients.
-- ONLY remove 3D lighting: no fabric wrinkles, no fold shadows, no lens vignette.
-- All lines are perfectly geometric (straight or smoothly curved AS DESIGNED — not distorted by the 3D shirt/body)
-- It looks like a professional Adobe Illustrator sublimation print file, ready to send to a fabric printer
-- The SAME pattern that is on the jersey — not a reinterpretation, not a reinvention — the EXACT same design colors, shapes, and layout
-
-You are a FORENSIC COPY ARTIST. Your ONLY task is to make a pixel-accurate flat rectangular replica of the DESIGN PATTERN on this jersey. You are NOT allowed to be creative. You are NOT allowed to invent anything.
-
-== STEP 1: ANALYZE THE REFERENCE IMAGE (DO THIS FIRST) ==
-Before drawing anything, mentally catalog EVERY design element with surgical precision:
-- What are the EXACT background colors? (list every color zone)
-- What geometric shapes exist? (stripes, polygons, chevrons, curves, sublimation patterns — describe each one's exact angle, thickness, size, and position)
-- Where exactly is each color zone? (top-left corner, center-left, bottom-right, etc. — use a mental grid)
-- What exact colors are used? (e.g. "navy blue", "golden yellow", "white", "black")
-- How many stripes, polygons, or pattern repeats are there? Count them exactly.
-
-== STEP 2: PERSPECTIVE CORRECTION (MANDATORY) ==
-- The photo may show the jersey worn on a person, hung on a hanger, or shot at an angle. Mentally "cut open" the fabric and lay it completely flat.
-- Output the design as if the jersey fabric is unfolded into a flat rectangle — 100% straight-on, no perspective, no tilt, no 3D.
-- If both front and back panels are visible, ONLY reproduce the FRONT panel. Completely ignore the back.
-- The output must be a perfect upright rectangle — never crooked, never skewed.
-
-== STEP 2B: DE-PERSPECTIVE & STRAIGHTEN ALL LINES (MANDATORY) ==
-- ANY line, stripe, border, or panel edge that appears curved or bent in the photo ONLY because of fabric drape, body curvature, or camera angle MUST be straightened to a perfect geometric line in the output.
-- Side panels (left stripe, right stripe) that look curved because of the shirt shape must be output as perfectly straight vertical bands.
-- If a stripe appears to curve inward at the waist due to the body shape — straighten it. Output it as a ruler-straight vertical or diagonal line.
-- The output must look like the design was drawn in Adobe Illustrator with straight crisp lines and no fabric distortion whatsoever.
-- CRITICAL DISTINCTION: Lines that are curved IN THE DESIGN ITSELF (intentional artistic curves/waves) must remain. But lines that are only curved because of the 3D shirt/body/camera angle — must be output as straight.
-
-== STEP 3: CANVAS REQUIREMENTS ==
-- The output is a RECTANGLE. No shirt shape. No neckline cutout. No sleeve cutouts. No armholes. JUST A SOLID RECTANGLE.
-- Fill the entire canvas completely edge-to-edge with the design pattern.
-- Every color zone, stripe, and shape must bleed fully to all four canvas edges — no white space, no padding, no border.
-
-== STEP 4: SHAPE & COLOR ACCURACY — THIS IS ABSOLUTE LAW ==
-- EXACT HEX COLORS: You MUST extract and use the exact same color hex codes as the original. Do not saturate, brighten, or wash out the colors.
-- COPY EVERY SHAPE EXACTLY: same position on the canvas, same angle, same size, same color. No exceptions.
-- ANTI-HALLUCINATION RULE (CRITICAL): Do NOT substitute real design elements with invented ones.
-  If you see HOT PINK, output HOT PINK. If you see TEAL/CYAN, output TEAL/CYAN. If you see diagonal straight stripes, output STRAIGHT STRIPES — NOT wavy swirls.
-  Do NOT reimagine or "improve" any element. COPY IT EXACTLY.
-- SUBLIMATION PATTERNS: Reproduce the EXACT SAME sublimation shapes, colors, waves, or geometric polygons. Do not replace them with a generic pattern.
-- Zero tolerance for invented elements: every output pixel must correspond to a real element in the reference image.
-
-== STEP 5: TEXT, NUMBERS, AND LOGOS ==
-- STRICT RULE: REMOVE ALL LARGE TEXT, PLAYER NAMES, TEAM NAMES, SPONSOR NAMES, QUOTES, YEARS, AND TAGLINES.
-- DO NOT replicate large text elements that span across the jersey (e.g. big team names, vertical text, year ranges).
-- Fill those areas with the background pattern that logically continues underneath, as if the text was never there. No smudges, no blank gaps.
-- You MAY replicate small team logos or chest crests, but DO NOT include floating large text.
-
-== STEP 6: FINISHING ==
-- Flatten all fabric wrinkles, fold shadows, and photographic lighting into clean 2D artwork.
-- CRITICAL: Do NOT flatten intentional design gradients, halftone dots, or intricate patterns into solid blocks. Reproduce them exactly.
-- The final output must look like a professional rectangular sublimation print file — perfectly clean, print-ready. NO SHIRT SHAPE. NO MOCKUP. RECTANGLE ONLY.
-
-== STEP 7: SHAPE PLACEMENT LOCK — CRITICAL FOR ACCURACY ==
-- Divide the canvas into a 4x4 grid (16 cells). Before outputting, verify every shape is in the correct grid cell matching the reference.
-- Left-side shapes stay left. Right-side shapes stay right. Center shapes stay center. Top shapes stay top. Bottom shapes stay bottom.
-- Do NOT mirror, flip, or reposition any element. Shape drift is a failure.
-- EXACT COLOR MATCHING: You MUST sample the exact HEX color codes from the reference image. Do NOT brighten, do NOT over-saturate, do NOT shift the hue. If the reference is dark navy blue, the output must be the exact same dark navy blue.
-- STRIPE/POLYGON COUNT LOCK: If there are 3 yellow stripes in the reference, output exactly 3 yellow stripes — not 2, not 4.
-
-== STEP 8: NO MIRRORING — ABSOLUTE RULE ==
-- DO NOT mirror, reflect, or symmetrize the design. The output must NOT be left-right symmetric unless the reference design itself is symmetric.
-- If the left side has a pattern and the right side is different — reproduce them differently, exactly as in the reference.
-- DO NOT create a butterfly/kaleidoscope/mirror effect. This is a real sublimation print file, not a reflected pattern.
-- Every asymmetric element (logo position, stripe layout, graphic placement) must remain asymmetric exactly as in the original.
-
-== STEP 9: EXACT GEOMETRY PRESERVATION — ZERO TOLERANCE ==
-You are now operating as a FORENSIC GEOMETRY ENGINE. Every polygon in the original image has a specific shape. You must preserve it with absolute precision.
-- Preserve every original polygon, every angle, every corner, every cut, every notch, every diagonal, every intersection, every edge, every offset, every taper, every thickness, every spacing, every proportion, every alignment, every symmetry.
-- No approximations. No simplification. No smoothing. No redesign. Zero tolerance for invented geometry.
-
-== STEP 10: EXACT SHAPE MATCHING ==
-- Every visible blue shape must be reconstructed exactly.
-- Every dark navy panel must keep identical borders.
-- Every chevron must match the original width, height, taper, angle, overlap, spacing, offset, clipping, layering, and intersection.
-- Every stripe angle must remain identical.
-- Every lightning cut, triangular notch, zigzag, beveled edge, clipped corner, overlapping panel, hidden continuation, and internal contour must be reproduced.
-- Nothing may be guessed. Nothing may be replaced. Nothing may be stylized.
-
-== STEP 11: FORCE PIXEL ANALYSIS (MANDATORY) ==
-- Inspect the image pixel-by-pixel. Analyze at maximum zoom.
-- Compare neighboring pixels. Trace every color boundary. Follow every edge transition.
-- Reconstruct directly from observed pixels.
-- Never infer missing shapes. Never hallucinate geometry. Never invent symmetry. Never "clean up" irregularities.
-
-== STEP 12: VECTOR TRACE MODE ==
-Behave like Adobe Illustrator Image Trace combined with manual Pen Tool tracing — not like an illustrator, not a concept artist, not a designer.
-- Every path must follow the original image exactly.
-- No artistic interpretation whatsoever.
-
-== STEP 13: CHEVRON RECONSTRUCTION — HIGHEST PRIORITY ==
-The layered V patterns and chevron shapes are the highest priority elements.
-Each chevron must preserve: identical width, identical height, identical taper, identical angle, identical overlap, identical spacing, identical offsets, identical clipping, identical layering, identical intersections.
-- Do not replace with generic V stripes. Each layer is independent and unique.
-
-== STEP 14: MICRO DETAILS — MUST SURVIVE ==
-Preserve all of the following without exception:
-- micro triangles, micro slashes, tiny bevels, tiny chamfers, small clipped corners, micro zigzags, micro offsets, hidden intersections, partial shapes, cropped polygons, thin connectors, tiny angular cuts, subtle breaks, edge discontinuities.
-Every one of these must survive extraction intact.
-
-== STEP 15: COLOR REGION PRESERVATION ==
-- Never merge two adjacent blue regions, even if they appear similar.
-- Never merge similar navy colors. Every color island must remain independent.
-- Every boundary must remain intact.
-- Do not average colors. Do not simplify gradients into flat fills. Keep every distinct region separate.
-
-== STEP 16: TOPOLOGY LOCK ==
-- Preserve the exact topology of the original artwork.
-- The number of visible shapes in the output should remain nearly identical to the original.
-- The hierarchy of overlapping panels must remain identical.
-- Do not reduce complexity. Do not merge polygons. Do not split polygons unless required by the source image.
-
-== STEP 17: STRUCTURAL FIDELITY OVER CLEANLINESS ==
-- Prioritize structural fidelity over visual cleanliness.
-- If the original contains asymmetry, preserve it. If the original contains irregular cuts, preserve them. If the original contains imperfect geometry, preserve it.
-- Never beautify. Never improve. Never redesign. Only reconstruct.
-
-== STEP 18: ANTI-HALLUCINATION — STRICT EVIDENCE ONLY ==
-- If any shape is partially obscured, reconstruct it ONLY from visible evidence in the image.
-- Never fabricate hidden geometry. Never invent missing edges. Never continue lines based on assumptions.
-- Never replace unknown details with generic esports patterns.
-
-== STEP 19: FINAL VALIDATION (MANDATORY BEFORE OUTPUT) ==
-Before producing the final output, internally compare your reconstruction against the original image.
-Verify every single one of the following:
-- overall geometry, every polygon, every stripe, every chevron, every angle, every border, every spacing, every notch, every layer, every color region, every intersection.
-If any difference is detected, continue refining until the reconstruction is visually indistinguishable from the original. Only then produce the final output.`;
+        const ratio = metadata.width / metadata.height;
+        const allowedRatios = {
+          "21:9": 21 / 9, "16:9": 16 / 9, "3:2": 3 / 2, "4:3": 4 / 3, "5:4": 5 / 4,
+          "1:1": 1 / 1, "4:5": 4 / 5, "3:4": 3 / 4, "2:3": 2 / 3, "9:16": 9 / 16
+        };
+        let minDiff = Infinity;
+        for (const [str, val] of Object.entries(allowedRatios)) {
+          const diff = Math.abs(ratio - val);
+          if (diff < minDiff) {
+            minDiff = diff;
+            targetAspectRatio = str;
+          }
         }
       }
+
+      const prompt = buildNanoBananaPrompt(project?.ai_prompt);
+      const systemPrompt = buildNanoBananaSystemPrompt(project?.ai_prompt);
+      const nanoBananaTuning = getNanoBananaInputTuning();
 
       let generatedImageBuffer;
       let generatedMimeType = "image/png";
@@ -548,7 +217,7 @@ If any difference is detected, continue refining until the reconstruction is vis
         }
 
         const { fal } = await import("@fal-ai/client");
-        
+
         let finalImageUrl = sourceUrl;
 
         console.log("[fal.ai Input URL]:", finalImageUrl);
@@ -557,28 +226,41 @@ If any difference is detected, continue refining until the reconstruction is vis
         // Feed original source image directly — no pre-upscale step.
         // Flow: Extract → Upscale (step 2) → Vectorize (step 3)
         console.log("[API Step 1] Extracting flat design with fal.ai (nano-banana-pro/edit)...");
-        
-        const result = await fal.subscribe("fal-ai/nano-banana-pro/edit", {
-          input: {
-            image_urls: [finalImageUrl],
-            prompt: prompt,
-            aspect_ratio: targetAspectRatio,
-            guidance_scale: 10,          // raised from 7.5 → 10: stronger prompt adherence without deep-frying
-            num_inference_steps: 50,     // more steps = sharper, more accurate reproduction
-            image_strength: 0.55,        // raised from 0.35 → 0.55: stays closer to reference geometry & colors
-          },
-          logs: true,
-          onQueueUpdate: (update) => {
-            if (update.status === "IN_PROGRESS") {
-              update.logs.map((log) => log.message).forEach(console.log);
-            }
-          },
-        });
 
-        console.log("[fal.ai RAW Response]:", JSON.stringify(result, null, 2));
+        // fal.subscribe polls the queue with no timeout of its own. Left
+        // unbounded it can outlive maxDuration, and when the platform kills the
+        // function mid-flight the catch block never runs — so the user is
+        // charged with no server-side refund. Bound it with headroom for the
+        // download, resize and R2 upload that still have to happen after this.
+        const FAL_BUDGET_MS = 75_000;
+        const result = await Promise.race([
+          fal.subscribe("fal-ai/nano-banana-pro/edit", {
+            input: {
+              image_urls: [finalImageUrl],
+              prompt: prompt,
+              system_prompt: systemPrompt,
+              aspect_ratio: targetAspectRatio,
+              ...nanoBananaTuning,
+            },
+            logs: true,
+            onQueueUpdate: (update) => {
+              if (update.status === "IN_PROGRESS") {
+                update.logs.map((log) => log.message).forEach(console.log);
+              }
+            },
+          }),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("The AI engine took too long to respond. Please try again.")),
+              FAL_BUDGET_MS
+            )
+          ),
+        ]);
+
+        console.log("[fal.ai response images]:", result?.data?.images?.length ?? 0);
 
         if (!result || !result.data || !result.data.images || result.data.images.length === 0) {
-           throw new Error("fal.ai did not return a valid image URL. Response: " + JSON.stringify(result));
+          throw new Error("fal.ai did not return a valid image URL. Response: " + JSON.stringify(result));
         }
 
         const outputUrl = result.data.images[0].url;
@@ -593,6 +275,50 @@ If any difference is detected, continue refining until the reconstruction is vis
         generatedMimeType = result.data.images[0].content_type || "image/jpeg";
         geminiThinking = "Generated via fal.ai Nano Banana Pro Edit";
 
+        // ── Re-registration: restore the source aspect ratio ──
+        // fal only accepts a fixed enum of aspect ratios, so `targetAspectRatio` is the
+        // *nearest* match and can be several percent off the real source ratio. That
+        // offset makes the before/after slider tear. Stretch the output back onto the
+        // exact source ratio so the two layers register pixel-for-pixel. We scale up
+        // rather than down so none of the 2K detail is thrown away.
+        if (metadata?.width && metadata?.height) {
+          try {
+            const genMeta = await sharp(generatedBuffer).metadata();
+            const sourceRatio = metadata.width / metadata.height;
+            const generatedRatio = genMeta.width / genMeta.height;
+
+            if (Math.abs(generatedRatio - sourceRatio) / sourceRatio > 0.005) {
+              // Area-preserving reshape: keep roughly the same pixel budget the model
+              // produced and just redistribute it onto the source ratio. Growing the
+              // short edge instead (the obvious approach) inflates the image, and that
+              // inflation then gets multiplied by the step-2 upscaler.
+              const genArea = genMeta.width * genMeta.height;
+              let targetH = Math.round(Math.sqrt(genArea / sourceRatio));
+              let targetW = Math.round(targetH * sourceRatio);
+
+              const MAX_EDGE = 4096;
+              const longest = Math.max(targetW, targetH);
+              if (longest > MAX_EDGE) {
+                const shrink = MAX_EDGE / longest;
+                targetW = Math.round(targetW * shrink);
+                targetH = Math.round(targetH * shrink);
+              }
+
+              generatedImageBuffer = await sharp(generatedBuffer)
+                .resize(targetW, targetH, { fit: 'fill', kernel: 'lanczos3' })
+                // effort:1 like step 3 — full-effort PNG encoding on a 16MP
+                // image costs seconds of the function's remaining budget for a
+                // marginal size win.
+                .png({ effort: 1 })
+                .toBuffer();
+              generatedMimeType = "image/png";
+              console.log(`[Trace] Re-registered ${genMeta.width}x${genMeta.height} → ${targetW}x${targetH} to match source ratio ${sourceRatio.toFixed(4)}`);
+            }
+          } catch (registrationErr) {
+            // Non-fatal: a slightly mis-registered image still beats a failed generation.
+            console.warn("[Trace] Aspect re-registration skipped:", registrationErr.message);
+          }
+        }
 
       } catch (err) {
         console.error("[fal.ai Error]:", err);
@@ -602,10 +328,25 @@ If any difference is detected, continue refining until the reconstruction is vis
         throw new Error(err.message || "Failed to generate image with fal.ai");
       }
 
+      // Upload server-side and hand the client a URL.
+      // Returning multi-MB base64 for the browser to POST back to /api/save-asset
+      // blows the platform's ~4.5MB serverless request body cap and fails with a
+      // 413 before the function even runs — which is invisible locally, where no
+      // such cap exists. Step 2 already worked this way; step 1 now matches it.
+      const extractExt = generatedMimeType === 'image/jpeg'
+        ? 'jpg'
+        : (generatedMimeType.split('/')[1] || 'png');
+      const { uploadToR2 } = await import("@/lib/cloudflare");
+      const extractedUrl = await uploadToR2(
+        generatedImageBuffer,
+        `projects/${projectId}/generated_flat_${Date.now()}.${extractExt}`,
+        generatedMimeType
+      );
+
       return NextResponse.json({
         success: true,
         step: 1,
-        base64: generatedImageBuffer.toString('base64'),
+        fileUrl: extractedUrl,
         mimeType: generatedMimeType,
         thinking: geminiThinking,
       });
@@ -613,14 +354,11 @@ If any difference is detected, continue refining until the reconstruction is vis
 
     if (step === 2) {
       // ==========================================
-      // STAGE 2: 4x UPSCALE WITH fal-ai/aura-sr
+      // STAGE 2: AI UPSCALE WITH fal-ai/esrgan
       // ==========================================
-      // AuraSR v2 is a purpose-built AI upscaler that outperforms classic ESRGAN
-      // for flat design assets (jerseys, sublimation prints, logos):
-      //   • Crisper edges with no ringing artifacts
-      //   • Accurate flat color preservation
-      //   • overlapping_tiles=true removes tile seam artifacts
-      //   • checkpoint="v2" uses the newer, higher-quality model
+      // User preferred an AI upscaler over local Sharp, but Clarity was too expensive ($0.13).
+      // Real-ESRGAN (fal-ai/esrgan) provides excellent quality and is billed per compute second
+      // ($0.00111/s). A typical upscale takes ~2s, costing ~$0.002 (₱0.10) per image.
       // ==========================================
       if (!project.generated_image_url || project.generated_image_url === 'REFUNDED') {
         return NextResponse.json({ error: "Step 1 (Auto-Trace) must be completed before upscaling." }, { status: 403 });
@@ -634,26 +372,61 @@ If any difference is detected, continue refining until the reconstruction is vis
         return NextResponse.json({ error: "Invalid or unauthorized generated image URL" }, { status: 400 });
       }
 
-      console.log("[API Step 2] Upscaling with fal-ai/aura-sr...");
-      console.log("[Aura SR Input URL]:", upscaleInputUrl);
+      // ── Adaptive upscale factor ──
+      // A fixed 4x was sized for the old 1K step-1 output. Step 1 now emits 2K, and a
+      // blind 4x on that produced a 6144x11160 PNG that blew past the 60MB save-asset
+      // ceiling ("Remote file is too large"). Pick the factor from the actual input
+      // dimensions so the result always lands under the cap.
+      const UPSCALE_TARGET_EDGE = 6000;   // keep any single edge sane
+      const UPSCALE_TARGET_PIXELS = 20e6; // and keep the encoded PNG well under 60MB
+      let upscaleFactor = 4;
+      try {
+        const sharp = (await import('sharp')).default;
+        const { buffer: stepOneBuffer } = await fetchWithSSRFProtection(upscaleInputUrl, {
+          allowedHosts: getAllowedStorageHosts(),
+          maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+          allowedContentTypes: ['image/'],
+        });
+        const stepOneMeta = await sharp(stepOneBuffer).metadata();
+        const longestEdge = Math.max(stepOneMeta.width || 0, stepOneMeta.height || 0);
+        const area = (stepOneMeta.width || 0) * (stepOneMeta.height || 0);
+        if (longestEdge > 0 && area > 0) {
+          const byEdge = UPSCALE_TARGET_EDGE / longestEdge;
+          const byArea = Math.sqrt(UPSCALE_TARGET_PIXELS / area);
+          // Round down to 0.5 steps so we never exceed either ceiling.
+          upscaleFactor = Math.floor(Math.min(byEdge, byArea) * 2) / 2;
+          upscaleFactor = Math.min(4, Math.max(1, upscaleFactor));
+        }
+        console.log(`[API Step 2] Step-1 image is ${stepOneMeta.width}x${stepOneMeta.height}; using ${upscaleFactor}x upscale.`);
+      } catch (sizeErr) {
+        // Could not measure — fall back to the conservative factor rather than 4x.
+        upscaleFactor = 2;
+        console.warn("[API Step 2] Could not measure step-1 image, defaulting to 2x:", sizeErr.message);
+      }
 
-      const upscalerResult = await fal.subscribe("fal-ai/aura-sr", {
+      console.log("[API Step 2] Upscaling with fal-ai/esrgan...");
+
+      const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
         input: {
           image_url: upscaleInputUrl,
-          upscaling_factor: 4,          // 4x — aura-sr is cheap enough to do 4x
-          overlapping_tiles: true,      // eliminates seam artifacts between tiles
+          scale: upscaleFactor,
         },
         logs: true,
+        onQueueUpdate: (update) => {
+          if (update.status === "IN_PROGRESS") {
+            update.logs?.map((log) => log.message).forEach(console.log);
+          }
+        },
       });
 
-      console.log("[Aura SR RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
+      console.log("[ESRGAN RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
 
       const upscaledUrl = upscalerResult?.data?.image?.url || upscalerResult?.data?.image_url;
       if (!upscaledUrl) {
-        throw new Error("fal-ai/aura-sr did not return a valid image URL. Response: " + JSON.stringify(upscalerResult));
+        throw new Error("fal-ai/esrgan did not return a valid image URL. Response: " + JSON.stringify(upscalerResult));
       }
 
-      const upscaledMimeType = upscalerResult?.data?.image?.content_type || "image/png";
+      const upscaledMimeType = upscalerResult?.data?.image?.content_type || "image/jpeg";
 
       return NextResponse.json({ success: true, step: 2, fileUrl: upscaledUrl, mimeType: upscaledMimeType });
 
@@ -663,23 +436,57 @@ If any difference is detected, continue refining until the reconstruction is vis
 
   } catch (error) {
     console.error(`[Trace API Error]:`, error.message);
-    
-    // Attempt automatic refund on server-side failure
+
+    let didRefund = false;
     try {
       if (projectId) {
-        let refundQuery = adminSupabase
+        // Record the failure. /api/refund requires this stamp, so a successful
+        // run can no longer be passed off as a failed one.
+        let stampQuery = adminSupabase
           .from('projects')
-          .update({ generated_image_url: 'REFUNDED', refunded: true })
-          .eq('id', projectId)
-          .eq('credit_deducted', true)
-          .eq('refunded', false)
-        if (userId) {
-          refundQuery = refundQuery.eq('user_id', userId);
-        }
-        const { data: updatedProj } = await refundQuery.select('user_id');
+          .update({ failed_at: new Date().toISOString(), failed_step: `step${failedStep}` })
+          .eq('id', projectId);
+        if (userId) stampQuery = stampQuery.eq('user_id', userId);
+        await stampQuery;
 
-        if (updatedProj && updatedProj.length > 0) {
-           await safeRefundCredit(updatedProj[0].user_id);
+        // Only refund when the run produced nothing the user can keep.
+        // Step 1 succeeding and step 2 failing is NOT refundable: the flat
+        // extract is already saved and downloadable. The old code refunded
+        // anyway AND overwrote generated_image_url with the string 'REFUNDED',
+        // destroying the pointer to an R2 object the user had paid for.
+        const { data: current } = await adminSupabase
+          .from('projects')
+          .select('user_id, credit_deducted, refunded, generated_image_url, upscaled_image_url, svg_url')
+          .eq('id', projectId)
+          .single();
+
+        const hasUsableOutput = Boolean(
+          current?.svg_url ||
+          current?.upscaled_image_url ||
+          (current?.generated_image_url && current.generated_image_url !== 'REFUNDED')
+        );
+
+        if (current?.credit_deducted && !current.refunded && !hasUsableOutput) {
+          // Move the money FIRST, then mark it. The old order set refunded=true
+          // before the transfer, so a failed transfer left the ledger and the
+          // balance disagreeing with no way to retry.
+          const credited = await safeRefundCredit(current.user_id);
+          if (credited) {
+            await adminSupabase
+              .from('projects')
+              .update({ generated_image_url: 'REFUNDED', refunded: true })
+              .eq('id', projectId)
+              .eq('user_id', current.user_id)
+              .eq('refunded', false);
+            await adminSupabase.from('credit_logs').insert({
+              user_id: current.user_id,
+              action: 'Refund',
+              amount: 1,
+            });
+            didRefund = true;
+          } else {
+            console.error(`[Billing] safeRefundCredit FAILED for project ${projectId} — left unrefunded for retry.`);
+          }
         }
       }
     } catch (refundErr) {
@@ -687,8 +494,11 @@ If any difference is detected, continue refining until the reconstruction is vis
     }
 
     // Never expose raw internal error messages (API keys, stack traces) to the client
-    const safeMessage = error.message?.includes('FAL') || error.message?.includes('fal') || error.message?.includes('API')
-      ? 'AI processing failed. Your credit has been refunded automatically.'
+    const isProviderError = error.message?.includes('FAL') || error.message?.includes('fal') || error.message?.includes('API');
+    const safeMessage = isProviderError
+      ? (didRefund
+          ? 'AI processing failed. Your claw has been refunded automatically.'
+          : 'AI processing failed. Please try again.')
       : (error.message || 'Failed to process trace step');
     return NextResponse.json({ error: safeMessage }, { status: 500 });
   }

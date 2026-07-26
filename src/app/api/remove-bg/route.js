@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminSupabase } from "@/lib/supabase";
+import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/cloudflare";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { fal } from "@fal-ai/client";
 
@@ -22,6 +23,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
     }
     userId = user.id;
+
+    // Paid fal.ai call — this route had no rate limit at all, and the IP
+    // limiter it implicitly relied on (src/utils/proxy.js) never loads.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:remove-bg:user",
+      identifier: userId,
+      max: 6,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
     // ─────────────────────────────────────────────────────────────────────────────
 
     const { projectId, keepOriginal } = await request.json();
@@ -96,9 +108,20 @@ export async function POST(request) {
       amount: -1
     });
 
+    // Clear any prior refund state for this new charge, so a second attempt on
+    // the same project is still refundable (see the latch note in /api/trace).
     await adminSupabase
       .from('projects')
-      .update({ credit_deducted: true })
+      .update({ credit_deducted: true, refunded: false })
+      .eq('id', projectId)
+      .eq('user_id', user.id);
+
+    // Separate + best-effort: failed_at/failed_step only exist after
+    // add_project_failure_tracking.sql. Folding them into the update above
+    // would make it fail as a whole and silently drop credit_deducted.
+    await adminSupabase
+      .from('projects')
+      .update({ failed_at: null, failed_step: null })
       .eq('id', projectId)
       .eq('user_id', user.id);
 
@@ -190,9 +213,35 @@ export async function POST(request) {
     // If credit was already deducted but AI/R2/DB failed, refund it.
     if (creditDeducted && userId) {
       try {
-        await adminSupabase.rpc('increment_credits', { user_id: userId, amount: 1 });
-        await adminSupabase.from('credit_logs').insert({ user_id: userId, action: 'Refund (Error)', amount: 1 });
-        console.log(`[Remove BG] Refunded 1 credit to user ${userId} due to processing error.`);
+        // Stamp the failure so /api/refund can tell a genuine failure from a
+        // completed run.
+        if (projectId) {
+          await adminSupabase
+            .from('projects')
+            .update({ failed_at: new Date().toISOString(), failed_step: 'remove-bg' })
+            .eq('id', projectId)
+            .eq('user_id', userId);
+        }
+
+        // Use the same refund helper as every other route, and only mark the
+        // project refunded once the credit actually moved. Previously this used
+        // the increment_credits RPC and never set `refunded`, so the row stayed
+        // eligible and the user could claim a SECOND credit via /api/refund.
+        const credited = await safeRefundCredit(userId);
+        if (credited) {
+          if (projectId) {
+            await adminSupabase
+              .from('projects')
+              .update({ refunded: true })
+              .eq('id', projectId)
+              .eq('user_id', userId)
+              .eq('refunded', false);
+          }
+          await adminSupabase.from('credit_logs').insert({ user_id: userId, action: 'Refund (Error)', amount: 1 });
+          console.log(`[Remove BG] Refunded 1 credit to user ${userId} due to processing error.`);
+        } else {
+          console.error(`[Remove BG] CRITICAL: safeRefundCredit failed for user ${userId} — left unrefunded for retry.`);
+        }
       } catch (refundErr) {
         // Non-fatal: log but don't block the error response
         console.error('[Remove BG] CRITICAL: Failed to refund credit:', refundErr);

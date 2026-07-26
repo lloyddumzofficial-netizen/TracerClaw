@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { Resend } from "resend";
+import { getCreditPlan } from "@/lib/paymentPlans";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
-const PLAN_CREDITS = {
-  tingi: 2,
-  basic: 4,
-  starter: 13,
-  pro: 45
-};
 
 export async function POST(request) {
   try {
@@ -21,7 +15,15 @@ export async function POST(request) {
 
     const { data: { user }, error: authErr } = await adminSupabase.auth.getUser(token);
     const adminEmail = process.env.ADMIN_EMAIL;
-    if (authErr || !user || user.email !== adminEmail) {
+    // Guard every side of the comparison. With ADMIN_EMAIL unset and an account
+    // that has no email (anonymous / phone auth), `user.email !== adminEmail`
+    // reduces to `undefined !== undefined` — false — and grants admin.
+    const isAdmin = Boolean(
+      adminEmail &&
+      user?.email &&
+      user.email.toLowerCase() === adminEmail.toLowerCase()
+    );
+    if (authErr || !isAdmin) {
       return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
     }
 
@@ -41,7 +43,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "Payment request not found or already approved." }, { status: 409 });
     }
 
-    const creditsToAdd = PLAN_CREDITS[paymentRequest.plan] || 0;
+    const plan = getCreditPlan(paymentRequest.plan);
+    const creditsToAdd = plan?.credits || 0;
     if (!markOnly && creditsToAdd <= 0) {
       return NextResponse.json({ error: "Invalid payment plan." }, { status: 400 });
     }

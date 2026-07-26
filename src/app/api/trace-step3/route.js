@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
-import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { adminSupabase, safeDeductCredit, safeRefundCredit } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { segmentSvgLayers } from "@/lib/svgSegmenter";
@@ -12,6 +12,7 @@ export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft 
 export async function POST(request) {
   let projectId;
   let userId;
+  let precisionCreditDeducted = false;
   try {
     // ─── Auth: verify the caller owns the project ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -38,6 +39,7 @@ export async function POST(request) {
     const body = await request.json();
     projectId = body.projectId;
     const colors = body.colors || "auto";
+    const svgEngine = body.svgEngine === "precision" ? "precision" : "standard";
 
     if (colors !== "auto") {
       const colorLimit = parseInt(colors, 10);
@@ -67,7 +69,10 @@ export async function POST(request) {
     }
 
     // ==========================================
-    // STAGE 3: VECTORIZE WITH RECRAFT (SVG only)
+    // STAGE 3: VECTORIZE TO SVG
+    // Standard mode uses Recraft at the existing 1-credit pipeline cost.
+    // Precision mode adds one extra credit at Step 3, for a total of 2 credits,
+    // and calls Vectorizer.AI server-side with Basic auth.
     // The image is already upscaled by ESRGAN in Step 2.
     // Here we only convert to lossless PNG and apply optional Shadow Killer
     // color reduction before handing off to Recraft vectorize.
@@ -111,32 +116,87 @@ export async function POST(request) {
     }
 
     const blob = new Blob([compressedBuffer], { type: 'image/png' });
-    const vectorizeFormData = new FormData();
-    vectorizeFormData.append('image', blob, 'image.png');
+    let svgText;
 
-    console.log("[Step 3] Sending to Recraft vectorize (RECRAFT_API_KEY)...");
-    const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
-      body: vectorizeFormData,
-      signal: AbortSignal.timeout(110000), // 110s — large images need time to upload + process
-    });
+    if (svgEngine === "precision") {
+      const vectorizerApiId = process.env.VECTORIZER_API_ID;
+      const vectorizerApiSecret = process.env.VECTORIZER_API_SECRET;
 
-    if (!recraftVectorRes.ok) {
-      const errText = await recraftVectorRes.text();
-      throw new Error(`Vectorization failed: ${errText}`);
+      if (!vectorizerApiId || !vectorizerApiSecret) {
+        return NextResponse.json(
+          { error: "Precision SVG engine is not configured yet. Please use Standard SVG for now." },
+          { status: 503 }
+        );
+      }
+
+      const deducted = await safeDeductCredit(user.id, 1);
+      if (!deducted) {
+        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+      }
+      precisionCreditDeducted = true;
+
+      await adminSupabase.from('credit_logs').insert({
+        user_id: user.id,
+        action: 'Precision SVG Engine',
+        amount: -1
+      });
+
+      const vectorizerFormData = new FormData();
+      vectorizerFormData.append('image', blob, 'image.png');
+      vectorizerFormData.append('output.file_format', 'svg');
+      vectorizerFormData.append('output.svg.adobe_compatibility_mode', 'true');
+      vectorizerFormData.append('output.svg.fixed_size', 'false');
+      if (colors && colors !== "auto") {
+        vectorizerFormData.append('processing.max_colors', String(parseInt(colors, 10)));
+      }
+
+      const basicAuth = Buffer.from(`${vectorizerApiId}:${vectorizerApiSecret}`).toString('base64');
+      console.log("[Step 3] Sending to Vectorizer.AI precision engine...");
+      const vectorizerRes = await fetchWithRetry("https://api.vectorizer.ai/api/v1/vectorize", {
+        method: "POST",
+        headers: { "Authorization": `Basic ${basicAuth}` },
+        body: vectorizerFormData,
+        signal: AbortSignal.timeout(110000),
+      });
+
+      if (!vectorizerRes.ok) {
+        const errText = await vectorizerRes.text();
+        throw new Error(`Precision vectorization failed: ${errText}`);
+      }
+
+      const svgArrayBuffer = await vectorizerRes.arrayBuffer();
+      if (svgArrayBuffer.byteLength > DEFAULT_MAX_SVG_BYTES) {
+        throw new Error("Precision SVG output is too large. Try cropping tighter or use Standard SVG.");
+      }
+      svgText = Buffer.from(svgArrayBuffer).toString('utf8');
+    } else {
+      const vectorizeFormData = new FormData();
+      vectorizeFormData.append('image', blob, 'image.png');
+
+      console.log("[Step 3] Sending to Recraft vectorize (RECRAFT_API_KEY)...");
+      const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
+        body: vectorizeFormData,
+        signal: AbortSignal.timeout(110000), // 110s — large images need time to upload + process
+      });
+
+      if (!recraftVectorRes.ok) {
+        const errText = await recraftVectorRes.text();
+        throw new Error(`Vectorization failed: ${errText}`);
+      }
+
+      const vectorData = await recraftVectorRes.json();
+      const vectorUrl = vectorData.image.url;
+
+      const { response: svgRes, buffer: svgDownloadBuffer } = await fetchWithSSRFProtection(vectorUrl, {
+        allowedHosts: getAllowedProviderHosts(),
+        maxBytes: DEFAULT_MAX_SVG_BYTES,
+        allowedContentTypes: ['image/svg+xml', 'text/plain', 'application/octet-stream'],
+      });
+      if (!svgRes.ok) throw new Error("Failed to fetch vectorized SVG");
+      svgText = svgDownloadBuffer.toString('utf8');
     }
-
-    const vectorData = await recraftVectorRes.json();
-    const vectorUrl = vectorData.image.url;
-
-    const { response: svgRes, buffer: svgDownloadBuffer } = await fetchWithSSRFProtection(vectorUrl, {
-      allowedHosts: getAllowedProviderHosts(),
-      maxBytes: DEFAULT_MAX_SVG_BYTES,
-      allowedContentTypes: ['image/svg+xml', 'text/plain', 'application/octet-stream'],
-    });
-    if (!svgRes.ok) throw new Error("Failed to fetch vectorized SVG");
-    let svgText = svgDownloadBuffer.toString('utf8');
 
     // --- FIX FOR ADOBE ILLUSTRATOR "INVALID SVG" ERROR ---
     // 1. Remove markdown backticks if AI accidentally included them
@@ -193,35 +253,62 @@ export async function POST(request) {
 
     await adminSupabase
       .from('projects')
-      .update({ svg_url: finalSvgUrl, zip_url: null, zip_signature: null, zip_generated_at: null })
+      .update({
+        svg_url: finalSvgUrl,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
+      })
       .eq('id', projectId)
       .eq('user_id', user.id);
 
-    return NextResponse.json({ success: true, step: 3, svg_url: finalSvgUrl });
+    return NextResponse.json({
+      success: true,
+      step: 3,
+      svg_url: finalSvgUrl
+    });
 
   } catch (error) {
     console.error(`[Trace Step 3 Error]:`, error.message);
     
-    // Attempt automatic refund on server-side failure
     try {
-      if (projectId) {
-        const { data: updatedProj } = await adminSupabase
-          .from('projects')
-          .update({ generated_image_url: 'REFUNDED', refunded: true })
-          .eq('id', projectId)
-          .eq('user_id', userId)
-          .eq('credit_deducted', true)
-          .eq('refunded', false)
-          .select('user_id');
-          
-        if (updatedProj && updatedProj.length > 0) {
-           await safeRefundCredit(updatedProj[0].user_id);
+      // Refund the EXTRA precision claw — that service genuinely was not
+      // delivered. Check the result rather than assuming it moved.
+      if (precisionCreditDeducted && userId) {
+        const credited = await safeRefundCredit(userId);
+        if (credited) {
+          await adminSupabase.from('credit_logs').insert({
+            user_id: userId,
+            action: 'Refund Precision SVG Engine',
+            amount: 1
+          });
+        } else {
+          console.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`);
         }
       }
+
+      // Record the failure so /api/refund can distinguish it from a completed run.
+      if (projectId && userId) {
+        await adminSupabase
+          .from('projects')
+          .update({ failed_at: new Date().toISOString(), failed_step: 'step3' })
+          .eq('id', projectId)
+          .eq('user_id', userId);
+      }
+
+      // Deliberately NOT refunding the base claw here, and deliberately NOT
+      // blanking generated_image_url.
+      //
+      // Reaching step 3 means step 1 (flat extract) and step 2 (4K upscale)
+      // both succeeded and are saved in R2. The old code refunded the base claw
+      // anyway and overwrote generated_image_url with the string 'REFUNDED' —
+      // giving the money back while the user kept both deliverables, and
+      // destroying the DB pointer to an image they had paid for. Only the
+      // vectorization failed; the run was not a total loss.
     } catch (refundErr) {
       console.error(`[Billing] Refund failed:`, refundErr.message);
     }
 
-    return NextResponse.json({ error: error.message || "Failed to process trace step" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to process trace step." }, { status: 500 });
   }
 }

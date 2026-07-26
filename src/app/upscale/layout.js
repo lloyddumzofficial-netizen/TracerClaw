@@ -31,9 +31,9 @@ export const metadata = {
     url: "https://desaynclaw.com/upscale",
     images: [
       {
-        url: "/a-clean--minimal-social-media-promotional-banner-f-01.jpg",
-        width: 1200,
-        height: 630,
+        url: "/DESAYNCLAW-Image.JPG",
+        width: 1230,
+        height: 807,
         alt: "DesaynClaw AI 4K Image Upscaler",
       },
     ],
@@ -42,6 +42,7 @@ export const metadata = {
     title: "AI 4K Image Upscaler | DesaynClaw",
     description:
       "Upscale low-res jersey designs and logos to 4K quality using AI. Built for sublimation print shops.",
+    images: ["/DESAYNCLAW-Image.JPG"],
   },
 };
 

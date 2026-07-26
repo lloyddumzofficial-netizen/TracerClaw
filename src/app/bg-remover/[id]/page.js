@@ -3,8 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { Scissors, Download, Home, Loader2, ArrowRight, Settings2, Image as ImageIcon, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { analytics } from "@/lib/analytics";
+import { CheckCircle2, Download, Image as ImageIcon, Loader2, Scissors, Settings2 } from "lucide-react";
+import LogoLoader from "@/components/ui/LogoLoader";
+import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
+import StudioShell from "@/components/shared/StudioShell";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
+import { safeJson } from "@/lib/safeJson";
+import { formatSavedAgo } from "@/lib/formatSavedAgo";
 
 const supabase = createClient();
 
@@ -12,6 +18,7 @@ export default function BgRemoverPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id;
+  const isMobileDevice = useIsMobileDevice();
 
   const [project, setProject] = useState(null);
   const [user, setUser] = useState(null);
@@ -20,7 +27,7 @@ export default function BgRemoverPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [zoom, setZoom] = useState(1);
-  
+
   const isDraggingCompare = useRef(false);
   const currentZoom = useRef(1);
   const scrollContainerRef = useRef(null);
@@ -30,6 +37,7 @@ export default function BgRemoverPage() {
   }, [zoom]);
 
   useEffect(() => {
+    if (isMobileDevice !== false) return;
     if (!projectId) return;
 
     let isMounted = true;
@@ -48,7 +56,7 @@ export default function BgRemoverPage() {
           router.push("/");
           return;
         }
-        
+
         if (isMounted) setProject(projData);
 
         if (session?.user) {
@@ -64,7 +72,7 @@ export default function BgRemoverPage() {
     fetchData();
 
     return () => { isMounted = false; };
-  }, [projectId, router]);
+  }, [isMobileDevice, projectId, router]);
 
   const handleRemoveBg = async () => {
     // Fix #5: Guard against double-click / re-triggering while already processing
@@ -75,7 +83,7 @@ export default function BgRemoverPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      
+
       const res = await fetch("/api/remove-bg", {
         method: "POST",
         headers: {
@@ -85,7 +93,7 @@ export default function BgRemoverPage() {
         body: JSON.stringify({ projectId: project.id, keepOriginal: true })
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to remove background");
 
       // Handle ALREADY_PROCESSED gracefully — no error, just reload
       if (res.status === 409 && data.error === "ALREADY_PROCESSED") {
@@ -99,12 +107,12 @@ export default function BgRemoverPage() {
       }
 
       setProject(prev => ({ ...prev, generated_image_url: data.transparent_image_url }));
-      
+
       // Update credits locally
       if (userCredits !== null) {
         setUserCredits(prev => prev - 1);
       }
-      
+
     } catch (err) {
       console.error(err);
       analytics.error(err, { area: "bg_remove_processing", project_id: project.id });
@@ -173,7 +181,7 @@ export default function BgRemoverPage() {
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-    
+
     const handleWheel = (e) => {
       e.preventDefault();
       const z = currentZoom.current;
@@ -183,61 +191,96 @@ export default function BgRemoverPage() {
         setZoom(newZ);
       }
     };
-    
+
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [isCompleted]);
 
+  if (isMobileDevice !== false) {
+    return <DesktopRequiredNotice />;
+  }
+
   if (!project) {
     return (
       <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0a" }}>
-        <Loader2 size={32} className="animate-spin text-white opacity-50" />
+        <LogoLoader size={72} color="#FFD700" />
       </div>
     );
   }
 
+  const savedAgo = formatSavedAgo(project.updated_at);
+
   return (
-    <div className="app-container">
-      {/* Top Menu Bar */}
-      <header style={{ padding: "16px 32px", display: "flex", alignItems: "center", borderBottom: "1px solid #444", background: "#1a1a1a" }}>
-        <button onClick={() => router.push('/')} style={{ width: "200px", display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color="#FFD700"} onMouseLeave={e => e.currentTarget.style.color="#666"}>
-          <Home size={16} /> HOME
-        </button>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <h1 style={{ fontSize: "16px", fontWeight: "700", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>BACKGROUND REMOVER</h1>
-        </div>
-        <div style={{ width: "200px", display: "flex", justifyContent: "flex-end", gap: "16px", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#222", padding: "8px 16px", borderRadius: "4px", border: "1px solid #333", cursor: "default" }}>
-            <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px" }}>{userCredits !== null ? userCredits : "-"}</span>
-            <span style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600" }}>CREDITS</span>
+    <StudioShell
+      title="BG REMOVER"
+      projectName={project.name}
+      savedAgo={savedAgo}
+      credits={userCredits}
+      onHome={() => router.push("/")}
+      commandBar={(
+        <div className="workspace-command-bar">
+          <div className="workspace-command-group">
+            <span className="workspace-command-label">Process</span>
+            <button
+              className="workspace-command-btn is-primary"
+              onClick={handleRemoveBg}
+              disabled={isProcessing || isCompleted || (userCredits !== null && userCredits <= 0)}
+              title="Remove image background"
+            >
+              {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
+              Remove BG
+            </button>
+          </div>
+          <div className="workspace-command-spacer" />
+          <div className="workspace-command-group">
+            <span className="workspace-command-label">Export</span>
+            <button
+              className="workspace-command-btn is-primary"
+              onClick={handleDownload}
+              disabled={!isCompleted || isDownloading}
+              title="Download transparent PNG"
+            >
+              {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              PNG
+            </button>
           </div>
         </div>
-      </header>
+      )}
+      statusLeft={isCompleted ? (
+        <>
+          <CheckCircle2 size={12} color="#4ade80" />
+          <span style={{ color: "#4ade80" }}>Background removed</span>
+          <small>Transparent PNG is ready for export.</small>
+        </>
+      ) : (
+        <span>{isProcessing ? "Removing background..." : "Ready"}</span>
+      )}
+    >
 
       {/* Main Content */}
       <main className="main-workspace" style={{ padding: 0 }}>
         {/* Canvas Area */}
-        <div 
+        <div
           className="canvas-area"
-          style={{ 
+          style={{
             padding: 0,
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center", 
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             background: "#111",
             position: "relative",
             overflow: "hidden"
           }}
         >
-          <div 
+          <div
             ref={scrollContainerRef}
-            style={{ 
-              width: "100%", height: "100%", 
-              overflow: "auto", 
+            style={{
+              width: "100%", height: "100%",
+              overflow: "auto",
               display: "flex", alignItems: "center", justifyContent: "center"
             }}
           >
-            <div 
+            <div
               style={{
                 zoom: zoom,
                 transition: "zoom 0.1s ease-out",
@@ -251,7 +294,7 @@ export default function BgRemoverPage() {
                 const rect = container.getBoundingClientRect();
                 let newPos = ((e.clientX - rect.left) / rect.width) * 100;
                 newPos = Math.max(0, Math.min(100, newPos));
-                
+
                 const overlayImg = document.getElementById("compare-overlay-img");
                 const sliderLine = document.getElementById("compare-slider-line");
                 if (overlayImg) {
@@ -263,8 +306,8 @@ export default function BgRemoverPage() {
                   sliderLine.style.left = `${newPos}%`;
                 }
               }}
-              onMouseUp={() => { 
-                isDraggingCompare.current = false; 
+              onMouseUp={() => {
+                isDraggingCompare.current = false;
                 // Re-enable transition for smooth snaps later if needed
                 const overlayImg = document.getElementById("compare-overlay-img");
                 const sliderLine = document.getElementById("compare-slider-line");
@@ -275,11 +318,11 @@ export default function BgRemoverPage() {
             >
               {!isCompleted ? (
                 // PRE-PROCESS VIEW
-                <img 
-                  src={project.original_image_url} 
-                  alt="Original" 
+                <img
+                  src={project.original_image_url}
+                  alt="Original"
                   draggable={false}
-                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)", background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px" }} 
+                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)", background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px" }}
                 />
               ) : (
                 // BEFORE/AFTER SLIDER VIEW
@@ -309,10 +352,10 @@ export default function BgRemoverPage() {
                   }}
                 >
                   {/* INVISIBLE PLACEHOLDER to dictate the exact aspect ratio */}
-                  <img 
-                    src={project.original_image_url} 
-                    style={{ display: "block", maxHeight: "80vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }} 
-                    alt="" 
+                  <img
+                    src={project.original_image_url}
+                    style={{ display: "block", maxHeight: "80vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }}
+                    alt=""
                   />
 
                   {/* AFTER layer (Transparent Image) — stretched to fill */}
@@ -378,7 +421,7 @@ export default function BgRemoverPage() {
           {/* PROPERTIES SECTION */}
           <div className="panel-section">
             <div className="section-header" style={{ background: "#222", borderBottom: "1px solid #444", padding: "12px 16px", fontSize: "11px", letterSpacing: "1px", color: "#888", textTransform: "uppercase" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><ImageIcon size={14} color="#888"/> IMAGE PROPERTIES</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><ImageIcon size={14} color="#888" /> IMAGE PROPERTIES</span>
             </div>
             <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <div className="property-row">
@@ -397,7 +440,7 @@ export default function BgRemoverPage() {
           {/* ACTIONS SECTION */}
           <div className="panel-section">
             <div className="section-header" style={{ background: "#222", borderBottom: "1px solid #444", padding: "12px 16px", fontSize: "11px", letterSpacing: "1px", color: "#888", textTransform: "uppercase" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><Settings2 size={14} color="#888"/> ACTIONS</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><Settings2 size={14} color="#888" /> ACTIONS</span>
             </div>
             <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {errorMsg && (
@@ -452,6 +495,6 @@ export default function BgRemoverPage() {
           </div>
         </aside>
       </main>
-    </div>
+    </StudioShell>
   );
 }

@@ -16,6 +16,21 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Provider Environment
+
+The standard SVG pipeline uses `RECRAFT_API_KEY`.
+
+The optional premium Precision SVG mode uses Vectorizer.AI and requires these
+server-side environment variables in local `.env.local` and Vercel:
+
+```bash
+VECTORIZER_API_ID=your-api-id
+VECTORIZER_API_SECRET=your-api-secret
+```
+
+If those values are missing, Standard SVG continues to work and Precision SVG
+returns a clear setup message without charging the extra premium credit.
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

@@ -1,90 +1,91 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 
-export const dynamic = 'force-dynamic'; // Ensures truly real-time updates on every page load
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
-const AVATAR_COUNT = 5;
-const RECENT_PROFILE_LIMIT = 20;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedStats = null;
 
-async function getRecentAvatars() {
-  const { data: profiles, error: profilesError } = await adminSupabase
+async function getProfileCount() {
+  const { count, error } = await adminSupabase
     .from('profiles')
-    .select('id')
-    .order('created_at', { ascending: false })
-    .limit(RECENT_PROFILE_LIMIT);
+    .select('id', { count: 'exact', head: true });
 
-  if (profilesError) {
-    console.error("Failed to fetch recent profiles for avatars", profilesError);
-    return [];
+  if (error) {
+    console.error("Failed to fetch user stats", error);
+    throw new Error("Failed to fetch user stats");
   }
 
-  const avatars = [];
+  return count || 0;
+}
 
-  for (const profile of profiles || []) {
-    if (avatars.length >= AVATAR_COUNT) break;
+async function getCompletedExtractionCount() {
+  const { count, error } = await adminSupabase
+    .from('projects')
+    .select('id', { count: 'exact', head: true })
+    .not('svg_url', 'is', null);
 
-    const { data, error } = await adminSupabase.auth.admin.getUserById(profile.id);
-    if (error) {
-      console.error("Failed to fetch avatar for user", profile.id, error);
-      continue;
-    }
-
-    const avatarUrl = data?.user?.user_metadata?.avatar_url;
-    if (avatarUrl && !avatars.includes(avatarUrl)) {
-      avatars.push(avatarUrl);
-    }
+  if (error) {
+    console.error("Failed to fetch completed extraction stats", error);
+    throw new Error("Failed to fetch completed extraction stats");
   }
 
-  if (avatars.length < AVATAR_COUNT) {
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.listUsers({
-      page: 1,
-      perPage: RECENT_PROFILE_LIMIT,
-    });
+  return count || 0;
+}
 
-    if (!authError && authData?.users) {
-      for (const user of authData.users) {
-        if (avatars.length >= AVATAR_COUNT) break;
+async function getReviewCount() {
+  const { count, error } = await adminSupabase
+    .from('projects')
+    .select('id', { count: 'exact', head: true })
+    .not('rating', 'is', null);
 
-        const avatarUrl = user.user_metadata?.avatar_url;
-        if (avatarUrl && !avatars.includes(avatarUrl)) {
-          avatars.push(avatarUrl);
-        }
-      }
-    }
+  if (error) {
+    console.error("Failed to fetch review stats", error);
+    throw new Error("Failed to fetch review stats");
   }
 
-  return avatars;
+  return count || 0;
 }
 
 export async function GET() {
   try {
-    if (!adminSupabase) {
-      return NextResponse.json({ success: false, error: "Server is not configured" }, { status: 500 });
+    if (cachedStats && Date.now() < cachedStats.expiresAt) {
+      return NextResponse.json(cachedStats.payload);
     }
 
-    const { count, error } = await adminSupabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true });
+    const [totalUsers, completedExtractions, reviewCount, avatarResult] = await Promise.all([
+      getProfileCount(),
+      getCompletedExtractionCount(),
+      getReviewCount(),
+      adminSupabase
+        .from('projects')
+        .select('reviewer_avatar')
+        .not('reviewer_avatar', 'is', null)
+        .gte('rating', 4)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]);
 
-    if (error) {
-      console.error("Failed to fetch user stats", error);
-      return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
+    if (avatarResult.error) {
+      console.warn("Failed to fetch public avatar stats", avatarResult.error);
     }
 
-    // Show the newest signup avatars first. The old listUsers().slice(0, 5)
-    // path could stay stuck on the same earliest users forever.
-    const realAvatars = await getRecentAvatars();
+    const realAvatars = [...new Set((avatarResult.data || []).map((row) => row.reviewer_avatar).filter(Boolean))].slice(0, 5);
 
-    return NextResponse.json({
+    const payload = {
       success: true,
-      totalUsers: count || 0,
+      totalUsers,
+      completedExtractions,
+      reviewCount,
       avatars: realAvatars
-    }, {
-      headers: {
-        "Cache-Control": "no-store, max-age=0"
-      }
-    });
+    };
+
+    cachedStats = {
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      payload,
+    };
+
+    return NextResponse.json(payload);
   } catch (err) {
     return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
   }

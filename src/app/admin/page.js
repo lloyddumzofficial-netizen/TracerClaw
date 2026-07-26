@@ -3,29 +3,34 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { toast } from "@/components/Toast";
-import { Check, Clock, ExternalLink, LogOut } from "lucide-react";
+import { toast } from "@/components/ui/Toast";
+import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
+import { CREDIT_PLANS } from "@/lib/paymentPlans";
+import { safeJson } from "@/lib/safeJson";
 
 import "../globals.css";
 import "../home.css";
+
+const ADMIN_PAYMENT_REFRESH_MS = 10_000;
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
   const [approvedRequests, setApprovedRequests] = useState([]);
+  const [dodoPayments, setDodoPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [activeCreditsTotal, setActiveCreditsTotal] = useState(0);
   const [paidUsers, setPaidUsers] = useState([]);
   const [processingId, setProcessingId] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasNewRequests, setHasNewRequests] = useState(false);
   const router = useRouter();
 
-  const PLAN_PRICES = {
-    tingi: 50,
-    basic: 100,
-    starter: 290,
-    pro: 870
-  };
+  const PLAN_PRICES = Object.fromEntries(
+    Object.values(CREDIT_PLANS).map((plan) => [plan.key, Math.round(plan.amount / 100)])
+  );
   const COST_PER_GENERATION = 2; // Estimated PHP cost per generation
 
   const [supabase] = useState(() => createBrowserClient(
@@ -34,6 +39,10 @@ export default function AdminDashboard() {
   ));
 
   useEffect(() => {
+    let fallbackInterval;
+    let realtimeChannel;
+    let refreshSilently = () => {};
+
     const checkAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || session.user.email !== 'lloyddumzofficial@gmail.com') {
@@ -41,36 +50,109 @@ export default function AdminDashboard() {
         return;
       }
       setUser(session.user);
-      fetchRequests(session.access_token);
+      await fetchRequests(session.access_token);
+      refreshSilently = () => fetchRequests(session.access_token, { silent: true });
+
+      // Supabase Realtime Subscription
+      // Fires instantly when any row in payment_requests changes,
+      // with polling below as a fast safety net.
+      realtimeChannel = supabase
+        .channel('admin_payment_requests')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'payment_requests' },
+          (payload) => {
+            // New payment just submitted. Notify admin immediately.
+            const email = payload.new?.email || 'a user';
+            const plan = payload.new?.plan || 'unknown';
+            toast.success(`New payment from ${email} (${plan})`);
+            setHasNewRequests(true);
+            refreshSilently();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'payment_requests' },
+          () => {
+            // Status changed externally (e.g. another session approved it)
+            refreshSilently();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[Admin] Realtime connected - instant payment notifications active.');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('[Admin] Realtime connection issue:', status);
+          }
+        });
+
+      // Fast fallback in case the realtime WebSocket is disabled or drops.
+      fallbackInterval = setInterval(refreshSilently, ADMIN_PAYMENT_REFRESH_MS);
     };
+
+    const handleWindowFocus = () => {
+      refreshSilently();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSilently();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     checkAdmin();
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (fallbackInterval) clearInterval(fallbackInterval);
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
   }, [supabase, router]);
 
-  const fetchRequests = async (token) => {
-    setLoading(true);
+  const fetchRequests = async (token, options = {}) => {
+    if (!options.silent) setLoading(true);
+    if (options.manual) setIsRefreshing(true);
     try {
       const res = await fetch('/api/admin/get-dashboard', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to load admin dashboard");
       
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Failed to load admin dashboard");
 
       const reqData = data.requests || [];
       const pending = reqData.filter(r => r.status === 'pending');
       const approved = reqData.filter(r => r.status === 'approved');
       
-      // Sort pending so oldest is first
-      setRequests(pending.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+      // Show newest pending payments first so fresh user submissions are not
+      // buried at the bottom of a long review list.
+      setRequests(pending.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
       setApprovedRequests(approved);
+      setDodoPayments(data.dodoPayments || []);
       setReviews(data.reviews || []);
       setTotalProjects(data.totalProjects || 0);
+      setActiveCreditsTotal(Number(data.activeCreditsTotal || 0));
       setPaidUsers(data.paidUsers || []);
+
+      // Clear the new-request indicator after fetching
+      if (options.manual) setHasNewRequests(false);
     } catch (err) {
       toast.error("Failed to load admin data");
       console.error(err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      fetchRequests(session.access_token, { silent: true, manual: true });
     }
   };
 
@@ -88,8 +170,8 @@ export default function AdminDashboard() {
         body: JSON.stringify({ requestId: request.id, markOnly })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await safeJson(res, "Failed to approve payment");
+      if (!res.ok) throw new Error(data.error || "Failed to approve payment");
 
       if (markOnly) {
         toast.success(`Marked as paid! (No credits added)`);
@@ -98,7 +180,8 @@ export default function AdminDashboard() {
       }
       
       setRequests(reqs => reqs.filter(r => r.id !== request.id));
-      setApprovedRequests(prev => [...prev, { ...request, status: 'approved' }]);
+      setApprovedRequests(prev => [{ ...request, status: 'approved' }, ...prev]);
+      fetchRequests(session.access_token, { silent: true });
     } catch (err) {
       toast.error(err.message || "Failed to approve payment");
     } finally {
@@ -124,7 +207,7 @@ export default function AdminDashboard() {
   const totalRevenue = approvedRequests.reduce((sum, req) => sum + (PLAN_PRICES[req.plan] || 0), 0);
   const totalCost = totalProjects * COST_PER_GENERATION;
   const netProfit = totalRevenue - totalCost;
-  const totalActiveCredits = paidUsers.reduce((sum, u) => sum + (u.credits || 0), 0);
+  const totalActiveCredits = activeCreditsTotal;
 
   return (
     <div className="start-screen-container">
@@ -138,6 +221,14 @@ export default function AdminDashboard() {
             Review and approve pending top-up requests from users.
           </p>
         </div>
+
+        {/* TAB TITLE BADGE — updates browser tab with pending count */}
+        {typeof document !== 'undefined' && (() => {
+          document.title = requests.length > 0
+            ? `(${requests.length}) Admin Dashboard — DesaynClaw`
+            : 'Admin Dashboard — DesaynClaw';
+          return null;
+        })()}
 
         {/* TOP BUTTONS */}
         <div style={{ display: "flex", gap: "15px", marginBottom: "40px", flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
@@ -153,6 +244,16 @@ export default function AdminDashboard() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", background: "transparent", color: "#d5d5d5", border: "1px solid #5a4a00", padding: "12px 24px", borderRadius: "4px", fontSize: "16px", fontWeight: "500", whiteSpace: "nowrap" }}>
             Active Credits: <strong style={{ color: '#FFD700', fontSize: '18px' }}>🪙 {totalActiveCredits.toLocaleString()}</strong>
           </div>
+          <button
+            className="start-btn"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            title="Manually refresh dashboard"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px 24px", borderRadius: "4px", fontSize: "16px", background: 'transparent', color: isRefreshing ? '#888' : '#aaa', borderColor: '#555', opacity: isRefreshing ? 0.7 : 1 }}
+          >
+            <RefreshCw size={16} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
           <button className="start-btn" onClick={handleLogout} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px 24px", borderRadius: "4px", fontSize: "16px" }}>
             <LogOut size={16} /> Logout
           </button>
@@ -169,7 +270,19 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '350px', overflowY: 'auto', paddingRight: '10px' }}>
-              <div style={{ fontSize: "12px", color: "#FFD700", fontWeight: "600", textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: "12px", color: "#FFD700", fontWeight: "600", textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                {hasNewRequests && (
+                  <span style={{
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#ff4444',
+                    boxShadow: '0 0 0 0 rgba(255,68,68,0.7)',
+                    animation: 'pulse-dot 1.5s ease-in-out infinite',
+                    flexShrink: 0
+                  }} />
+                )}
                 Pending Requests ({requests.length})
               </div>
               
@@ -275,6 +388,39 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* DODO AUTOMATED PAYMENTS SECTION */}
+        <div className="hero-upload-box" style={{ width: '100%', padding: '20px', minHeight: '150px', marginTop: '30px', justifyContent: dodoPayments.length === 0 ? 'center' : 'flex-start', borderStyle: 'solid', borderColor: '#333' }}>
+          {dodoPayments.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#888', fontSize: '14px' }}>
+              No Dodo automated payments yet.
+            </div>
+          ) : (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '350px', overflowY: 'auto', paddingRight: '10px' }}>
+              <div style={{ fontSize: "12px", color: "#60a5fa", fontWeight: "600", textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', textAlign: 'center' }}>
+                Dodo Automated Payments ({dodoPayments.length})
+              </div>
+
+              {dodoPayments.map(payment => (
+                <div key={payment.id} style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '0', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', opacity: payment.status === 'paid' ? 1 : 0.75 }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ color: '#666', fontSize: '11px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <Clock size={12} /> {new Date(payment.created_at).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#aaa', marginBottom: '4px' }}>{payment.email}</div>
+                    <div style={{ color: '#888', fontSize: '12px' }}>
+                      Plan: <strong style={{ color: payment.status === 'paid' ? '#4ade80' : '#60a5fa', textTransform: 'capitalize' }}>{payment.plan}</strong> &bull; Credits: {payment.credits} &bull; {payment.currency} {(payment.amount / 100).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div style={{ color: payment.status === 'paid' ? '#4ade80' : payment.status === 'failed' ? '#ff4444' : '#60a5fa', fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    {payment.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* REVIEWS SECTION */}
         <div className="hero-upload-box" style={{ width: '100%', padding: '20px', minHeight: '150px', marginTop: '30px', justifyContent: reviews.length === 0 ? 'center' : 'flex-start', borderStyle: 'solid', borderColor: '#333' }}>
           {reviews.length === 0 ? (
@@ -355,8 +501,22 @@ export default function AdminDashboard() {
 
         {/* Footer Text */}
         <div style={{ marginTop: '40px', color: '#555', fontSize: '12px', textAlign: 'center' }}>
-          Auto-Tracer Admin Panel &copy; 2026
+          Auto-Tracer Admin Panel &copy; 2026 &nbsp;·&nbsp;
+          <span style={{ color: '#2a6', fontSize: '11px' }}>⚡ Live — Realtime notifications active</span>
         </div>
+
+        {/* Inline keyframes for pulsing dot + spinner */}
+        <style>{`
+          @keyframes pulse-dot {
+            0%   { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+            70%  { box-shadow: 0 0 0 8px rgba(255, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+        `}</style>
         
       </div>
     </div>

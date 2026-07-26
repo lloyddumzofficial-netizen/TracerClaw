@@ -43,7 +43,7 @@ export const compressImageClientSide = (file, maxWidthOrHeight = 2048, quality =
         // Fill with white background in case of transparent PNG being converted to JPEG
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+
         ctx.drawImage(img, 0, 0, width, height);
 
         // Convert canvas to Blob (always use JPEG for max compatibility and size reduction)

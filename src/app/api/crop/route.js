@@ -34,7 +34,7 @@ export async function POST(request) {
     // Update project in Supabase — only if the user owns it
     const { error } = await adminSupabase
       .from('projects')
-      .update({ 
+      .update({
         original_image_url: croppedImageUrl,
         generated_image_url: null,
         upscaled_image_url: null,
@@ -48,10 +48,20 @@ export async function POST(request) {
 
     if (error) throw error;
 
+    // Re-cropping starts a fresh run, so clear the previous failure stamp.
+    // Best-effort and separate from the update above: these columns only exist
+    // once add_project_failure_tracking.sql has been run, and cropping must not
+    // break on a deployment where that migration has not landed yet.
+    await adminSupabase
+      .from('projects')
+      .update({ failed_at: null, failed_step: null })
+      .eq('id', projectId)
+      .eq('user_id', user.id);
+
     return NextResponse.json({ success: true, cropped_image_url: croppedImageUrl });
 
   } catch (error) {
     console.error(`[Crop API Error]:`, error);
-    return NextResponse.json({ error: error.message || "Failed to save cropped image" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save cropped image." }, { status: 500 });
   }
 }

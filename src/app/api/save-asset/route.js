@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, normalizeUserImageUrl } from "@/lib/ssrf";
+import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl } from "@/lib/ssrf";
 
 export const maxDuration = 60;
 
@@ -59,6 +59,9 @@ export async function POST(request) {
     let buffer;
     let ext;
     let finalMimeType = mimeType || "image/png";
+    // Set when the asset is already stored in our bucket, so the step handlers
+    // below record it as-is instead of uploading a second copy.
+    let passthroughUrl = null;
 
     if (base64) {
       if (!ALLOWED_MIME_TYPES.includes(finalMimeType)) {
@@ -73,43 +76,66 @@ export async function POST(request) {
       if (ext === "jpeg") ext = "jpg";
     } else if (fileUrl) {
       const normalizedFileUrl = normalizeUserImageUrl(fileUrl, new URL(request.url).origin);
-      const maxBytes = step === 3
-        ? DEFAULT_MAX_SVG_BYTES
-        : step === 2
-          ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
-          : DEFAULT_MAX_IMAGE_BYTES;
-      const { response, buffer: remoteBuffer, finalUrl } = await fetchWithSSRFProtection(normalizedFileUrl, {
-        allowedHosts: ALLOWED_REMOTE_HOSTS,
-        maxBytes,
-        allowedContentTypes: ['image/', 'application/octet-stream'],
-      });
-      if (!response.ok) throw new Error("Failed to fetch fileUrl");
-      buffer = remoteBuffer;
-      finalMimeType = response.headers.get('content-type')?.split(';')[0] || finalMimeType;
-      ext = new URL(finalUrl).pathname.split('.').pop() || "png";
-      // Sanitize extension
-      if (ext.length > 4 || ext.includes("?")) ext = "png";
+
+      // Already sitting in our own bucket under this project — /api/trace step 1
+      // uploads there directly rather than sending the image through the browser.
+      // Just record it; re-downloading and re-uploading would only orphan a copy.
+      if (isOwnedStorageUrl(normalizedFileUrl, { projectId })) {
+        passthroughUrl = normalizedFileUrl;
+      } else {
+        const maxBytes = step === 3
+          ? DEFAULT_MAX_SVG_BYTES
+          : step === 2
+            ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
+            : DEFAULT_MAX_IMAGE_BYTES;
+        const { response, buffer: remoteBuffer, finalUrl } = await fetchWithSSRFProtection(normalizedFileUrl, {
+          allowedHosts: ALLOWED_REMOTE_HOSTS,
+          maxBytes,
+          allowedContentTypes: ['image/', 'application/octet-stream'],
+        });
+        if (!response.ok) throw new Error("Failed to fetch fileUrl");
+        buffer = remoteBuffer;
+        finalMimeType = response.headers.get('content-type')?.split(';')[0] || finalMimeType;
+        ext = new URL(finalUrl).pathname.split('.').pop() || "png";
+        // Sanitize extension
+        if (ext.length > 4 || ext.includes("?")) ext = "png";
+      }
     } else {
       return NextResponse.json({ error: "Provide either base64 or fileUrl" }, { status: 400 });
     }
 
     if (step === 1) {
-      const fileName = `projects/${projectId}/generated_flat_${Date.now()}.${ext}`;
-      const finalUrl = await uploadToR2(buffer, fileName, finalMimeType);
-      await adminSupabase.from('projects').update({ generated_image_url: finalUrl, ai_prompt: null, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
+      const finalUrl = passthroughUrl
+        || await uploadToR2(buffer, `projects/${projectId}/generated_flat_${Date.now()}.${ext}`, finalMimeType);
+      // ai_prompt is the project's EXTRACTION MODE (ERASE_LOGOS /
+      // PRESERVE_LOGOS), not transient state. It used to be nulled here, so any
+      // re-run after a failed step 2 or 3 fell through to the DEFAULT prompt —
+      // silently turning "Extract Pattern Only" into "Keep All Artwork" and
+      // charging another claw for the wrong output. Leave it alone.
+      await adminSupabase.from('projects').update({
+        generated_image_url: finalUrl,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
+      }).eq('id', projectId).eq('user_id', user.id);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 
     if (step === 2) {
-      const fileName = `projects/${projectId}/upscaled_${Date.now()}.${ext}`;
-      const finalUrl = await uploadToR2(buffer, fileName, finalMimeType);
-      await adminSupabase.from('projects').update({ upscaled_image_url: finalUrl, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
+      const finalUrl = passthroughUrl
+        || await uploadToR2(buffer, `projects/${projectId}/upscaled_${Date.now()}.${ext}`, finalMimeType);
+      await adminSupabase.from('projects').update({
+        upscaled_image_url: finalUrl,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null
+      }).eq('id', projectId).eq('user_id', user.id);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 
     if (step === 3) {
-      const fileName = `projects/${projectId}/vector_${Date.now()}.svg`;
-      const finalUrl = await uploadToR2(buffer, fileName, "image/svg+xml");
+      const finalUrl = passthroughUrl
+        || await uploadToR2(buffer, `projects/${projectId}/vector_${Date.now()}.svg`, "image/svg+xml");
       await adminSupabase.from('projects').update({ svg_url: finalUrl, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
       return NextResponse.json({ success: true, url: finalUrl });
     }
@@ -118,6 +144,6 @@ export async function POST(request) {
 
   } catch (error) {
     console.error("[Save Asset Error]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save asset." }, { status: 500 });
   }
 }

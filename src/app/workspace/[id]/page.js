@@ -1,38 +1,49 @@
 "use client";
 
 // ─── React & Routing ──────────────────────────────────────────────────────────
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-import { Home, Keyboard } from "lucide-react";
+import { CheckCircle2, Palette, X } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-import { useTraceExecution } from "./hooks/useTraceExecution";
+import { useTraceExecution } from "@/hooks/useTraceExecution";
 
 // ─── Components ───────────────────────────────────────────────────────────────
-import SplitViewCanvas from "./components/SplitViewCanvas";
-import PropertiesPanel from "./components/PropertiesPanel";
-import CropModal from "./components/CropModal";
-import EraseModal from "./components/EraseModal";
-import RemoveBgModal from "./components/RemoveBgModal";
-import CompareModal from "./components/CompareModal";
-import NoCreditsModal from "./components/NoCreditsModal";
-import TopUpModal from "@/components/TopUpModal";
-import ShortcutsModal from "./components/ShortcutsModal";
+import SplitViewCanvas from "@/components/workspace/SplitViewCanvas";
+import PropertiesPanel from "@/components/workspace/PropertiesPanel";
+import CropModal from "@/components/workspace/CropModal";
+import EraseModal from "@/components/workspace/EraseModal";
+import RemoveBgModal from "@/components/workspace/RemoveBgModal";
+import CompareModal from "@/components/workspace/CompareModal";
+import PalettePreviewModal from "@/components/workspace/PalettePreviewModal";
+import NoCreditsModal from "@/components/workspace/NoCreditsModal";
+import ShortcutsModal from "@/components/workspace/ShortcutsModal";
+import WorkspaceCommandBar from "@/components/workspace/WorkspaceCommandBar";
+import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
+import StudioShell from "@/components/shared/StudioShell";
+import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
+import { safeJson } from "@/lib/safeJson";
+import { getWorkspaceTitle } from "@/lib/workspaceLabels";
+import { computeNudgePlacement } from "@/lib/anchoredNudge";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
+
+const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
 
 export default function Workspace() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id;
+  const isMobileDevice = useIsMobileDevice();
 
   // ─── Core State ───────────────────────────────────────────────────────────
   const [project, setProject] = useState(null);
@@ -45,6 +56,12 @@ export default function Workspace() {
   const [showEraseModal, setShowEraseModal] = useState(false);
   const [showRemoveBgModal, setShowRemoveBgModal] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [showPalettePreview, setShowPalettePreview] = useState(false);
+  const [showPaletteNudge, setShowPaletteNudge] = useState(false);
+  // Set when a generation finishes; converted into the visible nudge once the
+  // auto-opened comparison is closed.
+  const [paletteNudgeQueued, setPaletteNudgeQueued] = useState(false);
+  const paletteNudgeRef = useRef(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -66,6 +83,7 @@ export default function Workspace() {
 
   // ─── Data Fetching ────────────────────────────────────────────────────────
   useEffect(() => {
+    if (isMobileDevice !== false) return;
     if (!projectId) return;
     const fetchData = async () => {
       try {
@@ -91,7 +109,9 @@ export default function Workspace() {
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles").select("credits").eq("id", session.user.id).single();
-          if (profile) setUserCredits(profile.credits);
+          if (profile) {
+            setUserCredits(profile.credits);
+          }
         }
       } catch (err) {
         console.error("[Workspace] Data fetch error:", err);
@@ -99,7 +119,7 @@ export default function Workspace() {
       }
     };
     fetchData();
-  }, [projectId, router]);
+  }, [isMobileDevice, projectId, router]);
 
   // Auto-switch away from loading state (if any was needed)
   useEffect(() => {
@@ -125,6 +145,72 @@ export default function Workspace() {
     await forceDownload(proxyUrl, `DesaynClaw_${project.name}_Vector.svg`);
     analytics.downloadSvg({ project_id: project.id, trace_type: project.trace_type, source: "workspace" });
   }, [project, forceDownload]);
+
+  const handleApplyEditedSvg = useCallback(async (svgText) => {
+    if (!project?.id || !svgText) return;
+
+    logToConsole("[System] Saving edited SVG to workspace...");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Please log in again before saving.");
+
+      // Upload straight to R2 and hand save-asset a URL. Sending the SVG as
+      // base64 in the request body 413s on the platform's ~4.5MB cap for any
+      // detailed vector — the same failure already fixed for /api/trace step 1.
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
+
+      const urlRes = await fetch("/api/svg-upload-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ projectId: project.id, fileSize: svgBlob.size }),
+      });
+      const urlData = await safeJson(urlRes, "Could not prepare the upload");
+      if (!urlRes.ok || !urlData.uploadUrl) {
+        throw new Error(urlData.error || "Could not prepare the upload");
+      }
+
+      const putRes = await fetch(urlData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "image/svg+xml" },
+        body: svgBlob,
+      });
+      if (!putRes.ok) throw new Error("Failed to upload the edited SVG");
+
+      const res = await fetch("/api/save-asset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          step: 3,
+          mimeType: "image/svg+xml",
+          fileUrl: urlData.publicUrl,
+        }),
+      });
+
+      const data = await safeJson(res, "Failed to apply edited SVG");
+      if (!res.ok) throw new Error(data.error || "Failed to apply edited SVG");
+      setProject(prev => prev ? ({
+        ...prev,
+        svg_url: data.url,
+        zip_url: null,
+        zip_signature: null,
+        zip_generated_at: null,
+      }) : prev);
+      setShowPalettePreview(false);
+      logToConsole("[Success] Edited SVG applied to workspace.", "success");
+      return data.url;
+    } catch (err) {
+      logToConsole(`[Error] Failed to apply edited SVG: ${err.message}`, "error");
+      throw err;
+    }
+  }, [project?.id, logToConsole]);
 
   const handleDownloadRaster = useCallback(async () => {
     if (!project?.generated_image_url) return;
@@ -155,7 +241,7 @@ export default function Workspace() {
         },
         body: JSON.stringify({ projectId: project.id }),
       });
-      const data = await res.json();
+      const data = await safeJson(res, "Failed to prepare ZIP");
       if (!res.ok) throw new Error(data.error || "Failed to prepare ZIP");
 
       await forceDownload(
@@ -171,12 +257,80 @@ export default function Workspace() {
   }, [project, logToConsole, forceDownload]);
 
   // ─── Trace Execution Wrapper ──────────────────────────────────────────────
-  const onExecuteTrace = useCallback(async (vectorColors) => {
-    const result = await handleExecuteTrace(vectorColors);
+  const onExecuteTrace = useCallback(async (vectorColors, svgEngine) => {
+    const result = await handleExecuteTrace(vectorColors, svgEngine);
     if (result?.success) {
+      // Show the finished result straight away — the whole point of the wait.
       setShowCompare(true);
+      // Hold the Palette Studio nudge until the comparison is dismissed, so the
+      // two don't fight for attention on top of each other.
+      setPaletteNudgeQueued(true);
     }
   }, [handleExecuteTrace]);
+
+  const handleCloseCompare = useCallback(() => {
+    setShowCompare(false);
+    setPaletteNudgeQueued(queued => {
+      if (queued) setShowPaletteNudge(true);
+      return false;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showPaletteNudge) return;
+    const timer = window.setTimeout(() => setShowPaletteNudge(false), 14000);
+    return () => window.clearTimeout(timer);
+  }, [showPaletteNudge]);
+
+  // Pin the nudge to the actual Palette Preview button. It used to sit at fixed
+  // right/bottom offsets, which drifted away from the button whenever the panel
+  // layout, viewport, or scroll position changed.
+  useEffect(() => {
+    if (!showPaletteNudge || !project?.svg_url) return undefined;
+
+    let frame = null;
+    const place = () => {
+      frame = null;
+      const nudge = paletteNudgeRef.current;
+      const anchor = document.querySelector('[data-palette-preview-anchor="true"]');
+      if (!nudge || !anchor) return;
+
+      const a = anchor.getBoundingClientRect();
+      const n = nudge.getBoundingClientRect();
+
+      const { left, top, side, arrowY } = computeNudgePlacement({
+        anchor: { left: a.left, right: a.right, top: a.top, height: a.height },
+        nudge: { width: n.width, height: n.height },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      });
+
+      nudge.style.left = `${left}px`;
+      nudge.style.top = `${top}px`;
+      nudge.dataset.arrow = side;
+      nudge.style.setProperty("--nudge-arrow-y", `${arrowY}px`);
+      nudge.dataset.ready = "true";
+    };
+
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(place);
+    };
+
+    place();
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+
+    const anchor = document.querySelector('[data-palette-preview-anchor="true"]');
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
+    if (observer && anchor) observer.observe(anchor);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
+      observer?.disconnect();
+    };
+  }, [showPaletteNudge, project?.svg_url]);
 
   // ─── Crop Handlers ────────────────────────────────────────────────────────
   const handleCropApplied = useCallback((publicUrl, errorMsg) => {
@@ -194,6 +348,7 @@ export default function Workspace() {
       logToConsole("[Success] Crop applied and saved! You can now re-trace.", "success");
     }
     setIsSavingCrop(false);
+    setActiveTool("pointer");
   }, [logToConsole]);
 
   const handleEraseApplied = useCallback((publicUrl, errorMsg) => {
@@ -210,6 +365,7 @@ export default function Workspace() {
       }));
       logToConsole("[Success] Erased noise saved! You can now re-trace.", "success");
     }
+    setActiveTool("pointer");
   }, [logToConsole]);
 
   const handleRemoveBgApplied = useCallback((publicUrl, errorMsg) => {
@@ -227,6 +383,7 @@ export default function Workspace() {
       setUserCredits(prev => (prev > 0 ? prev - 1 : 0));
       logToConsole("[Success] Background removed! You can now re-trace.", "success");
     }
+    setActiveTool("pointer");
   }, [logToConsole]);
 
   const handleLogin = useCallback(async () => {
@@ -237,27 +394,54 @@ export default function Workspace() {
   }, []);
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  return (
-    <div className="app-container">
+  const isBusy = traceState !== "idle" || isSavingCrop;
+  const hasProject = !!project;
+  const hasSvg = !!project?.svg_url;
+  const workspaceTitle = getWorkspaceTitle(project?.trace_type);
+  const workspaceCommandBar = project ? (
+    <WorkspaceCommandBar
+      activeTool={activeTool}
+      isBusy={isBusy}
+      hasProject={hasProject}
+      hasSvg={hasSvg}
+      onSelectTool={setActiveTool}
+      onOpenCrop={() => setShowCropModal(true)}
+      onOpenErase={() => setShowEraseModal(true)}
+      onOpenRemoveBg={() => setShowRemoveBgModal(true)}
+      onOpenCompare={() => setShowCompare(true)}
+      onOpenPalettePreview={() => setShowPalettePreview(true)}
+    />
+  ) : null;
 
-      {/* Top Menu Bar */}
-      <header style={{ padding: "16px 32px", display: "flex", alignItems: "center", borderBottom: "1px solid #444", background: "#1a1a1a" }}>
-        <button onClick={() => router.push('/')} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color="#FFD700"} onMouseLeave={e => e.currentTarget.style.color="#666"}>
-          <Home size={16} /> HOME
-        </button>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <h1 style={{ fontSize: "14px", fontWeight: "600", margin: 0, color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>WORKSPACE</h1>
-        </div>
-        <div style={{ width: "200px", display: "flex", justifyContent: "flex-end", gap: "16px", alignItems: "center" }}>
-          <button onClick={() => setShowShortcuts(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "600", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color="#FFD700"} onMouseLeave={e => e.currentTarget.style.color="#666"}>
-            <Keyboard size={14} /> SHORTCUTS
-          </button>
-          <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#2a2a2a", padding: "6px 12px", borderRadius: "0", cursor: "pointer", border: "1px solid #444", transition: "border-color 0.2s" }} onMouseOver={e => e.currentTarget.style.borderColor = "#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor = "#444"}>
-            <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}>{userCredits !== null ? userCredits : "-"}</span>
-            <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CREDITS</span>
-          </div>
-        </div>
-      </header>
+  if (isMobileDevice !== false) {
+    return <DesktopRequiredNotice />;
+  }
+
+  return (
+    <>
+      <StudioShell
+        title={workspaceTitle}
+        credits={userCredits}
+        onHome={() => router.push("/")}
+        onCreditsClick={() => setShowTopUpModal(true)}
+        onShortcuts={() => setShowShortcuts(true)}
+        statusLeft={project?.svg_url ? (
+          <>
+            <CheckCircle2 size={12} color="#4ade80" />
+            <span style={{ color: "#4ade80" }}>Vectorization complete</span>
+            <small>Clean shapes, optimized paths, and high quality output.</small>
+          </>
+        ) : project ? (
+          <span>{traceState !== "idle" ? "Processing trace..." : "Ready"}</span>
+        ) : null}
+        statusRight={(
+          <>
+            <button onClick={() => setShowShortcuts(true)}>Need help?</button>
+            <span style={{ color: "#333" }}>·</span>
+            <button>&gt; View Guide</button>
+          </>
+        )}
+      >
 
 
       <main className="main-workspace" style={{ padding: 0 }}>
@@ -272,9 +456,7 @@ export default function Workspace() {
               project={project}
               traceState={traceState}
               nodeErrors={nodeErrors}
-              onCropOpen={() => setShowCropModal(true)}
-              onEraseOpen={() => setShowEraseModal(true)}
-              onRemoveBgOpen={() => setShowRemoveBgModal(true)}
+              commandBar={workspaceCommandBar}
             />
           )}
         </div>
@@ -291,18 +473,49 @@ export default function Workspace() {
           onDownloadRaster={handleDownloadUpscaled}
           onDownloadAll={handleDownloadAll}
           onOpenCompare={() => setShowCompare(true)}
+          onOpenPalettePreview={() => setShowPalettePreview(true)}
           onOpenCrop={() => setShowCropModal(true)}
           onOpenRemoveBg={() => setShowRemoveBgModal(true)}
           onOpenTopUp={() => setShowTopUpModal(true)}
         />
       </main>
 
+      {showPaletteNudge && project?.svg_url && (
+        <div className="palette-ready-nudge" ref={paletteNudgeRef} role="status" aria-live="polite">
+          <div>
+            <strong>Palette Studio ready</strong>
+            <span>Edit or merge SVG colors when needed.</span>
+          </div>
+          <button
+            type="button"
+            className="palette-ready-action"
+            onClick={() => {
+              setShowPaletteNudge(false);
+              setShowPalettePreview(true);
+            }}
+          >
+            <Palette size={14} />
+            View Palette
+          </button>
+          <button
+            type="button"
+            className="palette-ready-close"
+            onClick={() => setShowPaletteNudge(false)}
+            aria-label="Dismiss Palette Studio ready notice"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      </StudioShell>
+
       {/* ─── Modals ─────────────────────────────────────────────────────────── */}
       <CropModal
         show={showCropModal}
         project={project}
         supabase={supabase}
-        onClose={() => setShowCropModal(false)}
+        onClose={() => { setShowCropModal(false); setActiveTool("pointer"); }}
         onCropApplied={handleCropApplied}
         onLoginRequired={handleLogin}
       />
@@ -311,7 +524,7 @@ export default function Workspace() {
         show={showEraseModal}
         project={project}
         supabase={supabase}
-        onClose={() => setShowEraseModal(false)}
+        onClose={() => { setShowEraseModal(false); setActiveTool("pointer"); }}
         onEraseApplied={handleEraseApplied}
         onLoginRequired={handleLogin}
       />
@@ -320,16 +533,29 @@ export default function Workspace() {
         show={showRemoveBgModal}
         project={project}
         supabase={supabase}
-        onClose={() => setShowRemoveBgModal(false)}
+        onClose={() => { setShowRemoveBgModal(false); setActiveTool("pointer"); }}
         onRemoveBgApplied={handleRemoveBgApplied}
       />
 
       <CompareModal
         show={showCompare}
         project={project}
-        onClose={() => setShowCompare(false)}
+        onClose={handleCloseCompare}
         onDownloadAll={handleDownloadAll}
         onDownloadSvg={handleDownloadSvg}
+      />
+
+      <PalettePreviewModal
+        show={showPalettePreview && Boolean(project?.svg_url)}
+        project={project}
+        onClose={() => setShowPalettePreview(false)}
+        onCompare={() => {
+          setShowPalettePreview(false);
+          setShowCompare(true);
+        }}
+        onDownloadAll={handleDownloadAll}
+        onDownloadSvg={handleDownloadSvg}
+        onApplyEditedSvg={handleApplyEditedSvg}
       />
 
       <NoCreditsModal
@@ -338,17 +564,19 @@ export default function Workspace() {
         onTopUp={() => setShowTopUpModal(true)}
       />
 
-      <TopUpModal
-        show={showTopUpModal}
-        user={user}
-        supabase={supabase}
-        onClose={() => setShowTopUpModal(false)}
-      />
+      {showTopUpModal && (
+        <TopUpModal
+          show={showTopUpModal}
+          user={user}
+          supabase={supabase}
+          onClose={() => setShowTopUpModal(false)}
+        />
+      )}
 
       <ShortcutsModal
         show={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
-    </div>
+    </>
   );
 }

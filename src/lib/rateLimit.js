@@ -86,25 +86,41 @@ function rateLimitResponse({ max, remaining, reset }) {
   );
 }
 
-export async function enforceRateLimit({ namespace, identifier, max, window = "60 s", windowMs = 60_000 }) {
-  const safeIdentifier = identifier || "anonymous";
-  const limiter = getUpstashLimiter({ namespace, max, window });
+export async function enforceRateLimit({
+  namespace,
+  identifier,
+  max,
+  window = "60 s",
+  windowMs = 60_000,
+  key,
+  limit,
+}) {
+  const resolvedNamespace = String(namespace || key || "general").replace(/[^a-zA-Z0-9:_-]/g, "_");
+  const resolvedMax = Number(max ?? limit);
+
+  if (!Number.isFinite(resolvedMax) || resolvedMax <= 0) {
+    console.warn("[Rate Limit] Invalid limit config:", { namespace, key, max, limit });
+    return { success: true, headers: {} };
+  }
+
+  const safeIdentifier = String(identifier || key || "anonymous").replace(/[^a-zA-Z0-9:._@-]/g, "_");
+  const limiter = getUpstashLimiter({ namespace: resolvedNamespace, max: resolvedMax, window });
 
   const result = limiter
     ? await limiter.limit(safeIdentifier)
-    : checkMemoryLimit({ key: `${namespace}:${safeIdentifier}`, max, windowMs });
+    : checkMemoryLimit({ key: `${resolvedNamespace}:${safeIdentifier}`, max: resolvedMax, windowMs });
 
   if (!result.success) {
     return {
       success: false,
-      response: rateLimitResponse({ max, remaining: result.remaining, reset: result.reset }),
+      response: rateLimitResponse({ max: resolvedMax, remaining: result.remaining, reset: result.reset }),
     };
   }
 
   return {
     success: true,
     headers: {
-      "X-RateLimit-Limit": String(max),
+      "X-RateLimit-Limit": String(resolvedMax),
       "X-RateLimit-Remaining": String(result.remaining),
     },
   };

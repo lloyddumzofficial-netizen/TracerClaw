@@ -1,20 +1,28 @@
-import { Outfit } from "next/font/google";
-import { ToastContainer } from "@/components/Toast";
-import MobileWarning from "./components/MobileWarning";
-import CookieConsent from "./components/CookieConsent";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { ToastContainer } from "@/components/ui/Toast";
+import MobileWarning from "@/components/shared/MobileWarning";
+import CookieConsent from "@/components/shared/CookieConsent";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 import {
   defaultDescription,
-  openGraphImage,
-  organizationJsonLd,
   siteName,
   siteUrl,
-  softwareApplicationJsonLd,
-  websiteJsonLd,
 } from "@/lib/siteMetadata";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-space-grotesk",
+  weight: ["400", "500", "600", "700"],
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
+  weight: ["400", "500", "600"],
+});
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
@@ -108,9 +116,9 @@ export const metadata = {
     siteName,
     images: [
       {
-        url: openGraphImage,
-        width: 1200,
-        height: 630,
+        url: "/DESAYNCLAW-Image.JPG",
+        width: 1230,
+        height: 807,
         alt: "DesaynClaw AI Sublimation Design Extractor and Vector Tracer",
       },
     ],
@@ -120,7 +128,7 @@ export const metadata = {
     title: "DesaynClaw | AI Sublimation Design Extractor & Vector Tracer",
     description:
       "Extract sublimation flat files, vectorize logos, remove backgrounds & upscale designs using AI. Perfect for print shops in the Philippines.",
-    images: [openGraphImage],
+    images: ["/DESAYNCLAW-Image.JPG"],
     creator: "@desaynbro",
   },
   robots: {
@@ -137,10 +145,19 @@ export const metadata = {
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
   },
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+  },
 };
 
-import MaintenanceScreen from "./components/MaintenanceScreen";
-import GlobalMobileSync from "@/components/GlobalMobileSync";
+import MaintenanceScreen from "@/components/shared/MaintenanceScreen";
+import GlobalMobileSync from "@/components/shared/GlobalMobileSync";
 
 const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'; // Emergency maintenance mode
 
@@ -152,24 +169,77 @@ export default function RootLayout({ children }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(softwareApplicationJsonLd),
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "DesaynClaw",
+              "url": "https://desaynclaw.com",
+              "image": "https://desaynclaw.com/DESAYNCLAW-Image.JPG",
+              "sameAs": [
+                "https://desaynclaw.com"
+              ],
+              "applicationCategory": "DesignApplication",
+              "applicationSubCategory": "AI image vectorizer and sublimation design tool",
+              "operatingSystem": "Web",
+              "description":
+                "AI-powered tool for sublimation jersey design extraction, vector auto-tracing, logo enhancement, background removal, and 4K image upscaling. Used by print shops and apparel designers.",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "PHP",
+                "description": "Free credits on sign up. Pay-per-use credit system.",
+              },
+              "featureList": [
+                "Sublimation jersey flat file extraction",
+                "AI vector auto-tracer (SVG output)",
+                "Logo enhancer and vectorizer",
+                "AI background remover",
+                "4K AI image upscaler",
+                "Flat sublimation print file export",
+              ],
+              "creator": {
+                "@type": "Person",
+                "name": "desaynbro",
+                "url": "https://desaynclaw.com",
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "DesaynClaw",
+                "url": "https://desaynclaw.com",
+                "logo": "https://desaynclaw.com/logo.png"
+              }
+            }),
           }}
         />
-        {/* JSON-LD — WebSite with SearchAction for sitelinks searchbox */}
+        {/* JSON-LD — Organization and WebSite */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(websiteJsonLd),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(organizationJsonLd),
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "name": "DesaynClaw",
+                  "url": "https://desaynclaw.com",
+                  "logo": "https://desaynclaw.com/logo.png",
+                  "image": "https://desaynclaw.com/DESAYNCLAW-Image.JPG"
+                },
+                {
+                  "@type": "WebSite",
+                  "name": "DesaynClaw",
+                  "url": "https://desaynclaw.com",
+                  "publisher": {
+                    "@type": "Organization",
+                    "name": "DesaynClaw"
+                  }
+                }
+              ],
+            }),
           }}
         />
       </head>
-      <body className={outfit.className}>
+      <body className={`${inter.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
         <AnalyticsProvider />
         {isMaintenance ? (
           <MaintenanceScreen />
