@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { deleteFromR2, s3Client, bucketName } from '@/lib/cloudflare';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { logger } from '@/lib/logger';
 
 // Ensure this route doesn't run at the Edge since it uses AWS SDK heavily
 export const runtime = 'nodejs';
@@ -55,7 +56,7 @@ export async function GET(request) {
     results.hasMoreProjects = (oldProjects || []).length > PROJECT_BATCH_LIMIT;
 
     if (projectBatch.length > 0) {
-      console.log(`[Cron] Found ${projectBatch.length} old projects to clean up.`);
+      logger.info("[Cron] Found old projects to clean up", { count: projectBatch.length });
 
       for (const project of projectBatch) {
         try {
@@ -76,14 +77,14 @@ export async function GET(request) {
           // Then delete the DB record
           await adminSupabase.from('projects').delete().eq('id', project.id);
           results.projectsDeleted++;
-          console.log(`[Cron] Deleted project ${project.id} and its files.`);
+          logger.info("[Cron] Deleted project and files", { projectId: project.id });
         } catch (err) {
           results.projectsFailed++;
           console.error(`[Cron] Error deleting project ${project.id}:`, err);
         }
       }
     } else {
-      console.log('[Cron] No old projects found.');
+      logger.info("[Cron] No old projects found");
     }
 
     // ─── 2. Delete orphaned mobile_sync uploads (older than 24 hours) ────────
@@ -107,7 +108,7 @@ export async function GET(request) {
           if (obj.Key?.includes('/mobile_sync/') && obj.LastModified && obj.LastModified.toISOString() < oneDayAgo) {
             await deleteFromR2(`${process.env.CLOUDFLARE_PUBLIC_URL}/${obj.Key}`, { allowedPrefixes: ['users/'] });
             results.mobileSyncDeleted++;
-            console.log(`[Cron] Purged orphaned mobile_sync file: ${obj.Key}`);
+            logger.info("[Cron] Purged orphaned mobile sync file", { key: obj.Key });
           }
         }
       }
@@ -143,7 +144,7 @@ export async function GET(request) {
       console.warn('[Cron] ZIP cache cleanup failed (non-fatal):', zipErr.message);
     }
 
-    console.log(`[Cron] Done. Projects deleted: ${results.projectsDeleted}, failed: ${results.projectsFailed}, mobile files purged: ${results.mobileSyncDeleted}, ZIP cache purged: ${results.zipCacheDeleted}`);
+    logger.info("[Cron] Done", results);
     return NextResponse.json({ success: true, ...results });
 
   } catch (error) {

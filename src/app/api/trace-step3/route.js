@@ -5,6 +5,7 @@ import { fetchWithRetry } from "@/lib/fetchWithRetry";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { segmentSvgLayers } from "@/lib/svgSegmenter";
 import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { logger } from "@/lib/logger";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
@@ -151,7 +152,7 @@ export async function POST(request) {
       }
 
       const basicAuth = Buffer.from(`${vectorizerApiId}:${vectorizerApiSecret}`).toString('base64');
-      console.log("[Step 3] Sending to Vectorizer.AI precision engine...");
+      logger.info("[Step 3] Sending to Vectorizer.AI precision engine");
       const vectorizerRes = await fetchWithRetry("https://api.vectorizer.ai/api/v1/vectorize", {
         method: "POST",
         headers: { "Authorization": `Basic ${basicAuth}` },
@@ -173,7 +174,7 @@ export async function POST(request) {
       const vectorizeFormData = new FormData();
       vectorizeFormData.append('image', blob, 'image.png');
 
-      console.log("[Step 3] Sending to Recraft vectorize (RECRAFT_API_KEY)...");
+      logger.info("[Step 3] Sending to Recraft vectorize");
       const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },

@@ -4,6 +4,7 @@ import { uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { fal } from "@fal-ai/client";
+import { logger } from "@/lib/logger";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // Enough time for BG removal + R2 upload
@@ -128,7 +129,7 @@ export async function POST(request) {
     // ============================================================
     // PROCESS WITH FAL.AI (BiRefNet)
     // ============================================================
-    console.log(`[Remove BG] Sending to Fal.ai BiRefNet for project ${projectId}...`);
+    logger.info("[Remove BG] Sending to Fal.ai BiRefNet", { projectId });
     
     const result = await fal.subscribe("fal-ai/birefnet", {
       input: {
@@ -137,12 +138,12 @@ export async function POST(request) {
       logs: true,
       onQueueUpdate: (update) => {
         if (update.status === "IN_PROGRESS") {
-          update.logs.map((log) => console.log(log.message));
+          update.logs.map((log) => logger.debug("[Remove BG] Provider log", { message: log.message }));
         }
       },
     });
 
-    console.log("[fal.ai RAW Response]:", JSON.stringify(result, null, 2));
+    logger.debug("[fal.ai RAW Response]", result);
 
     const transparentImageUrl = result?.data?.image?.url || result?.image?.url || result?.data?.image_url;
 
@@ -150,12 +151,12 @@ export async function POST(request) {
       throw new Error("Fal.ai returned no image URL. Response: " + JSON.stringify(result));
     }
 
-    console.log("[Remove BG] Received transparent image from Fal:", transparentImageUrl);
+    logger.debug("[Remove BG] Received transparent image from Fal", { transparentImageUrl });
 
     // ============================================================
     // DOWNLOAD FROM FAL AND UPLOAD TO R2 (Permanent Storage)
     // ============================================================
-    console.log("[Remove BG] Downloading from Fal to upload to R2...");
+    logger.debug("[Remove BG] Downloading from Fal to upload to R2");
     const { response: imageResponse, buffer } = await fetchWithSSRFProtection(transparentImageUrl, {
       allowedHosts: getAllowedProviderHosts(),
       maxBytes: DEFAULT_MAX_IMAGE_BYTES,
@@ -166,7 +167,7 @@ export async function POST(request) {
     const fileName = `projects/${projectId}/bg-removed-${Date.now()}.png`;
     const r2Url = await uploadToR2(buffer, fileName, "image/png");
 
-    console.log("[Remove BG] Saved to R2:", r2Url);
+    logger.info("[Remove BG] Saved to R2", { r2Url });
 
     // ============================================================
     // UPDATE PROJECT IN SUPABASE
@@ -238,7 +239,7 @@ export async function POST(request) {
               .eq('refunded', false);
           }
           await adminSupabase.from('credit_logs').insert({ user_id: userId, action: 'Refund (Error)', amount: 1 });
-          console.log(`[Remove BG] Refunded 1 credit to user ${userId} due to processing error.`);
+          logger.info("[Remove BG] Refunded credit after processing error", { userId });
         } else {
           console.error(`[Remove BG] CRITICAL: safeRefundCredit failed for user ${userId} — left unrefunded for retry.`);
         }

@@ -3,6 +3,7 @@ import { getUploadUrl } from '@/lib/cloudflare';
 import { adminSupabase } from '@/lib/supabase';
 import { validateImageUploadRequest } from '@/lib/uploadLimits';
 import { enforceRateLimit } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 export async function POST(request) {
   try {
@@ -19,12 +20,12 @@ export async function POST(request) {
     
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      console.log("[Upload URL] Missing auth header");
+      logger.info("[Upload URL] Missing auth header");
       return NextResponse.json({ error: 'Unauthorized - Missing auth header' }, { status: 401 });
     }
     const token = authHeader.replace('Bearer ', '').trim();
     if (token === 'undefined') {
-      console.log("[Upload URL] Token is literal 'undefined'");
+      logger.info("[Upload URL] Token is literal undefined");
       return NextResponse.json({ error: 'Unauthorized - Invalid token format' }, { status: 401 });
     }
     

@@ -13,6 +13,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { logger } from "@/lib/logger";
+
 // Max number of paths to send to Gemini. SVGs with more paths get the top-N
 // largest paths segmented and the rest grouped into an "other" layer.
 const MAX_PATHS_FOR_SEGMENTATION = 60;
@@ -337,7 +339,7 @@ function rebuildSvgWithGroups(svgText, shapes, labelMap) {
  */
 export async function segmentSvgLayers(svgText, originalImageBase64, originalMimeType = 'image/png', traceType = null) {
   try {
-    console.log('[SVG Segmenter] Starting semantic layer grouping...');
+    logger.debug("[SVG Segmenter] Starting semantic layer grouping");
 
     // 1. Parse all SVG shape elements
     const allShapes = parseSvgShapes(svgText);
@@ -345,7 +347,7 @@ export async function segmentSvgLayers(svgText, originalImageBase64, originalMim
       console.warn('[SVG Segmenter] No parseable shapes found — skipping grouping');
       return svgText;
     }
-    console.log(`[SVG Segmenter] Found ${allShapes.length} shape elements in SVG`);
+    logger.debug("[SVG Segmenter] Found shape elements", { count: allShapes.length });
 
     // 2. Get viewBox dimensions for coordinate normalisation
     const { vw, vh } = getSvgViewBox(svgText);
@@ -359,7 +361,7 @@ export async function segmentSvgLayers(svgText, originalImageBase64, originalMim
       const topNIndices = new Set(sorted.slice(0, MAX_PATHS_FOR_SEGMENTATION).map(s => s.index));
       shapesToClassify = allShapes.filter(s => topNIndices.has(s.index));
       overflowShapes = allShapes.filter(s => !topNIndices.has(s.index));
-      console.log(`[SVG Segmenter] Classifying top ${shapesToClassify.length} paths; ${overflowShapes.length} small paths → "other"`);
+      logger.debug("[SVG Segmenter] Classifying paths", { classified: shapesToClassify.length, overflow: overflowShapes.length });
     }
 
     // 4. Call Gemini Flash for semantic classification
@@ -372,13 +374,13 @@ export async function segmentSvgLayers(svgText, originalImageBase64, originalMim
       labelMap[String(s.index)] = 'other';
     }
 
-    console.log('[SVG Segmenter] Gemini response:', labelMap);
+    logger.debug("[SVG Segmenter] Gemini response", labelMap);
 
     // 5. Rebuild SVG with semantic <g> groups
     const groupedSvg = rebuildSvgWithGroups(svgText, allShapes, labelMap);
 
     const uniqueLabels = [...new Set(Object.values(labelMap))];
-    console.log(`[SVG Segmenter] ✓ Complete — ${uniqueLabels.length} semantic layers: ${uniqueLabels.join(', ')}`);
+    logger.info("[SVG Segmenter] Complete", { layerCount: uniqueLabels.length, labels: uniqueLabels });
 
     return groupedSvg;
 

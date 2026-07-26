@@ -3,6 +3,7 @@ import { adminSupabase } from "@/lib/supabase";
 import { getDodoClient } from "@/lib/dodo";
 import { getCreditPlan } from "@/lib/paymentPlans";
 import { Resend } from "resend";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -77,7 +78,7 @@ async function sendDodoPaymentEmail({ email, plan, credits, paymentId }) {
       subject: "Payment Successful - Credits Added",
       html: htmlTemplate,
     });
-    console.log(`[Dodo Webhook] Email sent to ${email}`);
+    logger.info("[Dodo Webhook] Email sent", { email });
   } catch (emailErr) {
     console.error("[Dodo Webhook] Failed to send payment email:", emailErr);
   }

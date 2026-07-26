@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { logger } from "@/lib/logger";
 
 export async function POST(request) {
   try {
@@ -128,7 +129,7 @@ export async function POST(request) {
       amount: 1
     });
 
-    console.log(`[Refund API] Refunded project ${projectId} (user ${user.id})`);
+    logger.info("[Refund API] Refunded project", { projectId, userId: user.id });
 
     return NextResponse.json({ success: true, message: "Refund processed successfully" });
 

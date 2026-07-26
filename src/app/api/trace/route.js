@@ -3,6 +3,7 @@ import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning } from "@/lib/tracePrompts";
+import { logger } from "@/lib/logger";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -220,12 +221,12 @@ export async function POST(request) {
 
         let finalImageUrl = sourceUrl;
 
-        console.log("[fal.ai Input URL]:", finalImageUrl);
+        logger.debug("[fal.ai Input URL]", { finalImageUrl });
 
         // ── Step 1: Extract flat design directly using nano-banana-pro/edit ──
         // Feed original source image directly — no pre-upscale step.
         // Flow: Extract → Upscale (step 2) → Vectorize (step 3)
-        console.log("[API Step 1] Extracting flat design with fal.ai (nano-banana-pro/edit)...");
+        logger.info("[API Step 1] Extracting flat design with fal.ai");
 
         // fal.subscribe polls the queue with no timeout of its own. Left
         // unbounded it can outlive maxDuration, and when the platform kills the
@@ -245,7 +246,7 @@ export async function POST(request) {
             logs: true,
             onQueueUpdate: (update) => {
               if (update.status === "IN_PROGRESS") {
-                update.logs.map((log) => log.message).forEach(console.log);
+                update.logs.map((log) => log.message).forEach((message) => logger.debug("[API Step 1] Provider log", { message }));
               }
             },
           }),
@@ -257,7 +258,7 @@ export async function POST(request) {
           ),
         ]);
 
-        console.log("[fal.ai response images]:", result?.data?.images?.length ?? 0);
+        logger.debug("[fal.ai response images]", { count: result?.data?.images?.length ?? 0 });
 
         if (!result || !result.data || !result.data.images || result.data.images.length === 0) {
           throw new Error("fal.ai did not return a valid image URL. Response: " + JSON.stringify(result));
@@ -312,7 +313,7 @@ export async function POST(request) {
                 .png({ effort: 1 })
                 .toBuffer();
               generatedMimeType = "image/png";
-              console.log(`[Trace] Re-registered ${genMeta.width}x${genMeta.height} → ${targetW}x${targetH} to match source ratio ${sourceRatio.toFixed(4)}`);
+              logger.info("[Trace] Re-registered generated image", { from: `${genMeta.width}x${genMeta.height}`, to: `${targetW}x${targetH}`, sourceRatio: sourceRatio.toFixed(4) });
             }
           } catch (registrationErr) {
             // Non-fatal: a slightly mis-registered image still beats a failed generation.
@@ -397,14 +398,14 @@ export async function POST(request) {
           upscaleFactor = Math.floor(Math.min(byEdge, byArea) * 2) / 2;
           upscaleFactor = Math.min(4, Math.max(1, upscaleFactor));
         }
-        console.log(`[API Step 2] Step-1 image is ${stepOneMeta.width}x${stepOneMeta.height}; using ${upscaleFactor}x upscale.`);
+        logger.info("[API Step 2] Measured step-1 image", { size: `${stepOneMeta.width}x${stepOneMeta.height}`, upscaleFactor });
       } catch (sizeErr) {
         // Could not measure — fall back to the conservative factor rather than 4x.
         upscaleFactor = 2;
         console.warn("[API Step 2] Could not measure step-1 image, defaulting to 2x:", sizeErr.message);
       }
 
-      console.log("[API Step 2] Upscaling with fal-ai/esrgan...");
+      logger.info("[API Step 2] Upscaling with fal-ai/esrgan");
 
       const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
         input: {
@@ -414,12 +415,12 @@ export async function POST(request) {
         logs: true,
         onQueueUpdate: (update) => {
           if (update.status === "IN_PROGRESS") {
-            update.logs?.map((log) => log.message).forEach(console.log);
+            update.logs?.map((log) => log.message).forEach((message) => logger.debug("[API Step 2] Provider log", { message }));
           }
         },
       });
 
-      console.log("[ESRGAN RAW Response]:", JSON.stringify(upscalerResult?.data, null, 2));
+      logger.debug("[ESRGAN RAW Response]", upscalerResult?.data);
 
       const upscaledUrl = upscalerResult?.data?.image?.url || upscalerResult?.data?.image_url;
       if (!upscaledUrl) {

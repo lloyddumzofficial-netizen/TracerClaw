@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/Toast";
 import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
 import { safeJson } from "@/lib/safeJson";
+import { logger } from "@/lib/logger";
 
 import "../globals.css";
 import "../home.css";
@@ -80,7 +81,7 @@ export default function AdminDashboard() {
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[Admin] Realtime connected - instant payment notifications active.');
+            logger.info("[Admin] Realtime connected");
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.warn('[Admin] Realtime connection issue:', status);
           }

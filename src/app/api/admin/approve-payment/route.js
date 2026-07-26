@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { Resend } from "resend";
 import { getCreditPlan } from "@/lib/paymentPlans";
+import { logger } from "@/lib/logger";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -132,7 +133,7 @@ export async function POST(request) {
           subject: 'Payment Approved - Credits Added! 🎉',
           html: htmlTemplate,
         });
-        console.log(`Email sent to ${claimedRequest.email}`);
+        logger.info("[Admin Approval] Email sent", { email: claimedRequest.email });
       } catch (emailErr) {
         console.error("Failed to send email:", emailErr);
         // We do not fail the request if email fails, credits were already added.

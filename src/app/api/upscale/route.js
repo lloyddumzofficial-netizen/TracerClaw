@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { logger } from "@/lib/logger";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -78,7 +79,7 @@ export async function POST(request) {
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
     const { fal } = await import("@fal-ai/client");
 
-    console.log("[API Upscale] Using fal-ai/aura-sr for upscale on:", finalImageUrl);
+    logger.info("[API Upscale] Using fal-ai/aura-sr", { finalImageUrl });
 
     const result = await fal.subscribe("fal-ai/aura-sr", {
       input: {
@@ -87,7 +88,7 @@ export async function POST(request) {
       logs: true,
       onQueueUpdate: (update) => {
         if (update.status === "IN_PROGRESS") {
-          update.logs.map((log) => log.message).forEach(console.log);
+          update.logs.map((log) => log.message).forEach((message) => logger.debug("[API Upscale] Provider log", { message }));
         }
       },
     });
