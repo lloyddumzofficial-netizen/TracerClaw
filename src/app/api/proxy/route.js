@@ -13,14 +13,28 @@ const R2_STORAGE_HOST = process.env.CLOUDFLARE_ACCOUNT_ID
   ? `${process.env.CLOUDFLARE_BUCKET_NAME}.${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`
   : null;
 
+const PROVIDER_HOSTS = getAllowedProviderHosts();
 const ALLOWED_HOSTS = [
   R2_PUBLIC_HOST,
   // R2 S3-compatible endpoint — images uploaded via presigned URLs may have this as source
   ...(R2_STORAGE_HOST ? [R2_STORAGE_HOST] : []),
   // Legacy standalone upscales were saved as provider URLs before the API moved
   // them into R2. Keep downloads working while new outputs are stored in R2.
-  ...getAllowedProviderHosts(),
+  ...PROVIDER_HOSTS,
 ];
+
+function matchesAllowedHost(hostname, allowedHosts) {
+  const host = hostname.toLowerCase();
+  return allowedHosts.some((allowedHost) => {
+    const allowed = String(allowedHost || '').toLowerCase();
+    if (!allowed) return false;
+    if (allowed.startsWith('.')) {
+      const suffix = allowed.slice(1);
+      return host === suffix || host.endsWith(allowed);
+    }
+    return host === allowed;
+  });
+}
 
 export async function GET(request) {
   try {
@@ -64,7 +78,8 @@ export async function GET(request) {
     }
 
     const lowerPath = parsedUrl.pathname.toLowerCase();
-    const isUpscaledDownload = lowerPath.includes('/upscaled_') || downloadName?.toLowerCase().includes('upscaled');
+    const isProviderMedia = matchesAllowedHost(parsedUrl.hostname, PROVIDER_HOSTS);
+    const isUpscaledDownload = isProviderMedia || lowerPath.includes('/upscaled_') || downloadName?.toLowerCase().includes('upscaled');
     const maxBytes = lowerPath.endsWith('.svg')
       ? DEFAULT_MAX_SVG_BYTES
       : lowerPath.endsWith('.zip')

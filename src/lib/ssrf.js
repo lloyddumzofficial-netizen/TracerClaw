@@ -5,7 +5,7 @@ import net from 'net';
 const lookup = promisify(dns.lookup);
 
 export const DEFAULT_MAX_IMAGE_BYTES = 15 * 1024 * 1024;
-export const DEFAULT_MAX_UPSCALED_IMAGE_BYTES = 60 * 1024 * 1024;
+export const DEFAULT_MAX_UPSCALED_IMAGE_BYTES = 120 * 1024 * 1024;
 export const DEFAULT_MAX_SVG_BYTES = 8 * 1024 * 1024;
 export const DEFAULT_MAX_ZIP_BYTES = 120 * 1024 * 1024;
 
