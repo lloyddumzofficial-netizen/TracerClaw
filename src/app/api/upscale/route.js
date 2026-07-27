@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { uploadToR2 } from "@/lib/cloudflare";
 import {
-  DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
-  fetchWithSSRFProtection,
-  getAllowedProviderHosts,
   getAllowedStorageHosts,
   isOwnedStorageUrl,
   normalizeUserImageUrl,
@@ -106,26 +102,7 @@ export async function POST(request) {
       throw new Error("Upscaler failed to return a valid image URL.");
     }
 
-    const providerUpscaledUrl = result.data.image.url;
-    const { response: upscaledResponse, buffer: upscaledBuffer, finalUrl } = await fetchWithSSRFProtection(providerUpscaledUrl, {
-      allowedHosts: getAllowedProviderHosts(),
-      maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
-      allowedContentTypes: ['image/', 'application/octet-stream'],
-      timeoutMs: 60_000,
-    });
-
-    if (!upscaledResponse.ok) {
-      throw new Error("Failed to download upscaled image from provider.");
-    }
-
-    const contentType = upscaledResponse.headers.get('content-type')?.split(';')[0] || result.data.image.content_type || "image/png";
-    const providerExt = new URL(finalUrl).pathname.split('.').pop() || "png";
-    const ext = providerExt.length <= 4 && !providerExt.includes("?") ? providerExt : "png";
-    const upscaledUrl = await uploadToR2(
-      upscaledBuffer,
-      `users/${userId}/upscaled_${Date.now()}.${ext}`,
-      contentType
-    );
+    const upscaledUrl = result.data.image.url;
 
     // Save to projects table (history)
     const { error: insertErr } = await adminSupabase
