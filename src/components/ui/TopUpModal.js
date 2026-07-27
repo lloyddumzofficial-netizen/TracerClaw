@@ -12,10 +12,10 @@ import { analytics } from "@/lib/analytics";
 // Derived from CREDIT_PLANS — single source of truth.
 // To change prices, edit src/lib/paymentPlans.js only.
 const PLANS_META = {
-  tingi:   { icon: '/Claws/6f530a46-652b-4f20-8d6c-2a7c9f587698.png', desc: 'Small package for quick tests.',                          features: ['2 HD Vector Traces', 'Standard Processing'] },
-  basic:   { icon: '/Claws/a15960f4-04ea-43bf-b226-20b9923767a4.png', desc: 'Great for hobbyists printing occasionally.',               features: ['5 HD Vector Traces', 'Standard Processing'] },
-  starter: { icon: '/Claws/f05da7d4-2019-4c80-9c92-cfc2ba752ef5.png', desc: 'Ideal for small businesses taking their first steps.',     features: ['10 HD Vector Traces', 'Priority Processing', 'Email support'] },
-  pro:     { icon: '/Claws/e21d7ba5-f8c9-4e19-8653-f9d7db6eeedb.png', desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['35 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
+  tingi:   { icon: '/Claws/6f530a46-652b-4f20-8d6c-2a7c9f587698.webp', desc: 'Small package for quick tests.',                          features: ['2 HD Vector Traces', 'Standard Processing'] },
+  basic:   { icon: '/Claws/a15960f4-04ea-43bf-b226-20b9923767a4.webp', desc: 'Great for hobbyists printing occasionally.',               features: ['5 HD Vector Traces', 'Standard Processing'] },
+  starter: { icon: '/Claws/f05da7d4-2019-4c80-9c92-cfc2ba752ef5.webp', desc: 'Ideal for small businesses taking their first steps.',     features: ['10 HD Vector Traces', 'Priority Processing', 'Email support'] },
+  pro:     { icon: '/Claws/e21d7ba5-f8c9-4e19-8653-f9d7db6eeedb.webp', desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['35 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
 };
 
 const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
@@ -376,7 +376,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   disabled={isStartingDodo || form.plan === 'tingi'}
                   style={{ background: '#333', border: '1px solid #FFD700', color: '#fff', padding: '24px', textAlign: 'left', cursor: (isStartingDodo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: (isStartingDodo || form.plan === 'tingi') ? 0.55 : 1 }}
                 >
-                  <Image src="/Claws/Claws.png" alt="Claws" width={26} height={26} style={{ objectFit: 'contain' }} />
+                  <Image src="/Claws/Claws.webp" alt="Claws" width={26} height={26} style={{ objectFit: 'contain' }} />
                   <span style={{ fontSize: '18px', fontWeight: '700' }}>Card / International</span>
                   <span style={{ color: '#aaa', fontSize: '13px', lineHeight: 1.5 }}>
                     {form.plan === 'tingi'

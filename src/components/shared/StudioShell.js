@@ -45,7 +45,7 @@ const StudioShell = memo(function StudioShell({
             </button>
           )}
           <button className="studio-credit-pill" onClick={onCreditsClick} type="button">
-            <Image src="/Claws/Claws.png" alt="Claws" width={14} height={14} style={{ objectFit: 'contain' }} />
+            <Image src="/Claws/Claws.webp" alt="Claws" width={14} height={14} style={{ objectFit: 'contain' }} />
             <span>{credits ?? "-"}</span>
             <small>Claws</small>
           </button>

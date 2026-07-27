@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { X, Image as ImageIcon, FileText } from "lucide-react";
+import { X, Image as ImageIcon, FileText, Shirt, Scissors } from "lucide-react";
+
+/* ─── SVG Icons ─────────────────────────────────────────────── */
+const LogoIcon = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M8 9h8M8 12h5M8 15h3"/>
+  </svg>
+);
 
 export default function GlobalMobileSync() {
   const router = useRouter();

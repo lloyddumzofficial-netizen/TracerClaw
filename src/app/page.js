@@ -59,7 +59,7 @@ function HomepageWorkflowPreview() {
 
       <div className="workflow-mockup" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <figure style={{ margin: 0, width: '80%' }}>
-          <img src="/samples/production-preview/Hue_Saturation.png" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
+          <img src="/samples/production-preview/Hue_Saturation.webp" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
         </figure>
       </div>
     </section>
@@ -594,7 +594,7 @@ export default function StartScreen() {
               <>
                 {/* Premium Credits Badge */}
                 <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#2a2a2a", padding: "6px 12px", borderRadius: "0", cursor: "pointer", border: "1px solid #444", transition: "border-color 0.2s" }} onMouseOver={e => e.currentTarget.style.borderColor = "#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor = "#444"}>
-                  <img src="/Claws/Claws.png" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
+                  <img src="/Claws/Claws.webp" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
                   <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}>{credits}</span>
                   <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CLAWS</span>
                 </div>
@@ -1008,7 +1008,7 @@ export default function StartScreen() {
             <BeforeAfterSlider
               title="Esports Gaming Apparel (Flat Extracted)"
               rasterUrl="/samples/esports-original.jpg"
-              vectorUrl="/samples/esports-vector.png"
+              vectorUrl="/samples/esports-vector.webp"
             />
             <BeforeAfterSlider
               title="Polo Shirt Pattern (Flat Extracted)"
@@ -1038,8 +1038,8 @@ export default function StartScreen() {
           </div>
           <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
             <BeforeAfterSlider
-              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.png"
-              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.png"
+              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
+              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
               leftLabel="NO BACKGROUND"
               rightLabel="ORIGINAL"
               layout="vertical"
@@ -1070,7 +1070,7 @@ export default function StartScreen() {
           <div style={{ flex: '1 1 450px', minWidth: '280px' }}>
             <BeforeAfterSlider
               rasterUrl="/samples/upscale-original.png"
-              vectorUrl="/samples/upscale-hq.png"
+              vectorUrl="/samples/upscale-hq.webp"
               leftLabel="4K UPSCALE"
               rightLabel="PIXELATED"
               layout="vertical"

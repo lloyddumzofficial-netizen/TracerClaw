@@ -344,7 +344,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
         {/* Right Side: Image */}
         <div className="login-image-side">
           <img 
-            src="/loginmodal.png" 
+            src="/loginmodal.webp" 
             alt="DesaynClaw Workspace" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           />

@@ -11,6 +11,12 @@ export const maxDuration = 120; // Enough time for BG removal + R2 upload
 
 export async function POST(request) {
   let userId = null;
+  // Declared at function scope, like /api/trace and /api/trace-step3 do. This
+  // used to be destructured with const inside the try block, so every reference
+  // to it in the catch threw a ReferenceError — which the inner try/catch
+  // swallowed, meaning safeRefundCredit() below was never reached and a failed
+  // removal charged the user a claw that was never returned.
+  let projectId;
   let creditDeducted = false;
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
@@ -37,7 +43,9 @@ export async function POST(request) {
     if (!rateLimit.success) return rateLimit.response;
     // ─────────────────────────────────────────────────────────────────────────────
 
-    const { projectId, keepOriginal } = await request.json();
+    const body = await request.json();
+    projectId = body.projectId;
+    const { keepOriginal } = body;
 
     if (!projectId) {
       return NextResponse.json({ error: "Missing projectId" }, { status: 400 });

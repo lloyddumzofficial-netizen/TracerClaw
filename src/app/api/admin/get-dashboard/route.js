@@ -4,6 +4,55 @@ import { adminSupabase } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const PROOF_BUCKET = "payment_proofs";
+const PROOF_URL_TTL_SECONDS = 600;
+
+/**
+ * The payment_proofs bucket is private (database/secure_payment_proofs.sql), so
+ * the stored proof_url no longer resolves for anyone. It is still the stable
+ * reference to the object, so derive the key from it and hand the admin a
+ * short-lived signed URL instead. Rows written before that migration and rows
+ * written after it both use the same public-format URL, so one path covers both.
+ */
+function proofObjectKey(proofUrl) {
+  if (!proofUrl) return null;
+  const marker = `/${PROOF_BUCKET}/`;
+  const index = String(proofUrl).indexOf(marker);
+  if (index === -1) return null;
+  const key = decodeURIComponent(String(proofUrl).slice(index + marker.length).split("?")[0]);
+  return key && !key.includes("..") ? key : null;
+}
+
+async function withSignedProofUrls(requests) {
+  const keyed = requests
+    .map((request) => ({ request, key: proofObjectKey(request.proof_url) }))
+    .filter((entry) => entry.key);
+
+  if (keyed.length === 0) return requests;
+
+  const { data: signed, error } = await adminSupabase
+    .storage
+    .from(PROOF_BUCKET)
+    .createSignedUrls(keyed.map((entry) => entry.key), PROOF_URL_TTL_SECONDS);
+
+  if (error) {
+    console.error("[Admin Dashboard] Could not sign payment proof URLs:", error);
+  }
+
+  const signedByKey = new Map();
+  (signed || []).forEach((row, index) => {
+    if (row?.signedUrl) signedByKey.set(keyed[index].key, row.signedUrl);
+  });
+
+  // Blank the stored URL when signing failed rather than returning the old
+  // public one — it does not resolve any more and would look like a dead link.
+  return requests.map((request) => {
+    const key = proofObjectKey(request.proof_url);
+    if (!key) return request;
+    return { ...request, proof_url: signedByKey.get(key) || null };
+  });
+}
+
 async function fetchPaymentRequestsByStatus(status) {
   const pageSize = 1000;
   let from = 0;
@@ -88,7 +137,7 @@ export async function GET(request) {
       fetchPaymentRequestsByStatus('pending'),
       fetchPaymentRequestsByStatus('approved'),
     ]);
-    const requests = [...pendingRequests, ...approvedRequests];
+    const requests = await withSignedProofUrls([...pendingRequests, ...approvedRequests]);
 
     let dodoPayments = [];
     try {

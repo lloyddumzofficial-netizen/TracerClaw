@@ -10,7 +10,7 @@ const NoCreditsModal = memo(function NoCreditsModal({ show, onClose, onTopUp }) 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: "400px", textAlign: "center", padding: "30px" }} onClick={e => e.stopPropagation()}>
         <div style={{ marginBottom: "16px", display: "flex", justifyContent: "center" }}>
-          <Image src="/Claws/Claws.png" alt="Claws" width={48} height={48} style={{ objectFit: 'contain' }} />
+          <Image src="/Claws/Claws.webp" alt="Claws" width={48} height={48} style={{ objectFit: 'contain' }} />
         </div>
         <h3 style={{ margin: "0 0 10px", color: "#fff", fontWeight: "700", fontSize: "20px" }}>0 Traces Remaining</h3>
         <p style={{ color: "#aaa", fontSize: "14px", marginBottom: "24px", lineHeight: 1.5 }}>

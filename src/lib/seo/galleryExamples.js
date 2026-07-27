@@ -13,7 +13,7 @@ export const galleryExamples = [
     slug: "low-resolution-logo-enhancement",
     title: "Low-Resolution Logo Enhancement",
     description: "A compressed customer logo improved before SVG tracing and print production.",
-    beforeImage: "/samples/production-preview/Hue_Saturation.png",
+    beforeImage: "/samples/production-preview/Hue_Saturation.webp",
     afterImage: "/samples/production-preview/SUBJECT.png",
     category: "Logo Cleanup",
     tags: ["logo", "upscale", "print shops"],

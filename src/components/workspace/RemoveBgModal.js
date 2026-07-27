@@ -198,7 +198,7 @@ const RemoveBgModal = memo(function RemoveBgModal({
             padding: "8px 12px",
             fontSize: "11px",
           }}>
-            <Image src="/Claws/Claws.png" alt="Claw" width={14} height={14} style={{ objectFit: 'contain' }} />
+            <Image src="/Claws/Claws.webp" alt="Claw" width={14} height={14} style={{ objectFit: 'contain' }} />
             <span style={{ color: "#888" }}>This action will consume <strong style={{ color: "#FFD700" }}>1 Claw</strong> from your account.</span>
           </div>
 

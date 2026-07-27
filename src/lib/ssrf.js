@@ -235,5 +235,10 @@ export async function responseToLimitedBuffer(response, maxBytes = DEFAULT_MAX_I
     chunks.push(value);
   }
 
-  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), total);
+  // Buffer.concat accepts Uint8Array directly. The previous .map(Buffer.from)
+  // copied every chunk first, so a 120MB download peaked at roughly three
+  // copies (chunks + copies + result) instead of two. On the upscale paths that
+  // overshoot is enough to OOM the function — and an OOM kill skips the catch
+  // block, so the user is charged with no refund and no failure stamp.
+  return Buffer.concat(chunks, total);
 }

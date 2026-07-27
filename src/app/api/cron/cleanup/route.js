@@ -1,22 +1,148 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { deleteFromR2, s3Client, bucketName } from '@/lib/cloudflare';
+import { deleteFromR2, s3Client, bucketName, uploadToR2 } from '@/lib/cloudflare';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { safeRefundCredit } from '@/lib/supabase';
+import {
+  DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+  fetchWithSSRFProtection,
+  getAllowedProviderHosts,
+} from '@/lib/ssrf';
 import { logger } from '@/lib/logger';
 
 // Ensure this route doesn't run at the Edge since it uses AWS SDK heavily
 export const runtime = 'nodejs';
-export const maxDuration = 60; 
+export const maxDuration = 60;
 
 const PROJECT_BATCH_LIMIT = 10;
 const MOBILE_SCAN_LIMIT = 250;
 const MOBILE_DELETE_LIMIT = 25;
 const ZIP_BATCH_LIMIT = 25;
+const UPSCALE_RECONCILE_LIMIT = 20;
+// A queued AuraSR job finishes in seconds to a couple of minutes. Anything
+// still unresolved after this long was abandoned by the client and will never
+// be reconciled, because nothing but the browser poll ever checks it.
+const UPSCALE_STALE_MINUTES = 30;
+const UPSCALE_ENDPOINT = 'fal-ai/aura-sr';
 
 const adminSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+/**
+ * Settle standalone upscales that the client abandoned.
+ *
+ * /api/upscale deducts a claw, submits to the fal queue and returns
+ * immediately; completion is only ever recorded by the browser polling
+ * /api/upscale?requestId=... So if the user closes the tab, the claw is spent,
+ * generated_image_url stays null, no failure is stamped and no refund path ever
+ * fires — the claw is silently lost. Nothing server-side reconciled these.
+ *
+ * Marking a stale job refunded also makes it terminal: the GET handler treats
+ * refunded / 'REFUNDED' as failed, so a late completion cannot also be
+ * delivered on top of the refund.
+ */
+async function reconcileAbandonedUpscales(results) {
+  const staleBefore = new Date(Date.now() - UPSCALE_STALE_MINUTES * 60_000).toISOString();
+
+  const { data: stale, error: staleErr } = await adminSupabase
+    .from('projects')
+    .select('id, user_id, ai_prompt, credit_deducted, refunded')
+    .eq('trace_type', 'upscale')
+    .is('generated_image_url', null)
+    .eq('refunded', false)
+    .lt('created_at', staleBefore)
+    .order('created_at', { ascending: true })
+    .limit(UPSCALE_RECONCILE_LIMIT);
+
+  if (staleErr) throw staleErr;
+  if (!stale || stale.length === 0) return;
+
+  if (!process.env.FAL_KEY) {
+    console.warn('[Cron] FAL_KEY missing — skipping upscale reconciliation');
+    return;
+  }
+  const { fal } = await import('@fal-ai/client');
+
+  for (const project of stale) {
+    const requestId = project.ai_prompt?.startsWith(`fal:aura-sr:`)
+      ? project.ai_prompt.slice('fal:aura-sr:'.length)
+      : null;
+    if (!requestId) continue;
+
+    try {
+      let recoveredUrl = null;
+      try {
+        const status = await fal.queue.status(UPSCALE_ENDPOINT, { requestId });
+        if (status.status === 'COMPLETED') {
+          const result = await fal.queue.result(UPSCALE_ENDPOINT, { requestId });
+          const providerUrl = result?.data?.image?.url;
+          if (providerUrl) {
+            const { response, buffer } = await fetchWithSSRFProtection(providerUrl, {
+              allowedHosts: getAllowedProviderHosts(),
+              maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+              allowedContentTypes: ['image/', 'application/octet-stream'],
+            });
+            if (response.ok) {
+              const contentType = response.headers.get('content-type')?.split(';')[0] || 'image/png';
+              const ext = contentType === 'image/jpeg' ? 'jpg' : (contentType.split('/')[1] || 'png');
+              recoveredUrl = await uploadToR2(
+                buffer,
+                `projects/${project.id}/upscaled_${Date.now()}.${ext}`,
+                contentType
+              );
+            }
+          }
+        }
+      } catch (statusErr) {
+        // Expired or unknown request id — treat as failed and refund below.
+        console.warn(`[Cron] Upscale status lookup failed for ${project.id}:`, statusErr.message);
+      }
+
+      if (recoveredUrl) {
+        await adminSupabase
+          .from('projects')
+          .update({ generated_image_url: recoveredUrl })
+          .eq('id', project.id)
+          .is('generated_image_url', null);
+        results.upscalesRecovered++;
+        logger.info('[Cron] Recovered abandoned upscale', { projectId: project.id });
+        continue;
+      }
+
+      if (!project.credit_deducted) continue;
+
+      const credited = await safeRefundCredit(project.user_id);
+      if (!credited) {
+        console.error(`[Cron] safeRefundCredit FAILED for abandoned upscale ${project.id} — left for retry.`);
+        continue;
+      }
+
+      await adminSupabase
+        .from('projects')
+        .update({
+          generated_image_url: 'REFUNDED',
+          refunded: true,
+          failed_at: new Date().toISOString(),
+          failed_step: 'upscale',
+        })
+        .eq('id', project.id)
+        .eq('refunded', false);
+
+      await adminSupabase.from('credit_logs').insert({
+        user_id: project.user_id,
+        action: 'Refund (Abandoned Upscale)',
+        amount: 1,
+      });
+
+      results.upscalesRefunded++;
+      logger.info('[Cron] Refunded abandoned upscale', { projectId: project.id });
+    } catch (err) {
+      console.error(`[Cron] Upscale reconciliation error for ${project.id}:`, err);
+    }
+  }
+}
 
 export async function GET(request) {
   // Simple cron secret check to prevent random people from triggering it
@@ -30,6 +156,8 @@ export async function GET(request) {
     projectsFailed: 0,
     mobileSyncDeleted: 0,
     zipCacheDeleted: 0,
+    upscalesRecovered: 0,
+    upscalesRefunded: 0,
     projectBatchLimit: PROJECT_BATCH_LIMIT,
     mobileScanLimit: MOBILE_SCAN_LIMIT,
     mobileDeleteLimit: MOBILE_DELETE_LIMIT,
@@ -142,6 +270,13 @@ export async function GET(request) {
       }
     } catch (zipErr) {
       console.warn('[Cron] ZIP cache cleanup failed (non-fatal):', zipErr.message);
+    }
+
+    // ─── 4. Settle standalone upscales the client never polled to completion ──
+    try {
+      await reconcileAbandonedUpscales(results);
+    } catch (upscaleErr) {
+      console.warn('[Cron] Upscale reconciliation failed (non-fatal):', upscaleErr.message);
     }
 
     logger.info("[Cron] Done", results);

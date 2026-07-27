@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import {
+  DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+  fetchWithSSRFProtection,
+  getAllowedProviderHosts,
   getAllowedStorageHosts,
   isOwnedStorageUrl,
   normalizeUserImageUrl,
@@ -10,7 +14,9 @@ import {
 import { logger } from "@/lib/logger";
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+// 60s, not 30s: the completed result is now downloaded from the provider and
+// re-uploaded to R2 before it is recorded, which needs headroom on a 4K image.
+export const maxDuration = 60;
 
 const UPSCALE_ENDPOINT = "fal-ai/aura-sr";
 
@@ -27,6 +33,37 @@ async function getAuthenticatedUser(request) {
   }
 
   return { user };
+}
+
+/**
+ * Move a finished provider image into our own bucket.
+ *
+ * fal.media URLs are temporary. Storing one directly — which is what this route
+ * used to do — means the user's paid 4K upscale becomes a dead link once the
+ * provider expires it, with no recovery path and no refund eligibility (the
+ * project counts as delivered). Every other pipeline step already persists to
+ * R2; this brings the standalone upscale in line.
+ *
+ * Best-effort on purpose: if the copy fails we fall back to the provider URL
+ * rather than failing a run the user has already paid for. /api/proxy still
+ * allows provider hosts, so that fallback keeps working exactly as before.
+ */
+async function persistUpscaleToR2(providerUrl, projectId) {
+  try {
+    const { response, buffer } = await fetchWithSSRFProtection(providerUrl, {
+      allowedHosts: getAllowedProviderHosts(),
+      maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+      allowedContentTypes: ['image/', 'application/octet-stream'],
+    });
+    if (!response.ok) throw new Error(`Provider returned ${response.status}`);
+
+    const contentType = response.headers.get('content-type')?.split(';')[0] || 'image/png';
+    const ext = contentType === 'image/jpeg' ? 'jpg' : (contentType.split('/')[1] || 'png');
+    return await uploadToR2(buffer, `projects/${projectId}/upscaled_${Date.now()}.${ext}`, contentType);
+  } catch (err) {
+    console.error(`[Upscale] Could not persist result to R2 for project ${projectId}, keeping provider URL:`, err.message);
+    return null;
+  }
 }
 
 async function refundQueuedUpscale(projectId, userId) {
@@ -198,6 +235,19 @@ export async function GET(request) {
     const { user, error: authResponse } = await getAuthenticatedUser(request);
     if (authResponse) return authResponse;
 
+    // The client polls this endpoint up to 120 times per job at 3s intervals,
+    // and each call costs an auth round trip, a DB read and a provider status
+    // call. Only POST was limited, so this was a free amplifier onto a paid API.
+    // The ceiling is well above what the normal poll loop needs.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:upscale-status:user",
+      identifier: user.id,
+      max: 60,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
+
     const { searchParams } = new URL(request.url);
     const requestId = searchParams.get('requestId');
     const projectId = searchParams.get('projectId');
@@ -241,8 +291,8 @@ export async function GET(request) {
     }
 
     const result = await fal.queue.result(UPSCALE_ENDPOINT, { requestId });
-    const upscaledUrl = result?.data?.image?.url;
-    if (!upscaledUrl) {
+    const providerUrl = result?.data?.image?.url;
+    if (!providerUrl) {
       const didRefund = await refundQueuedUpscale(projectId, user.id);
       return NextResponse.json({
         error: didRefund
@@ -250,6 +300,8 @@ export async function GET(request) {
           : "AI processing failed. Please try again.",
       }, { status: 500 });
     }
+
+    const upscaledUrl = (await persistUpscaleToR2(providerUrl, projectId)) || providerUrl;
 
     await adminSupabase
       .from('projects')
