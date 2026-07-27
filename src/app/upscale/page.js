@@ -270,27 +270,21 @@ export default function UpscalePage() {
   };
 
   const handleDownload = async (url) => {
-    try {
-      if (!url || url === "REFUNDED") {
-        toast.error("Upscale is still processing. Please try again in a moment.");
-        return;
-      }
-      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&download=${encodeURIComponent(`upscaled_${Date.now()}.png`)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error("Failed to fetch upscaled image");
-      const blob = await res.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `upscaled_${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (err) {
-      analytics.error(err, { area: "upscale_download" });
-      toast.error("Failed to download image");
+    if (!url || url === "REFUNDED") {
+      toast.error("Upscale is still processing. Please try again in a moment.");
+      return;
     }
+
+    const fileName = `upscaled_${Date.now()}.png`;
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&download=${encodeURIComponent(fileName)}`;
+    const a = document.createElement('a');
+    a.href = proxyUrl;
+    a.download = fileName;
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   useEffect(() => {
