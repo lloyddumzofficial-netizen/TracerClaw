@@ -58,7 +58,7 @@ export async function GET(request) {
       return new NextResponse('Invalid URL', { status: 400 });
     }
 
-    if (!ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
+    if (!(await validateUrlForSSRF(url, { allowedHosts: ALLOWED_HOSTS }))) {
       console.warn(`[Proxy] Blocked request to unauthorized host: ${parsedUrl.hostname}`);
       return new NextResponse('Forbidden: URL not from an allowed host', { status: 403 });
     }
@@ -75,10 +75,6 @@ export async function GET(request) {
     const isSvg = parsedUrl.pathname.toLowerCase().endsWith('.svg');
 
     if (!isSvg) {
-      if (!(await validateUrlForSSRF(url, { allowedHosts: ALLOWED_HOSTS }))) {
-        return new NextResponse('Forbidden', { status: 403 });
-      }
-
       const upstream = await fetch(url, { redirect: 'manual' });
       if ([301, 302, 303, 307, 308].includes(upstream.status)) {
         return new NextResponse('Redirects are not allowed', { status: 403 });
