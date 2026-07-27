@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { CheckCircle2, Clock, Download, ImageIcon, Loader2, Monitor, Scan, ShieldAlert, Wand2 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
@@ -21,6 +21,10 @@ const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getPendingUpscaleRequestId = (project) => {
+  return project?.ai_prompt?.startsWith("fal:aura-sr:") ? project.ai_prompt.slice("fal:aura-sr:".length) : null;
+};
 
 export default function UpscalePage() {
   const router = useRouter();
@@ -175,6 +179,39 @@ export default function UpscalePage() {
     }
   };
 
+  const pollUpscaleJob = useCallback(async ({ requestId, projectId, token, maxAttempts = 120 }) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const statusRes = await fetch(`/api/upscale?requestId=${encodeURIComponent(requestId)}&projectId=${encodeURIComponent(projectId)}`, {
+        headers: { "Authorization": `Bearer ${token}` },
+        cache: "no-store",
+      });
+      const statusData = await safeJson(statusRes, "Failed to check upscale status");
+      if (!statusRes.ok) throw new Error(statusData.error || "Failed to check upscale status");
+
+      if (statusData.status === "COMPLETED" && statusData.upscaledUrl) {
+        setRecentUpscales(prev => prev.map(item => (
+          item.id === projectId ? { ...item, generated_image_url: statusData.upscaledUrl } : item
+        )));
+        return statusData.upscaledUrl;
+      }
+
+      if (attempt < maxAttempts - 1) await sleep(3000);
+    }
+
+    return null;
+  }, []);
+
+  const resumePendingUpscale = useCallback(async (item, { showToast = false, maxAttempts = 1 } = {}) => {
+    const requestId = getPendingUpscaleRequestId(item);
+    if (!requestId || !user) return null;
+    const sessionRes = await supabase.auth.getSession();
+    const token = sessionRes.data.session?.access_token;
+    if (!token) throw new Error("Unauthorized");
+    const upscaledUrl = await pollUpscaleJob({ requestId, projectId: item.id, token, maxAttempts });
+    if (upscaledUrl && showToast) toast.success("Upscale is ready to download.");
+    return upscaledUrl;
+  }, [pollUpscaleJob, supabase, user]);
+
   const handleUpscale = async () => {
     if (!selectedFile && !selectedUrl) return;
     if (credits <= 0) {
@@ -212,19 +249,7 @@ export default function UpscalePage() {
 
       let upscaledUrl = data.upscaledUrl;
       if (!upscaledUrl && data.requestId && data.projectId) {
-        for (let attempt = 0; attempt < 120; attempt++) {
-          await sleep(3000);
-          const statusRes = await fetch(`/api/upscale?requestId=${encodeURIComponent(data.requestId)}&projectId=${encodeURIComponent(data.projectId)}`, {
-            headers: { "Authorization": `Bearer ${token}` },
-            cache: "no-store",
-          });
-          const statusData = await safeJson(statusRes, "Failed to check upscale status");
-          if (!statusRes.ok) throw new Error(statusData.error || "Failed to check upscale status");
-          if (statusData.status === "COMPLETED" && statusData.upscaledUrl) {
-            upscaledUrl = statusData.upscaledUrl;
-            break;
-          }
-        }
+        upscaledUrl = await pollUpscaleJob({ requestId: data.requestId, projectId: data.projectId, token });
       }
 
       if (!upscaledUrl) {
@@ -246,6 +271,10 @@ export default function UpscalePage() {
 
   const handleDownload = async (url) => {
     try {
+      if (!url || url === "REFUNDED") {
+        toast.error("Upscale is still processing. Please try again in a moment.");
+        return;
+      }
       const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&download=${encodeURIComponent(`upscaled_${Date.now()}.png`)}`;
       const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error("Failed to fetch upscaled image");
@@ -263,6 +292,23 @@ export default function UpscalePage() {
       toast.error("Failed to download image");
     }
   };
+
+  useEffect(() => {
+    if (!user || recentUpscales.length === 0) return;
+    const pendingItems = recentUpscales
+      .filter(item => !item.generated_image_url && getPendingUpscaleRequestId(item))
+      .slice(0, 5);
+    if (pendingItems.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const item of pendingItems) {
+        if (cancelled) return;
+        try { await resumePendingUpscale(item, { maxAttempts: 1 }); } catch {}
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [recentUpscales, resumePendingUpscale, user]);
 
   if (isMobileDevice !== false) {
     return <DesktopRequiredNotice />;
@@ -484,8 +530,20 @@ export default function UpscalePage() {
                         </span>
                       </div>
                       <button
-                        onClick={() => handleDownload(item.generated_image_url)}
-                        title="Download Image"
+                        onClick={async () => {
+                          if (item.generated_image_url && item.generated_image_url !== "REFUNDED") {
+                            await handleDownload(item.generated_image_url);
+                            return;
+                          }
+                          try {
+                            const readyUrl = await resumePendingUpscale(item, { showToast: true, maxAttempts: 120 });
+                            if (readyUrl) await handleDownload(readyUrl);
+                            else toast.error("Upscale is still processing. Please try again in a moment.");
+                          } catch (error) {
+                            toast.error(error.message || "Failed to prepare download");
+                          }
+                        }}
+                        title={item.generated_image_url ? "Download Image" : "Finish processing"}
                         style={{ alignSelf: "center", background: "transparent", border: "1px solid #444", color: "#888", width: "28px", height: "28px", borderRadius: "0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.color = "#FFD700"; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#888"; }}
