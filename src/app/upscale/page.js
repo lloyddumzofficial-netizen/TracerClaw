@@ -223,7 +223,9 @@ export default function UpscalePage() {
 
   const handleDownload = async (url) => {
     try {
-      const res = await fetch(url);
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}&download=${encodeURIComponent(`upscaled_${Date.now()}.png`)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("Failed to fetch upscaled image");
       const blob = await res.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

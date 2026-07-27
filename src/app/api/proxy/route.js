@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, DEFAULT_MAX_ZIP_BYTES, fetchWithSSRFProtection, validateUrlForSSRF } from "@/lib/ssrf";
+import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, DEFAULT_MAX_ZIP_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, validateUrlForSSRF } from "@/lib/ssrf";
 import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 
-// SSRF Protection: only allow proxying from our own Cloudflare R2 domains.
-// Never fetch arbitrary URLs from the server — that opens internal metadata attacks.
+// SSRF Protection: only allow proxying from our own Cloudflare R2 domains and
+// known AI provider media hosts. Never fetch arbitrary URLs from the server —
+// that opens internal metadata attacks.
 const R2_PUBLIC_HOST = process.env.CLOUDFLARE_PUBLIC_URL
   ? new URL(process.env.CLOUDFLARE_PUBLIC_URL).hostname
   : "pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev";
@@ -16,6 +17,9 @@ const ALLOWED_HOSTS = [
   R2_PUBLIC_HOST,
   // R2 S3-compatible endpoint — images uploaded via presigned URLs may have this as source
   ...(R2_STORAGE_HOST ? [R2_STORAGE_HOST] : []),
+  // Legacy standalone upscales were saved as provider URLs before the API moved
+  // them into R2. Keep downloads working while new outputs are stored in R2.
+  ...getAllowedProviderHosts(),
 ];
 
 export async function GET(request) {
@@ -60,11 +64,12 @@ export async function GET(request) {
     }
 
     const lowerPath = parsedUrl.pathname.toLowerCase();
+    const isUpscaledDownload = lowerPath.includes('/upscaled_') || downloadName?.toLowerCase().includes('upscaled');
     const maxBytes = lowerPath.endsWith('.svg')
       ? DEFAULT_MAX_SVG_BYTES
       : lowerPath.endsWith('.zip')
         ? DEFAULT_MAX_ZIP_BYTES
-      : lowerPath.includes('/upscaled_')
+      : isUpscaledDownload
         ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
         : DEFAULT_MAX_IMAGE_BYTES;
     const isSvg = parsedUrl.pathname.toLowerCase().endsWith('.svg');
