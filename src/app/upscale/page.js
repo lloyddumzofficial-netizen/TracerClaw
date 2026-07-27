@@ -20,6 +20,8 @@ import "../home.css";
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export default function UpscalePage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
@@ -208,7 +210,28 @@ export default function UpscalePage() {
       const data = await safeJson(res, "Failed to process image");
       if (!res.ok) throw new Error(data.error || "Failed to process image");
 
-      setUpscaledImage(data.upscaledUrl);
+      let upscaledUrl = data.upscaledUrl;
+      if (!upscaledUrl && data.requestId && data.projectId) {
+        for (let attempt = 0; attempt < 120; attempt++) {
+          await sleep(3000);
+          const statusRes = await fetch(`/api/upscale?requestId=${encodeURIComponent(data.requestId)}&projectId=${encodeURIComponent(data.projectId)}`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            cache: "no-store",
+          });
+          const statusData = await safeJson(statusRes, "Failed to check upscale status");
+          if (!statusRes.ok) throw new Error(statusData.error || "Failed to check upscale status");
+          if (statusData.status === "COMPLETED" && statusData.upscaledUrl) {
+            upscaledUrl = statusData.upscaledUrl;
+            break;
+          }
+        }
+      }
+
+      if (!upscaledUrl) {
+        throw new Error("Upscale is taking too long. Please try again.");
+      }
+
+      setUpscaledImage(upscaledUrl);
       toast.success("Image upscaled successfully! (1 Claw deducted)");
       fetchCredits(user.id);
       fetchRecentUpscales(user.id);

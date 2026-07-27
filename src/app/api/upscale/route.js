@@ -10,22 +10,67 @@ import {
 import { logger } from "@/lib/logger";
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 30;
+
+const UPSCALE_ENDPOINT = "fal-ai/aura-sr";
+
+async function getAuthenticatedUser(request) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  const { data: { user }, error: authError } = await adminSupabase.auth.getUser(token);
+  if (authError || !user) {
+    return { error: NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 }) };
+  }
+
+  return { user };
+}
+
+async function refundQueuedUpscale(projectId, userId) {
+  const { data: project } = await adminSupabase
+    .from('projects')
+    .select('credit_deducted, refunded, generated_image_url')
+    .eq('id', projectId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!project?.credit_deducted || project.refunded || project.generated_image_url) {
+    return false;
+  }
+
+  const credited = await safeRefundCredit(userId);
+  if (!credited) return false;
+
+  await adminSupabase
+    .from('projects')
+    .update({
+      generated_image_url: 'REFUNDED',
+      refunded: true,
+      failed_at: new Date().toISOString(),
+      failed_step: "upscale",
+    })
+    .eq('id', projectId)
+    .eq('user_id', userId)
+    .eq('refunded', false);
+
+  await adminSupabase.from('credit_logs').insert({
+    user_id: userId,
+    action: 'Refund (Upscale Error)',
+    amount: 1,
+  });
+
+  return true;
+}
 
 export async function POST(request) {
   let userId;
   let creditDeducted = false;
   try {
-    // Auth
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '').trim();
-    const { data: { user }, error: authError } = await adminSupabase.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
-    }
+    const { user, error: authResponse } = await getAuthenticatedUser(request);
+    if (authResponse) return authResponse;
     userId = user.id;
 
     const rateLimit = await enforceRateLimit({
@@ -84,44 +129,43 @@ export async function POST(request) {
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
     const { fal } = await import("@fal-ai/client");
 
-    logger.info("[API Upscale] Using fal-ai/aura-sr", { finalImageUrl });
+    logger.info("[API Upscale] Queueing fal-ai/aura-sr", { finalImageUrl });
 
-    const result = await fal.subscribe("fal-ai/aura-sr", {
+    const queued = await fal.queue.submit(UPSCALE_ENDPOINT, {
       input: {
         image_url: finalImageUrl
       },
-      logs: true,
-      onQueueUpdate: (update) => {
-        if (update.status === "IN_PROGRESS") {
-          update.logs.map((log) => log.message).forEach((message) => logger.debug("[API Upscale] Provider log", { message }));
-        }
-      },
     });
 
-    if (!result || !result.data || !result.data.image || !result.data.image.url) {
-      throw new Error("Upscaler failed to return a valid image URL.");
+    if (!queued?.request_id) {
+      throw new Error("Upscaler failed to queue the request.");
     }
 
-    const upscaledUrl = result.data.image.url;
-
-    // Save to projects table (history)
-    const { error: insertErr } = await adminSupabase
+    const { data: project, error: insertErr } = await adminSupabase
       .from('projects')
       .insert({
         user_id: userId,
         name: "AuraSR Upscale 4K",
         trace_type: "upscale",
         original_image_url: finalImageUrl,
-        generated_image_url: upscaledUrl,
+        ai_prompt: `fal:aura-sr:${queued.request_id}`,
+        generated_image_url: null,
         credit_deducted: true,
         refunded: false
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertErr) {
-      console.error("Failed to save to history:", insertErr);
+      throw new Error("Failed to save upscale request.");
     }
 
-    return NextResponse.json({ success: true, upscaledUrl });
+    return NextResponse.json({
+      success: true,
+      status: queued.status || "IN_QUEUE",
+      requestId: queued.request_id,
+      projectId: project.id,
+    });
 
   } catch (error) {
     console.error(`[Upscale API Error]:`, error.message);
@@ -146,5 +190,76 @@ export async function POST(request) {
           : 'AI processing failed. Please try again.')
       : (error.message || 'Failed to process upscale');
     return NextResponse.json({ error: safeMessage }, { status: 500 });
+  }
+}
+
+export async function GET(request) {
+  try {
+    const { user, error: authResponse } = await getAuthenticatedUser(request);
+    if (authResponse) return authResponse;
+
+    const { searchParams } = new URL(request.url);
+    const requestId = searchParams.get('requestId');
+    const projectId = searchParams.get('projectId');
+    if (!requestId || !projectId) {
+      return NextResponse.json({ error: "Missing requestId or projectId" }, { status: 400 });
+    }
+
+    const { data: project, error: projectErr } = await adminSupabase
+      .from('projects')
+      .select('id, user_id, ai_prompt, generated_image_url, refunded')
+      .eq('id', projectId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (projectErr || !project || project.ai_prompt !== `fal:aura-sr:${requestId}`) {
+      return NextResponse.json({ error: "Upscale request not found" }, { status: 404 });
+    }
+
+    if (project.generated_image_url && project.generated_image_url !== 'REFUNDED') {
+      return NextResponse.json({ success: true, status: "COMPLETED", upscaledUrl: project.generated_image_url });
+    }
+
+    if (project.refunded || project.generated_image_url === 'REFUNDED') {
+      return NextResponse.json({ error: "Upscale failed and was refunded" }, { status: 500 });
+    }
+
+    if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
+    const { fal } = await import("@fal-ai/client");
+    const status = await fal.queue.status(UPSCALE_ENDPOINT, { requestId, logs: true });
+
+    if (status.status !== "COMPLETED") {
+      if (status.status === "FAILED") {
+        const didRefund = await refundQueuedUpscale(projectId, user.id);
+        return NextResponse.json({
+          error: didRefund
+            ? "AI processing failed. Your claw has been refunded."
+            : "AI processing failed. Please try again.",
+        }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, status: status.status, logs: status.logs || [] });
+    }
+
+    const result = await fal.queue.result(UPSCALE_ENDPOINT, { requestId });
+    const upscaledUrl = result?.data?.image?.url;
+    if (!upscaledUrl) {
+      const didRefund = await refundQueuedUpscale(projectId, user.id);
+      return NextResponse.json({
+        error: didRefund
+          ? "AI processing failed. Your claw has been refunded."
+          : "AI processing failed. Please try again.",
+      }, { status: 500 });
+    }
+
+    await adminSupabase
+      .from('projects')
+      .update({ generated_image_url: upscaledUrl })
+      .eq('id', projectId)
+      .eq('user_id', user.id);
+
+    return NextResponse.json({ success: true, status: "COMPLETED", upscaledUrl });
+  } catch (error) {
+    logger.error("[Upscale Poll Error]", error);
+    return NextResponse.json({ error: error.message || "Failed to check upscale status" }, { status: 500 });
   }
 }
