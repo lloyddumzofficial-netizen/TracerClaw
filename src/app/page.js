@@ -35,6 +35,30 @@ import TestimonialSection from "@/components/marketing/TestimonialSection";
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 
+async function uploadFileToPresignedUrl(uploadUrl, file) {
+  let lastError;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (response.ok) return response;
+      if (![408, 429].includes(response.status) && response.status < 500) return response;
+      lastError = new Error(`Storage upload failed with ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 700));
+  }
+
+  throw lastError || new Error("Failed to upload image to storage");
+}
+
 function HomepageWorkflowPreview() {
   return (
     <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
@@ -485,11 +509,7 @@ export default function StartScreen() {
       const urlData = await safeJson(urlRes, "Failed to get upload URL");
       if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
 
-      const putRes = await fetch(urlData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": fileToUpload.type },
-        body: fileToUpload
-      });
+      const putRes = await uploadFileToPresignedUrl(urlData.uploadUrl, fileToUpload);
       if (!putRes.ok) throw new Error("Failed to upload image to storage");
 
       const finalTraceType = isBgRemover ? "bg_remover" : (mobileTraceType || modalTraceType);
