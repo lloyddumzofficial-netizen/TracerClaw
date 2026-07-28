@@ -267,7 +267,7 @@ const CropModal = memo(function CropModal({
   const isLogoMode = project?.trace_type === 'logo';
 
   return (
-    <div className="modal-overlay crop-workspace-overlay">
+    <div className="modal-overlay crop-workspace-overlay" translate="no">
       <div className="crop-workspace-modal">
         <div className="crop-workspace-header">
           <div className="crop-workspace-title">

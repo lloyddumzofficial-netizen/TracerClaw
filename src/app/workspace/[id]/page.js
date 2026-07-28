@@ -449,7 +449,7 @@ export default function Workspace() {
       >
 
 
-      <main className="main-workspace" style={{ padding: 0 }}>
+      <main className="main-workspace" translate="no" style={{ padding: 0 }}>
         {/* Split View Workspace */}
         <div className="canvas-area" style={{ padding: 0 }}>
           {!project ? (
