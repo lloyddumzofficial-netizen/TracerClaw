@@ -9,7 +9,12 @@
     "dev": "node --max-http-header-size=65536 ./node_modules/next/dist/bin/next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/integration tests/api",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test production-smoke.spec.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1079.0",
@@ -34,11 +39,14 @@
     "sharp": "^0.35.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@types/node": "26.1.0",
     "@types/react": "19.2.17",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.0",
     "globals": "^17.8.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "postcss": "8.5.22",
