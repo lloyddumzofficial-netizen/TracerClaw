@@ -1,0 +1,2 @@
+// Future home for storage asset and cleanup domain helpers.
+// Keep route behavior unchanged until a route is intentionally migrated.
