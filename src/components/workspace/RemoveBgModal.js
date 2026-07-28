@@ -40,13 +40,17 @@ const RemoveBgModal = memo(function RemoveBgModal({
       });
 
       const data = await safeJson(res, "Failed to remove background.");
-      if (!res.ok) throw new Error(data.error || "Failed to remove background.");
+      if (!res.ok) {
+        const error = new Error(data.error || "Failed to remove background.");
+        error.code = data.error;
+        throw error;
+      }
 
       onRemoveBgApplied(data.original_image_url, null);
       onClose();
     } catch (err) {
       setErrorMsg(err.message || "Something went wrong.");
-      onRemoveBgApplied(null, err.message);
+      onRemoveBgApplied(null, err.message, { code: err.code });
     } finally {
       setIsProcessing(false);
     }

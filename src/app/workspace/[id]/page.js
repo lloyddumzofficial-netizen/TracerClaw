@@ -368,8 +368,13 @@ export default function Workspace() {
     setActiveTool("pointer");
   }, [logToConsole]);
 
-  const handleRemoveBgApplied = useCallback((publicUrl, errorMsg) => {
+  const handleRemoveBgApplied = useCallback((publicUrl, errorMsg, meta = {}) => {
     if (errorMsg) {
+      if (meta.code === "INSUFFICIENT_CREDITS") {
+        setShowTopUpModal(true);
+        logToConsole("[System] You need more claws to remove the background.", "error");
+        return;
+      }
       analytics.error(new Error(errorMsg), { area: "remove_bg_modal", project_id: project?.id });
       logToConsole(`[Error] Failed to remove background: ${errorMsg}`, "error");
     } else if (publicUrl) {
