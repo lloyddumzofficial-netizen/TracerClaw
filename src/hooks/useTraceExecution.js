@@ -4,6 +4,10 @@ import { useState, useCallback, useRef } from "react";
 import { analytics } from "@/lib/analytics";
 import { safeJson } from "@/lib/safeJson";
 
+function isTraceTimeoutError(error) {
+  return /504|failed to fetch|timed?\s*out|too long to respond/i.test(error?.message || "");
+}
+
 /**
  * useTraceExecution — Manages the full 3-step AI pipeline execution.
  *
@@ -210,7 +214,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
     } catch (error) {
       setTraceState("idle");
 
-      const isTimeout = error.message?.includes("504") || error.message?.includes("Failed to fetch");
+      const isTimeout = isTraceTimeoutError(error);
 
       // Attempt client-side refund request
       try {
@@ -241,20 +245,26 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       }
 
       const displayMsg = isTimeout
-        ? "Request Timed Out. Please crop the image to make it simpler and try again."
+        ? "The AI engine timed out before finishing. Try a tighter crop or simpler image; any claw charged for a fully failed run is restored automatically."
         : error.message;
 
       if (!isTimeout) {
         // Only surface unexpected errors to the dev overlay, not timeout noise
         console.error("[Trace Error]", error);
+        analytics.error(error, {
+          area: "trace_execution",
+          project_id: project.id,
+          trace_type: project.trace_type,
+          timeout: false,
+        });
+      } else {
+        analytics.tracingFunnelStep({
+          step: "trace_timeout",
+          project_id: project.id,
+          trace_type: project.trace_type,
+        });
       }
 
-      analytics.error(error, {
-        area: "trace_execution",
-        project_id: project.id,
-        trace_type: project.trace_type,
-        timeout: isTimeout,
-      });
       logToConsole(`[Error] ${displayMsg}`, "error");
       setTraceState("idle");
       return { success: false };
