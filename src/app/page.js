@@ -344,7 +344,7 @@ export default function StartScreen() {
   // Fetch Public Stats — re-fetch whenever user returns to this tab/page
   useEffect(() => {
     const fetchStats = () => {
-      fetch(`/api/public-stats?t=${Date.now()}`)
+      fetch('/api/public-stats')
         .then(res => safeJson(res, "Failed to load public stats"))
         .then(data => {
           if (data.success) {
