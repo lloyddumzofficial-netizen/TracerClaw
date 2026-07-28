@@ -2,6 +2,22 @@ import * as Sentry from "@sentry/nextjs";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
+function isLocalhostEvent(event) {
+  const urls = [
+    event?.request?.url,
+    typeof window !== "undefined" ? window.location?.href : null,
+  ].filter(Boolean);
+
+  return urls.some((url) => {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    } catch {
+      return false;
+    }
+  });
+}
+
 if (dsn) {
   const integrations = [];
 
@@ -26,6 +42,10 @@ if (dsn) {
     replaysSessionSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE || 0),
     replaysOnErrorSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE || 0.1),
     integrations,
+    beforeSend(event) {
+      if (isLocalhostEvent(event)) return null;
+      return event;
+    },
   });
 
   if (typeof window !== "undefined") {
