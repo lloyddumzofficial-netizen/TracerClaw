@@ -7,6 +7,7 @@ export const revalidate = 0;
 
 const PROOF_BUCKET = "payment_proofs";
 const PROOF_URL_TTL_SECONDS = 600;
+const APPROVED_REQUEST_LIMIT = 100;
 
 /**
  * The payment_proofs bucket is private (database/secure_payment_proofs.sql), so
@@ -54,18 +55,21 @@ async function withSignedProofUrls(requests) {
   });
 }
 
-async function fetchPaymentRequestsByStatus(status) {
+async function fetchPaymentRequestsByStatus(status, { limit } = {}) {
   const pageSize = 1000;
   let from = 0;
   const rows = [];
 
   while (true) {
+    const remaining = Number.isFinite(limit) ? limit - rows.length : pageSize;
+    if (remaining <= 0) return rows;
+
     const { data, error } = await adminSupabase
       .from('payment_requests')
       .select('*')
       .eq('status', status)
       .order('created_at', { ascending: false })
-      .range(from, from + pageSize - 1);
+      .range(from, from + Math.min(pageSize, remaining) - 1);
 
     if (error) {
       throw error;
@@ -109,6 +113,35 @@ async function fetchActiveCreditsTotal() {
   }
 }
 
+async function fetchDashboardMetricsFallback() {
+  const { count: projCount, error: projError } = await adminSupabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true });
+
+  if (projError) throw projError;
+
+  return {
+    totalProjects: projCount || 0,
+    activeCreditsTotal: await fetchActiveCreditsTotal(),
+    totalRevenue: null,
+  };
+}
+
+async function fetchDashboardMetrics() {
+  const { data, error } = await adminSupabase.rpc('get_admin_dashboard_metrics');
+  if (error) {
+    console.warn("[Admin Dashboard] Metrics RPC unavailable; using compatibility fallback:", error.message);
+    return fetchDashboardMetricsFallback();
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    totalProjects: Number(row?.total_projects || 0),
+    activeCreditsTotal: Number(row?.active_credits_total || 0),
+    totalRevenue: Number(row?.approved_gcash_revenue || 0),
+  };
+}
+
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -150,7 +183,7 @@ export async function GET(request) {
     // the table grows.
     const [pendingRequests, approvedRequests] = await Promise.all([
       fetchPaymentRequestsByStatus('pending'),
-      fetchPaymentRequestsByStatus('approved'),
+      fetchPaymentRequestsByStatus('approved', { limit: APPROVED_REQUEST_LIMIT }),
     ]);
     const requests = await withSignedProofUrls([...pendingRequests, ...approvedRequests]);
 
@@ -171,14 +204,7 @@ export async function GET(request) {
       console.error("Error fetching Dodo payments:", dodoFetchErr);
     }
 
-    // Fetch total generations (projects) count
-    const { count: projCount, error: projError } = await adminSupabase
-      .from('projects')
-      .select('*', { count: 'exact', head: true });
-
-    if (projError) {
-      throw projError;
-    }
+    const metrics = await fetchDashboardMetrics();
 
     // Fetch recent reviews (projects with a rating)
     const { data: reviews, error: reviewError } = await adminSupabase
@@ -191,8 +217,6 @@ export async function GET(request) {
     if (reviewError) {
       console.error("Failed to fetch reviews:", reviewError);
     }
-
-    const activeCreditsTotal = await fetchActiveCreditsTotal();
 
     // Fetch users with credits (SCALABLE APPROACH)
     let paidUsers = [];
@@ -258,9 +282,11 @@ export async function GET(request) {
       requests: requests || [],
       pendingRequestCount: pendingRequests.length,
       approvedRequestCount: approvedRequests.length,
+      approvedRequestLimit: APPROVED_REQUEST_LIMIT,
       dodoPayments,
-      totalProjects: projCount || 0,
-      activeCreditsTotal,
+      totalProjects: metrics.totalProjects,
+      activeCreditsTotal: metrics.activeCreditsTotal,
+      totalRevenue: metrics.totalRevenue,
       reviews: reviews || [],
       paidUsers: paidUsers
     }, {

@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const [reviews, setReviews] = useState([]);
   const [totalProjects, setTotalProjects] = useState(0);
   const [activeCreditsTotal, setActiveCreditsTotal] = useState(0);
+  const [dashboardRevenue, setDashboardRevenue] = useState(null);
   const [paidUsers, setPaidUsers] = useState([]);
   const [processingId, setProcessingId] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,6 +44,22 @@ export default function AdminDashboard() {
     let fallbackInterval;
     let realtimeChannel;
     let refreshSilently = () => {};
+    let realtimeHealthy = false;
+
+    const startFallbackPolling = () => {
+      if (!fallbackInterval) {
+        fallbackInterval = setInterval(() => {
+          if (!realtimeHealthy) refreshSilently();
+        }, ADMIN_PAYMENT_REFRESH_MS);
+      }
+    };
+
+    const stopFallbackPolling = () => {
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+        fallbackInterval = null;
+      }
+    };
 
     const checkAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -81,14 +98,18 @@ export default function AdminDashboard() {
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
+            realtimeHealthy = true;
+            stopFallbackPolling();
             logger.info("[Admin] Realtime connected");
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            realtimeHealthy = false;
+            startFallbackPolling();
             console.warn('[Admin] Realtime connection issue:', status);
           }
         });
 
-      // Fast fallback in case the realtime WebSocket is disabled or drops.
-      fallbackInterval = setInterval(refreshSilently, ADMIN_PAYMENT_REFRESH_MS);
+      // Fallback only while realtime is not healthy.
+      startFallbackPolling();
     };
 
     const handleWindowFocus = () => {
@@ -137,6 +158,7 @@ export default function AdminDashboard() {
       setReviews(data.reviews || []);
       setTotalProjects(data.totalProjects || 0);
       setActiveCreditsTotal(Number(data.activeCreditsTotal || 0));
+      setDashboardRevenue(Number.isFinite(data.totalRevenue) ? data.totalRevenue : null);
       setPaidUsers(data.paidUsers || []);
 
       // Clear the new-request indicator after fetching
@@ -205,7 +227,7 @@ export default function AdminDashboard() {
 
   if (!user) return null;
 
-  const totalRevenue = approvedRequests.reduce((sum, req) => sum + (PLAN_PRICES[req.plan] || 0), 0);
+  const totalRevenue = dashboardRevenue ?? approvedRequests.reduce((sum, req) => sum + (PLAN_PRICES[req.plan] || 0), 0);
   const totalCost = totalProjects * COST_PER_GENERATION;
   const netProfit = totalRevenue - totalCost;
   const totalActiveCredits = activeCreditsTotal;
