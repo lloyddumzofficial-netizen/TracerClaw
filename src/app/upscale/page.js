@@ -37,6 +37,8 @@ const getPendingUpscaleRequestId = (project) => {
 export default function UpscalePage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const isProcessingRef = useRef(false);
+  const upscaleRequestKeyRef = useRef(null);
   const supabase = createClient();
   const isMobileDevice = useIsMobileDevice();
 
@@ -129,6 +131,7 @@ export default function UpscalePage() {
         setSelectedUrl(pendingUrl);
         setSelectedFile(null);
         setUpscaledImage(null);
+        upscaleRequestKeyRef.current = null;
       }
     };
     checkPendingImage();
@@ -155,6 +158,7 @@ export default function UpscalePage() {
     setSelectedFile(file);
     setSelectedUrl(null);
     setUpscaledImage(null);
+    upscaleRequestKeyRef.current = null;
   };
 
   const uploadToS3 = async (file) => {
@@ -223,6 +227,7 @@ export default function UpscalePage() {
   }, [pollUpscaleJob, supabase, user]);
 
   const handleUpscale = async () => {
+    if (isProcessingRef.current) return;
     if (!selectedFile && !selectedUrl) return;
     // Kept as a safety net, but the button now reads "Get More Claws" whenever
     // this would trigger, so the user learns the cost before committing rather
@@ -231,10 +236,13 @@ export default function UpscalePage() {
       setShowTopUpModal(true);
       return;
     }
+    isProcessingRef.current = true;
     setIsProcessing(true);
     setUpscaledImage(null);
 
     try {
+      const requestKey = upscaleRequestKeyRef.current || crypto.randomUUID();
+      upscaleRequestKeyRef.current = requestKey;
       let finalUrl = selectedUrl;
 
       // If it's a raw file, we must upload to S3 first
@@ -254,7 +262,7 @@ export default function UpscalePage() {
       const res = await fetch("/api/upscale", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ imageUrl: finalUrl }),
+        body: JSON.stringify({ imageUrl: finalUrl, idempotencyKey: requestKey }),
       });
 
       const data = await safeJson(res, "Failed to process image");
@@ -275,9 +283,11 @@ export default function UpscalePage() {
       fetchRecentUpscales(user.id);
 
     } catch (err) {
+      upscaleRequestKeyRef.current = null;
       analytics.error(err, { area: "upscale_processing" });
       toast.error(err.message || "An error occurred");
     } finally {
+      isProcessingRef.current = false;
       setIsProcessing(false);
     }
   };

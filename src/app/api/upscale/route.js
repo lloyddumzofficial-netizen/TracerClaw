@@ -217,6 +217,7 @@ async function refundQueuedUpscale(projectId, userId) {
 
 export async function POST(request) {
   let userId;
+  let projectId;
   let creditDeducted = false;
   try {
     const { user, error: authResponse } = await getAuthenticatedUser(request);
@@ -233,10 +234,14 @@ export async function POST(request) {
     if (!rateLimit.success) return rateLimit.response;
 
     const body = await request.json();
-    const { imageUrl } = body;
+    const { imageUrl, idempotencyKey } = body;
 
     if (!imageUrl) {
       return NextResponse.json({ error: "Missing imageUrl" }, { status: 400 });
+    }
+    const requestKey = String(idempotencyKey || "").trim();
+    if (!requestKey || requestKey.length > 120) {
+      return NextResponse.json({ error: "Missing or invalid idempotency key" }, { status: 400 });
     }
 
     const finalImageUrl = normalizeUserImageUrl(imageUrl, new URL(request.url).origin);
@@ -276,36 +281,30 @@ export async function POST(request) {
       estimatedUsd: plan.estimatedUsd,
     });
 
-    // Check Credits
-    const { data: profile, error: profileErr } = await adminSupabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', userId)
-      .single();
+    const { data: claimRows, error: claimErr } = await adminSupabase
+      .rpc('claim_standalone_upscale', {
+        target_user_id: userId,
+        source_image_url: finalImageUrl,
+        request_key: requestKey,
+      });
 
-    if (profileErr || !profile || profile.credits <= 0) {
+    if (claimErr) {
+      throw new Error(`Failed to claim upscale charge: ${claimErr.message}`);
+    }
+
+    const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+    if (claim?.status === 'insufficient_credits') {
       return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
     }
-
-    // Deduct 1 Credit
-    const { error: deductErr, data: updatedData } = await adminSupabase
-      .from('profiles')
-      .update({ credits: profile.credits - 1 })
-      .eq('id', userId)
-      .eq('credits', profile.credits)
-      .select();
-
-    if (deductErr || !updatedData || updatedData.length === 0) {
-      return NextResponse.json({ error: "Conflict updating credits. Please try again." }, { status: 409 });
+    if (!claim?.project_id) {
+      throw new Error("Failed to claim upscale request.");
     }
-    creditDeducted = true;
+    projectId = claim.project_id;
+    if (claim.status === 'already_claimed') {
+      return NextResponse.json({ success: true, status: "ALREADY_IN_PROGRESS", projectId });
+    }
 
-    // Log the transaction
-    await adminSupabase.from('credit_logs').insert({
-      user_id: userId,
-      action: 'AI Clarity Upscale (4K)',
-      amount: -1
-    });
+    creditDeducted = true;
 
     // Process via fal.ai
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
@@ -339,22 +338,14 @@ export async function POST(request) {
       throw new Error("Upscaler failed to queue the request.");
     }
 
-    const { data: project, error: insertErr } = await adminSupabase
+    const { error: markerErr } = await adminSupabase
       .from('projects')
-      .insert({
-        user_id: userId,
-        name: "Clarity Upscale 4K",
-        trace_type: "upscale",
-        original_image_url: finalImageUrl,
-        ai_prompt: buildJobMarker(queued.request_id),
-        generated_image_url: null,
-        credit_deducted: true,
-        refunded: false
-      })
-      .select('id')
-      .single();
+      .update({ ai_prompt: buildJobMarker(queued.request_id) })
+      .eq('id', projectId)
+      .eq('user_id', userId)
+      .eq('client_request_id', requestKey);
 
-    if (insertErr) {
+    if (markerErr) {
       throw new Error("Failed to save upscale request.");
     }
 
@@ -362,7 +353,7 @@ export async function POST(request) {
       success: true,
       status: queued.status || "IN_QUEUE",
       requestId: queued.request_id,
-      projectId: project.id,
+      projectId,
       // Surfaced so the provider bill can be checked against what we planned.
       cost: {
         model: UPSCALE_ENDPOINT,
@@ -381,6 +372,19 @@ export async function POST(request) {
       // silently left the user out of pocket while the message claimed a refund.
       didRefund = await safeRefundCredit(userId);
       if (didRefund) {
+        if (projectId) {
+          await adminSupabase
+            .from('projects')
+            .update({
+              generated_image_url: 'REFUNDED',
+              refunded: true,
+              failed_at: new Date().toISOString(),
+              failed_step: 'upscale',
+            })
+            .eq('id', projectId)
+            .eq('user_id', userId)
+            .eq('refunded', false);
+        }
         await adminSupabase.from('credit_logs').insert({
           user_id: userId,
           action: 'Refund (Upscale Error)',
