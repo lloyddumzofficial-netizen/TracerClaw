@@ -167,7 +167,7 @@ export async function POST(request) {
         // function mid-flight the catch block never runs — so the user is
         // charged with no server-side refund. Bound it with headroom for the
         // download, resize and R2 upload that still have to happen after this.
-        const FAL_BUDGET_MS = 75_000;
+        const FAL_BUDGET_MS = 100_000;
         const result = await Promise.race([
           fal.subscribe("fal-ai/nano-banana-pro/edit", {
             input: {
