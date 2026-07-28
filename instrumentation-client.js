@@ -18,6 +18,25 @@ function isLocalhostEvent(event) {
   });
 }
 
+function isZaloInjectedBrowserError(event, hint) {
+  const message = [
+    event?.message,
+    event?.exception?.values?.[0]?.value,
+    hint?.originalException?.message,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  if (!/zaloJSV2/i.test(message)) return false;
+
+  const userAgent =
+    event?.request?.headers?.["User-Agent"] ||
+    event?.request?.headers?.["user-agent"] ||
+    (typeof navigator !== "undefined" ? navigator.userAgent : "");
+
+  return /zalo/i.test(userAgent);
+}
+
 if (dsn) {
   const integrations = [];
 
@@ -42,8 +61,9 @@ if (dsn) {
     replaysSessionSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE || 0),
     replaysOnErrorSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE || 0.1),
     integrations,
-    beforeSend(event) {
+    beforeSend(event, hint) {
       if (isLocalhostEvent(event)) return null;
+      if (isZaloInjectedBrowserError(event, hint)) return null;
       return event;
     },
   });
