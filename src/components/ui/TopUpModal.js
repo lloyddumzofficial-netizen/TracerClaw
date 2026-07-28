@@ -58,6 +58,26 @@ function getPlanAnalytics(planKey) {
   };
 }
 
+function isExpiredStorageTokenError(error) {
+  return /exp.*claim.*timestamp.*check failed/i.test(error?.message || "");
+}
+
+async function getFreshSession(supabase) {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  const expiresAtMs = session?.expires_at ? session.expires_at * 1000 : 0;
+  if (session && expiresAtMs > Date.now() + 60_000) return session;
+
+  return refreshCurrentSession(supabase);
+}
+
+async function refreshCurrentSession(supabase) {
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw refreshError;
+  return refreshData?.session || null;
+}
+
 const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, onClose, onLoginRequired }) {
   const [fallbackSupabase] = useState(() => createClient());
   const supabase = supabaseProp || fallbackSupabase;
@@ -168,19 +188,26 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
 
     setIsSubmitting(true);
     try {
+      const session = await getFreshSession(supabase);
+      let token = session?.access_token;
+      if (!token) throw new Error("Please log in again before submitting payment proof.");
+
       const fileExt = form.screenshotFile.name.split(".").pop();
       const fileName = `proof_${user.id}_${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      let { error: uploadError } = await supabase.storage
         .from("payment_proofs")
         .upload(fileName, form.screenshotFile);
+      if (isExpiredStorageTokenError(uploadError)) {
+        const refreshedSession = await refreshCurrentSession(supabase);
+        token = refreshedSession?.access_token || token;
+        ({ error: uploadError } = await supabase.storage
+          .from("payment_proofs")
+          .upload(fileName, form.screenshotFile));
+      }
       if (uploadError) throw uploadError;
 
       const { data: publicData } = supabase.storage.from("payment_proofs").getPublicUrl(fileName);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("Please log in again before submitting payment proof.");
 
       const response = await fetch("/api/payments/gcash/submit", {
         method: "POST",
