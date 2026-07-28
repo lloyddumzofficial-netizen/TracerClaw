@@ -55,7 +55,11 @@ export async function POST(request) {
       return NextResponse.json({ error: "Project not found or access denied" }, { status: 403 });
     }
 
-    if (!proj.credit_deducted || proj.refunded) {
+    if (proj.refunded) {
+      return NextResponse.json({ success: true, message: "Refund already processed" });
+    }
+
+    if (!proj.credit_deducted) {
       return NextResponse.json({ error: "Project is not eligible for refund" }, { status: 409 });
     }
 
@@ -97,7 +101,7 @@ export async function POST(request) {
         target_project_id: projectId,
         refund_action: 'Refund',
         failed_step_value: proj.failed_step || 'unknown',
-        mark_generated_refunded: true,
+        mark_generated_refunded: false,
       });
     const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
     if (refundErr) {

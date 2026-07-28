@@ -38,6 +38,13 @@ const supabase = createClient();
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
+function normalizeProjectForWorkspace(project) {
+  if (!project) return project;
+  return {
+    ...project,
+    generated_image_url: project.generated_image_url === "REFUNDED" ? null : project.generated_image_url,
+  };
+}
 
 export default function Workspace() {
   const router = useRouter();
@@ -100,9 +107,10 @@ export default function Workspace() {
           router.push("/");
           return;
         }
-        setProject(projData);
+        const normalizedProject = normalizeProjectForWorkspace(projData);
+        setProject(normalizedProject);
 
-        if (!projData.generated_image_url) {
+        if (!normalizedProject.generated_image_url) {
           setShowCropModal(true);
         }
 

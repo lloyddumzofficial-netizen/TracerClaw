@@ -411,7 +411,7 @@ export async function POST(request) {
               target_project_id: projectId,
               refund_action: 'Refund',
               failed_step_value: `step${failedStep}`,
-              mark_generated_refunded: true,
+              mark_generated_refunded: false,
             });
           const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
           if (!refundRpcErr && refund?.status === 'refunded') {
