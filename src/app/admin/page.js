@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "@/components/ui/Toast";
@@ -28,6 +28,7 @@ export default function AdminDashboard() {
   const [processingId, setProcessingId] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasNewRequests, setHasNewRequests] = useState(false);
+  const dashboardFetchRef = useRef(null);
   const router = useRouter();
 
   const PLAN_PRICES = Object.fromEntries(
@@ -135,9 +136,14 @@ export default function AdminDashboard() {
   }, [supabase, router]);
 
   const fetchRequests = async (token, options = {}) => {
+    if (dashboardFetchRef.current) {
+      return dashboardFetchRef.current;
+    }
+
     if (!options.silent) setLoading(true);
     if (options.manual) setIsRefreshing(true);
-    try {
+
+    dashboardFetchRef.current = (async () => {
       const res = await fetch('/api/admin/get-dashboard', {
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
@@ -163,10 +169,15 @@ export default function AdminDashboard() {
 
       // Clear the new-request indicator after fetching
       if (options.manual) setHasNewRequests(false);
+    })();
+
+    try {
+      return await dashboardFetchRef.current;
     } catch (err) {
       toast.error("Failed to load admin data");
       console.error(err);
     } finally {
+      dashboardFetchRef.current = null;
       setLoading(false);
       setIsRefreshing(false);
     }

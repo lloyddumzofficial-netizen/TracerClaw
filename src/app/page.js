@@ -221,6 +221,7 @@ export default function StartScreen() {
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
   const containerRef = useRef(null);
+  const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
 
   const [syncSessionId, setSyncSessionId] = useState("");
   const [showQrModal, setShowQrModal] = useState(false);
@@ -344,6 +345,13 @@ export default function StartScreen() {
   // Fetch Public Stats — re-fetch whenever user returns to this tab/page
   useEffect(() => {
     const fetchStats = () => {
+      const now = Date.now();
+      if (publicStatsFetchRef.current.inFlight || now - publicStatsFetchRef.current.lastFetchAt < 60_000) {
+        return;
+      }
+      publicStatsFetchRef.current.inFlight = true;
+      publicStatsFetchRef.current.lastFetchAt = now;
+
       fetch('/api/public-stats')
         .then(res => safeJson(res, "Failed to load public stats"))
         .then(data => {
@@ -356,7 +364,10 @@ export default function StartScreen() {
             });
           }
         })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => {
+          publicStatsFetchRef.current.inFlight = false;
+        });
     };
 
     fetchStats(); // initial load

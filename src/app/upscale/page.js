@@ -21,6 +21,13 @@ const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const UPSCALE_POLL_MAX_MS = 6 * 60 * 1000;
+
+function upscalePollDelay(attempt) {
+  if (attempt < 10) return 3000;
+  if (attempt < 22) return 5000;
+  return 10000;
+}
 
 // Surfaced in the button label so the cost is known before the click, matching
 // the workspace trace panel and the background-removal modal. This page was the
@@ -39,6 +46,7 @@ export default function UpscalePage() {
   const fileInputRef = useRef(null);
   const isProcessingRef = useRef(false);
   const upscaleRequestKeyRef = useRef(null);
+  const activePollsRef = useRef(new Map());
   const supabase = createClient();
   const isMobileDevice = useIsMobileDevice();
 
@@ -194,25 +202,43 @@ export default function UpscalePage() {
   };
 
   const pollUpscaleJob = useCallback(async ({ requestId, projectId, token, maxAttempts = 120 }) => {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const statusRes = await fetch(`/api/upscale?requestId=${encodeURIComponent(requestId)}&projectId=${encodeURIComponent(projectId)}`, {
-        headers: { "Authorization": `Bearer ${token}` },
-        cache: "no-store",
-      });
-      const statusData = await safeJson(statusRes, "Failed to check upscale status");
-      if (!statusRes.ok) throw new Error(statusData.error || "Failed to check upscale status");
+    const pollKey = `${projectId}:${requestId}`;
+    const activePoll = activePollsRef.current.get(pollKey);
+    if (activePoll) return activePoll;
 
-      if (statusData.status === "COMPLETED" && statusData.upscaledUrl) {
-        setRecentUpscales(prev => prev.map(item => (
-          item.id === projectId ? { ...item, generated_image_url: statusData.upscaledUrl } : item
-        )));
-        return statusData.upscaledUrl;
+    const pollPromise = (async () => {
+      const deadline = Date.now() + UPSCALE_POLL_MAX_MS;
+
+      for (let attempt = 0; attempt < maxAttempts && Date.now() < deadline; attempt++) {
+        const statusRes = await fetch(`/api/upscale?requestId=${encodeURIComponent(requestId)}&projectId=${encodeURIComponent(projectId)}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+          cache: "no-store",
+        });
+        const statusData = await safeJson(statusRes, "Failed to check upscale status");
+        if (!statusRes.ok) throw new Error(statusData.error || "Failed to check upscale status");
+
+        if (statusData.status === "COMPLETED" && statusData.upscaledUrl) {
+          setRecentUpscales(prev => prev.map(item => (
+            item.id === projectId ? { ...item, generated_image_url: statusData.upscaledUrl } : item
+          )));
+          return statusData.upscaledUrl;
+        }
+
+        const remainingMs = deadline - Date.now();
+        if (attempt < maxAttempts - 1 && remainingMs > 0) {
+          await sleep(Math.min(upscalePollDelay(attempt), remainingMs));
+        }
       }
 
-      if (attempt < maxAttempts - 1) await sleep(3000);
-    }
+      return null;
+    })();
 
-    return null;
+    activePollsRef.current.set(pollKey, pollPromise);
+    try {
+      return await pollPromise;
+    } finally {
+      activePollsRef.current.delete(pollKey);
+    }
   }, []);
 
   const resumePendingUpscale = useCallback(async (item, { showToast = false, maxAttempts = 1 } = {}) => {
