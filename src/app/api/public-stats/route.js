@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export const dynamic = 'force-dynamic';
 
@@ -47,8 +48,21 @@ async function getReviewCount() {
   return count || 0;
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
+    // Unauthenticated. The in-memory cache below only helps a warm instance —
+    // a cold or scaled-out one re-runs four count queries — so the endpoint
+    // still needs a ceiling. IP is the only available key. The homepage refetches
+    // on load, focus and visibilitychange, so 60/min leaves plenty of headroom.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:public-stats:ip",
+      identifier: getClientIp(request),
+      max: 60,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
+
     if (cachedStats && Date.now() < cachedStats.expiresAt) {
       return NextResponse.json(cachedStats.payload);
     }

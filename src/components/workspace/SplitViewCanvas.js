@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Maximize, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Maximize, AlertCircle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 // Each stage owns a slice of the bar. Progress eases toward the slice ceiling so
@@ -403,13 +403,37 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
         </div>
       );
     }
+    // Empty state for a stage that has not been generated yet.
+    //
+    // The previous version of this block styled "Run Auto-Trace" with the same
+    // gold gradient as the real button but gave it no onClick — a false
+    // affordance that produced dead and rage clicks at the highest-intent
+    // moment in the workflow. Two rules keep that from coming back:
+    //
+    //   1. pointerEvents: none — clicks pass straight through, so this can
+    //      never capture one no matter how it is restyled later.
+    //   2. No #FFD700 anywhere. Gold is reserved for real controls in this UI,
+    //      so muted greys read as information rather than as something to press.
+    //
+    // Entirely static: no state, no effects, no network, no images. Renders
+    // from values already in memory, so it costs nothing on the backend.
     if (!activeUrl) {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666', gap: '12px' }}>
-          <div style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '500' }}>Click</span>
-            <span style={{ background: 'linear-gradient(135deg, #FFD700 0%, #E5B800 100%)', color: '#000', padding: '4px 10px', fontSize: '11px', fontWeight: 'bold' }}>Run Auto-Trace</span>
-            <span style={{ fontSize: '12px', fontWeight: '500' }}>to begin</span>
+        <div
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            height: '100%', gap: '14px', padding: '24px', textAlign: 'center',
+            pointerEvents: 'none', userSelect: 'none',
+          }}
+        >
+          <Sparkles size={30} color="#3a3a3a" strokeWidth={1.3} />
+          <div>
+            <p style={{ margin: '0 0 6px', fontSize: '12px', fontWeight: 600, color: '#5a5a5a', letterSpacing: '0.3px' }}>
+              Your {rightLabel.toLowerCase()} will appear here
+            </p>
+            <p style={{ margin: 0, fontSize: '11px', color: '#444', lineHeight: 1.5 }}>
+              Choose your options in the panel on the right, then start the trace.
+            </p>
           </div>
         </div>
       );

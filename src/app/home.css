@@ -125,12 +125,49 @@
           border-color: #FFD700;
         }
 
+        /* Instant tactile acknowledgement. Fires on mousedown, before the
+           route starts loading, so the click never feels ignored. */
+        .recent-card:active {
+          transform: scale(0.985);
+          border-color: #FFD700;
+        }
+
+        /* The card the user opened: dimmed, gold-bordered, spinner overlay. */
+        .recent-card.is-navigating {
+          border-color: #FFD700;
+          cursor: progress;
+        }
+
+        /* Every other card while a navigation is in flight — visibly inert so
+           a second click is obviously not expected. */
+        .recent-card.is-locked:not(.is-navigating) {
+          opacity: 0.45;
+          pointer-events: none;
+        }
+
         .recent-thumb {
           height: 130px;
           background-color: #1a1a1a;
           background-size: cover;
           background-position: center;
           border-bottom: 1px solid #444;
+          position: relative;
+        }
+
+        .recent-opening {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          background: rgba(10, 10, 10, 0.72);
+          color: #FFD700;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
         }
 
         .recent-info {

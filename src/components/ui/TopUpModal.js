@@ -39,6 +39,16 @@ const DODO_ENABLED_PLANS = new Set(
   Object.values(CREDIT_PLANS).filter((p) => p.dodoEnabled).map((p) => p.key)
 );
 
+function formatSubmittedAgo(createdAt) {
+  if (!createdAt) return "just now";
+  const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins === 1) return "1 minute ago";
+  if (mins < 60) return `${mins} minutes ago`;
+  const hrs = Math.floor(mins / 60);
+  return hrs === 1 ? "1 hour ago" : `${hrs} hours ago`;
+}
+
 function getPlanAnalytics(planKey) {
   const plan = CREDIT_PLANS[planKey];
   return {
@@ -59,6 +69,28 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const [activeTab, setActiveTab] = useState("plans");
   const [logs, setLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  // A submitted GCash payment waits on manual admin approval. The confirmation
+  // screen after submitting was local state, so closing the modal erased every
+  // trace of it — reopening showed a fresh plan picker, as though the payment
+  // had never happened. Session replay showed a user idle for ~13 minutes after
+  // paying. Reading the request back on open makes the wait visible.
+  const [pendingRequest, setPendingRequest] = useState(null);
+
+  useEffect(() => {
+    if (!show || !user) return;
+    let cancelled = false;
+    supabase
+      .from("payment_requests")
+      .select("id, plan, status, reference_number, created_at")
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data, error }) => {
+        if (!cancelled && !error) setPendingRequest(data?.[0] || null);
+      });
+    return () => { cancelled = true; };
+  }, [show, user, supabase, submitted]);
 
   useEffect(() => {
     if (activeTab === "history" && user) {
@@ -233,6 +265,40 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         </div>
 
         <div style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
+          {/* Persistent status for a GCash payment awaiting manual approval.
+              Shown on every open until an admin approves, so the wait is never
+              silent. Non-blocking: Dodo checkout stays available underneath. */}
+          {pendingRequest && !submitted && (
+            <div style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.35)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <Clock size={15} color="#FFD700" />
+                <strong style={{ color: '#FFD700', fontSize: '13px' }}>GCash payment under review</strong>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                {[
+                  { label: 'Submitted', done: true },
+                  { label: 'Under review', done: true, current: true },
+                  { label: 'Claws added', done: false },
+                ].map((s, i) => (
+                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: i === 2 ? '0 0 auto' : 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.done ? '#FFD700' : '#444', flexShrink: 0 }} />
+                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: s.current ? '#FFD700' : s.done ? '#aaa' : '#666', fontWeight: s.current ? 700 : 500, whiteSpace: 'nowrap' }}>{s.label}</span>
+                    </div>
+                    {i < 2 && <div style={{ height: '1px', background: '#444', flex: 1, minWidth: '10px' }} />}
+                  </div>
+                ))}
+              </div>
+
+              <p style={{ margin: 0, fontSize: '11px', color: '#aaa', lineHeight: 1.5 }}>
+                {PLAN_LABELS[pendingRequest.plan] || pendingRequest.plan} · Ref {pendingRequest.reference_number || '—'} · submitted {formatSubmittedAgo(pendingRequest.created_at)}.
+                <br />
+                Claws are usually added within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>. You do not need to pay again — reopen this window any time to check.
+              </p>
+            </div>
+          )}
+
           {activeTab === 'history' ? (
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>

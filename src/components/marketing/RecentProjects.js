@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock } from "lucide-react";
+import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock, Loader2 } from "lucide-react";
 
 const RecentProjects = memo(function RecentProjects({
   user,
@@ -19,6 +19,19 @@ const RecentProjects = memo(function RecentProjects({
   onConfirmDelete,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  // The workspace is a heavy client route, so router.push takes a beat to
+  // resolve. Without this the card's only visual state is border-color on
+  // :hover — already applied while the cursor is on it — so a click changed
+  // nothing on screen and users clicked again and again (observed as rage
+  // clicks in session replay). Track which card was opened so it can show
+  // progress and stop accepting further clicks.
+  const [navigatingId, setNavigatingId] = useState(null);
+
+  const handleCardClick = (proj) => {
+    if (navigatingId) return;
+    setNavigatingId(proj.id);
+    onNavigate(proj);
+  };
 
   if (isLoadingProjects) {
     return (
@@ -90,14 +103,29 @@ const RecentProjects = memo(function RecentProjects({
         ) : (
           <div className="recent-grid">
             {filteredProjects.map(proj => (
-              <div key={proj.id} className="recent-card" onClick={() => onNavigate(proj)}>
+              <div
+                key={proj.id}
+                className={`recent-card${navigatingId === proj.id ? " is-navigating" : ""}${navigatingId ? " is-locked" : ""}`}
+                onClick={() => handleCardClick(proj)}
+                role="button"
+                tabIndex={0}
+                aria-busy={navigatingId === proj.id}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleCardClick(proj); } }}
+              >
               <div className="recent-thumb" style={{
                   backgroundImage: proj.original_image_url
                     ? `url(/api/proxy?url=${encodeURIComponent(proj.original_image_url)})`
                     : 'none',
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                }}></div>
+                }}>
+                  {navigatingId === proj.id && (
+                    <div className="recent-opening">
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Opening…</span>
+                    </div>
+                  )}
+                </div>
                 <div className="recent-info">
                   
                   {editingId === proj.id ? (

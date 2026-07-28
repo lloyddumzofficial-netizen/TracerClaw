@@ -92,8 +92,10 @@ export async function enforceRateLimit({
   max,
   window = "60 s",
   windowMs = 60_000,
-  key,
-  limit,
+  // Legacy aliases for namespace/max. Defaulted rather than bare so TypeScript
+  // callers are not forced to pass them — every current call site omits both.
+  key = undefined,
+  limit = undefined,
 }) {
   const resolvedNamespace = String(namespace || key || "general").replace(/[^a-zA-Z0-9:_-]/g, "_");
   const resolvedMax = Number(max ?? limit);
@@ -126,10 +128,26 @@ export async function enforceRateLimit({
   };
 }
 
+/**
+ * Resolve the caller's IP for IP-keyed limits.
+ *
+ * Order matters. `x-forwarded-for` is client-supplied and its leftmost entry is
+ * whatever the caller put there — reading that first is the classic spoofable
+ * pattern. It happens to be safe on Vercel today because the edge overwrites the
+ * header (verified: 65 rotating-XFF requests to a 60/min limit still produced 5
+ * × 429), but that is a platform guarantee, not a property of this code. Behind
+ * a different proxy, self-hosted, or if Vercel changes behaviour, both IP limits
+ * would become bypassable with a single header.
+ *
+ * `x-vercel-forwarded-for` and `x-real-ip` are set by the platform and cannot be
+ * overridden by the client, so prefer those. The original read is kept last so
+ * behaviour is unchanged anywhere those headers are absent.
+ */
 export function getClientIp(request) {
   return (
+    request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
     "unknown"
   );
 }

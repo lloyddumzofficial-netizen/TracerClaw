@@ -19,11 +19,11 @@ const MOBILE_SCAN_LIMIT = 250;
 const MOBILE_DELETE_LIMIT = 25;
 const ZIP_BATCH_LIMIT = 25;
 const UPSCALE_RECONCILE_LIMIT = 20;
-// A queued AuraSR job finishes in seconds to a couple of minutes. Anything
-// still unresolved after this long was abandoned by the client and will never
-// be reconciled, because nothing but the browser poll ever checks it.
+// A queued upscale finishes in seconds to a couple of minutes. Anything still
+// unresolved after this long was abandoned by the client and will never be
+// reconciled, because nothing but the browser poll ever checks it.
+// The endpoint is resolved per job from its stored marker, not hardcoded here.
 const UPSCALE_STALE_MINUTES = 30;
-const UPSCALE_ENDPOINT = 'fal-ai/aura-sr';
 
 const adminSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -66,17 +66,20 @@ async function reconcileAbandonedUpscales(results) {
   const { fal } = await import('@fal-ai/client');
 
   for (const project of stale) {
-    const requestId = project.ai_prompt?.startsWith(`fal:aura-sr:`)
-      ? project.ai_prompt.slice('fal:aura-sr:'.length)
-      : null;
-    if (!requestId) continue;
+    // Marker format is fal:<model-slug>:<requestId>. Resolve the endpoint from
+    // the marker so jobs queued under an older upscaler model still settle
+    // correctly after a model swap.
+    const marker = String(project.ai_prompt || '').match(/^fal:([a-z0-9.-]+):(.+)$/i);
+    if (!marker) continue;
+    const jobEndpoint = `fal-ai/${marker[1]}`;
+    const requestId = marker[2];
 
     try {
       let recoveredUrl = null;
       try {
-        const status = await fal.queue.status(UPSCALE_ENDPOINT, { requestId });
+        const status = await fal.queue.status(jobEndpoint, { requestId });
         if (status.status === 'COMPLETED') {
-          const result = await fal.queue.result(UPSCALE_ENDPOINT, { requestId });
+          const result = await fal.queue.result(jobEndpoint, { requestId });
           const providerUrl = result?.data?.image?.url;
           if (providerUrl) {
             const { response, buffer } = await fetchWithSSRFProtection(providerUrl, {

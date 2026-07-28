@@ -3,8 +3,7 @@ import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase, safeDeductCredit, safeRefundCredit } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { segmentSvgLayers } from "@/lib/svgSegmenter";
-import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { logger } from "@/lib/logger";
 
 export const runtime = 'nodejs';
@@ -215,37 +214,23 @@ export async function POST(request) {
       svgText = svgText.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
 
-    // ─── Semantic Layer Grouping ──────────────────────────────────────────────
-    // Post-processes the SVG to wrap paths in named <g id="layer-..."> groups.
-    // Uses Gemini Flash vision on the ORIGINAL image (not the generated one) so
-    // that layer classification is based on the user's actual design intent.
-    // COMPLETELY NON-FATAL: falls back to saving the original SVG on any error.
-    // ─────────────────────────────────────────────────────────────────────────
-    try {
-      // Fetch the original (pre-AI) image to give Gemini context about the design
-      if (!isOwnedStorageUrl(project.original_image_url, { userId: user.id, projectId })) {
-        throw new Error('Original image URL is not owned by this user/project');
-      }
-      const { response: originalImgRes, buffer: originalImgBuf } = await fetchWithSSRFProtection(project.original_image_url, {
-        allowedHosts: getAllowedStorageHosts(),
-        maxBytes: DEFAULT_MAX_IMAGE_BYTES,
-        allowedContentTypes: ['image/'],
-      });
-      if (originalImgRes.ok) {
-        const originalBase64 = originalImgBuf.toString('base64');
-        const originalMime = originalImgRes.headers.get('content-type') || 'image/png';
-
-        // Map project trace type to a context hint for Gemini
-        const traceTypeHint = project.trace_type === 'logo' ? 'logo' : 'jersey';
-
-        svgText = await segmentSvgLayers(svgText, originalBase64, originalMime, traceTypeHint);
-      } else {
-        console.warn('[Step 3] Could not fetch original image for segmentation — skipping');
-      }
-    } catch (segErr) {
-      console.warn('[Step 3] Segmentation error (non-fatal):', segErr.message);
-      // svgText remains unchanged — safe to continue
-    }
+    // ─── Semantic Layer Grouping — REMOVED ────────────────────────────────────
+    // This step used to send the original image plus every SVG path position to
+    // Gemini via OpenRouter, then rewrap the paths in named <g id="layer-…">
+    // groups. It has been removed entirely, along with src/lib/svgSegmenter.js
+    // and the OpenRouter dependency, because:
+    //
+    //   * it keyed Gemini's answer by position in a filtered 60-item array but
+    //     read it back by position in the full path list, so any SVG with more
+    //     than 60 paths — i.e. essentially every real garment — got shuffled
+    //     layer names;
+    //   * its SVG rebuild dropped <style>, <text> and nested <g> content that
+    //     was not a bare shape, silently losing parts of a paid deliverable;
+    //   * it added up to 25s to a route that only has a 120s budget, making
+    //     step-3 timeouts (and the refunds they trigger) more likely.
+    //
+    // The vectorizer output is now saved exactly as returned — valid SVG with
+    // unnamed groups, which is what shipped anyway whenever this step failed.
     // ─────────────────────────────────────────────────────────────────────────
 
     const svgBuffer = Buffer.from(svgText, 'utf8');

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { isAllowedStorageUrl } from "@/lib/ssrf";
 
 export const maxDuration = 30;
@@ -17,6 +18,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized: invalid session' }, { status: 401 });
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    // Authenticated project writes elsewhere (/api/save-asset) are limited;
+    // this one was not, leaving an unbounded DB write behind a valid session.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:crop:user",
+      identifier: user.id,
+      max: 20,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
 
     const { projectId, croppedImageUrl } = await request.json();
 

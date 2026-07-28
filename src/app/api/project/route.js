@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { deleteFromR2 } from "@/lib/cloudflare";
 
 export async function PATCH(request) {
@@ -15,6 +16,15 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:project-rename:user",
+      identifier: user.id,
+      max: 30,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
 
     const { projectId, newName } = await request.json();
 
@@ -51,6 +61,17 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    // Tighter than rename: each delete fans out to as many as five R2 delete
+    // calls, so this is the most expensive per-request write in the app.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:project-delete:user",
+      identifier: user.id,
+      max: 20,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('id');

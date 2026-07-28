@@ -47,10 +47,17 @@ export async function GET(request) {
     //    directory), so that layer did not exist and this route was an
     //    unthrottled public read proxy over the whole bucket.
     // 3. SVG responses are sent as sandboxed attachments — see below.
+    // 600, not 120. The dashboard renders one thumbnail per recent project and
+    // fetches 50 of them, so a single homepage view spends 50 of this budget —
+    // three refreshes used to trip the old ceiling and the images simply stopped
+    // loading, with no error shown because they are <img>/CSS url() loads. Behind
+    // NAT a whole office shared that one budget. This ceiling governs egress
+    // cost rather than access (the R2 bucket is directly public regardless), so
+    // it can be generous while still capping bulk scraping.
     const ipLimit = await enforceRateLimit({
       namespace: "api:proxy:ip",
       identifier: getClientIp(request),
-      max: 120,
+      max: 600,
       window: "60 s",
       windowMs: 60_000,
     });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendEmail, isEmailTemplate } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { adminSupabase } from "@/lib/supabase";
 import type { EmailData } from "@/lib/email";
 
@@ -31,7 +32,8 @@ async function requireAdmin(request: Request) {
     return { ok: false as const, status: 403, error: "Forbidden. Admin access required." };
   }
 
-  return { ok: true as const };
+  // Returned so the caller can key a rate limit on the verified admin.
+  return { ok: true as const, userId: user.id };
 }
 
 export async function POST(request: Request) {
@@ -39,6 +41,16 @@ export async function POST(request: Request) {
   if (!admin.ok) {
     return NextResponse.json({ success: false, error: admin.error }, { status: admin.status });
   }
+
+  // Bounds the Resend quota. The admin gate controls who can send, not how many.
+  const rateLimit = await enforceRateLimit({
+    namespace: "api:admin-send-email:user",
+    identifier: admin.userId,
+    max: 20,
+    window: "60 s",
+    windowMs: 60_000,
+  });
+  if (!rateLimit.success) return rateLimit.response;
 
   let body: SendEmailRequestBody;
   try {

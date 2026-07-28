@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { getCreditPlan } from "@/lib/paymentPlans";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
@@ -25,6 +26,16 @@ export async function POST(request) {
     if (authErr || !isAdmin) {
       return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
     }
+
+    // Credit-granting endpoint. The admin gate bounds who, not how often.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:admin-approve-payment:user",
+      identifier: user.id,
+      max: 30,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
 
     const { requestId, markOnly } = await request.json();
     if (!requestId) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -129,6 +130,20 @@ export async function GET(request) {
     if (authErr || !isAdmin) {
       return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
     }
+
+    // The admin email gate controls WHO can call this, not HOW OFTEN. This is
+    // the most expensive query in the app — unbounded pagination plus up to 100
+    // auth.admin.getUserById calls — and the dashboard polls it every 10s on top
+    // of a realtime subscription. That is 6/min of legitimate traffic, so 30
+    // leaves 5x headroom while capping a runaway client or a stolen session.
+    const rateLimit = await enforceRateLimit({
+      namespace: "api:admin-dashboard:user",
+      identifier: user.id,
+      max: 30,
+      window: "60 s",
+      windowMs: 60_000,
+    });
+    if (!rateLimit.success) return rateLimit.response;
 
     // Fetch manual GCash requests by status with explicit pagination.
     // Supabase otherwise caps result sets, which can hide pending payments once

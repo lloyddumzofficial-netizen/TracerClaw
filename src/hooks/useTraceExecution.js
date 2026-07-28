@@ -17,6 +17,11 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
   const [traceState, setTraceState] = useState("idle"); // idle | step1 | step2 | step3
   const [nodeErrors, setNodeErrors] = useState({ step1: null, step2: null, step3: null });
   const consoleRef = useRef(null); // DOM ref for the console <div>
+  // Synchronous in-flight lock. `traceState` cannot guard a double-click on its
+  // own: setState is asynchronous, so two clicks landing in the same tick — or
+  // either side of the auth-token await below — both read "idle" and both start
+  // a full pipeline, charging the user twice. A ref updates immediately.
+  const isRunningRef = useRef(false);
 
   // DOM-direct log write — zero React re-renders
   const logToConsole = useCallback((text, type = "normal") => {
@@ -42,7 +47,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
   }, []);
 
   const handleExecuteTrace = useCallback(async (vectorColors = "auto", svgEngine = "standard") => {
-    if (!project || traceState !== "idle") return;
+    if (isRunningRef.current || !project || traceState !== "idle") return;
     const isPrecisionSvg = svgEngine === "precision";
     const creditCost = isPrecisionSvg ? 2 : 1;
 
@@ -50,6 +55,14 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       onNoCredits?.();
       return;
     }
+
+    // Claim the run before anything awaits, and flip the visible state in the
+    // same tick so the button disables and reads "Processing…" on the FIRST
+    // click. Previously setTraceState ran after the getSession() await below,
+    // leaving a window where the button was still live and a second click
+    // started a second pipeline — a real double charge, not just a dead click.
+    isRunningRef.current = true;
+    setTraceState("step1");
 
     // Reset per-node errors
     setNodeErrors({ step1: null, step2: null, step3: null });
@@ -73,7 +86,6 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
     try {
       // ─── Step 1: Gemini ───────────────────────────────────────────────
-      setTraceState("step1");
       clearConsole("[Step 1] Analyzing Image with DesaynVision™...");
 
       const res1 = await fetch("/api/trace", {
@@ -246,6 +258,10 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       logToConsole(`[Error] ${displayMsg}`, "error");
       setTraceState("idle");
       return { success: false };
+    } finally {
+      // Release on every exit path — success, error, and the
+      // INSUFFICIENT_CREDITS early return inside the try above.
+      isRunningRef.current = false;
     }
   }, [project, traceState, userCredits, setUserCredits, setProject, supabase, onNoCredits, logToConsole, clearConsole]);
 

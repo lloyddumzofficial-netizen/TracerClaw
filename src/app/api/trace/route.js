@@ -210,7 +210,7 @@ export async function POST(request) {
 
       let generatedImageBuffer;
       let generatedMimeType = "image/png";
-      let geminiThinking = "Generated via OpenRouter Gemini 3.1 Flash Image";
+      let geminiThinking = "Generated via fal.ai";
 
       try {
         if (!process.env.FAL_KEY) {

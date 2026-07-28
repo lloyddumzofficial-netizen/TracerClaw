@@ -22,8 +22,16 @@ const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: fa
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Surfaced in the button label so the cost is known before the click, matching
+// the workspace trace panel and the background-removal modal. This page was the
+// only paid action that revealed its price only after the user had committed.
+const UPSCALE_CREDIT_COST = 1;
+
+// Marker format is fal:<model-slug>:<requestId>. Matched generically so jobs
+// queued under an older upscaler model still resume after a model swap.
 const getPendingUpscaleRequestId = (project) => {
-  return project?.ai_prompt?.startsWith("fal:aura-sr:") ? project.ai_prompt.slice("fal:aura-sr:".length) : null;
+  const match = String(project?.ai_prompt || "").match(/^fal:[a-z0-9.-]+:(.+)$/i);
+  return match ? match[1] : null;
 };
 
 export default function UpscalePage() {
@@ -42,6 +50,8 @@ export default function UpscalePage() {
   const [credits, setCredits] = useState(0);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [recentUpscales, setRecentUpscales] = useState([]);
+
+  const noCredits = credits < UPSCALE_CREDIT_COST;
 
   const [uploadMode, setUploadMode] = useState("file"); // "file" | "qr"
   const scrollContainerRef = useRef(null);
@@ -214,7 +224,10 @@ export default function UpscalePage() {
 
   const handleUpscale = async () => {
     if (!selectedFile && !selectedUrl) return;
-    if (credits <= 0) {
+    // Kept as a safety net, but the button now reads "Get More Claws" whenever
+    // this would trigger, so the user learns the cost before committing rather
+    // than after.
+    if (noCredits) {
       setShowTopUpModal(true);
       return;
     }
@@ -467,8 +480,17 @@ export default function UpscalePage() {
                 onMouseOver={e => { if (!isProcessing && (previewImage || upscaledImage)) e.currentTarget.style.background = "rgba(255, 215, 0, 0.2)"; }}
                 onMouseOut={e => { if (!isProcessing && (previewImage || upscaledImage)) e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)"; }}
               >
-                {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />} GENERATE 4K UPSCALE
+                {isProcessing
+                  ? <><Loader2 size={14} className="animate-spin" /> UPSCALING…</>
+                  : noCredits
+                    ? <><Wand2 size={14} /> GET MORE CLAWS</>
+                    : <><Wand2 size={14} /> GENERATE 4K UPSCALE {`(−${UPSCALE_CREDIT_COST} CLAW)`}</>}
               </button>
+              {noCredits && (
+                <p style={{ margin: "0 0 8px", fontSize: "10px", color: "#FFD700", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>
+                  You need {UPSCALE_CREDIT_COST} claw to upscale
+                </p>
+              )}
 
               <button
                 onClick={() => {

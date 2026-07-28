@@ -7,7 +7,10 @@ import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
 
-const DEFAULT_CROP_ZOOM = 0.5;
+// Opens at 90%, not 50%. The crop modal opens automatically right after upload,
+// and at 50% the artwork was small enough that users had to zoom in before they
+// could frame anything — an extra step on every single project.
+const DEFAULT_CROP_ZOOM = 0.9;
 const MIN_CROP_ZOOM = 0.35;
 const MAX_CROP_ZOOM = 4;
 const CROP_ZOOM_STEP = 0.25;
