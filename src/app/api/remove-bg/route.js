@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { adminSupabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
@@ -81,58 +81,25 @@ export async function POST(request) {
     // ============================================================
     // ATOMIC CREDIT DEDUCTION
     // ============================================================
-    const { data: profile, error: profileErr } = await adminSupabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', user.id)
-      .single();
-
-    if (profileErr || !profile) {
-      return NextResponse.json({ error: "Could not fetch profile" }, { status: 403 });
+    const { data: claimRows, error: claimErr } = await adminSupabase
+      .rpc('claim_project_credit', {
+        target_user_id: user.id,
+        target_project_id: projectId,
+        charge_action: 'Background Removal',
+        charge_amount: 1,
+      });
+    if (claimErr) {
+      console.error('[Remove BG] Claim RPC error:', claimErr);
+      return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
     }
-
-    if (profile.credits <= 0) {
+    const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+    if (claim?.status === 'insufficient_credits') {
       return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
     }
-
-    // Deduct immediately using optimistic lock
-    const { error: deductErr, data: updatedData } = await adminSupabase
-      .from('profiles')
-      .update({ credits: profile.credits - 1 })
-      .eq('id', user.id)
-      .eq('credits', profile.credits)
-      .select();
-
-    if (deductErr || !updatedData || updatedData.length === 0) {
-      return NextResponse.json({ error: "Conflict updating credits. Please try again." }, { status: 409 });
+    if (claim?.status !== 'charged') {
+      return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
     }
-
-    // Track that credits were deducted so we can refund on failure
     creditDeducted = true;
-
-    // Log the transaction
-    await adminSupabase.from('credit_logs').insert({
-      user_id: user.id,
-      action: 'Background Removal',
-      amount: -1
-    });
-
-    // Clear any prior refund state for this new charge, so a second attempt on
-    // the same project is still refundable (see the latch note in /api/trace).
-    await adminSupabase
-      .from('projects')
-      .update({ credit_deducted: true, refunded: false })
-      .eq('id', projectId)
-      .eq('user_id', user.id);
-
-    // Separate + best-effort: failed_at/failed_step only exist after
-    // add_project_failure_tracking.sql. Folding them into the update above
-    // would make it fail as a whole and silently drop credit_deducted.
-    await adminSupabase
-      .from('projects')
-      .update({ failed_at: null, failed_step: null })
-      .eq('id', projectId)
-      .eq('user_id', user.id);
 
     // ============================================================
     // PROCESS WITH FAL.AI (BiRefNet)
@@ -222,34 +189,19 @@ export async function POST(request) {
     // If credit was already deducted but AI/R2/DB failed, refund it.
     if (creditDeducted && userId) {
       try {
-        // Stamp the failure so /api/refund can tell a genuine failure from a
-        // completed run.
-        if (projectId) {
-          await adminSupabase
-            .from('projects')
-            .update({ failed_at: new Date().toISOString(), failed_step: 'remove-bg' })
-            .eq('id', projectId)
-            .eq('user_id', userId);
-        }
-
-        // Use the same refund helper as every other route, and only mark the
-        // project refunded once the credit actually moved. Previously this used
-        // the increment_credits RPC and never set `refunded`, so the row stayed
-        // eligible and the user could claim a SECOND credit via /api/refund.
-        const credited = await safeRefundCredit(userId);
-        if (credited) {
-          if (projectId) {
-            await adminSupabase
-              .from('projects')
-              .update({ refunded: true })
-              .eq('id', projectId)
-              .eq('user_id', userId)
-              .eq('refunded', false);
-          }
-          await adminSupabase.from('credit_logs').insert({ user_id: userId, action: 'Refund (Error)', amount: 1 });
+        const { data: refundRows, error: refundRpcErr } = await adminSupabase
+          .rpc('refund_project_credit', {
+            target_user_id: userId,
+            target_project_id: projectId,
+            refund_action: 'Refund (Error)',
+            failed_step_value: 'remove-bg',
+            mark_generated_refunded: false,
+          });
+        const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+        if (!refundRpcErr && refund?.status === 'refunded') {
           logger.info("[Remove BG] Refunded credit after processing error", { userId });
         } else {
-          console.error(`[Remove BG] CRITICAL: safeRefundCredit failed for user ${userId} — left unrefunded for retry.`);
+          console.error(`[Remove BG] CRITICAL: refund_project_credit failed for user ${userId} — left unrefunded for retry.`, refundRpcErr || refund);
         }
       } catch (refundErr) {
         // Non-fatal: log but don't block the error response

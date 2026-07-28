@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { adminSupabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import {
@@ -191,28 +191,16 @@ async function refundQueuedUpscale(projectId, userId) {
     return false;
   }
 
-  const credited = await safeRefundCredit(userId);
-  if (!credited) return false;
-
-  await adminSupabase
-    .from('projects')
-    .update({
-      generated_image_url: 'REFUNDED',
-      refunded: true,
-      failed_at: new Date().toISOString(),
-      failed_step: "upscale",
-    })
-    .eq('id', projectId)
-    .eq('user_id', userId)
-    .eq('refunded', false);
-
-  await adminSupabase.from('credit_logs').insert({
-    user_id: userId,
-    action: 'Refund (Upscale Error)',
-    amount: 1,
-  });
-
-  return true;
+  const { data: refundRows, error: refundErr } = await adminSupabase
+    .rpc('refund_project_credit', {
+      target_user_id: userId,
+      target_project_id: projectId,
+      refund_action: 'Refund (Upscale Error)',
+      failed_step_value: 'upscale',
+      mark_generated_refunded: true,
+    });
+  const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+  return !refundErr && refund?.status === 'refunded';
 }
 
 export async function POST(request) {
@@ -370,28 +358,20 @@ export async function POST(request) {
     if (creditDeducted && userId) {
       // Check the result — this used to be fire-and-forget, so a failed transfer
       // silently left the user out of pocket while the message claimed a refund.
-      didRefund = await safeRefundCredit(userId);
-      if (didRefund) {
-        if (projectId) {
-          await adminSupabase
-            .from('projects')
-            .update({
-              generated_image_url: 'REFUNDED',
-              refunded: true,
-              failed_at: new Date().toISOString(),
-              failed_step: 'upscale',
-            })
-            .eq('id', projectId)
-            .eq('user_id', userId)
-            .eq('refunded', false);
+      if (projectId) {
+        const { data: refundRows, error: refundErr } = await adminSupabase
+          .rpc('refund_project_credit', {
+            target_user_id: userId,
+            target_project_id: projectId,
+            refund_action: 'Refund (Upscale Error)',
+            failed_step_value: 'upscale',
+            mark_generated_refunded: true,
+          });
+        const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+        didRefund = !refundErr && refund?.status === 'refunded';
+        if (!didRefund) {
+          console.error(`[Upscale] CRITICAL: refund_project_credit failed for user ${userId} — left unrefunded for retry.`, refundErr || refund);
         }
-        await adminSupabase.from('credit_logs').insert({
-          user_id: userId,
-          action: 'Refund (Upscale Error)',
-          amount: 1,
-        });
-      } else {
-        console.error(`[Upscale] CRITICAL: safeRefundCredit failed for user ${userId} — left unrefunded for retry.`);
       }
     }
     const safeMessage = error.message?.includes('fal')

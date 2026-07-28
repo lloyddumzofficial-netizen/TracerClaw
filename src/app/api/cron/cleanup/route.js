@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { deleteFromR2, s3Client, bucketName, uploadToR2 } from '@/lib/cloudflare';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { safeRefundCredit } from '@/lib/supabase';
 import {
   DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
   fetchWithSSRFProtection,
@@ -116,28 +115,19 @@ async function reconcileAbandonedUpscales(results) {
 
       if (!project.credit_deducted) continue;
 
-      const credited = await safeRefundCredit(project.user_id);
-      if (!credited) {
-        console.error(`[Cron] safeRefundCredit FAILED for abandoned upscale ${project.id} — left for retry.`);
+      const { data: refundRows, error: refundErr } = await adminSupabase
+        .rpc('refund_project_credit', {
+          target_user_id: project.user_id,
+          target_project_id: project.id,
+          refund_action: 'Refund (Abandoned Upscale)',
+          failed_step_value: 'upscale',
+          mark_generated_refunded: true,
+        });
+      const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+      if (refundErr || refund?.status !== 'refunded') {
+        console.error(`[Cron] refund_project_credit FAILED for abandoned upscale ${project.id} — left for retry.`, refundErr || refund);
         continue;
       }
-
-      await adminSupabase
-        .from('projects')
-        .update({
-          generated_image_url: 'REFUNDED',
-          refunded: true,
-          failed_at: new Date().toISOString(),
-          failed_step: 'upscale',
-        })
-        .eq('id', project.id)
-        .eq('refunded', false);
-
-      await adminSupabase.from('credit_logs').insert({
-        user_id: project.user_id,
-        action: 'Refund (Abandoned Upscale)',
-        amount: 1,
-      });
 
       results.upscalesRefunded++;
       logger.info('[Cron] Refunded abandoned upscale', { projectId: project.id });

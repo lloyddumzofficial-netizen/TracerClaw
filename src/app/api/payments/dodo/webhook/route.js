@@ -104,12 +104,6 @@ async function handlePaymentSucceeded(payment) {
     return { alreadyProcessed: true };
   }
 
-  await adminSupabase.from("credit_logs").insert({
-    user_id: grant.granted_user_id,
-    action: "Top-Up via Dodo",
-    amount: grant.granted_credits,
-  });
-
   await sendDodoPaymentEmail({
     email: localPayment.email,
     plan: localPayment.plan,

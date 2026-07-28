@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
 
@@ -37,7 +37,7 @@ export async function POST(request) {
     // Fetch project — use shared adminSupabase singleton (no new DB connections per request)
     const { data: proj, error: projErr } = await adminSupabase
       .from('projects')
-      .select('user_id, credit_deducted, refunded, failed_at, generated_image_url, upscaled_image_url, svg_url')
+      .select('user_id, credit_deducted, refunded, failed_at, failed_step, generated_image_url, upscaled_image_url, svg_url')
       .eq('id', projectId)
       .single();
 
@@ -91,43 +91,21 @@ export async function POST(request) {
     // no protection. `credit_deducted` on the project row is the authoritative
     // record that this project was charged; credit_logs is a reporting ledger.
 
-    // Claim the row first so concurrent requests cannot both pass the checks
-    // above and each hand out a credit.
-    const { data: updatedProj, error: updateErr } = await adminSupabase
-      .from('projects')
-      .update({ generated_image_url: 'REFUNDED', refunded: true })
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .eq('credit_deducted', true)
-      .eq('refunded', false)
-      .select('user_id');
-
-    if (updateErr) {
-      throw updateErr;
+    const { data: refundRows, error: refundErr } = await adminSupabase
+      .rpc('refund_project_credit', {
+        target_user_id: user.id,
+        target_project_id: projectId,
+        refund_action: 'Refund',
+        failed_step_value: proj.failed_step || 'unknown',
+        mark_generated_refunded: true,
+      });
+    const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+    if (refundErr) {
+      throw refundErr;
     }
-
-    if (!updatedProj || updatedProj.length === 0) {
-      // Lost the race — another request already refunded this project.
+    if (refund?.status !== 'refunded') {
       return NextResponse.json({ error: "Project is not eligible for refund" }, { status: 409 });
     }
-
-    const credited = await safeRefundCredit(user.id);
-    if (!credited) {
-      // Roll the claim back so the refund can be retried rather than silently lost.
-      await adminSupabase
-        .from('projects')
-        .update({ refunded: false })
-        .eq('id', projectId)
-        .eq('user_id', user.id);
-      console.error(`[Refund API] Credit restore FAILED for project ${projectId} (user ${user.id}) — claim rolled back.`);
-      return NextResponse.json({ error: "Could not restore the claw. Please try again." }, { status: 503 });
-    }
-
-    await adminSupabase.from('credit_logs').insert({
-      user_id: user.id,
-      action: 'Refund',
-      amount: 1
-    });
 
     logger.info("[Refund API] Refunded project", { projectId, userId: user.id });
 

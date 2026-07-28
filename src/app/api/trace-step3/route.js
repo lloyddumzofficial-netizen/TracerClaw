@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflare";
-import { adminSupabase, safeDeductCredit, safeRefundCredit } from "@/lib/supabase";
+import { adminSupabase } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
@@ -129,17 +129,24 @@ export async function POST(request) {
         );
       }
 
-      const deducted = await safeDeductCredit(user.id, 1);
-      if (!deducted) {
+      const { data: chargeRows, error: chargeErr } = await adminSupabase
+        .rpc('adjust_user_credit_with_log', {
+          target_user_id: user.id,
+          credit_delta: -1,
+          log_action: 'Precision SVG Engine',
+        });
+      if (chargeErr) {
+        console.error("[Step 3] Precision charge RPC failed:", chargeErr);
+        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      }
+      const charge = Array.isArray(chargeRows) ? chargeRows[0] : chargeRows;
+      if (charge?.status === 'insufficient_credits') {
         return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
       }
+      if (charge?.status !== 'adjusted') {
+        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      }
       precisionCreditDeducted = true;
-
-      await adminSupabase.from('credit_logs').insert({
-        user_id: user.id,
-        action: 'Precision SVG Engine',
-        amount: -1
-      });
 
       const vectorizerFormData = new FormData();
       vectorizerFormData.append('image', blob, 'image.png');
@@ -261,15 +268,17 @@ export async function POST(request) {
       // Refund the EXTRA precision claw — that service genuinely was not
       // delivered. Check the result rather than assuming it moved.
       if (precisionCreditDeducted && userId) {
-        const credited = await safeRefundCredit(userId);
-        if (credited) {
-          await adminSupabase.from('credit_logs').insert({
-            user_id: userId,
-            action: 'Refund Precision SVG Engine',
-            amount: 1
+        const { data: refundRows, error: refundErr } = await adminSupabase
+          .rpc('adjust_user_credit_with_log', {
+            target_user_id: userId,
+            credit_delta: 1,
+            log_action: 'Refund Precision SVG Engine',
           });
+        const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+        if (refundErr || refund?.status !== 'adjusted') {
+          console.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`, refundErr || refund);
         } else {
-          console.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`);
+          precisionCreditDeducted = false;
         }
       }
 

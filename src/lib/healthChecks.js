@@ -66,7 +66,7 @@ export const REQUIRED_COLUMNS = {
   projects: [
     "id", "user_id", "name", "trace_type", "ai_prompt",
     "original_image_url", "generated_image_url", "upscaled_image_url", "svg_url",
-    "credit_deducted", "refunded", "failed_at", "failed_step",
+    "credit_deducted", "refunded", "failed_at", "failed_step", "client_request_id",
   ],
   profiles: ["id", "email", "credits"],
   credit_logs: ["user_id", "action", "amount"],

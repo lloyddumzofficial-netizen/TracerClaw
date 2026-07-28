@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminSupabase, safeRefundCredit } from "@/lib/supabase";
+import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning } from "@/lib/tracePrompts";
@@ -91,89 +91,23 @@ export async function POST(request) {
     // project.user_id is guaranteed non-null from check above.
     // ============================================================
     if (step === 1) {
-      const { data: profile, error: profileErr } = await adminSupabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', project.user_id)
-        .single();
-
-      if (profileErr || !profile) {
-        console.error('[Billing] Could not fetch profile:', profileErr);
-        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
-      }
-
-      if (profile.credits <= 0) {
-        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
-      }
-
-      // DEDUCT IMMEDIATELY — optimistic lock prevents double-spend
-      const { error: deductErr, data: updatedData } = await adminSupabase
-        .from('profiles')
-        .update({ credits: profile.credits - 1 })
-        .eq('id', project.user_id)
-        .eq('credits', profile.credits) // only succeeds if credits haven't changed
-        .select();
-
-      if (deductErr) {
-        console.error('[Billing] Deduction SQL error:', deductErr);
+      const { data: claimRows, error: claimErr } = await adminSupabase
+        .rpc('claim_project_credit', {
+          target_user_id: project.user_id,
+          target_project_id: projectId,
+          charge_action: 'Extract & Vectorize',
+          charge_amount: 1,
+        });
+      if (claimErr) {
+        console.error('[Billing] Claim RPC error:', claimErr);
         return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
       }
-
-      if (!updatedData || updatedData.length === 0) {
-        // Condition failed — credits changed during transaction (race condition)
-        return NextResponse.json({ error: "Conflict updating credits. Please try again." }, { status: 409 });
+      const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+      if (claim?.status === 'insufficient_credits') {
+        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
       }
-
-      // Credit deducted successfully.
-      await adminSupabase.from('credit_logs').insert({
-        user_id: project.user_id,
-        action: 'Extract & Vectorize',
-        amount: -1
-      });
-
-      // Clear the refund/failure state for this NEW charge.
-      // `refunded` used to be a one-way latch that nothing ever reset, so once a
-      // project had been refunded a second attempt could be charged but never
-      // refunded — the guard `.eq('refunded', false)` matched zero rows forever.
-      // This write must succeed, otherwise the failure path cannot refund, so
-      // unlike before its error is checked.
-      const { error: flagErr } = await adminSupabase
-        .from('projects')
-        .update({
-          credit_deducted: true,
-          refunded: false,
-        })
-        .eq('id', projectId)
-        .eq('user_id', user.id);
-
-      // Clearing the failure stamp is best-effort and deliberately separate:
-      // failed_at/failed_step only exist after add_project_failure_tracking.sql
-      // has been run. Folding them into the update above would make every
-      // generation fail on a deployment where the migration has not landed yet.
-      await adminSupabase
-        .from('projects')
-        .update({ failed_at: null, failed_step: null })
-        .eq('id', projectId)
-        .eq('user_id', user.id);
-
-      if (flagErr) {
-        // If the columns themselves are absent, the deployment is simply ahead
-        // of database/add_billing_columns.sql. Refunds cannot work in that
-        // state (they never have), but generations must not hard-fail — so log
-        // loudly and continue rather than taking every user's run down.
-        const missingColumns = /column .* does not exist/i.test(flagErr.message || '');
-        if (missingColumns) {
-          console.error(
-            '[Billing] CRITICAL: credit_deducted/refunded columns are missing — refunds are disabled. ' +
-            'Run database/add_billing_columns.sql.'
-          );
-        } else {
-          // A real write failure: give the claw straight back rather than
-          // charging for a run we could never refund.
-          console.error('[Billing] Could not set credit_deducted; refunding immediately:', flagErr.message);
-          await safeRefundCredit(project.user_id);
-          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
-        }
+      if (claim?.status !== 'charged') {
+        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
       }
     }
 
@@ -471,22 +405,19 @@ export async function POST(request) {
           // Move the money FIRST, then mark it. The old order set refunded=true
           // before the transfer, so a failed transfer left the ledger and the
           // balance disagreeing with no way to retry.
-          const credited = await safeRefundCredit(current.user_id);
-          if (credited) {
-            await adminSupabase
-              .from('projects')
-              .update({ generated_image_url: 'REFUNDED', refunded: true })
-              .eq('id', projectId)
-              .eq('user_id', current.user_id)
-              .eq('refunded', false);
-            await adminSupabase.from('credit_logs').insert({
-              user_id: current.user_id,
-              action: 'Refund',
-              amount: 1,
+          const { data: refundRows, error: refundRpcErr } = await adminSupabase
+            .rpc('refund_project_credit', {
+              target_user_id: current.user_id,
+              target_project_id: projectId,
+              refund_action: 'Refund',
+              failed_step_value: `step${failedStep}`,
+              mark_generated_refunded: true,
             });
+          const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+          if (!refundRpcErr && refund?.status === 'refunded') {
             didRefund = true;
           } else {
-            console.error(`[Billing] safeRefundCredit FAILED for project ${projectId} — left unrefunded for retry.`);
+            console.error(`[Billing] refund_project_credit FAILED for project ${projectId} — left unrefunded for retry.`, refundRpcErr || refund);
           }
         }
       }
