@@ -334,4 +334,62 @@ REVOKE EXECUTE ON FUNCTION public.grant_dodo_payment_credits(uuid, text, text, i
 REVOKE EXECUTE ON FUNCTION public.grant_dodo_payment_credits(uuid, text, text, integer, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.grant_dodo_payment_credits(uuid, text, text, integer, text) FROM anon;
 
+CREATE OR REPLACE FUNCTION public.approve_manual_payment_request(
+  payment_request_id uuid,
+  credits_to_add integer,
+  mark_only boolean DEFAULT false
+)
+RETURNS TABLE(
+  status text,
+  added_credits integer,
+  credited_user_id uuid,
+  credited_email text,
+  credited_plan text,
+  credited_reference text
+) AS $$
+DECLARE
+  target_request public.payment_requests%ROWTYPE;
+BEGIN
+  SELECT *
+  INTO target_request
+  FROM public.payment_requests
+  WHERE id = payment_request_id
+  FOR UPDATE;
+
+  IF NOT FOUND OR target_request.status <> 'pending' THEN
+    RETURN QUERY SELECT 'not_pending'::text, 0, NULL::uuid, NULL::text, NULL::text, NULL::text;
+    RETURN;
+  END IF;
+
+  IF NOT mark_only AND credits_to_add <= 0 THEN
+    RAISE EXCEPTION 'credits_to_add must be positive unless mark_only is true';
+  END IF;
+
+  IF NOT mark_only THEN
+    UPDATE public.profiles
+    SET credits = credits + credits_to_add
+    WHERE id = target_request.user_id;
+
+    INSERT INTO public.credit_logs (user_id, action, amount)
+    VALUES (target_request.user_id, 'Top-Up via GCash', credits_to_add);
+  END IF;
+
+  UPDATE public.payment_requests
+  SET status = 'approved'
+  WHERE id = payment_request_id;
+
+  RETURN QUERY SELECT
+    'approved'::text,
+    CASE WHEN mark_only THEN 0 ELSE credits_to_add END,
+    target_request.user_id,
+    target_request.email,
+    target_request.plan,
+    target_request.reference_number;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.approve_manual_payment_request(uuid, integer, boolean) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.approve_manual_payment_request(uuid, integer, boolean) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.approve_manual_payment_request(uuid, integer, boolean) FROM anon;
+
 NOTIFY pgrst, 'reload schema';

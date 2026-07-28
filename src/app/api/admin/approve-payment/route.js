@@ -59,56 +59,39 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid payment plan." }, { status: 400 });
     }
 
-    const { data: claimedRequest, error: claimErr } = await adminSupabase
-      .from('payment_requests')
-      .update({ status: 'approved' })
-      .eq('id', requestId)
-      .eq('status', 'pending')
-      .select('*')
-      .single();
+    const { data: approvalRows, error: approvalErr } = await adminSupabase
+      .rpc('approve_manual_payment_request', {
+        payment_request_id: requestId,
+        credits_to_add: creditsToAdd,
+        mark_only: Boolean(markOnly),
+      });
+    const approval = Array.isArray(approvalRows) ? approvalRows[0] : approvalRows;
 
-    if (claimErr || !claimedRequest) {
+    if (approvalErr) {
+      console.error("Failed to approve payment atomically:", approvalErr);
+      return NextResponse.json({ error: "Failed to update credits." }, { status: 500 });
+    }
+
+    if (approval?.status !== 'approved') {
       return NextResponse.json({ error: "Payment request already approved." }, { status: 409 });
     }
 
-    if (!markOnly) {
-      const { error: updateProfileErr } = await adminSupabase
-        .rpc('increment_credits', { user_id: claimedRequest.user_id, amount: creditsToAdd });
-
-      if (updateProfileErr) {
-        console.error("Failed to update credits:", updateProfileErr);
-        await adminSupabase
-          .from('payment_requests')
-          .update({ status: 'pending' })
-          .eq('id', requestId)
-          .eq('status', 'approved');
-        return NextResponse.json({ error: "Failed to update credits." }, { status: 500 });
-      }
-
-      // Log the transaction
-      await adminSupabase.from('credit_logs').insert({
-        user_id: claimedRequest.user_id,
-        action: 'Top-Up via GCash',
-        amount: creditsToAdd
-      });
-    }
-
     // We do not fail the request if email fails; credits were already added.
-    if (!markOnly && claimedRequest.email) {
+    if (!markOnly && approval.credited_email) {
       const emailResult = await sendEmail({
-        to: claimedRequest.email,
+        to: approval.credited_email,
         subject: 'Payment Approved - Credits Added! 🎉',
         template: "creditsAdded",
         data: {
-          plan: claimedRequest.plan,
+          plan: approval.credited_plan,
           credits: creditsToAdd,
-          reference: claimedRequest.reference_number || "N/A",
+          reference: approval.credited_reference || "N/A",
         },
       });
 
       if (!emailResult.success) {
         logger.warn("[Admin Approval] Failed to send email", {
-          email: claimedRequest.email,
+          email: approval.credited_email,
           error: emailResult.error,
         });
       }
