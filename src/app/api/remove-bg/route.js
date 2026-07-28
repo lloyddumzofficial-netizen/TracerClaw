@@ -14,8 +14,8 @@ export async function POST(request) {
   // Declared at function scope, like /api/trace and /api/trace-step3 do. This
   // used to be destructured with const inside the try block, so every reference
   // to it in the catch threw a ReferenceError — which the inner try/catch
-  // swallowed, meaning safeRefundCredit() below was never reached and a failed
-  // removal charged the user a claw that was never returned.
+  // swallowed, meaning the refund RPC was never reached and a failed removal
+  // charged the user a claw that was never returned.
   let projectId;
   let creditDeducted = false;
   try {
