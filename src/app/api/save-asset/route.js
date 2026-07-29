@@ -91,7 +91,13 @@ export async function POST(request) {
         const { response, buffer: remoteBuffer, finalUrl } = await fetchWithSSRFProtection(normalizedFileUrl, {
           allowedHosts: ALLOWED_REMOTE_HOSTS,
           maxBytes,
-          allowedContentTypes: ['image/', 'application/octet-stream'],
+          allowedContentTypes: [
+            'image/',
+            'application/octet-stream',
+            'binary/octet-stream',
+            'application/binary',
+            'application/force-download',
+          ],
         });
         if (!response.ok) throw new Error("Failed to fetch fileUrl");
         buffer = remoteBuffer;

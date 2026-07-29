@@ -307,14 +307,13 @@ export async function POST(request) {
         return NextResponse.json({ error: "Invalid or unauthorized generated image URL" }, { status: 400 });
       }
 
-      // ── Adaptive upscale factor ──
-      // A fixed 4x was sized for the old 1K step-1 output. Step 1 now emits 2K, and a
-      // blind 4x on that produced a 6144x11160 PNG that blew past the 60MB save-asset
-      // ceiling ("Remote file is too large"). Pick the factor from the actual input
-      // dimensions so the result always lands under the cap.
-      const UPSCALE_TARGET_EDGE = 6000;   // keep any single edge sane
-      const UPSCALE_TARGET_PIXELS = 20e6; // and keep the encoded PNG well under 60MB
-      let upscaleFactor = 4;
+      // Mirror the stable fal.ai ESRGAN playground settings, but keep scale
+      // adaptive so large garment outputs do not exceed save/upload limits.
+      const UPSCALE_MODEL = "RealESRGAN_x4plus";
+      const UPSCALE_TARGET_EDGE = 6000;
+      const UPSCALE_TARGET_PIXELS = 20e6;
+      const UPSCALE_MAX_SCALE = 5;
+      let upscaleScale = UPSCALE_MAX_SCALE;
       try {
         const sharp = (await import('sharp')).default;
         const { buffer: stepOneBuffer } = await fetchWithSSRFProtection(upscaleInputUrl, {
@@ -328,23 +327,30 @@ export async function POST(request) {
         if (longestEdge > 0 && area > 0) {
           const byEdge = UPSCALE_TARGET_EDGE / longestEdge;
           const byArea = Math.sqrt(UPSCALE_TARGET_PIXELS / area);
-          // Round down to 0.5 steps so we never exceed either ceiling.
-          upscaleFactor = Math.floor(Math.min(byEdge, byArea) * 2) / 2;
-          upscaleFactor = Math.min(4, Math.max(1, upscaleFactor));
+          upscaleScale = Math.floor(Math.min(byEdge, byArea) * 2) / 2;
+          upscaleScale = Math.min(UPSCALE_MAX_SCALE, Math.max(1, upscaleScale));
         }
-        logger.info("[API Step 2] Measured step-1 image", { size: `${stepOneMeta.width}x${stepOneMeta.height}`, upscaleFactor });
+        logger.info("[API Step 2] Measured step-1 image", {
+          size: `${stepOneMeta.width}x${stepOneMeta.height}`,
+          upscaleScale,
+        });
       } catch (sizeErr) {
-        // Could not measure — fall back to the conservative factor rather than 4x.
-        upscaleFactor = 2;
+        upscaleScale = 2;
         console.warn("[API Step 2] Could not measure step-1 image, defaulting to 2x:", sizeErr.message);
       }
 
-      logger.info("[API Step 2] Upscaling with fal-ai/esrgan");
+      logger.info("[API Step 2] Upscaling with fal-ai/esrgan", {
+        model: UPSCALE_MODEL,
+        scale: upscaleScale,
+      });
 
       const upscalerResult = await fal.subscribe("fal-ai/esrgan", {
         input: {
           image_url: upscaleInputUrl,
-          scale: upscaleFactor,
+          scale: upscaleScale,
+          model: UPSCALE_MODEL,
+          face: false,
+          output_format: "png",
         },
         logs: true,
         onQueueUpdate: (update) => {
