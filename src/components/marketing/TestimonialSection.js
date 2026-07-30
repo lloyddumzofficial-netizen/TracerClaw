@@ -1,8 +1,79 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Star, User } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { safeJson } from "@/lib/safeJson";
+
+const SAMPLE_FEEDBACK = [
+  {
+    reviewer_name: "Renz",
+    reviewer_role: "Print shop owner",
+    rating: 5,
+    feedback_text: "So many tracing tools out there, but I keep coming back to DesaynClaw. It just works for production files.",
+    initials: "RP",
+    tone: "gold",
+  },
+  {
+    reviewer_name: "Mika",
+    reviewer_role: "Jersey designer",
+    rating: 5,
+    feedback_text: "The interface feels clean and direct. I can upload artwork, review the result, and move faster without extra steps.",
+    initials: "ML",
+    tone: "slate",
+  },
+  {
+    reviewer_name: "Jomar",
+    reviewer_role: "Sublimation staff",
+    rating: 5,
+    feedback_text: "Ultra fast output for rush orders. The tools are simple enough for everyday print shop work.",
+    initials: "JS",
+    tone: "blue",
+  },
+  {
+    reviewer_name: "Ana",
+    reviewer_role: "Freelance layout artist",
+    rating: 5,
+    feedback_text: "DesaynClaw is the only design extraction tool I keep open beside my main editing apps.",
+    initials: "AC",
+    tone: "red",
+  },
+  {
+    reviewer_name: "Mark",
+    reviewer_role: "Small apparel brand",
+    rating: 5,
+    feedback_text: "It is crazy how much time it saves. I can test a new file and see a usable base almost immediately.",
+    initials: "MD",
+    tone: "violet",
+  },
+  {
+    reviewer_name: "Lei",
+    reviewer_role: "Production assistant",
+    rating: 5,
+    feedback_text: "Still the most useful AI creative tool in our production workflow.",
+    initials: "LT",
+    tone: "graphite",
+  },
+];
+
+function normalizeReviews(reviews) {
+  return reviews
+    .filter((review) => review?.feedback_text)
+    .slice(0, 6)
+    .map((review, index) => ({
+      reviewer_name: review.reviewer_name || "DesaynClaw User",
+      reviewer_role: "Verified project feedback",
+      reviewer_avatar: review.reviewer_avatar || null,
+      rating: Math.min(5, Math.max(1, Number(review.rating) || 5)),
+      feedback_text: review.feedback_text,
+      initials: (review.reviewer_name || "DU")
+        .split(/\s+/)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+      tone: SAMPLE_FEEDBACK[index % SAMPLE_FEEDBACK.length].tone,
+    }));
+}
 
 export default function TestimonialSection() {
   const [reviews, setReviews] = useState([]);
@@ -25,47 +96,64 @@ export default function TestimonialSection() {
     fetchReviews();
   }, []);
 
-  if (loading || reviews.length === 0) return null;
+  const realReviews = normalizeReviews(reviews);
+  const displayReviews = realReviews.length > 0 ? realReviews : SAMPLE_FEEDBACK;
+  const hasRealReviews = realReviews.length > 0;
 
   return (
-    <div style={{ marginTop: '80px', marginBottom: '40px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Community Trust</h3>
-        <h2 style={{ color: "#fff", fontSize: "24px", margin: "8px 0 0 0", fontWeight: "700" }}>What our users say</h2>
+    <section className="testimonial-showcase" aria-labelledby="testimonial-showcase-title">
+      <div className="testimonial-heading">
+        <h2 id="testimonial-showcase-title">Intuitive, powerful, and fast. See what others say about DesaynClaw.</h2>
+        <p>
+          {hasRealReviews
+            ? "Read our testimonials"
+            : "Read our sample testimonials"}
+        </p>
+        <div className="testimonial-proof" aria-label={hasRealReviews ? "Verified project feedback" : "Sample feedback note"}>
+          <span className="testimonial-proof-icon">
+            <BadgeCheck size={14} />
+          </span>
+          <span>{hasRealReviews ? "Verified project feedback" : "Sample workflow feedback"}</span>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-        {reviews.map((rev, idx) => (
-          <div key={idx} style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div className="testimonial-grid">
+        {displayReviews.map((rev, idx) => (
+          <article className="testimonial-card" key={`${rev.reviewer_name}-${idx}`}>
+            <div className="testimonial-stars" aria-label={`${rev.rating} out of 5 stars`}>
+              {Array.from({ length: 5 }).map((_, starIndex) => (
+                <span className={starIndex < rev.rating ? "is-filled" : ""} key={starIndex}>
+                  ★
+                </span>
+              ))}
+            </div>
+
+            <blockquote>"{rev.feedback_text}"</blockquote>
+
+            <div className="testimonial-author">
               {rev.reviewer_avatar ? (
-                <img 
-                  src={rev.reviewer_avatar} 
-                  alt={rev.reviewer_name || "User"} 
+                <img
+                  src={rev.reviewer_avatar}
+                  alt=""
                   referrerPolicy="no-referrer"
-                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} 
+                  loading="lazy"
                 />
               ) : (
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <User size={18} color="#aaa" />
-                </div>
+                <span className={`testimonial-avatar tone-${rev.tone}`} aria-hidden="true">
+                  {rev.initials}
+                </span>
               )}
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#eee' }}>{rev.reviewer_name || "DesaynClaw User"}</div>
-                <div style={{ color: '#fbbf24', fontSize: '14px', letterSpacing: '1px' }}>
-                  {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
-                </div>
+              <div className="testimonial-author-copy">
+                <strong>{rev.reviewer_name}</strong>
+                <span>{rev.reviewer_role}</span>
               </div>
             </div>
-            
-            <div style={{ fontSize: '14px', color: '#ccc', fontStyle: 'italic', lineHeight: '1.6' }}>
-              "{rev.feedback_text}"
-            </div>
-            
-          </div>
+
+          </article>
         ))}
       </div>
-    </div>
+
+      {loading && <div className="testimonial-loading">Loading latest project feedback...</div>}
+    </section>
   );
 }

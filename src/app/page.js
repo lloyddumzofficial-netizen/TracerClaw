@@ -34,6 +34,7 @@ import TestimonialSection from "@/components/marketing/TestimonialSection";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
+const PUBLIC_STATS_CACHE_KEY = "desaynclaw-public-stats";
 
 async function uploadFileToPresignedUrl(uploadUrl, file) {
   let lastError;
@@ -252,6 +253,7 @@ export default function StartScreen() {
 
   // ─── Public Stats State ─────────────────────────────────────────────────────
   const [publicStats, setPublicStats] = useState({ totalUsers: 0, completedExtractions: null, reviewCount: 0, avatars: [] });
+  const [publicStatsStatus, setPublicStatsStatus] = useState("unavailable");
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -353,20 +355,50 @@ export default function StartScreen() {
       publicStatsFetchRef.current.inFlight = true;
       publicStatsFetchRef.current.lastFetchAt = now;
 
-      fetch('/api/public-stats')
-        .then(res => safeJson(res, "Failed to load public stats"))
+      const statsController = new AbortController();
+      const statsTimeout = setTimeout(() => statsController.abort(), 6500);
+
+      fetch('/api/public-stats', { signal: statsController.signal })
+        .then(res => {
+          if (!res.ok) throw new Error(`Public stats request failed with ${res.status}`);
+          return safeJson(res, "Failed to load public stats");
+        })
         .then(data => {
           if (data.success) {
-            setPublicStats({
+            const nextStats = {
               totalUsers: data.totalUsers || 0,
               completedExtractions: Number.isFinite(data.completedExtractions) ? data.completedExtractions : 0,
               reviewCount: data.reviewCount || 0,
               avatars: data.avatars || []
-            });
+            };
+            setPublicStats(nextStats);
+            setPublicStatsStatus("ready");
+            localStorage.setItem(PUBLIC_STATS_CACHE_KEY, JSON.stringify(nextStats));
+          } else {
+            setPublicStatsStatus("unavailable");
           }
         })
-        .catch(console.error)
+        .catch((error) => {
+          console.error(error);
+          try {
+            const cached = JSON.parse(localStorage.getItem(PUBLIC_STATS_CACHE_KEY) || "null");
+            if (cached && Number.isFinite(cached.totalUsers)) {
+              setPublicStats({
+                totalUsers: cached.totalUsers || 0,
+                completedExtractions: Number.isFinite(cached.completedExtractions) ? cached.completedExtractions : 0,
+                reviewCount: cached.reviewCount || 0,
+                avatars: cached.avatars || []
+              });
+              setPublicStatsStatus("cached");
+              return;
+            }
+          } catch (cacheError) {
+            console.warn("Failed to read cached public stats", cacheError);
+          }
+          setPublicStatsStatus("unavailable");
+        })
         .finally(() => {
+          clearTimeout(statsTimeout);
           publicStatsFetchRef.current.inFlight = false;
         });
     };
@@ -692,7 +724,7 @@ export default function StartScreen() {
                 </div>
 
                 {/* PUBLIC STATS — compact single-pill row */}
-                {publicStats.totalUsers > 0 && (
+                {(publicStats.totalUsers > 0 || publicStatsStatus !== "ready") && (
                   <div style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -704,17 +736,29 @@ export default function StartScreen() {
                     padding: "6px 14px 6px 6px",
                   }}>
                     {/* Avatar stack */}
-                    <div style={{ display: "flex", alignItems: "center", marginRight: "10px" }}>
-                      {publicStats.avatars.length > 0 && publicStats.avatars.map((url, i) => (
+                    {publicStats.avatars.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", marginRight: "10px" }}>
+                        {publicStats.avatars.map((url, i) => (
                         <img key={i} src={url} alt="User" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.08)", marginLeft: i > 0 ? "-9px" : "0", backgroundColor: "#2a2a2a", objectFit: "cover", zIndex: 10 - i }} />
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* User count */}
-                    <span style={{ fontSize: "13px", color: "#fff", fontWeight: "600", marginRight: "6px" }}>
-                      {publicStats.totalUsers.toLocaleString()}+
-                    </span>
-                    <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: "400", marginRight: "10px" }}>creatives</span>
+                    {publicStats.totalUsers > 0 ? (
+                      <>
+                        <span style={{ fontSize: "13px", color: "#fff", fontWeight: "600", marginRight: "6px" }}>
+                          {publicStats.totalUsers.toLocaleString()}+
+                        </span>
+                        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: "400", marginRight: "10px" }}>
+                          creatives
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", fontWeight: "500", marginLeft: "8px", marginRight: "10px" }}>
+                        {publicStatsStatus === "unavailable" ? "Live stats unavailable locally" : "Loading community stats"}
+                      </span>
+                    )}
 
                     {/* Dot divider */}
                     {publicStats.reviewCount > 0 && (
@@ -892,6 +936,8 @@ export default function StartScreen() {
         <HomepageWorkflowPreview />
 
         <MarketingVideoPreview />
+
+        <TestimonialSection />
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
@@ -1108,14 +1154,6 @@ export default function StartScreen() {
             />
           </div>
         </div>
-
-        {/* Banner Image (COVER PAGE.png) */}
-        <div style={{ width: '100%', marginBottom: '100px', display: 'flex', justifyContent: 'center' }}>
-          <img src="/cover-page.webp" alt="DesaynClaw Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }} />
-        </div>
-
-        <TestimonialSection />
-
 
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
