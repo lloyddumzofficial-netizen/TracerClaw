@@ -1,7 +1,7 @@
 import type { EmailData, EmailTemplateRenderResult } from "./types";
 
 const SITE_URL = "https://desaynclaw.com";
-const LOGO_URL = `${SITE_URL}/logo.png`;
+const HEADER_URL = `${SITE_URL}/DESAYNCLAW_EMAIL-HEADER.jpg`;
 
 export function escapeHtml(value: unknown): string {
   return String(value ?? "")
@@ -36,40 +36,91 @@ export function renderEmailLayout(content: EmailTemplateRenderResult): string {
   const details = content.details?.filter((item) => item.value !== undefined && item.value !== null && item.value !== "");
 
   return `
-      <div style="background-color: #1a1a1a; color: #ffffff; font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; text-align: center;">
-        <div style="max-width: 500px; margin: 0 auto; background-color: #262626; border: 1px solid #444444; padding: 40px 30px; border-radius: 8px;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <img src="${LOGO_URL}" alt="DesaynClaw Logo" style="max-width: 240px; height: auto; display: inline-block;" />
-          </div>
-          <hr style="border: 0; border-top: 1px solid #444; margin: 24px 0;">
-          <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #ffffff;">${escapeHtml(content.title)}</h2>
-          <p style="color: #cccccc; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">
-            ${content.body}
-          </p>
+    <!doctype html>
+    <html>
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${escapeHtml(content.title)}</title>
+      </head>
+      <body style="margin:0; padding:0; background-color:#e8e8e8; font-family: Arial, Helvetica, sans-serif; color:#111827;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#e8e8e8; margin:0; padding:0;">
+          <tr>
+            <td align="center" style="padding:8px 8px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px; margin:0 auto;">
+                <tr>
+                  <td style="padding:0; background-color:#08130f;">
+                    <img src="${HEADER_URL}" width="600" alt="DesaynClaw" style="display:block; width:100%; max-width:600px; height:auto; border:0; outline:none; text-decoration:none;">
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color:#ffffff; padding:24px 24px 28px;">
+                    <h1 style="margin:0 0 18px; color:#111827; font-size:21px; line-height:1.3; font-weight:700;">
+                      ${escapeHtml(content.title)}
+                    </h1>
 
-          ${details?.length ? `
-          <div style="background-color: #1a1a1a; border: 1px solid #333333; padding: 20px; border-radius: 6px; margin-bottom: 30px; text-align: left;">
-            <p style="margin: 0 0 10px 0; color: #888888; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHtml(content.detailsLabel || "Details")}</p>
-            ${details.map((item, index) => `
-            <div style="display: flex; justify-content: space-between; margin-bottom: ${index === details.length - 1 ? "0" : "8px"};">
-              <span style="color: #aaaaaa; font-size: 14px;">${escapeHtml(item.label)}:</span>
-              <strong style="color: ${item.highlight ? "#FFD700" : "#ffffff"}; font-size: ${item.highlight ? "15px" : "14px"};">${escapeHtml(item.value)}</strong>
-            </div>
-            `).join("")}
-          </div>
-          ` : ""}
+                    <div style="color:#1f2937; font-size:14px; line-height:1.65; margin:0 0 22px;">
+                      ${content.body}
+                    </div>
 
-          ${content.cta ? `
-          <a href="${escapeHtml(content.cta.url)}" style="display: inline-block; background-color: #FFD700; color: #000000; text-decoration: none; padding: 14px 28px; font-weight: 700; border-radius: 4px; font-size: 15px;">
-            ${escapeHtml(content.cta.label)}
-          </a>
-          ` : ""}
+                    ${details?.length ? `
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb; background-color:#fafafa; margin:0 0 24px;">
+                      <tr>
+                        <td colspan="2" style="padding:14px 16px 8px; color:#6b7280; font-size:11px; line-height:1.2; font-weight:700; text-transform:uppercase; letter-spacing:.08em;">
+                          ${escapeHtml(content.detailsLabel || "Details")}
+                        </td>
+                      </tr>
+                      ${details.map((item, index) => `
+                      <tr>
+                        <td style="padding:${index === 0 ? "8px" : "10px"} 16px ${index === details.length - 1 ? "16px" : "10px"}; color:#6b7280; font-size:13px; line-height:1.35; border-top:${index === 0 ? "0" : "1px solid #eeeeee"};">
+                          ${escapeHtml(item.label)}
+                        </td>
+                        <td align="right" style="padding:${index === 0 ? "8px" : "10px"} 16px ${index === details.length - 1 ? "16px" : "10px"}; color:${item.highlight ? "#8a6d00" : "#111827"}; font-size:13px; line-height:1.35; font-weight:700; border-top:${index === 0 ? "0" : "1px solid #eeeeee"};">
+                          ${escapeHtml(item.value)}
+                        </td>
+                      </tr>
+                      `).join("")}
+                    </table>
+                    ` : ""}
 
-          <p style="color: #666666; font-size: 12px; margin-top: 40px; line-height: 1.5;">
-            If you have any questions or need help, just reply to this email.<br>
-            &copy; 2026 DesaynClaw. All rights reserved.
-          </p>
-        </div>
-      </div>
+                    ${content.cta ? `
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:4px 0 26px;">
+                      <tr>
+                        <td bgcolor="#FFD700" style="border-radius:4px;">
+                          <a href="${escapeHtml(content.cta.url)}" style="display:inline-block; padding:13px 22px; color:#111111; font-size:14px; line-height:1; font-weight:700; text-decoration:none;">
+                            ${escapeHtml(content.cta.label)}
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                    ` : ""}
+
+                    <p style="margin:0 0 16px; color:#374151; font-size:13px; line-height:1.55;">
+                      If you have any questions or need help, just reply to this email.
+                    </p>
+
+                    <p style="margin:0; color:#111827; font-size:13px; line-height:1.55;">
+                      Your growth partner,<br>
+                      <strong>The DesaynClaw Team</strong>
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:16px 24px 10px; color:#9ca3af; font-size:11px; line-height:1.5;">
+                    DesaynClaw AI-powered design workspace<br>
+                    <a href="${SITE_URL}" style="color:#8b8b8b; text-decoration:underline;">desaynclaw.com</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:0 24px 22px; color:#a3a3a3; font-size:11px; line-height:1.5;">
+                    &copy; 2026 DesaynClaw. All rights reserved.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
     `;
 }
