@@ -1021,10 +1021,7 @@ export default function StartScreen() {
         {/* Animated Counter Section */}
         <AnimatedCounter value={publicStats.completedExtractions} />
 
-        {/* Banner Image (banner-webapp-2.jpg) */}
-        <div style={{ marginTop: "40px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
-          <img src="/banner-webapp-2.jpg" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
-        </div>
+        <FAQSection />
 
         {/* ────────────────────────────────────────────────────────────────────── */}
 
@@ -1256,7 +1253,10 @@ export default function StartScreen() {
           </div>
         )}
 
-        <FAQSection />
+        {/* Banner Image (banner-webapp-2.jpg) */}
+        <div style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
+          <img src="/banner-webapp-2.jpg" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
+        </div>
 
         <footer style={{ marginTop: "100px", borderTop: "1px solid #222", padding: "40px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
