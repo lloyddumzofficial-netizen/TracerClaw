@@ -21,7 +21,7 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function CropGuidePhoto({ title, body, tone, imageSrc, imageAlt, boxClassName }) {
+function CropGuidePhoto({ title, body, tone, imageSrc, videoSrc, imageAlt, boxClassName }) {
   const Icon = tone === "good" ? CheckCircle2 : XCircle;
 
   return (
@@ -32,17 +32,25 @@ function CropGuidePhoto({ title, body, tone, imageSrc, imageAlt, boxClassName })
       </div>
       <p>{body}</p>
       <div className="crop-guide-photo-frame">
-        <img src={imageSrc} alt={imageAlt} loading="lazy" />
-        <div className={`crop-guide-demo-box ${boxClassName}`}>
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
+        {videoSrc ? (
+          <video autoPlay loop muted playsInline preload="metadata" aria-label={imageAlt}>
+            <source src={videoSrc} type="video/mp4" />
+          </video>
+        ) : (
+          <img src={imageSrc} alt={imageAlt} loading="lazy" />
+        )}
+        {boxClassName && (
+          <div className={`crop-guide-demo-box ${boxClassName}`}>
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -407,20 +415,18 @@ const CropModal = memo(function CropModal({
             ) : (
               <>
                 <CropGuidePhoto
-                  title="DO: Crop Torso Only"
-                  body="Exclude sleeves. Keep the selection tight to the main body."
+                  title="DO: Basketball Sando Front"
+                  body="Use this as the front-panel guide. Keep the crop tight to the main jersey body."
                   tone="good"
-                  imageSrc="/crop-guide-front.webp"
-                  imageAlt="Correct crop selection around the main shirt body"
-                  boxClassName="is-tight-body"
+                  videoSrc="/crop-guide-jersey-front.mp4"
+                  imageAlt="Basketball sando front crop sample video"
                 />
                 <CropGuidePhoto
-                  title="DON'T: Include Sleeves"
-                  body="If sleeves are included, the AI may extract the full shirt shape."
-                  tone="bad"
-                  imageSrc="/crop-guide-back.webp"
-                  imageAlt="Incorrect crop selection including shirt sleeves"
-                  boxClassName="is-full-shirt"
+                  title="DO: T-Shirt Front"
+                  body="Use this as the T-shirt guide. Crop the main printable body area cleanly."
+                  tone="good"
+                  videoSrc="/crop-guide-tshirt.mp4"
+                  imageAlt="T-shirt front crop sample video"
                 />
               </>
             )}

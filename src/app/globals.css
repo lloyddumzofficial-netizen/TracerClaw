@@ -3742,12 +3742,17 @@ body {
   border-radius: 0;
 }
 
-.crop-guide-photo-frame img {
+.crop-guide-photo-frame img,
+.crop-guide-photo-frame video {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center;
+}
+
+.crop-guide-photo-frame video {
+  background: #0c0d10;
 }
 
 .crop-guide-demo-box {
