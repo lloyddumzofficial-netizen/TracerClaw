@@ -109,11 +109,12 @@ function MarketingVideoPreview() {
           controls
           playsInline
           preload="metadata"
+          poster="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/images-desaynclaw/THUMBNAIL-VIDEO-DEMO.jpg"
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
         >
-          <source src="https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev/Video%20Demo/Marketing%20Video/MARKETING%20VIDEO%202.mp4" type="video/mp4" />
+          <source src="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/MARKETING%20VIDEO%202.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         {!isPlaying && (

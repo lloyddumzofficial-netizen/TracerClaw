@@ -93,7 +93,7 @@ const nextConfig = {
               // time — no external font origin is needed.
               "font-src 'self' data:",
               "img-src 'self' data: blob: https:",
-              "media-src 'self' data: blob: https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev",
+              "media-src 'self' data: blob: https://pub-c1f9daa772cc48a394341ecc043e63a5.r2.dev https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev",
               // wss: is required for the Supabase realtime socket (mobile sync
               // and the admin dashboard). "https:" does NOT cover wss:.
               "connect-src 'self' https: wss: https://www.google-analytics.com https://region1.google-analytics.com https://*.clarity.ms https://*.posthog.com https://*.i.posthog.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",

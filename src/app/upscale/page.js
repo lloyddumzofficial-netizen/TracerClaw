@@ -2,11 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { CheckCircle2, Clock, Download, ImageIcon, Loader2, Monitor, Scan, ShieldAlert, Wand2 } from "lucide-react";
+import { CheckCircle2, Clock, Download, Loader2, Monitor, Scan, ShieldAlert, Wand2 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { compressImageClientSide } from "@/utils/imageUtils";
 import { analytics } from "@/lib/analytics";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
@@ -62,6 +61,12 @@ export default function UpscalePage() {
   const [recentUpscales, setRecentUpscales] = useState([]);
 
   const noCredits = credits < UPSCALE_CREDIT_COST;
+
+  const getHistoryPreviewUrl = (item) => (
+    item.generated_image_url && item.generated_image_url !== "REFUNDED"
+      ? item.generated_image_url
+      : item.original_image_url
+  );
 
   const [uploadMode, setUploadMode] = useState("file"); // "file" | "qr"
   const scrollContainerRef = useRef(null);
@@ -397,10 +402,10 @@ export default function UpscalePage() {
                 className="workspace-command-btn is-primary"
                 onClick={handleUpscale}
                 disabled={isProcessing || (!previewImage && !upscaledImage)}
-                title="Generate 4K upscale"
+                title="Generate 6X upscale"
               >
                 {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-                4K Upscale
+                6X Upscale
               </button>
             </div>
             <div className="workspace-command-spacer" />
@@ -422,49 +427,50 @@ export default function UpscalePage() {
           <>
             <CheckCircle2 size={12} color="#4ade80" />
             <span style={{ color: "#4ade80" }}>Upscale complete</span>
-            <small>4K image is ready for download.</small>
+            <small>6X image is ready for download.</small>
           </>
         ) : (
-          <span>{isProcessing ? "Generating 4K upscale..." : previewImage ? "Ready to upscale" : "Waiting for image"}</span>
+          <span>{isProcessing ? "Generating 6X upscale..." : previewImage ? "Ready to upscale" : "Waiting for image"}</span>
         )}
       >
 
 
-        <main className="main-workspace" style={{ padding: 0 }}>
+        <main className="main-workspace upscale-studio">
 
           {/* Split View Workspace */}
-          <div className="canvas-area" style={{ padding: 0, display: "flex", flexDirection: "column", background: "url('/checkerboard.png')", backgroundColor: "#111" }}>
+          <section className="canvas-area upscale-canvas">
 
-            <div style={{ display: "flex", borderBottom: "1px solid #222", background: "#1a1a1a", height: "40px" }}>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", borderRight: "1px solid #222", color: !upscaledImage ? "#FFD700" : "#666", fontWeight: "700", fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", whiteSpace: "nowrap", padding: "0 10px" }}>
-                1. ORIGINAL UPLOAD
+            <div className="upscale-stage-tabs">
+              <div className={`upscale-stage-tab ${!upscaledImage ? "is-active" : ""}`}>
+                <span>1</span>
+                Original Upload
               </div>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: upscaledImage ? "#FFD700" : "#666", fontWeight: "700", fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", whiteSpace: "nowrap", padding: "0 10px" }}>
-                2. 4X HD UPSCALE
+              <div className={`upscale-stage-tab ${upscaledImage ? "is-active" : ""}`}>
+                <span>2</span>
+                6X HD Upscale
               </div>
             </div>
 
-            <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", padding: "40px", position: "relative" }}>
+            <div className="upscale-canvas-body">
               {(!previewImage && !upscaledImage) ? (
-                <div className="hero-upload-box"
+                <div className="upscale-empty-panel"
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
-                  style={{ maxWidth: "460px", width: "100%", padding: "32px 24px", borderRadius: "0", border: "1px solid #333" }}
                 >
-                  <div style={{ display: "flex", gap: "8px", width: "100%", marginBottom: "12px", flexWrap: "nowrap" }}>
+                  <div className="upscale-empty-kicker">REAL-ESRGAN X4PLUS / 6X SCALE</div>
+                  <h2>Upscale raster artwork before production.</h2>
+                  <p>Use this for low-resolution jersey graphics, customer photos, logos, and print references that need more pixel detail before handoff.</p>
+
+                  <div className="upscale-empty-actions">
                     <button
                       onClick={() => fileInputRef.current.click()}
-                      style={{ flex: 1, background: "#FFD700", color: "#111", border: "none", borderRadius: "0", fontSize: "12px", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontWeight: "700", letterSpacing: "0.5px", textTransform: "uppercase", transition: "all 0.2s", cursor: "pointer", whiteSpace: "nowrap" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "#e6c200"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "#FFD700"; }}
+                      className="upscale-empty-btn is-primary"
                     >
                       <Monitor size={14} /> Open PC File
                     </button>
                     <button
                       onClick={() => setUploadMode(prev => prev === "qr" ? "file" : "qr")}
-                      style={{ flex: 1, background: uploadMode === "qr" ? "rgba(255,215,0,0.08)" : "transparent", color: uploadMode === "qr" ? "#FFD700" : "#999", border: uploadMode === "qr" ? "1px solid #FFD700" : "1px solid #444", borderRadius: "0", fontSize: "12px", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase", transition: "all 0.2s", cursor: "pointer", whiteSpace: "nowrap" }}
-                      onMouseEnter={(e) => { if (uploadMode !== "qr") { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.color = "#FFD700"; } }}
-                      onMouseLeave={(e) => { if (uploadMode !== "qr") { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#999"; } }}
+                      className={`upscale-empty-btn ${uploadMode === "qr" ? "is-active" : ""}`}
                     >
                       <Scan size={14} /> Scan Phone
                     </button>
@@ -473,57 +479,50 @@ export default function UpscalePage() {
                   <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelected(e.target.files[0])} accept="image/*" style={{ display: "none" }} />
 
                   {uploadMode === "qr" ? (
-                    <div style={{ background: "#111", border: "1px solid #333", borderRadius: "0", padding: "24px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-                      <div style={{ background: "#fff", padding: "10px", marginBottom: "14px" }}><QRCode value={`https://desaynclaw.com/m/${syncSessionId}`} size={130} /></div>
-                      <p style={{ color: "#888", margin: 0, fontSize: "12px", textAlign: "center", lineHeight: 1.5 }}>Scan with your mobile camera to upload directly.</p>
+                    <div className="upscale-qr-panel">
+                      <div className="upscale-qr-code"><QRCode value={`https://desaynclaw.com/m/${syncSessionId}`} size={130} /></div>
+                      <p>Scan with your mobile camera to upload directly.</p>
                     </div>
                   ) : (
-                    <div style={{ marginTop: "12px", color: "#555", fontSize: "12px", textAlign: "center" }}>or drop an image anywhere here</div>
+                    <div className="upscale-drop-note">or drop an image anywhere on this panel</div>
                   )}
                 </div>
               ) : (
-                <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div className="upscale-preview-shell">
                   <div
                     ref={scrollContainerRef}
-                    style={{
-                      flex: 1,
-                      width: "100%", height: "100%",
-                      overflow: "auto",
-                      display: "flex", alignItems: "center", justifyContent: "center"
-                    }}
+                    className="upscale-preview-scroll"
                   >
-                    <div style={{ zoom: zoom, transition: "zoom 0.1s ease-out", display: "flex", justifyContent: "center", alignItems: "center", minWidth: "100%", minHeight: "100%" }}>
-                      <img src={upscaledImage || previewImage} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.8))" }} alt="Preview" />
+                    <div className="upscale-preview-zoom" style={{ zoom }}>
+                      <img src={upscaledImage || previewImage} alt="Preview" />
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
           {/* Right Properties Panel */}
-          <div style={{ width: "320px", background: "#1a1a1a", borderLeft: "1px solid #222", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+          <aside className="upscale-side-panel">
 
-            <div style={{ padding: "16px", borderBottom: "1px solid #222" }}>
-              <div style={{ fontSize: "10px", color: "#888", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "16px", display: "flex", justifyContent: "space-between" }}>
+            <div className="upscale-panel-section">
+              <div className="upscale-panel-title">
                 <span>ACTIONS</span>
               </div>
 
               <button
                 onClick={handleUpscale}
                 disabled={isProcessing || (!previewImage && !upscaledImage)}
-                style={{ width: "100%", marginBottom: "8px", background: "rgba(255, 215, 0, 0.1)", color: "#FFD700", border: "1px solid #FFD700", borderRadius: "0", padding: "10px 16px", transition: "all 0.2s", fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", opacity: (isProcessing || (!previewImage && !upscaledImage)) ? 0.5 : 1, cursor: (isProcessing || (!previewImage && !upscaledImage)) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-                onMouseOver={e => { if (!isProcessing && (previewImage || upscaledImage)) e.currentTarget.style.background = "rgba(255, 215, 0, 0.2)"; }}
-                onMouseOut={e => { if (!isProcessing && (previewImage || upscaledImage)) e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)"; }}
+                className="upscale-action-btn is-process"
               >
                 {isProcessing
                   ? <><Loader2 size={14} className="animate-spin" /> UPSCALING…</>
                   : noCredits
                     ? <><Wand2 size={14} /> GET MORE CLAWS</>
-                    : <><Wand2 size={14} /> GENERATE 4K UPSCALE {`(−${UPSCALE_CREDIT_COST} CLAW)`}</>}
+                    : <><Wand2 size={14} /> GENERATE 6X UPSCALE {`(−${UPSCALE_CREDIT_COST} CLAW)`}</>}
               </button>
               {noCredits && (
-                <p style={{ margin: "0 0 8px", fontSize: "10px", color: "#FFD700", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>
+                <p className="upscale-credit-warning">
                   You need {UPSCALE_CREDIT_COST} claw to upscale
                 </p>
               )}
@@ -533,9 +532,7 @@ export default function UpscalePage() {
                   if (upscaledImage) handleDownload(upscaledImage);
                 }}
                 disabled={!upscaledImage}
-                style={{ width: "100%", marginBottom: "16px", background: "#1a1a1a", color: "#aaa", border: "1px solid #444", borderRadius: "0", padding: "8px 16px", transition: "all 0.2s", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", opacity: !upscaledImage ? 0.4 : 1, cursor: !upscaledImage ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-                onMouseOver={e => { if (upscaledImage) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                onMouseOut={e => { if (upscaledImage) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                className="upscale-action-btn"
               >
                 <Download size={14} /> DOWNLOAD RESULT
               </button>
@@ -547,37 +544,37 @@ export default function UpscalePage() {
               )}
             </div>
 
-            <div style={{ padding: "16px" }}>
-              <div style={{ fontSize: "10px", color: "#888", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+            <div className="upscale-panel-section is-history">
+              <div className="upscale-panel-title">
                 <span>HISTORY</span>
               </div>
 
               {/* Privacy Notice */}
-              <div style={{ background: "rgba(255,215,0,0.04)", border: "1px solid rgba(255,215,0,0.15)", borderRadius: "0", padding: "12px", marginBottom: "20px", display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                <ShieldAlert size={14} color="#FFD700" style={{ flexShrink: 0, marginTop: "2px" }} />
+              <div className="upscale-privacy-note">
+                <ShieldAlert size={14} />
                 <div>
-                  <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: "700", color: "#FFD700" }}>Privacy First</p>
-                  <p style={{ margin: 0, fontSize: "10px", color: "#aaa", lineHeight: 1.4 }}>All uploaded and generated images are permanently deleted after 3 days to protect your privacy.</p>
+                  <p>Privacy First</p>
+                  <small>All uploaded and generated images are permanently deleted after 3 days to protect your privacy.</small>
                 </div>
               </div>
 
               {recentUpscales.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px 0", border: "1px dashed #2a2a2a", background: "#111" }}>
-                  <Clock size={24} color="#444" style={{ margin: "0 auto 8px" }} />
-                  <p style={{ margin: 0, color: "#666", fontSize: "11px" }}>No recent upscales</p>
+                <div className="upscale-empty-history">
+                  <Clock size={24} />
+                  <p>No recent upscales</p>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div className="upscale-history-list">
                   {recentUpscales.map(item => (
-                    <div key={item.id} className="history-card" style={{ display: "flex", gap: "12px", padding: "10px", background: "#111", border: "1px solid #2a2a2a", borderRadius: "0", transition: "all 0.2s", position: "relative" }} onMouseEnter={e => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.background = "#151515"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#111"; }}>
-                      <div style={{ width: "48px", height: "48px", background: "#0a0a0a", border: "1px solid #333", borderRadius: "0", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-                        <img src={item.generated_image_url || item.original_image_url} alt="Upscaled design history preview" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "cover", transition: "transform 0.3s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"} />
+                    <div key={item.id} className="upscale-history-card">
+                      <div className="upscale-history-thumb">
+                        <img src={getHistoryPreviewUrl(item)} alt="Upscaled design history preview" />
                       </div>
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
-                        <p style={{ margin: "0 0 4px", color: "#ddd", fontSize: "12px", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {item.name || "4K Upscale"}
+                      <div className="upscale-history-info">
+                        <p>
+                          {item.name || "6X Upscale"}
                         </p>
-                        <span style={{ fontSize: "10px", color: "#666", display: "flex", alignItems: "center", gap: "4px" }}>
+                        <span>
                           <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
                         </span>
                       </div>
@@ -596,9 +593,7 @@ export default function UpscalePage() {
                           }
                         }}
                         title={item.generated_image_url ? "Download Image" : "Finish processing"}
-                        style={{ alignSelf: "center", background: "transparent", border: "1px solid #444", color: "#888", width: "28px", height: "28px", borderRadius: "0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.color = "#FFD700"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#888"; }}
+                        className="upscale-history-download"
                       >
                         <Download size={12} strokeWidth={2.5} />
                       </button>
@@ -608,7 +603,7 @@ export default function UpscalePage() {
               )}
             </div>
 
-          </div>
+          </aside>
 
         </main>
 
