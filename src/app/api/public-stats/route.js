@@ -4,8 +4,8 @@ import { enforceRateLimit, getClientIp, getRedisClient } from "@/lib/rateLimit";
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_KEY = "public-stats:v1";
-const CACHE_TTL_SECONDS = 5 * 60;
+const CACHE_KEY = "public-stats:v2";
+const CACHE_TTL_SECONDS = 60;
 const CACHE_TTL_MS = CACHE_TTL_SECONDS * 1000;
 let cachedStats = null;
 
@@ -48,6 +48,39 @@ async function getReviewCount() {
   }
 
   return count || 0;
+}
+
+async function getLatestProfileAvatars() {
+  const { data, error } = await adminSupabase
+    .from('profiles')
+    .select('avatar_url')
+    .not('avatar_url', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.warn("[Public Stats] Profile avatars unavailable; using review avatars:", error.message);
+    return [];
+  }
+
+  return [...new Set((data || []).map((row) => row.avatar_url).filter(Boolean))].slice(0, 5);
+}
+
+async function getReviewAvatars() {
+  const { data, error } = await adminSupabase
+    .from('projects')
+    .select('reviewer_avatar')
+    .not('reviewer_avatar', 'is', null)
+    .gte('rating', 4)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.warn("Failed to fetch public avatar stats", error);
+    return [];
+  }
+
+  return [...new Set((data || []).map((row) => row.reviewer_avatar).filter(Boolean))].slice(0, 5);
 }
 
 async function getStatsFromRpc() {
@@ -129,8 +162,13 @@ export async function GET(request) {
 
     const rpcPayload = await getStatsFromRpc();
     if (rpcPayload) {
-      await writeCachedStats(rpcPayload);
-      return NextResponse.json(rpcPayload, {
+      const profileAvatars = await getLatestProfileAvatars();
+      const payload = {
+        ...rpcPayload,
+        avatars: profileAvatars.length > 0 ? profileAvatars : rpcPayload.avatars,
+      };
+      await writeCachedStats(payload);
+      return NextResponse.json(payload, {
         headers: {
           "Cache-Control": "public, max-age=60, stale-while-revalidate=240",
           "X-DesaynClaw-Stats-Cache": "miss",
@@ -138,31 +176,20 @@ export async function GET(request) {
       });
     }
 
-    const [totalUsers, completedExtractions, reviewCount, avatarResult] = await Promise.all([
+    const [totalUsers, completedExtractions, reviewCount, profileAvatars, reviewAvatars] = await Promise.all([
       getProfileCount(),
       getCompletedExtractionCount(),
       getReviewCount(),
-      adminSupabase
-        .from('projects')
-        .select('reviewer_avatar')
-        .not('reviewer_avatar', 'is', null)
-        .gte('rating', 4)
-        .order('created_at', { ascending: false })
-        .limit(20),
+      getLatestProfileAvatars(),
+      getReviewAvatars(),
     ]);
-
-    if (avatarResult.error) {
-      console.warn("Failed to fetch public avatar stats", avatarResult.error);
-    }
-
-    const realAvatars = [...new Set((avatarResult.data || []).map((row) => row.reviewer_avatar).filter(Boolean))].slice(0, 5);
 
     const payload = {
       success: true,
       totalUsers,
       completedExtractions,
       reviewCount,
-      avatars: realAvatars
+      avatars: profileAvatars.length > 0 ? profileAvatars : reviewAvatars
     };
 
     await writeCachedStats(payload);
@@ -174,6 +201,15 @@ export async function GET(request) {
       },
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: "Failed to fetch user stats" }, { status: 500 });
+    console.warn("[Public Stats] Falling back to unavailable stats:", err?.message || err);
+    return NextResponse.json(
+      { success: false, totalUsers: 0, completedExtractions: null, reviewCount: 0, avatars: [] },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+          "X-DesaynClaw-Stats-Cache": "unavailable",
+        },
+      },
+    );
   }
 }

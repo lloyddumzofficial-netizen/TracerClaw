@@ -358,9 +358,28 @@ export default function StartScreen() {
       const statsController = new AbortController();
       const statsTimeout = setTimeout(() => statsController.abort(), 6500);
 
+      const applyCachedStats = () => {
+        try {
+          const cached = JSON.parse(localStorage.getItem(PUBLIC_STATS_CACHE_KEY) || "null");
+          if (cached && Number.isFinite(cached.totalUsers)) {
+            setPublicStats({
+              totalUsers: cached.totalUsers || 0,
+              completedExtractions: Number.isFinite(cached.completedExtractions) ? cached.completedExtractions : 0,
+              reviewCount: cached.reviewCount || 0,
+              avatars: cached.avatars || []
+            });
+            setPublicStatsStatus("cached");
+            return true;
+          }
+        } catch (cacheError) {
+          console.warn("Failed to read cached public stats", cacheError);
+        }
+        return false;
+      };
+
       fetch('/api/public-stats', { signal: statsController.signal })
         .then(res => {
-          if (!res.ok) throw new Error(`Public stats request failed with ${res.status}`);
+          if (!res.ok) return { success: false };
           return safeJson(res, "Failed to load public stats");
         })
         .then(data => {
@@ -375,27 +394,12 @@ export default function StartScreen() {
             setPublicStatsStatus("ready");
             localStorage.setItem(PUBLIC_STATS_CACHE_KEY, JSON.stringify(nextStats));
           } else {
-            setPublicStatsStatus("unavailable");
+            if (!applyCachedStats()) setPublicStatsStatus("unavailable");
           }
         })
         .catch((error) => {
-          console.error(error);
-          try {
-            const cached = JSON.parse(localStorage.getItem(PUBLIC_STATS_CACHE_KEY) || "null");
-            if (cached && Number.isFinite(cached.totalUsers)) {
-              setPublicStats({
-                totalUsers: cached.totalUsers || 0,
-                completedExtractions: Number.isFinite(cached.completedExtractions) ? cached.completedExtractions : 0,
-                reviewCount: cached.reviewCount || 0,
-                avatars: cached.avatars || []
-              });
-              setPublicStatsStatus("cached");
-              return;
-            }
-          } catch (cacheError) {
-            console.warn("Failed to read cached public stats", cacheError);
-          }
-          setPublicStatsStatus("unavailable");
+          const hasCachedStats = error?.name !== "AbortError" && applyCachedStats();
+          if (!hasCachedStats) setPublicStatsStatus("unavailable");
         })
         .finally(() => {
           clearTimeout(statsTimeout);
@@ -935,9 +939,89 @@ export default function StartScreen() {
 
         <HomepageWorkflowPreview />
 
-        <MarketingVideoPreview />
+        <EduSection />
 
-        <TestimonialSection />
+        {/* Feature Cards below Hero */}
+        <div id="samples-section" style={{ marginTop: '80px', marginBottom: '60px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Sample Extractions</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "8px 0 0 0", fontWeight: "600", letterSpacing: "-1px" }}>Pixel-Perfect Vectorization</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <BeforeAfterSlider
+              title="Esports Gaming Apparel (Flat Extracted)"
+              rasterUrl="/samples/esports-original.jpg"
+              vectorUrl="/samples/esports-vector.webp"
+            />
+            <BeforeAfterSlider
+              title="Polo Shirt Pattern (Flat Extracted)"
+              rasterUrl="/samples/polo-original.png"
+              vectorUrl="/samples/polo-vector.webp"
+            />
+          </div>
+        </div>
+
+        {/* BG Remover Sample Section */}
+        <div style={{ marginBottom: '80px', width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Background Remover</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Flawless Subject Cutouts</h2>
+            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+              Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
+              style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
+              onMouseLeave={e => e.currentTarget.style.background = "#FFD700"}
+            >
+              <Scissors size={18} color="#000" />
+              Try Background Remover
+            </button>
+          </div>
+          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
+            <BeforeAfterSlider
+              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
+              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
+              leftLabel="NO BACKGROUND"
+              rightLabel="ORIGINAL"
+              layout="vertical"
+              aspectRatio="1 / 1"
+              showCheckerboard={true}
+            />
+          </div>
+        </div>
+
+        {/* Upscaler Sample Section */}
+        <div style={{ marginBottom: '100px', width: '100%', display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
+            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Image Upscaler</h3>
+            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Enhance to 4K Quality</h2>
+            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+              Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
+              style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#444"}
+              onMouseLeave={e => e.currentTarget.style.background = "#333"}
+            >
+              <ImageIcon size={18} />
+              Try Image Upscaler
+            </button>
+          </div>
+          <div style={{ flex: '1 1 450px', minWidth: '280px' }}>
+            <BeforeAfterSlider
+              rasterUrl="/samples/upscale-original.png"
+              vectorUrl="/samples/upscale-hq.webp"
+              leftLabel="4K UPSCALE"
+              rightLabel="PIXELATED"
+              layout="vertical"
+              aspectRatio="1 / 1"
+              pixelateRaster={true}
+            />
+          </div>
+        </div>
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <div style={{ marginTop: "40px", marginBottom: "0" }}>
@@ -1065,95 +1149,15 @@ export default function StartScreen() {
           </div>
         </div>
         {/* Animated Counter Section */}
+        <MarketingVideoPreview />
+
+        <TestimonialSection />
+
         <AnimatedCounter value={publicStats.completedExtractions} />
 
         <FAQSection />
 
         {/* ────────────────────────────────────────────────────────────────────── */}
-
-        <EduSection />
-
-        {/* Feature Cards below Hero */}
-        <div id="samples-section" style={{ marginTop: '80px', marginBottom: '60px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Sample Extractions</h3>
-            <h2 style={{ color: "#fff", fontSize: "36px", margin: "8px 0 0 0", fontWeight: "600", letterSpacing: "-1px" }}>Pixel-Perfect Vectorization</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-            <BeforeAfterSlider
-              title="Esports Gaming Apparel (Flat Extracted)"
-              rasterUrl="/samples/esports-original.jpg"
-              vectorUrl="/samples/esports-vector.webp"
-            />
-            <BeforeAfterSlider
-              title="Polo Shirt Pattern (Flat Extracted)"
-              rasterUrl="/samples/polo-original.png"
-              vectorUrl="/samples/polo-vector.webp"
-            />
-          </div>
-        </div>
-
-        {/* BG Remover Sample Section */}
-        <div style={{ marginBottom: '80px', width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
-          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
-            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Background Remover</h3>
-            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Flawless Subject Cutouts</h2>
-            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
-              Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
-            </p>
-            <button
-              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
-              style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
-              onMouseLeave={e => e.currentTarget.style.background = "#FFD700"}
-            >
-              <Scissors size={18} color="#000" />
-              Try Background Remover
-            </button>
-          </div>
-          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
-            <BeforeAfterSlider
-              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
-              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
-              leftLabel="NO BACKGROUND"
-              rightLabel="ORIGINAL"
-              layout="vertical"
-              aspectRatio="1 / 1"
-              showCheckerboard={true}
-            />
-          </div>
-        </div>
-
-        {/* Upscaler Sample Section */}
-        <div style={{ marginBottom: '100px', width: '100%', display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
-          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
-            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Image Upscaler</h3>
-            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Enhance to 4K Quality</h2>
-            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
-              Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
-            </p>
-            <button
-              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
-              style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#444"}
-              onMouseLeave={e => e.currentTarget.style.background = "#333"}
-            >
-              <ImageIcon size={18} />
-              Try Image Upscaler
-            </button>
-          </div>
-          <div style={{ flex: '1 1 450px', minWidth: '280px' }}>
-            <BeforeAfterSlider
-              rasterUrl="/samples/upscale-original.png"
-              vectorUrl="/samples/upscale-hq.webp"
-              leftLabel="4K UPSCALE"
-              rightLabel="PIXELATED"
-              layout="vertical"
-              aspectRatio="1 / 1"
-              pixelateRaster={true}
-            />
-          </div>
-        </div>
 
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />

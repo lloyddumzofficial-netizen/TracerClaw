@@ -1,5 +1,5 @@
--- Scalability helper for the unauthenticated homepage stats endpoint.
--- Run once in the Supabase SQL editor before or alongside the matching deploy.
+-- Store basic OAuth profile display data for homepage public avatar stats.
+-- Run once in Supabase SQL editor before or alongside the matching deploy.
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS full_name text NULL,
