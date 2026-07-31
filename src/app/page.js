@@ -939,6 +939,8 @@ export default function StartScreen() {
 
         <HomepageWorkflowPreview />
 
+        <MarketingVideoPreview />
+
         <EduSection />
 
         {/* Feature Cards below Hero */}
@@ -1149,8 +1151,6 @@ export default function StartScreen() {
           </div>
         </div>
         {/* Animated Counter Section */}
-        <MarketingVideoPreview />
-
         <TestimonialSection />
 
         <AnimatedCounter value={publicStats.completedExtractions} />
