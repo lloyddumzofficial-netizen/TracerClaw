@@ -862,19 +862,6 @@
           margin: 0 -20px 86px;
           padding: 54px 20px;
           position: relative;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .tool-showcase-section::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          background:
-            linear-gradient(90deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 36%),
-            radial-gradient(circle at 82% 34%, rgba(255,215,0,0.08), transparent 32%);
-          border-top: 1px solid rgba(255,255,255,0.055);
-          border-bottom: 1px solid rgba(255,255,255,0.055);
         }
 
         .tool-showcase-section.is-reversed {
