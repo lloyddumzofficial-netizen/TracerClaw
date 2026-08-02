@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, CreditCard, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import { toast } from "./Toast";
@@ -89,12 +90,17 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const [activeTab, setActiveTab] = useState("plans");
   const [logs, setLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [mounted, setMounted] = useState(false);
   // A submitted GCash payment waits on manual admin approval. The confirmation
   // screen after submitting was local state, so closing the modal erased every
   // trace of it — reopening showed a fresh plan picker, as though the payment
   // had never happened. Session replay showed a user idle for ~13 minutes after
   // paying. Reading the request back on open makes the wait visible.
   const [pendingRequest, setPendingRequest] = useState(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!show || !user) return;
@@ -253,11 +259,25 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     }
   }, [form, user, supabase]);
 
-  if (!show) return null;
+  if (!show || !mounted) return null;
 
-  return (
-    <div className="modal-overlay" onClick={handleClose} style={{ padding: '24px' }}>
-      <div className="modal-content" style={{ maxWidth: '960px', width: '100%', maxHeight: 'calc(100vh - 48px)', padding: '0', overflow: 'hidden', borderRadius: '0', border: '1px solid #444', background: '#262626', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div
+      className="modal-overlay"
+      onClick={handleClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 2147483000,
+        padding: '24px',
+        background: 'rgba(0, 0, 0, 0.94)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div className="modal-content" style={{ maxWidth: '960px', width: '100%', maxHeight: 'calc(100vh - 48px)', padding: '0', overflow: 'hidden', borderRadius: '0', border: '1px solid #444', background: '#262626', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, boxShadow: '0 30px 90px rgba(0,0,0,0.85)' }} onClick={(e) => e.stopPropagation()}>
         
         {/* Modal Header */}
         <div style={{ background: '#2a2a2a', borderBottom: '1px solid #444', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -551,7 +571,8 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 
