@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Shirt, X, Scissors, ChevronLeft, ArrowRight } from "lucide-react";
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
@@ -170,8 +171,13 @@ const NewProjectModal = memo(function NewProjectModal({
 }) {
   const [step, setStep] = useState("category");
   const [category, setCategory] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
-  if (!show) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!show || !mounted) return null;
 
   const handleCategorySelect = (cat) => {
     setCategory(cat);
@@ -200,8 +206,22 @@ const NewProjectModal = memo(function NewProjectModal({
     onClose();
   };
 
-  return (
-    <div className="modal-overlay" onClick={handleClose}>
+  return createPortal(
+    <div
+      className="modal-overlay"
+      onClick={handleClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 2147483000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        background: "rgba(0, 0, 0, 0.92)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -211,7 +231,7 @@ const NewProjectModal = memo(function NewProjectModal({
           transition: "max-width 0.32s cubic-bezier(0.4,0,0.2,1)",
           width: "calc(100vw - 32px)",
           padding: "26px 26px 24px",
-          background: "linear-gradient(160deg, #1e1e1e 0%, #191919 100%)",
+          background: "linear-gradient(160deg, #1e1e1e 0%, #151515 100%)",
           border: "1px solid #282828",
           borderRadius: 0,
           boxShadow: "0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03) inset",
@@ -383,7 +403,8 @@ const NewProjectModal = memo(function NewProjectModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 
