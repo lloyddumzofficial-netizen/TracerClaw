@@ -887,7 +887,7 @@ export default function StartScreen() {
       </div>
 
       {/* Main Content Wrapper (For the rest of the page) */}
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}>
+      <div className="home-content-frame" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}>
 
         {/* SCROLLING TRUST MARQUEE (MINIMAL & ALIGNED) */}
         <div className="marquee-container" style={{
@@ -944,12 +944,13 @@ export default function StartScreen() {
         <EduSection />
 
         {/* Feature Cards below Hero */}
-        <div id="samples-section" style={{ marginTop: '80px', marginBottom: '60px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>Sample Extractions</h3>
-            <h2 style={{ color: "#fff", fontSize: "36px", margin: "8px 0 0 0", fontWeight: "600", letterSpacing: "-1px" }}>Pixel-Perfect Vectorization</h2>
+        <section id="samples-section" className="proof-gallery-section section-line-accent">
+          <div className="proof-section-heading">
+            <span className="section-kicker">Sample Extractions</span>
+            <h2>Pixel-Perfect Vectorization</h2>
+            <p>Real apparel artwork transformed into clean, scalable production files.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+          <div className="proof-gallery-grid">
             <BeforeAfterSlider
               title="Esports Gaming Apparel (Flat Extracted)"
               rasterUrl="/samples/esports-original.jpg"
@@ -961,27 +962,25 @@ export default function StartScreen() {
               vectorUrl="/samples/polo-vector.webp"
             />
           </div>
-        </div>
+        </section>
 
         {/* BG Remover Sample Section */}
-        <div style={{ marginBottom: '80px', width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
-          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
-            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Background Remover</h3>
-            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Flawless Subject Cutouts</h2>
-            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+        <section className="tool-showcase-section section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">AI Background Remover</span>
+            <h2>Flawless Subject Cutouts</h2>
+            <p>
               Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
             </p>
             <button
+              className="tool-showcase-button is-primary"
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
-              style={{ background: "#FFD700", color: "#000", border: "none", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#e6c200"}
-              onMouseLeave={e => e.currentTarget.style.background = "#FFD700"}
             >
               <Scissors size={18} color="#000" />
               Try Background Remover
             </button>
           </div>
-          <div style={{ flex: '1 1 450px', minWidth: '300px' }}>
+          <div className="tool-showcase-media">
             <BeforeAfterSlider
               rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
               vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
@@ -992,27 +991,25 @@ export default function StartScreen() {
               showCheckerboard={true}
             />
           </div>
-        </div>
+        </section>
 
         {/* Upscaler Sample Section */}
-        <div style={{ marginBottom: '100px', width: '100%', display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: '60px' }}>
-          <div style={{ flex: '1 1 300px', textAlign: 'left' }}>
-            <h3 style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", margin: 0, fontWeight: "bold" }}>AI Image Upscaler</h3>
-            <h2 style={{ color: "#fff", fontSize: "36px", margin: "16px 0", fontWeight: "600", letterSpacing: "-1px", lineHeight: '1.2' }}>Enhance to 4K Quality</h2>
-            <p style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.6', margin: "0 0 24px 0" }}>
+        <section className="tool-showcase-section is-reversed section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">AI Image Upscaler</span>
+            <h2>Enhance to 4K Quality</h2>
+            <p>
               Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
             </p>
             <button
+              className="tool-showcase-button"
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
-              style={{ background: "#333", color: "#fff", border: "1px solid #555", padding: "12px 24px", borderRadius: "6px", fontSize: "15px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#444"}
-              onMouseLeave={e => e.currentTarget.style.background = "#333"}
             >
               <ImageIcon size={18} />
               Try Image Upscaler
             </button>
           </div>
-          <div style={{ flex: '1 1 450px', minWidth: '280px' }}>
+          <div className="tool-showcase-media">
             <BeforeAfterSlider
               rasterUrl="/samples/upscale-original.png"
               vectorUrl="/samples/upscale-hq.webp"
@@ -1023,133 +1020,70 @@ export default function StartScreen() {
               pixelateRaster={true}
             />
           </div>
-        </div>
+        </section>
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
-        <div style={{ marginTop: "40px", marginBottom: "0" }}>
+        <section className="great-for-section section-line-accent">
 
           {/* Section Header */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
-            <div style={{
-              background: "#FFD700",
-              color: "#000",
-              fontSize: "11px",
-              fontWeight: "800",
-              letterSpacing: "1.5px",
-              textTransform: "uppercase",
-              padding: "6px 14px",
-              transform: "skewX(-8deg)",
-              display: "inline-block",
-              whiteSpace: "nowrap",
-            }}>
-              <span style={{ display: "inline-block", transform: "skewX(8deg)" }}>Great For</span>
-            </div>
-            <div style={{ flex: 1, height: "1px", background: "linear-gradient(to right, #444, transparent)" }} />
+          <div className="great-for-heading">
+            <span className="section-kicker">Great For</span>
+            <h2>Built for everyday production work</h2>
           </div>
 
           {/* Cards Grid */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "1px",
-            background: "#333",
-            border: "1px solid #333",
-          }}>
+          <div className="great-for-grid">
 
             {/* Card 1 — Sublimation Print Shops */}
-            <div style={{
-              background: "#1e1e1e",
-              padding: "28px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-              transition: "background 0.2s",
-              cursor: "default",
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = "#252525"}
-              onMouseLeave={e => e.currentTarget.style.background = "#1e1e1e"}
-            >
-              <div style={{ width: "44px", height: "44px", background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <article className="great-for-card">
+              <div className="great-for-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
               </div>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: "#fff", marginBottom: "8px", letterSpacing: "0.3px" }}>Sublimation Print Shops</div>
-                <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.6" }}>Extract flat sublimation-ready files from jersey mockups. Save hours of manual Photoshop work. Output clean, print-ready rectangles straight to your RIP software.</div>
+                <h3>Sublimation Print Shops</h3>
+                <p>Extract flat sublimation-ready files from jersey mockups. Save hours of manual Photoshop work. Output clean, print-ready rectangles straight to your RIP software.</p>
               </div>
-            </div>
+            </article>
 
             {/* Card 2 — Logos & Branding */}
-            <div style={{
-              background: "#1e1e1e",
-              padding: "28px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-              transition: "background 0.2s",
-              cursor: "default",
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = "#252525"}
-              onMouseLeave={e => e.currentTarget.style.background = "#1e1e1e"}
-            >
-              <div style={{ width: "44px", height: "44px", background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <article className="great-for-card">
+              <div className="great-for-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
               </div>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: "#fff", marginBottom: "8px", letterSpacing: "0.3px" }}>Logos &amp; Branding</div>
-                <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.6" }}>Vectorize low-resolution logos into crisp, scalable SVGs. Enhance old or blurry brand marks into professional vector files ready for Illustrator, CorelDRAW, or embroidery.</div>
+                <h3>Logos &amp; Branding</h3>
+                <p>Vectorize low-resolution logos into crisp, scalable SVGs. Enhance old or blurry brand marks into professional vector files ready for Illustrator, CorelDRAW, or embroidery.</p>
               </div>
-            </div>
+            </article>
 
             {/* Card 3 — School & Sports Uniforms */}
-            <div style={{
-              background: "#1e1e1e",
-              padding: "28px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-              transition: "background 0.2s",
-              cursor: "default",
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = "#252525"}
-              onMouseLeave={e => e.currentTarget.style.background = "#1e1e1e"}
-            >
-              <div style={{ width: "44px", height: "44px", background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <article className="great-for-card">
+              <div className="great-for-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
               </div>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: "#fff", marginBottom: "8px", letterSpacing: "0.3px" }}>School &amp; Sports Uniforms</div>
-                <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.6" }}>Reproduce barangay, basketball, volleyball, and school uniform designs from mockup photos. Get editable flat files for any sport — without touching the original artwork.</div>
+                <h3>School &amp; Sports Uniforms</h3>
+                <p>Reproduce barangay, basketball, volleyball, and school uniform designs from mockup photos. Get editable flat files for any sport without touching the original artwork.</p>
               </div>
-            </div>
+            </article>
 
             {/* Card 4 — Freelance Designers */}
-            <div style={{
-              background: "#1e1e1e",
-              padding: "28px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
-              transition: "background 0.2s",
-              cursor: "default",
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = "#252525"}
-              onMouseLeave={e => e.currentTarget.style.background = "#1e1e1e"}
-            >
-              <div style={{ width: "44px", height: "44px", background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <article className="great-for-card">
+              <div className="great-for-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h.01" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" /></svg>
               </div>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: "700", color: "#fff", marginBottom: "8px", letterSpacing: "0.3px" }}>Freelance Designers</div>
-                <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.6" }}>Remove backgrounds, upscale to 4K, and vectorize client artwork in minutes — not hours. Take on more orders and deliver faster without sacrificing quality.</div>
+                <h3>Freelance Designers</h3>
+                <p>Remove backgrounds, upscale to 4K, and vectorize client artwork in minutes. Take on more orders and deliver faster without sacrificing quality.</p>
               </div>
-            </div>
+            </article>
 
           </div>
 
-          <div style={{ width: '100%', marginTop: '40px' }}>
-            <img src="/small_banner.jpg" alt="Promo Banner" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid #333' }} />
+          <div className="wide-promo-banner">
+            <img src="/small_banner.jpg" alt="Promo Banner" />
           </div>
-        </div>
+        </section>
         {/* Animated Counter Section */}
         <TestimonialSection />
 
