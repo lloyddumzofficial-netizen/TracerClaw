@@ -793,7 +793,7 @@ export default function StartScreen() {
                 </p>
               </div>
 
-              <div className="hero-action-bar" style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflowX: "auto", paddingBottom: "2px" }}>
+              <div className="hero-action-bar" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflow: "visible", paddingBottom: "2px" }}>
                 <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   {isUploading ? <><Monitor size={13} className="animate-pulse" /> Creating...</> : <><FilePlus size={13} /> New Project</>}
                 </button>
@@ -839,7 +839,7 @@ export default function StartScreen() {
 
             {/* RIGHT PANEL — Recent Projects (logged in) OR Sample Extractions (guest) */}
             {user ? (
-              <div className="hero-right" style={{ width: "100%" }}>
+              <div className="hero-right">
                 <RecentProjects
                   user={user}
                   isLoadingProjects={isLoadingProjects}
@@ -857,7 +857,7 @@ export default function StartScreen() {
                 />
               </div>
             ) : (
-              <div className="hero-right" style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="hero-right" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
                   <BeforeAfterSlider
                     title="Untitled Design 2"
