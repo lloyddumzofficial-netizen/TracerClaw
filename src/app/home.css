@@ -567,7 +567,14 @@
         }
 
         .hero-action-bar {
-          max-width: 720px;
+          max-width: 632px;
+        }
+
+        .hero-action-bar .start-btn {
+          flex: 1 1 0 !important;
+          min-width: 0 !important;
+          padding: 0 8px !important;
+          font-size: 10.5px !important;
         }
 
         @media (max-width: 980px) {
