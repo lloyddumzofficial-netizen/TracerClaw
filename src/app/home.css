@@ -567,7 +567,7 @@
         }
 
         .hero-action-bar {
-          max-width: 632px;
+          max-width: 720px;
         }
 
         @media (max-width: 980px) {
