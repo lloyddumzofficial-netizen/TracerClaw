@@ -30,7 +30,7 @@ function CropGuidePhoto({ title, body, tone, imageSrc, videoSrc, imageAlt, boxCl
         <Icon size={14} />
         {title}
       </div>
-      <p>{body}</p>
+      {body && <p>{body}</p>}
       <div className="crop-guide-photo-frame">
         {videoSrc ? (
           <video autoPlay loop muted playsInline preload="metadata" aria-label={imageAlt}>
@@ -284,9 +284,8 @@ const CropModal = memo(function CropModal({
             </div>
             <div>
               <div className="crop-title-line">
-                <h3>Crop Pattern Region</h3>
+                <h3>Crop</h3>
               </div>
-              <p>Frame the artwork area for cleaner and more accurate extraction.</p>
             </div>
           </div>
           <button className="crop-close-btn" onClick={onClose} aria-label="Close crop modal" disabled={isSaving}>
@@ -382,9 +381,8 @@ const CropModal = memo(function CropModal({
                 <div className="crop-guide-card is-good">
                   <div className="crop-guide-label">
                     <CheckCircle2 size={14} />
-                    DO: Crop Tightly Around Logo
+                    Tight logo crop
                   </div>
-                  <p>Remove empty background. Keep the box snug to the logo edges.</p>
                   <svg viewBox="5 5 90 90" width="100%" height="126">
                     <circle cx="50" cy="50" r="20" fill="#FFD700" />
                     <path d="M 40 50 L 60 50 M 50 40 L 50 60" stroke="#000" strokeWidth="4" />
@@ -398,9 +396,8 @@ const CropModal = memo(function CropModal({
                 <div className="crop-guide-card is-bad">
                   <div className="crop-guide-label">
                     <XCircle size={14} />
-                    DON'T: Include Extra Space
+                    Avoid extra space
                   </div>
-                  <p>Huge margins reduce effective AI detail and weaken the result.</p>
                   <svg viewBox="5 5 90 90" width="100%" height="126">
                     <circle cx="50" cy="50" r="20" fill="#FFD700" />
                     <path d="M 40 50 L 60 50 M 50 40 L 50 60" stroke="#000" strokeWidth="4" />
@@ -415,15 +412,15 @@ const CropModal = memo(function CropModal({
             ) : (
               <>
                 <CropGuidePhoto
-                  title="DO: Basketball Sando Front"
-                  body="Use this as the front-panel guide. Keep the crop tight to the main jersey body."
+                  title="Basketball front"
+                  body=""
                   tone="good"
                   videoSrc="/crop-guide-jersey-front.mp4"
                   imageAlt="Basketball sando front crop sample video"
                 />
                 <CropGuidePhoto
-                  title="DO: T-Shirt Front"
-                  body="Use this as the T-shirt guide. Crop the main printable body area cleanly."
+                  title="T-shirt front"
+                  body=""
                   tone="good"
                   videoSrc="/crop-guide-tshirt.mp4"
                   imageAlt="T-shirt front crop sample video"
@@ -442,8 +439,7 @@ const CropModal = memo(function CropModal({
           <div className="crop-tip-block">
             <Info size={17} />
             <div>
-              <strong>Tip</strong>
-              <span>Use the handles to tightly frame only the target artwork. Scroll on the canvas to zoom.</span>
+              <span>Frame the printable area. Scroll to zoom.</span>
             </div>
           </div>
           {project?.generated_image_url && (

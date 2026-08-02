@@ -3390,8 +3390,8 @@ body {
 }
 
 .crop-workspace-header {
-  height: 64px;
-  padding: 0 16px;
+  height: 52px;
+  padding: 0 14px;
   border-bottom: 1px solid #2d2d2d;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
@@ -3404,13 +3404,13 @@ body {
 .crop-workspace-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .crop-tool-mark {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3428,17 +3428,10 @@ body {
 .crop-workspace-title h3 {
   margin: 0;
   color: #f1f1f1;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.45px;
   text-transform: uppercase;
-}
-
-.crop-workspace-title p {
-  margin: 4px 0 0;
-  color: #9b9da3;
-  font-size: 12px;
-  line-height: 1.2;
 }
 
 .crop-close-btn {
@@ -3467,7 +3460,7 @@ body {
 
 .crop-workspace-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 12px;
   padding: 12px;
   width: 100%;
@@ -3493,8 +3486,8 @@ body {
 }
 
 .crop-canvas-toolbar {
-  min-height: 46px;
-  padding: 0 12px;
+  min-height: 40px;
+  padding: 0 10px;
   border-bottom: 1px solid #2d2d2d;
   background: #1a1a1a;
   color: #96999f;
@@ -3512,7 +3505,7 @@ body {
 .crop-source-meta {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -3529,13 +3522,13 @@ body {
 
 .crop-source-meta strong {
   color: #e7e7e7;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.7px;
 }
 
 .crop-source-meta span {
   color: #8f9298;
-  font-size: 10px;
+  font-size: 9.5px;
   letter-spacing: 0.4px;
 }
 
@@ -3660,10 +3653,10 @@ body {
 }
 
 .crop-guide-panel {
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   overflow: hidden;
 }
 
@@ -3671,8 +3664,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 32px;
-  padding: 0 8px 8px;
+  min-height: 28px;
+  padding: 0 4px 7px;
   border-bottom: 1px solid #2a2c31;
   color: #8f9298;
   font-size: 11px;
@@ -3687,9 +3680,9 @@ body {
 }
 
 .crop-guide-card {
-  background: #1a1a1a;
+  background: #181818;
   border: 1px solid #303030;
-  padding: 10px 12px;
+  padding: 8px;
   border-radius: 0;
   display: flex;
   flex: 1 1 0;
@@ -3700,9 +3693,9 @@ body {
 .crop-guide-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: #ededed;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.25px;
   text-transform: uppercase;
@@ -3717,9 +3710,9 @@ body {
 }
 
 .crop-guide-card p {
-  margin: 5px 0 8px;
+  margin: 4px 0 7px;
   color: #96999f;
-  font-size: 11.5px;
+  font-size: 10.5px;
   line-height: 1.32;
 }
 
@@ -3736,7 +3729,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  background: #f3f3f3;
+  background: #101010;
   border: 1px solid #2a2d34;
   box-sizing: border-box;
   border-radius: 0;
@@ -3849,8 +3842,8 @@ body {
 }
 
 .crop-workspace-actions {
-  min-height: 72px;
-  padding: 12px 14px;
+  min-height: 54px;
+  padding: 8px 12px;
   border-top: 1px solid #2d2d2d;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
@@ -3858,21 +3851,21 @@ body {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .crop-tip-block {
   margin-right: auto;
-  min-width: 260px;
-  max-width: 470px;
+  min-width: 220px;
+  max-width: 360px;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
   color: #a0a3aa;
 }
 
 .crop-tip-block > svg {
-  margin-top: 3px;
+  margin-top: 1px;
   color: #aeb2bb;
   flex: 0 0 auto;
 }
@@ -3883,24 +3876,17 @@ body {
   gap: 3px;
 }
 
-.crop-tip-block strong {
-  color: #d4d4d8;
-  font-size: 10px;
-  letter-spacing: 0.9px;
-  text-transform: uppercase;
-}
-
 .crop-tip-block span {
   color: #989ba2;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.35;
 }
 
 .crop-secondary-action,
 .crop-primary-action {
-  min-width: 104px;
-  height: 38px;
-  padding: 0 15px;
+  min-width: 96px;
+  height: 36px;
+  padding: 0 13px;
   border-radius: 0;
   font-size: 11px;
   font-weight: 800;
@@ -3932,7 +3918,7 @@ body {
 }
 
 .crop-primary-action {
-  min-width: 214px;
+  min-width: 184px;
   width: auto;
   flex: 0 0 auto;
   border: 1px solid rgba(214, 188, 86, 0.46);
