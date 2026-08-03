@@ -21,7 +21,7 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function CropGuidePhoto({ title, body, description, tone, imageSrc, videoSrc, imageAlt, boxClassName }) {
+function CropGuidePhoto({ title, body, description, tips, tone, imageSrc, videoSrc, imageAlt, boxClassName }) {
   const Icon = tone === "good" ? CheckCircle2 : XCircle;
 
   return (
@@ -41,6 +41,11 @@ function CropGuidePhoto({ title, body, description, tone, imageSrc, videoSrc, im
         )}
         {description && (
           <div className="crop-guide-description">{description}</div>
+        )}
+        {tips && (
+          <div className="crop-guide-tips-overlay">
+            <p className="crop-guide-tip-item">{tips}</p>
+          </div>
         )}
         {boxClassName && (
           <div className={`crop-guide-demo-box ${boxClassName}`}>
@@ -416,19 +421,19 @@ const CropModal = memo(function CropModal({
               <>
                 <CropGuidePhoto
                   title="Basketball front"
-                  body=""
                   tone="good"
                   videoSrc="/crop-guide-jersey-front.mp4"
                   imageAlt="Basketball sando front crop sample video"
-                  description="Crop the front body panel only — do not include sleeves, collar, or extra background."
+                  description="Printable area only. Crop tightly around the front body panel — exclude the armhole openings on both sides, the collar, and all background."
+                  tips="Sando has no sleeves, but the armhole cutouts are not printable. Crop only the solid front panel between both armholes, from just below the collar down to the hem."
                 />
                 <CropGuidePhoto
                   title="T-shirt front"
-                  body=""
                   tone="good"
                   videoSrc="/crop-guide-tshirt.mp4"
                   imageAlt="T-shirt front crop sample video"
-                  description="Crop the front body panel only — do not include sleeves, collar, or extra background."
+                  description="Printable area only. Crop the front body panel — do not include the sleeves, collar, or any background."
+                  tips="Stop your crop at the sleeve seams on both sides. The sleeves are not part of the printable area. Only the flat front panel between the seams should be selected."
                 />
               </>
             )}
