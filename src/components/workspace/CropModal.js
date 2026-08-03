@@ -21,7 +21,7 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function CropGuidePhoto({ title, body, tone, imageSrc, videoSrc, imageAlt, boxClassName }) {
+function CropGuidePhoto({ title, body, description, tone, imageSrc, videoSrc, imageAlt, boxClassName }) {
   const Icon = tone === "good" ? CheckCircle2 : XCircle;
 
   return (
@@ -38,6 +38,9 @@ function CropGuidePhoto({ title, body, tone, imageSrc, videoSrc, imageAlt, boxCl
           </video>
         ) : (
           <img src={imageSrc} alt={imageAlt} loading="lazy" />
+        )}
+        {description && (
+          <div className="crop-guide-description">{description}</div>
         )}
         {boxClassName && (
           <div className={`crop-guide-demo-box ${boxClassName}`}>
@@ -417,6 +420,7 @@ const CropModal = memo(function CropModal({
                   tone="good"
                   videoSrc="/crop-guide-jersey-front.mp4"
                   imageAlt="Basketball sando front crop sample video"
+                  description="Crop the front body panel only — do not include sleeves, collar, or extra background."
                 />
                 <CropGuidePhoto
                   title="T-shirt front"
@@ -424,6 +428,7 @@ const CropModal = memo(function CropModal({
                   tone="good"
                   videoSrc="/crop-guide-tshirt.mp4"
                   imageAlt="T-shirt front crop sample video"
+                  description="Crop the front body panel only — do not include sleeves, collar, or extra background."
                 />
               </>
             )}
