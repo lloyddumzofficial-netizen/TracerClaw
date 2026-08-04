@@ -4085,26 +4085,67 @@ body {
 }
 
 /* Login Modal Styles */
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(4px);
+  animation: modalFadeIn 0.2s ease-out forwards;
+}
+
+.login-modal-panel {
+  width: min(1000px, calc(100vw - 56px));
+  max-height: calc(100vh - 56px);
+  background: #262626;
+  border: 1px solid #444;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+}
+
 .login-split-container {
   display: flex;
   flex-direction: row;
 }
 
 .login-form-side {
-  flex: 1;
+  flex: 0 0 min(500px, 100%);
   max-width: 500px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .login-image-side {
   display: none;
   flex: 1;
+  min-height: 0;
 }
 
 @media (min-width: 768px) {
   .login-image-side {
     display: block;
+  }
+}
+
+@media (max-width: 767px), (max-height: 720px) {
+  .login-modal-overlay {
+    align-items: flex-start;
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .login-modal-panel {
+    width: min(500px, calc(100vw - 32px));
+    max-height: none;
+  }
+
+  .login-form-side {
+    max-width: none;
   }
 }
 

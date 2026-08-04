@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -44,7 +45,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
     if (show) consumeTurnstile();
   }, [show, consumeTurnstile]);
 
-  if (!show) return null;
+  if (!show || typeof document === "undefined") return null;
 
   const handleGoogleLogin = async () => {
     if (!turnstileToken) {
@@ -111,14 +112,12 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
     }
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose} style={{ backdropFilter: "blur(4px)", backgroundColor: "rgba(0,0,0,0.8)", zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'modalFadeIn 0.2s ease-out forwards' }}>
+  return createPortal(
+    <div className="login-modal-overlay" onClick={onClose}>
 
       <div 
-        className="modal-content login-split-container" 
+        className="login-modal-panel login-split-container"
         style={{ 
-          maxWidth: '1000px', 
-          width: '100%', 
           padding: '0', 
           borderRadius: '0', 
           border: '1px solid #444', 
@@ -351,7 +350,8 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 
