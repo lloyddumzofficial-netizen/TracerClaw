@@ -228,17 +228,15 @@ export default function PaletteColorMapPanel({
             <span>{largeSvgWarning}</span>
           </div>
         )}
-
         {loading ? (
           <div className="palette-loading"><Loader2 size={16} className="animate-spin" /> Detecting colors</div>
         ) : (
-          <>
-            {displayPalette.length === 0 ? (
-              <div className="palette-empty">
-                <strong>No colors match “{paletteQuery}”.</strong>
-                <button type="button" onClick={() => onSetPaletteQuery("")}>Clear search</button>
-              </div>
-            ) : (
+          displayPalette.length === 0 ? (
+            <div className="palette-empty">
+              <strong>No colors match "{paletteQuery}".</strong>
+              <button type="button" onClick={() => onSetPaletteQuery("")}>Clear search</button>
+            </div>
+          ) : (
             <div className="palette-swatch-grid palette-swatch-grid-priority">
               {displayPalette.map((item) => (
                 <button
@@ -294,21 +292,20 @@ export default function PaletteColorMapPanel({
                 </button>
               ))}
             </div>
-            )}
-
-            <PaletteRecolorPanel
-              editorRef={editorRef}
-              selectedItem={selectedItem}
-              hexInput={hexInput}
-              canLivePreview={canLivePreview}
-              onUpdateSelectedColor={onUpdateSelectedColor}
-              onPreviewSelectedColor={onPreviewSelectedColor}
-              onCancelLivePreview={onCancelLivePreview}
-              onSetHexInput={onSetHexInput}
-            />
-          </>
+          )
         )}
       </div>
+
+      <PaletteRecolorPanel
+        editorRef={editorRef}
+        selectedItem={selectedItem}
+        hexInput={hexInput}
+        canLivePreview={canLivePreview}
+        onUpdateSelectedColor={onUpdateSelectedColor}
+        onPreviewSelectedColor={onPreviewSelectedColor}
+        onCancelLivePreview={onCancelLivePreview}
+        onSetHexInput={onSetHexInput}
+      />
     </aside>
   );
 }
