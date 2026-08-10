@@ -645,6 +645,62 @@
           isolation: isolate;
         }
 
+        .home-content-frame.has-qr-sync-modal {
+          z-index: 20000;
+        }
+
+        .qr-sync-overlay {
+          inset: 0;
+          z-index: 20000;
+          padding: 24px;
+          background: rgba(0, 0, 0, 0.82);
+          backdrop-filter: blur(6px);
+          box-sizing: border-box;
+        }
+
+        .qr-sync-modal {
+          position: relative;
+          width: min(420px, 100%);
+          max-width: 420px;
+          max-height: calc(100vh - 48px);
+          overflow-y: auto;
+          text-align: center;
+          padding: 40px;
+          box-sizing: border-box;
+        }
+
+        .qr-sync-title {
+          margin: 0 0 10px 0;
+          font-size: 24px;
+          line-height: 1.15;
+        }
+
+        .qr-sync-copy {
+          color: #aaa;
+          margin: 0 0 30px 0;
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        .qr-sync-code {
+          width: min(260px, 100%);
+          aspect-ratio: 1;
+          background: #fff;
+          padding: 20px;
+          border-radius: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 30px;
+          box-sizing: border-box;
+        }
+
+        .qr-sync-code svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+
         .section-line-accent {
           position: relative;
         }
@@ -1297,18 +1353,6 @@
           position: relative;
         }
 
-        /* Subtle side accent line on the copy column */
-        .workflow-preview-section::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 52px;
-          bottom: 60px;
-          width: 2px;
-          background: linear-gradient(180deg, transparent, #FFD700 30%, #FFD700 70%, transparent);
-          opacity: 0.35;
-        }
-
         .workflow-preview-copy {
           max-width: 440px;
           padding-left: 20px;
@@ -1329,16 +1373,6 @@
           background: transparent;
           margin-bottom: 20px;
           position: relative;
-        }
-
-        .section-kicker::before {
-          content: "";
-          width: 22px;
-          height: 1px;
-          background: #FFD700;
-          border-radius: 0;
-          flex-shrink: 0;
-          opacity: 0.8;
         }
 
         .workflow-preview-copy h2 {
@@ -1634,6 +1668,32 @@
             overflow-y: auto;
             padding: 20px !important;
             box-sizing: border-box;
+          }
+
+          .qr-sync-overlay {
+            padding: 14px;
+            align-items: center;
+          }
+
+          .qr-sync-modal {
+            width: min(100%, 360px) !important;
+            max-width: min(100%, 360px) !important;
+            padding: 28px 18px 22px !important;
+          }
+
+          .qr-sync-title {
+            font-size: 20px;
+          }
+
+          .qr-sync-copy {
+            margin-bottom: 20px;
+            font-size: 13px;
+          }
+
+          .qr-sync-code {
+            width: min(230px, 78vw);
+            padding: 16px;
+            margin-bottom: 22px;
           }
 
           .workflow-preview-section {

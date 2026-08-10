@@ -264,6 +264,36 @@ export default function StartScreen() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") !== "auth-failed") return;
+
+    const authError = params.get("auth_error") || "";
+    const authDescription = params.get("auth_error_description") || "";
+    const lowerMessage = `${authError} ${authDescription}`.toLowerCase();
+    let message = "Sign in failed. Please try again.";
+
+    if (lowerMessage.includes("expired") || lowerMessage.includes("otp_expired")) {
+      message = "Your sign-in link expired. Please request a new one.";
+    } else if (lowerMessage.includes("missing_code")) {
+      message = "That sign-in link is incomplete. Please start sign in again.";
+    } else if (lowerMessage.includes("invalid_request") || lowerMessage.includes("redirect")) {
+      message = "Sign in redirect is not allowed. Please check the Supabase redirect URL settings.";
+    } else if (authDescription) {
+      message = `Sign in failed: ${authDescription}`;
+    }
+
+    toast.error(message);
+    setShowLoginModal(true);
+
+    params.delete("error");
+    params.delete("auth_error");
+    params.delete("auth_error_description");
+    const cleanQuery = params.toString();
+    const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", cleanUrl);
+  }, []);
+
+  useEffect(() => {
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -887,7 +917,10 @@ export default function StartScreen() {
       </div>
 
       {/* Main Content Wrapper (For the rest of the page) */}
-      <div className="home-content-frame" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}>
+      <div
+        className={`home-content-frame${showQrModal ? " has-qr-sync-modal" : ""}`}
+        style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}
+      >
 
         {/* SCROLLING TRUST MARQUEE (MINIMAL & ALIGNED) */}
         <div className="marquee-container" style={{
@@ -1160,12 +1193,13 @@ export default function StartScreen() {
 
         {/* QR Sync Modal */}
         {showQrModal && (
-          <div className="modal-overlay" onClick={() => setShowQrModal(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "420px", textAlign: "center", padding: "40px", position: "relative" }}>
+          <div className="modal-overlay qr-sync-overlay" onClick={() => setShowQrModal(false)}>
+            <div className="modal-content qr-sync-modal" onClick={(e) => e.stopPropagation()}>
 
               {/* Minimal Close Button */}
               <button
                 onClick={() => setShowQrModal(false)}
+                className="qr-sync-close"
                 style={{
                   position: "absolute",
                   top: "16px",
@@ -1187,12 +1221,12 @@ export default function StartScreen() {
                 <X size={20} />
               </button>
 
-              <h3 style={{ margin: "0 0 10px 0", fontSize: "24px" }}>Scan to Upload</h3>
-              <p style={{ color: "#aaa", margin: "0 0 30px 0", fontSize: "14px" }}>
+              <h3 className="qr-sync-title">Scan to Upload</h3>
+              <p className="qr-sync-copy">
                 Point your phone's camera at this QR code. Take a picture of your logo or business card, and it will magically appear here.
               </p>
 
-              <div style={{ background: "#fff", padding: "20px", borderRadius: "16px", display: "inline-block", marginBottom: "30px" }}>
+              <div className="qr-sync-code">
                 <QRCode
                   value={`${typeof window !== 'undefined' ? window.location.origin : ''}/mobile?sync=${syncSessionId}`}
                   size={220}
