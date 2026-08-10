@@ -751,7 +751,7 @@ export default function StartScreen() {
                 <img src="/desaynclaw-hero-logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
 
                 {/* Refined byline */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+                <div className="hero-byline" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
                   <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
                   <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: "500", letterSpacing: "2.5px", textTransform: "uppercase" }}>Developed by Desaynbro</span>
                   <span style={{ width: "20px", height: "1px", background: "rgba(255,255,255,0.15)", display: "inline-block" }} />
@@ -759,7 +759,7 @@ export default function StartScreen() {
 
                 {/* PUBLIC STATS — compact single-pill row */}
                 {(publicStats.totalUsers > 0 || publicStatsStatus !== "ready") && (
-                  <div style={{
+                  <div className="public-stats-pill" style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "0",
@@ -818,7 +818,7 @@ export default function StartScreen() {
                 )}
 
                 {/* Description */}
-                <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.55)", textAlign: "center", marginTop: "20px", maxWidth: "500px", lineHeight: "1.65", textWrap: "balance", fontWeight: "400" }}>
+                <p className="hero-copy" style={{ fontSize: "15px", color: "rgba(255,255,255,0.55)", textAlign: "center", marginTop: "20px", maxWidth: "500px", lineHeight: "1.65", textWrap: "balance", fontWeight: "400" }}>
                   Instantly transform your raster images (PNG, JPG) into ultra-clean, scalable vector graphics (SVG) using our advanced AI neural engine.
                 </p>
               </div>

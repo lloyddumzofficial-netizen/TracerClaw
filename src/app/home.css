@@ -3142,3 +3142,160 @@
 .qr-sync-code {
   border-radius: 8px !important;
 }
+
+/* Senior hero refinement: calmer hierarchy and cleaner action grouping. */
+.hero-left {
+  align-items: center !important;
+}
+
+.start-logo {
+  margin-bottom: 24px !important;
+}
+
+.start-logo > img {
+  width: min(330px, 76vw) !important;
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.3));
+}
+
+.hero-byline {
+  margin-top: 12px !important;
+  gap: 10px !important;
+}
+
+.hero-byline span:first-child,
+.hero-byline span:last-child {
+  width: 28px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.hero-byline span:nth-child(2) {
+  color: rgba(255, 255, 255, 0.36) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 2.8px !important;
+}
+
+.public-stats-pill {
+  margin-top: 22px !important;
+  padding: 6px 15px 6px 7px !important;
+  min-height: 40px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018)),
+    #101010 !important;
+  border-color: rgba(255, 255, 255, 0.115) !important;
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.public-stats-pill img[alt="User"] {
+  width: 26px !important;
+  height: 26px !important;
+  max-width: 26px !important;
+  min-width: 26px !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.public-stats-pill span {
+  line-height: 1 !important;
+}
+
+.hero-copy {
+  max-width: 560px !important;
+  margin-top: 24px !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  font-size: 15px !important;
+  line-height: 1.58 !important;
+}
+
+.hero-action-bar {
+  max-width: 620px !important;
+  gap: 8px !important;
+  margin-top: 2px !important;
+  margin-bottom: 22px !important;
+}
+
+.hero-action-bar .start-btn {
+  height: 36px !important;
+  min-width: 0 !important;
+  padding: 0 13px !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018)),
+    #101010 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+}
+
+.hero-action-bar .start-btn:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.03)),
+    #141414 !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  transform: translateY(-1px);
+}
+
+.hero-action-bar .start-btn:first-child {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.055)),
+    #171717 !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  color: #ffffff !important;
+}
+
+.hero-action-bar .start-btn:first-child:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.075)),
+    #1b1b1b !important;
+  border-color: rgba(255, 255, 255, 0.34) !important;
+}
+
+.hero-action-bar .start-btn:last-child {
+  color: #ffd700 !important;
+  border-color: rgba(255, 215, 0, 0.34) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.022)),
+    #101010 !important;
+}
+
+@media (max-width: 760px) {
+  .hero-action-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    max-width: 420px !important;
+  }
+
+  .hero-action-bar .start-btn:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .hero-copy {
+    max-width: 360px !important;
+  }
+}
+
+/* Hero vertical rhythm: center the first screen professionally. */
+.home-hero-shell {
+  min-height: calc(100svh - 170px) !important;
+  padding-top: 64px !important;
+  padding-bottom: 46px !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.home-hero-inner {
+  width: 100% !important;
+}
+
+@media (max-width: 760px) {
+  .home-hero-shell {
+    min-height: calc(100svh - 130px) !important;
+    padding-top: 48px !important;
+    padding-bottom: 40px !important;
+  }
+}
