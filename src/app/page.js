@@ -87,6 +87,10 @@ function HomepageWorkflowPreview() {
           <img src="/samples/production-preview/Hue_Saturation.webp" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
         </figure>
       </div>
+
+      <div className="workflow-promo-banner">
+        <img src="/small_banner.jpg" alt="DesaynClaw mockup to flat editable design banner" loading="lazy" />
+      </div>
     </section>
   );
 }
@@ -1092,9 +1096,6 @@ export default function StartScreen() {
 
           </div>
 
-          <div className="wide-promo-banner">
-            <img src="/small_banner.jpg" alt="Promo Banner" />
-          </div>
         </section>
         {/* Animated Counter Section */}
         <TestimonialSection />
@@ -1242,9 +1243,9 @@ export default function StartScreen() {
           </div>
         )}
 
-        {/* Banner Image (banner-webapp-2.jpg) */}
+        {/* Banner Image (banner-2.png) */}
         <div style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
-          <img src="/banner-webapp-2.jpg" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
+          <img src="/banner-2.png" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
         </div>
 
         <footer style={{ marginTop: "100px", borderTop: "1px solid #222", padding: "40px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
