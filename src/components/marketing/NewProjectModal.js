@@ -64,6 +64,7 @@ function CategoryCard({ onClick, icon, title, description, badge }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
+      className="new-project-category-card"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -223,7 +224,7 @@ const NewProjectModal = memo(function NewProjectModal({
       }}
     >
       <div
-        className="modal-content"
+        className="modal-content new-project-modal"
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: step === "category" ? 820 : 480,

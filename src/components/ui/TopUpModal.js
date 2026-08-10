@@ -277,10 +277,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         justifyContent: 'center',
       }}
     >
-      <div className="modal-content" style={{ maxWidth: '960px', width: '100%', maxHeight: 'calc(100vh - 48px)', padding: '0', overflow: 'hidden', borderRadius: '0', border: '1px solid #444', background: '#262626', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, boxShadow: '0 30px 90px rgba(0,0,0,0.85)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content top-up-modal" style={{ maxWidth: '960px', width: '100%', maxHeight: 'calc(100vh - 48px)', padding: '0', overflow: 'hidden', borderRadius: '0', border: '1px solid #444', background: '#262626', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, boxShadow: '0 30px 90px rgba(0,0,0,0.85)' }} onClick={(e) => e.stopPropagation()}>
         
         {/* Modal Header */}
-        <div style={{ background: '#2a2a2a', borderBottom: '1px solid #444', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div className="top-up-modal-header" style={{ background: '#2a2a2a', borderBottom: '1px solid #444', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Shirt size={18} color="#fff" />
             <span style={{ fontWeight: '600', fontSize: '15px', color: '#fff' }}>Get More Traces</span>
@@ -296,22 +296,24 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', background: '#2a2a2a', borderBottom: '1px solid #444', padding: '0 24px', flexShrink: 0 }}>
+        <div className="top-up-modal-tabs" style={{ display: 'flex', background: '#2a2a2a', borderBottom: '1px solid #444', padding: '0 24px', flexShrink: 0 }}>
           <button 
             onClick={() => { setActiveTab('plans'); setStep(1); }} 
+            className="top-up-tab-button"
             style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'plans' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'plans' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <Package size={16} /> Top-Up Plans
           </button>
           <button 
             onClick={() => { setActiveTab('history'); setStep(1); }} 
+            className="top-up-tab-button"
             style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'history' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'history' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <History size={16} /> Claw Logs
           </button>
         </div>
 
-        <div style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
+        <div className="top-up-modal-body" style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
           {/* Persistent status for a GCash payment awaiting manual approval.
               Shown on every open until an admin approves, so the wait is never
               silent. Non-blocking: Dodo checkout stays available underneath. */}
@@ -406,15 +408,15 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Choose the claw package that fits your workflow.</p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div className="top-up-plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {PLANS.map(p => (
-                  <div key={p.key} style={{ background: p.best ? '#333' : '#2a2a2a', border: `1px solid ${p.best ? '#FFD700' : '#444'}`, padding: '32px 24px', display: 'flex', flexDirection: 'column', position: 'relative', borderRadius: '6px' }}>
+                  <div key={p.key} className={`top-up-plan-card${p.best ? ' top-up-plan-card-featured' : ''}`} style={{ background: p.best ? '#333' : '#2a2a2a', border: `1px solid ${p.best ? '#FFD700' : '#444'}`, padding: '32px 24px', display: 'flex', flexDirection: 'column', position: 'relative', borderRadius: '6px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {p.icon && <Image src={p.icon} alt={p.label} width={32} height={32} style={{ objectFit: 'contain' }} />}
                         <div style={{ fontSize: '16px', fontWeight: '500', color: '#fff' }}>{p.label}</div>
                       </div>
-                      {p.best && <div style={{ background: '#FFD700', color: '#000', fontSize: '11px', fontWeight: '800', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> Most popular</div>}
+                      {p.best && <div className="top-up-plan-badge" style={{ background: '#FFD700', color: '#000', fontSize: '11px', fontWeight: '800', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> Most popular</div>}
                     </div>
 
                     <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
@@ -434,6 +436,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                         analytics.checkoutStarted({ ...getPlanAnalytics(p.key), provider: "gcash" });
                         setStep(2); 
                       }}
+                      className={`top-up-plan-button${p.best ? ' top-up-plan-button-featured' : ''}`}
                       style={{ width: '100%', padding: '12px 8px', background: p.best ? '#FFD700' : 'transparent', color: p.best ? '#000' : '#d5d5d5', border: p.best ? 'none' : '1px solid #555', fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginBottom: '32px', borderRadius: '4px', whiteSpace: 'nowrap' }} 
                       onMouseOver={e => { e.target.style.opacity = '0.9'; if (!p.best) { e.target.style.background = '#3a3a3a'; e.target.style.borderColor = '#777'; } }} 
                       onMouseOut={e => { e.target.style.opacity = '1'; if (!p.best) { e.target.style.background = 'transparent'; e.target.style.borderColor = '#555'; } }}
@@ -441,7 +444,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                       {user ? 'Select Plan' : 'Log in to Purchase'} <ArrowRight size={14} />
                     </button>
 
-                    <div style={{ borderTop: '1px solid #444', margin: '0 -24px 24px' }}></div>
+                    <div className="top-up-plan-divider" style={{ borderTop: '1px solid #444', margin: '0 -24px 24px' }}></div>
 
                     <div style={{ fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '16px' }}>What's Included:</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>

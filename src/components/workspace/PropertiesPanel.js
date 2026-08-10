@@ -157,7 +157,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
   ];
 
   return (
-    <aside style={{
+    <aside className="workspace-properties-panel" style={{
       width: "280px",
       background: "#161616",
       borderLeft: "1px solid #222",

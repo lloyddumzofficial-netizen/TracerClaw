@@ -166,7 +166,7 @@ function AnimatedCounter({ value }) {
   }, [value]);
 
   return (
-    <div style={{
+    <div className="extraction-counter" style={{
       marginTop: "60px",
       padding: "50px 40px",
       background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(26,26,26,0.8) 100%)",
@@ -197,7 +197,7 @@ function AnimatedCounter({ value }) {
       <div style={{
         fontSize: "72px",
         fontWeight: "800",
-        fontFamily: "'Nexa', 'Nexa Bold', 'Montserrat', sans-serif",
+        fontFamily: "var(--font-space-grotesk), inherit",
         background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
@@ -720,7 +720,7 @@ export default function StartScreen() {
       </header>
 
       {/* FULL WIDTH HERO SECTION */}
-      <div style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
+      <div className="home-hero-shell" style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
         {showCopyrightNotice && (
           <div style={{ position: "absolute", top: 0, left: 0, width: "100%", background: "#111", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 3 }}>
             <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "14px", color: "#d8d8d8", fontSize: "12px", lineHeight: "1.5", textAlign: "center" }}>
@@ -742,13 +742,13 @@ export default function StartScreen() {
             </div>
           </div>
         )}
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 2 }}>
+        <div className="home-hero-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 2 }}>
 
           <div className="hero-section" style={{ justifyContent: "flex-start", margin: 0 }}>
             {/* LOGO AND UPLOAD BOX (ALWAYS VISIBLE) */}
             <div className="hero-left" style={{ margin: "0" }}>
               <div className="start-logo" style={{ marginBottom: "30px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-                <img src="/logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
+                <img src="/desaynclaw-hero-logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
 
                 {/* Refined byline */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
@@ -975,27 +975,6 @@ export default function StartScreen() {
         <MarketingVideoPreview />
 
         <EduSection />
-
-        {/* Feature Cards below Hero */}
-        <section id="samples-section" className="proof-gallery-section section-line-accent">
-          <div className="proof-section-heading">
-            <span className="section-kicker">Sample Extractions</span>
-            <h2>Pixel-Perfect Vectorization</h2>
-            <p>Real apparel artwork transformed into clean, scalable production files.</p>
-          </div>
-          <div className="proof-gallery-grid">
-            <BeforeAfterSlider
-              title="Esports Gaming Apparel (Flat Extracted)"
-              rasterUrl="/samples/esports-original.jpg"
-              vectorUrl="/samples/esports-vector.webp"
-            />
-            <BeforeAfterSlider
-              title="Polo Shirt Pattern (Flat Extracted)"
-              rasterUrl="/samples/polo-original.png"
-              vectorUrl="/samples/polo-vector.webp"
-            />
-          </div>
-        </section>
 
         {/* BG Remover Sample Section */}
         <section className="tool-showcase-section section-line-accent">
