@@ -5137,3 +5137,32 @@ body {
   background: #101010 !important;
   border-top-color: rgba(255, 255, 255, 0.08) !important;
 }
+
+/* Rounded UI trial: softer studio/workspace surfaces. */
+.studio-ghost-btn,
+.studio-credit-pill,
+.workspace-command-btn,
+.upscale-stage-tab span,
+.workspace-properties-panel .pp-sel,
+.workspace-properties-panel .pp-card,
+.workspace-properties-panel .pp-sec,
+.workspace-properties-panel .pp-svg-btn,
+.workspace-properties-panel .pp-warn,
+.workspace-properties-panel button[style*="Advanced Settings"],
+.crop-workspace-modal,
+.crop-tool-mark,
+.crop-close-btn,
+.crop-canvas-panel,
+.crop-guide-panel,
+.crop-zoom-controls,
+.crop-guide-card,
+.crop-guide-photo-frame,
+.crop-reset-action,
+.crop-secondary-action,
+.crop-primary-action {
+  border-radius: 8px !important;
+}
+
+.crop-workspace-modal {
+  border-radius: 10px !important;
+}

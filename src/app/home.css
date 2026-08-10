@@ -3084,3 +3084,61 @@
     padding: 0 18px !important;
   }
 }
+
+/* Rounded UI trial: softer homepage + modal surfaces. */
+.hero-upload-box,
+.ba-slider-card,
+.ba-slider-stage,
+.ba-slider-copy,
+.testimonial-card,
+.great-for-card,
+.wide-promo-banner,
+.marketing-video-frame,
+.workflow-output-grid div,
+.workflow-mockup figure,
+.edu-demo-video,
+.edu-card,
+.tool-showcase-button,
+.qr-sync-modal,
+.modal-content {
+  border-radius: 8px !important;
+}
+
+.ba-slider-stage {
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.ba-slider-copy {
+  border-radius: 0 0 8px 8px !important;
+}
+
+.start-btn,
+.hero-upload-box .start-btn,
+.top-up-plan-button,
+.tool-showcase-button,
+.modal-overlay .new-project-modal button,
+.modal-overlay .top-up-modal button {
+  border-radius: 8px !important;
+}
+
+.ba-slider-label,
+.great-for-icon,
+.edu-step-num,
+.testimonial-proof-icon,
+.top-up-plan-badge {
+  border-radius: 6px !important;
+}
+
+.modal-overlay .new-project-modal,
+.modal-overlay .top-up-modal {
+  border-radius: 10px !important;
+}
+
+.modal-overlay .new-project-category-card,
+.top-up-plan-card {
+  border-radius: 8px !important;
+}
+
+.qr-sync-code {
+  border-radius: 8px !important;
+}
