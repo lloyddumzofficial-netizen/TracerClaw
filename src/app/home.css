@@ -3299,3 +3299,27 @@
     padding-bottom: 40px !important;
   }
 }
+
+/* Moved neural-engine banner into the production preview block. */
+.workflow-promo-banner {
+  grid-column: 1 / -1;
+  width: min(100%, 1180px);
+  margin: 18px auto 0;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  background: #090909;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+}
+
+.workflow-promo-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 980px) {
+  .workflow-promo-banner {
+    margin-top: 10px;
+  }
+}

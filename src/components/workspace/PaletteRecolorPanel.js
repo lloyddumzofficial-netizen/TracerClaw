@@ -1,5 +1,5 @@
 import { Pipette } from "lucide-react";
-import { QUICK_COLORS, getReadableTextColor } from "./PalettePreviewModal.utils";
+import { QUICK_COLORS } from "./PalettePreviewModal.utils";
 
 export default function PaletteRecolorPanel({
   editorRef,

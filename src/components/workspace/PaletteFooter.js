@@ -1,4 +1,4 @@
-import { Loader2, RotateCcw, Save } from "lucide-react";
+import { Loader2, Maximize2, RotateCcw, Save } from "lucide-react";
 
 export default function PaletteFooter({
   hasEdits,
@@ -17,7 +17,7 @@ export default function PaletteFooter({
       <div className="palette-footer-actions">
         <div className="palette-action-group" aria-label="Reset options">
           <button type="button" className="palette-action-quiet" onClick={onResetLayout} title="Reset color map layout">
-            Layout
+            <Maximize2 size={14} /> Layout
           </button>
           <button type="button" className="palette-action-quiet" onClick={onResetColors} disabled={!hasEdits} title="Reset edited colors">
             <RotateCcw size={14} /> Colors
