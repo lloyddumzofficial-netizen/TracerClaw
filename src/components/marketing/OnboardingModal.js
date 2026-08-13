@@ -1,16 +1,31 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Zap, Sparkles, Download } from "lucide-react";
 
 const OnboardingModal = memo(function OnboardingModal({ show, onClose }) {
-  if (!show) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!show || !mounted) return null;
+
+  return createPortal(
     <div 
       className="modal-overlay" 
+      onClick={onClose}
       style={{ 
-        zIndex: 9999, 
+        position: "fixed",
+        inset: 0,
+        zIndex: 2147483000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        boxSizing: "border-box",
         backdropFilter: "blur(12px)", 
         background: "rgba(0, 0, 0, 0.7)",
         animation: "fadeIn 0.3s ease-out" 
@@ -110,7 +125,8 @@ const OnboardingModal = memo(function OnboardingModal({ show, onClose }) {
           START CREATING NOW
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 
