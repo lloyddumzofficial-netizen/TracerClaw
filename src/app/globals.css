@@ -5292,6 +5292,263 @@ body {
   }
 }
 
+/* Palette Studio final polish: closer to the current DesaynClaw workspace UI. */
+.palette-modal {
+  --palette-shell: #090909;
+  --palette-panel: #101010;
+  --palette-panel-raised: #171717;
+  --palette-line: rgba(255, 255, 255, 0.085);
+  --palette-soft-line: rgba(255, 255, 255, 0.055);
+  --palette-muted: rgba(255, 255, 255, 0.52);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 35% 12%, rgba(255, 215, 0, 0.045), transparent 28%),
+    #090909;
+}
+
+.palette-header,
+.palette-footer {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014)),
+    #111;
+}
+
+.palette-header {
+  min-height: 58px;
+}
+
+.palette-brand img {
+  width: 142px;
+  height: auto;
+  opacity: 0.9;
+}
+
+.palette-header-meta span,
+.palette-header-meta strong,
+.palette-modal .icon-btn-small,
+.palette-view-controls,
+.palette-view-controls button,
+.palette-side-head strong,
+.palette-search,
+.palette-sort button,
+.palette-swatch-grid-priority,
+.recolor-swatch,
+.recolor-hex-row,
+.palette-footer button {
+  border-radius: 6px;
+}
+
+.palette-header-meta span,
+.palette-header-meta strong {
+  min-height: 30px;
+  padding-inline: 13px;
+  background: #171717;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.palette-header-meta strong {
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02)),
+    #171717;
+}
+
+.palette-header-meta strong::before {
+  display: none;
+}
+
+.palette-body {
+  grid-template-columns: minmax(0, 1fr) minmax(400px, 432px);
+  background: #080808;
+}
+
+.palette-artboard {
+  padding: 44px 36px;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.052), transparent 30%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.032) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.032) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.032) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.032) 75%),
+    #050505;
+  background-position: center, 0 0, 0 10px, 10px -10px, -10px 0, center;
+  background-size: auto, 20px 20px, 20px 20px, 20px 20px, 20px 20px, auto;
+}
+
+.palette-svg-preview {
+  max-width: min(78vw, 760px);
+  max-height: calc(100vh - 210px);
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  filter: drop-shadow(0 30px 70px rgba(0, 0, 0, 0.5));
+}
+
+.palette-svg-preview.is-color-focused::before {
+  inset: 18px;
+  border-radius: 4px;
+  background: #eef2f8;
+}
+
+.palette-view-controls {
+  top: 18px;
+  right: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    #151515;
+}
+
+.palette-canvas>span {
+  right: 20px;
+  bottom: 18px;
+  border-radius: 6px;
+}
+
+.palette-side {
+  grid-template-rows: 58px 220px 50px minmax(0, 1fr);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent 190px),
+    #101010;
+}
+
+.palette-side-head {
+  padding-inline: 16px;
+  background: #101010;
+}
+
+.palette-side-head span,
+.palette-list-title span {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+}
+
+.palette-side-head small,
+.palette-list-title small {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.palette-clusters {
+  height: 220px;
+  min-height: 220px;
+  background:
+    radial-gradient(circle at 72% 28%, rgba(255, 215, 0, 0.09), transparent 24%),
+    radial-gradient(circle at 40% 66%, rgba(255, 255, 255, 0.052), transparent 34%),
+    #121212;
+}
+
+.palette-cluster {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset -12px -15px 0 rgba(0, 0, 0, 0.18),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.2),
+    0 18px 34px rgba(0, 0, 0, 0.42);
+}
+
+.palette-cluster.active {
+  outline: 2px solid #ffd700;
+  outline-offset: 5px;
+}
+
+.palette-tools {
+  min-height: 50px;
+}
+
+.palette-tools button {
+  min-height: 50px;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+}
+
+.palette-list {
+  padding: 15px 16px 0;
+}
+
+.palette-search input,
+.recolor-hex-input {
+  letter-spacing: 0;
+}
+
+.palette-sort button {
+  font-size: 9.5px;
+}
+
+.palette-swatch-grid-priority {
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 9px;
+  padding: 13px;
+  max-height: 190px;
+}
+
+.palette-swatch-grid button {
+  width: 34px;
+  height: 34px;
+}
+
+.palette-swatch-grid span {
+  width: 29px;
+  height: 29px;
+}
+
+.recolor-panel {
+  margin-top: 15px;
+  background:
+    linear-gradient(180deg, rgba(255, 215, 0, 0.035), transparent 65%),
+    #0c0c0c;
+}
+
+.recolor-panel-controls {
+  align-items: stretch;
+}
+
+.recolor-swatch-label {
+  width: 54px;
+}
+
+.recolor-swatch {
+  min-height: 60px;
+}
+
+.recolor-quick-dot {
+  width: 19px;
+  height: 19px;
+}
+
+.palette-footer {
+  min-height: 64px;
+}
+
+.palette-footer-state span {
+  font-size: 11px;
+  letter-spacing: 0.7px;
+}
+
+.palette-footer-state small {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.palette-footer .palette-action-primary {
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, #ffe15c, #ffd400);
+}
+
+@media (max-width: 980px) {
+  .palette-svg-preview {
+    max-width: calc(100vw - 56px);
+    max-height: none;
+  }
+
+  .palette-side {
+    grid-template-rows: 52px 150px 50px minmax(0, 1fr);
+  }
+
+  .palette-clusters {
+    height: 150px;
+    min-height: 150px;
+  }
+}
+
 /* ─── EduSection ─────────────────────────────────────────── */
 
 /* Demo video + steps */

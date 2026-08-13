@@ -34,6 +34,7 @@ export function field(data: EmailData, key: string, fallback = "N/A"): string {
 
 export function renderEmailLayout(content: EmailTemplateRenderResult): string {
   const details = content.details?.filter((item) => item.value !== undefined && item.value !== null && item.value !== "");
+  const headerUrl = content.headerImageUrl || HEADER_URL;
 
   return `
     <!doctype html>
@@ -50,7 +51,7 @@ export function renderEmailLayout(content: EmailTemplateRenderResult): string {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px; margin:0 auto;">
                 <tr>
                   <td style="padding:0; background-color:#08130f;">
-                    <img src="${HEADER_URL}" width="600" alt="DesaynClaw" style="display:block; width:100%; max-width:600px; height:auto; border:0; outline:none; text-decoration:none;">
+                    <img src="${escapeHtml(headerUrl)}" width="600" alt="DesaynClaw" style="display:block; width:100%; max-width:600px; height:auto; border:0; outline:none; text-decoration:none;">
                   </td>
                 </tr>
                 <tr>

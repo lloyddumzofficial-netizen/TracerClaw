@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 // The client you created from the Server-Side Auth instructions
 import { createClient } from '@/utils/supabase/server'
+import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
+const NEW_USER_WELCOME_WINDOW_MS = 5 * 60 * 1000
 
 function resolveSafeRedirect(next, origin) {
   try {
@@ -20,6 +23,40 @@ function redirectWithAuthError(origin, reason, description) {
   if (reason) redirectUrl.searchParams.set('auth_error', reason)
   if (description) redirectUrl.searchParams.set('auth_error_description', description)
   return NextResponse.redirect(redirectUrl)
+}
+
+function getUserDisplayName(user) {
+  return (
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'there'
+  )
+}
+
+function isRecentlyCreatedUser(user) {
+  const createdAt = user?.created_at ? new Date(user.created_at).getTime() : 0
+  return createdAt > 0 && Date.now() - createdAt <= NEW_USER_WELCOME_WINDOW_MS
+}
+
+async function sendWelcomeEmailForNewUser(user) {
+  if (!user?.email || !isRecentlyCreatedUser(user)) return
+
+  const result = await sendEmail({
+    to: user.email,
+    subject: 'Welcome to DesaynClaw',
+    template: 'welcome',
+    data: {
+      name: getUserDisplayName(user),
+    },
+  })
+
+  if ('error' in result) {
+    logger.warn('[auth callback] Welcome email was not sent', {
+      userId: user.id,
+      error: result.error,
+    })
+  }
 }
 
 export async function GET(request) {
@@ -40,8 +77,14 @@ export async function GET(request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      try {
+        await sendWelcomeEmailForNewUser(data?.session?.user)
+      } catch (welcomeError) {
+        logger.warn('[auth callback] Welcome email failed after sign in', { error: welcomeError })
+      }
+
       return NextResponse.redirect(resolveSafeRedirect(next, origin))
     }
 

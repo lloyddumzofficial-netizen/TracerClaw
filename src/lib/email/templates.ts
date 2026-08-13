@@ -2,6 +2,7 @@ import { field, textToHtml } from "./render";
 import type { EmailData, EmailTemplateRenderer } from "./types";
 
 const HOME_CTA = { label: "Open DesaynClaw", url: "https://desaynclaw.com" };
+const WELCOME_HEADER_URL = "https://desaynclaw.com/Welcome.jpg";
 
 const supportTemplate = (data: EmailData) => ({
   title: field(data, "title", "Support Reply"),
@@ -11,7 +12,11 @@ const supportTemplate = (data: EmailData) => ({
 export const emailTemplates = {
   welcome: (data: EmailData) => ({
     title: "Welcome to DesaynClaw",
-    body: textToHtml("Hello {{name}},\n\nWelcome to DesaynClaw. Your account is ready.", data),
+    headerImageUrl: WELCOME_HEADER_URL,
+    body: textToHtml(
+      "Hello {{name}},\n\nWelcome to DesaynClaw. Your account is ready, and your free starter claws are waiting.\n\nYou can now upload artwork, clean backgrounds, upscale images, and create trace-ready files from your workspace.",
+      data
+    ),
     cta: HOME_CTA,
   }),
 

@@ -15,6 +15,7 @@ export type EmailData = Record<string, string | number | boolean | null | undefi
 export type EmailTemplateRenderResult = {
   title: string;
   body: string;
+  headerImageUrl?: string;
   detailsLabel?: string;
   details?: Array<{ label: string; value: string | number | null | undefined; highlight?: boolean }>;
   cta?: { label: string; url: string };
