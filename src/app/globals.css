@@ -28,6 +28,8 @@
 
   --radius: 0px;
   /* Sharp industrial corners */
+  --font-space-grotesk: "Space Grotesk", "Inter", "Segoe UI", Arial, sans-serif;
+  --font-jetbrains-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
 }
 
 * {
@@ -40,6 +42,7 @@ html,
 body {
   background-color: var(--bg-app);
   color: var(--text-primary);
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   font-size: 13px;
   /* Smaller, professional desktop font size */
   user-select: none;
