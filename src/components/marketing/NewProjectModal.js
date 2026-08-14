@@ -367,15 +367,15 @@ const NewProjectModal = memo(function NewProjectModal({
                     value="mockup_erase"
                     current={traceType}
                     onChange={setTraceType}
-                    title="Extract Pattern Only"
-                    description="Removes only logos, text, and numbers. Keeps the full design, including mascot and character artwork."
+                    title="Clean Pattern Only (Recommended)"
+                    description="Most-used mode. Removes logos, text, and numbers, then rebuilds the clean pattern underneath."
                   />
                   <TraceOptionCard
                     value="mockup_preserve"
                     current={traceType}
                     onChange={setTraceType}
-                    title="Keep All Artwork"
-                    description="Keeps logos, chest badges, team name text, and all design art. Removes only the jersey numbers."
+                    title="Keep Complete Design"
+                    description="Best for customer mockups. Keeps names, numbers, logos, text, badges, and all visible artwork."
                   />
                 </div>
               </div>

@@ -16,6 +16,7 @@ const MAX_CROP_ZOOM = 4;
 const CROP_ZOOM_STEP = 0.25;
 const WHEEL_ZOOM_STEP = 0.1;
 const CROP_STAGE_PADDING = 18;
+const CROP_GUIDE_STORAGE_KEY = "desaynclaw_crop_guide_dismissed";
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -83,6 +84,8 @@ const CropModal = memo(function CropModal({
   const [cropZoom, setCropZoom] = useState(DEFAULT_CROP_ZOOM);
   const [imageSize, setImageSize] = useState(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  const [showCropGuideIntro, setShowCropGuideIntro] = useState(false);
+  const [dontShowCropGuideAgain, setDontShowCropGuideAgain] = useState(false);
   const imgRef = useRef(null);
   const stageRef = useRef(null);
 
@@ -93,8 +96,25 @@ const CropModal = memo(function CropModal({
       setCompletedCrop(null);
       setCropError("");
       setImageSize(null);
+      setDontShowCropGuideAgain(false);
+      try {
+        setShowCropGuideIntro(window.localStorage.getItem(CROP_GUIDE_STORAGE_KEY) !== "1");
+      } catch {
+        setShowCropGuideIntro(true);
+      }
     }
   }, [show]);
+
+  const dismissCropGuideIntro = useCallback(() => {
+    if (dontShowCropGuideAgain) {
+      try {
+        window.localStorage.setItem(CROP_GUIDE_STORAGE_KEY, "1");
+      } catch {
+        // Non-critical: the guide can still be dismissed for this session.
+      }
+    }
+    setShowCropGuideIntro(false);
+  }, [dontShowCropGuideAgain]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -285,6 +305,45 @@ const CropModal = memo(function CropModal({
   return (
     <div className="modal-overlay crop-workspace-overlay" translate="no">
       <div className="crop-workspace-modal">
+        {showCropGuideIntro && (
+          <div className="crop-intro-layer" role="dialog" aria-modal="true" aria-labelledby="crop-intro-title">
+            <div className="crop-intro-card">
+              <button type="button" className="crop-intro-close" onClick={dismissCropGuideIntro} aria-label="Close crop reminder">
+                <X size={16} />
+              </button>
+              <div className="crop-intro-heading">
+                <div>
+                  <span className="crop-intro-kicker">Crop source quality</span>
+                  <h3 id="crop-intro-title">Keep only the printable area</h3>
+                </div>
+              </div>
+              <p className="crop-intro-lead">
+                The crop becomes the exact source for extraction. Keep it tight to the design/body panel so the output does not include unwanted side space.
+              </p>
+              <div className="crop-intro-rules">
+                <div><span>01</span><p>Choose one side only: front or back.</p></div>
+                <div><span>02</span><p>Do not include sleeves, collar, armholes, shadows, background, or white margins.</p></div>
+                <div><span>03</span><p>Use the guide videos on the right side of the crop screen if you are unsure.</p></div>
+              </div>
+              <div className="crop-intro-warning">
+                Wrong crop or extra mockup space is user error and is not refundable.
+              </div>
+              <div className="crop-intro-footer">
+                <label className="crop-intro-check">
+                  <input
+                    type="checkbox"
+                    checked={dontShowCropGuideAgain}
+                    onChange={e => setDontShowCropGuideAgain(e.target.checked)}
+                  />
+                  Don't show again
+                </label>
+                <button type="button" className="btn-primary crop-intro-action" onClick={dismissCropGuideIntro}>
+                  Start Crop
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="crop-workspace-header">
           <div className="crop-workspace-title">
             <div className="crop-tool-mark">

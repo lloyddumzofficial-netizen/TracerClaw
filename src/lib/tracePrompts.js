@@ -18,7 +18,7 @@ Your only job is to output the flat, print-ready artwork panel that was printed 
 
 Four invariants override every other consideration:
 1. NO GARMENT SHAPE: your output is a flat rectangle filled edge to edge with artwork. Never a shirt silhouette, never a neckline, never an armhole, never a sleeve, never a seam or hem, never a background around the artwork. If someone could tell your output came from a shirt, you failed.
-2. TORSO ONLY: reproduce the front torso panel's design. Sleeves, collars, and neck binding are excluded entirely.
+2. SELECTED PANEL ONLY: reproduce the cropped front or back body panel's design. Sleeves, collars, and neck binding are excluded unless they are intentionally inside the user's crop.
 3. EVIDENCE ONLY: every pixel you output must correspond to something visible in the input. Never invent, never approximate, never "improve", never beautify, never stylize.
 4. FULL COLOR: reproduce the exact colors of the input. Never desaturate, never posterize, never reduce the palette, never shift hue.
 
@@ -51,11 +51,10 @@ If ANY of the following appears in your output, the output is a total failure:
 
 There is NO background in your output, because the artwork IS the entire image. Every one of the four edges is design. A viewer must not be able to tell what garment this came from.
 
-== RULE 2: TORSO PANEL ONLY ==
-- Find the FRONT TORSO panel of the garment: the chest and body area. That panel's artwork is your ENTIRE subject.
-- EXCLUDE THE SLEEVES COMPLETELY. Sleeve artwork is frequently different from the torso artwork. Do not copy it, do not blend it in, do not let it appear along the edges of your output.
-- EXCLUDE the collar and neck binding, including its color. A black neck rib does not become a black band in your output.
-- If the front and the back are both visible, use the FRONT only.
+== RULE 2: SELECTED BODY PANEL ONLY ==
+- Use the user's cropped body panel as the subject. It may be a FRONT panel or a BACK panel.
+- If the crop contains a back panel with a player name, number, slogan, crest, or school logo, that back panel is the subject. Do not switch to an imagined front panel.
+- EXCLUDE sleeves, collar, armholes, and neck binding when they sit outside the selected body panel. Sleeve artwork is frequently different from the body panel artwork. Do not copy it, blend it in, or let it appear along the edges of your output unless the user deliberately cropped it as part of the subject.
 - If the input is already a tight crop, that crop is the whole subject. Use only what is inside it. Never invent a collar, sleeve, or panel that is not in the crop.
 
 == RULE 3: UNWRAP THE TORSO INTO A FILLED RECTANGLE ==
@@ -266,9 +265,9 @@ ${buildFinalGate(`7. Removed: zoom in and confirm there is not one letter, not o
 9. Repair quality: every area where something was removed reads as untouched original design.`)}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE: KEEP ALL ARTWORK  (traceType mockup_preserve → ai_prompt PRESERVE_LOGOS)
+// MODE: KEEP COMPLETE DESIGN  (traceType mockup_preserve → ai_prompt PRESERVE_LOGOS)
 // ─────────────────────────────────────────────────────────────────────────────
-const PRESERVE_LOGOS = `TASK: Reproduce this garment's complete design as a flat, full-color, print-ready rectangular artwork panel. Keep ALL artwork — the background pattern, every logo, every badge, every mascot, and the team name text — exactly as it appears. Remove ONLY the player/jersey numbers.
+const PRESERVE_LOGOS = `TASK: Reproduce this garment's complete design as a flat, full-color, print-ready rectangular artwork panel. Keep ALL customer-visible artwork — the background pattern, every logo, every badge, every mascot, every word, every player name, and every number — exactly as it appears.
 
 ${FULL_BLEED_PANEL_LOCK}
 
@@ -282,11 +281,12 @@ ${COLOR_FIDELITY}
 
 ${FLAT_FILL_PURITY}
 
-== ARTWORK PRESERVATION — KEEP EVERYTHING EXCEPT NUMBERS ==
+== ARTWORK PRESERVATION — KEEP EVERYTHING ==
 This mode preserves the design's identity. A customer must recognize the output as the same jersey.
 
 KEEP AND REPRODUCE EXACTLY, in the same position, at the same scale, in the same colors:
-- The team name and every other word on the garment: team wordmarks, club names, city names, sponsor names, brand names, taglines, slogans, event names, sleeve text, chest text, arched or curved text.
+- The player name and every other word on the garment: team wordmarks, club names, city names, sponsor names, brand names, taglines, slogans, event names, sleeve text, chest text, back text, arched or curved text.
+- Every number and digit: player numbers, back numbers, chest numbers, sleeve numbers, shorts numbers, year numbers, and numerals inside crests or logos.
 - Every logo, crest, shield, badge, patch, emblem, seal, roundel, and sponsor mark.
 - Every mascot and figurative graphic: animal heads, tiger faces, eagles, wolves, dragons, skulls, character art, illustrated icons, claw and paw graphics.
 - Every decorative element attached to the above: outlines, second and third strokes, drop shadows, bevels, glows, inner highlights, containment shapes, banner ribbons.
@@ -298,21 +298,24 @@ KEEP AND REPRODUCE EXACTLY, in the same position, at the same scale, in the same
 - Match the text block's position and size against the 10 x 10 torso grid from Step 0. If the wordmark sits across cells (2,4) to (8,5) of the torso, it sits across cells (2,4) to (8,5) of your rectangle.
 - If a letterform is custom or unusual, copy its silhouette as drawn rather than substituting a standard font.
 - Never add text that is not in the input. No invented sponsor, no invented tagline, no signature, no watermark.
+- If text is blurry, partially warped, or photographed at an angle, copy the visible characters and their placement as faithfully as possible. Do not replace them with different words, do not move them to a cleaner layout, and do not omit them.
 
 == NO GENERIC REPLACEMENT ==
 - Never replace a real mascot, crest, or logo with generic brush strokes, abstract streaks, generic flames, generic lightning, or a placeholder shape.
 - Never reduce a detailed graphic to a rough blob. Faces, eyes, teeth, claws, line art, outlines, secondary borders, and internal highlights all survive.
 - Preserve the visual identity, not just the color palette.
 
-== THE ONE REMOVAL: JERSEY NUMBERS ==
-- Remove the player identification numerals: the large chest number, the large back number, the small sleeve number, the shorts number, and any standalone numeral used to identify a player.
-- Remove their attached decoration too: number outlines, second strokes, drop shadows, and glows that belong to the numeral.
-- Rebuild the background underneath the removed numeral by continuing the surrounding pattern, gradients, facet edges, and streak direction across the gap. No ghost digits, no halo, no blur patch, no white hole, no flat filler.
-- IMPORTANT EXCEPTION: numerals that are an inseparable part of a logo, crest, or wordmark stay. An "EST. 1998" inside a crest, a "09" locked into a logo lockup, or a year inside a badge is part of that logo — removing it would break the logo. Only standalone player-identification numerals are removed.
+== NO REMOVAL IN THIS MODE ==
+- Do not remove player names.
+- Do not remove player numbers.
+- Do not remove badges, logos, crests, school seals, sponsor marks, slogans, or small decorative symbols.
+- Do not leave blank areas where text, logos, or numbers existed.
+- The only things removed are photography artifacts: garment shape, wrinkles, shadows, fabric texture, perspective distortion, and background outside the printed design.
 
 ${buildFinalGate(`7. Artwork: every logo, badge, mascot, and word from the input is present, in the right place, at the right size, in the right colors.
 8. Text: read your output's text and read the input's text character by character. They must be identical.
-9. Numbers: standalone player numerals are gone and the pattern beneath them is seamlessly rebuilt, while numerals inside logos remain.`)}`;
+9. Numbers: every visible digit and player number from the input is present in the output, with the same outline, size, and position.
+10. No omissions: nothing customer-visible was deleted just because it looked like a logo, name, or number.`)}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODE: LOGO FLATTEN  (traceType logo → ai_prompt LOGO_FLATTEN)
