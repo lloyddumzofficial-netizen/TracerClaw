@@ -99,6 +99,30 @@ function NeuralEngineBanner() {
   );
 }
 
+function DesktopWorkspaceBanner() {
+  return (
+    <section className="desktop-workspace-banner" aria-label="DesaynClaw desktop production workspace">
+      <video
+        src="/bvrYpLjLQvBsMs7_qFkCB_20260815_054232_var0.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        disablePictureInPicture
+        controlsList="nodownload nofullscreen noremoteplayback"
+        preload="metadata"
+        tabIndex={-1}
+        aria-label="DesaynClaw desktop production workspace preview"
+      />
+      <div className="desktop-workspace-overlay">
+        <span>Desktop Production Workspace</span>
+        <h2>Built for cleaner handoffs, faster reviews, and files ready for real print work.</h2>
+        <p>Crop, clean, upscale, vectorize, preview, and export from one focused workspace.</p>
+      </div>
+    </section>
+  );
+}
+
 function MarketingVideoPreview() {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1135,6 +1159,8 @@ export default function StartScreen() {
             </div>
           </div>
         </div>
+
+        <DesktopWorkspaceBanner />
 
         <HomepageWorkflowPreview />
 

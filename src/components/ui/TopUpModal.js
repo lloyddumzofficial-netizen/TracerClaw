@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, CreditCard, AlertTriangle } from "lucide-react";
+import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
@@ -397,21 +397,25 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             </div>
           ) : step === 1 ? (
             <>
-              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div className="top-up-pricing-hero" style={{ textAlign: 'center', marginBottom: '32px' }}>
                 {!user && (
                   <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid #FFD700', color: '#FFD700', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
                     Welcome. You need claws to trace images. Please select a plan and log in.
                   </div>
                 )}
-                <div style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Pricing Plan</div>
-                <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>Affordable pricing</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Choose the claw package that fits your workflow.</p>
+                <div className="top-up-pricing-kicker" style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Simple, scalable pricing</div>
+                <div className="top-up-pricing-title-row">
+                  <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>
+                    Plans that fit your <span>production needs</span>
+                  </h2>
+                  <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Simple claw packages for vector tracing, background removal, image upscale, and print-ready handoff.</p>
+                </div>
               </div>
 
-              <div className="top-up-plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div className="top-up-plans-grid top-up-pricing-table" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {PLANS.map(p => (
                   <div key={p.key} className={`top-up-plan-card${p.best ? ' top-up-plan-card-featured' : ''}`} style={{ background: p.best ? '#333' : '#2a2a2a', border: `1px solid ${p.best ? '#FFD700' : '#444'}`, padding: '32px 24px', display: 'flex', flexDirection: 'column', position: 'relative', borderRadius: '6px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '16px' }}>
+                    <div className="top-up-plan-head" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {p.icon && <Image src={p.icon} alt={p.label} width={32} height={32} style={{ objectFit: 'contain' }} />}
                         <div style={{ fontSize: '16px', fontWeight: '500', color: '#fff' }}>{p.label}</div>
@@ -419,12 +423,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                       {p.best && <div className="top-up-plan-badge" style={{ background: '#FFD700', color: '#000', fontSize: '11px', fontWeight: '800', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> Most popular</div>}
                     </div>
 
-                    <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <div className="top-up-plan-price" style={{ marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                       <span style={{ fontSize: '36px', fontWeight: '700', color: '#fff', letterSpacing: '-1px' }}>{p.price}</span>
                       <span style={{ fontSize: '12px', color: '#888' }}>/ {p.traces} claws</span>
                     </div>
                     
-                    <p style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.5', margin: '0 0 24px', minHeight: '40px' }}>{p.desc}</p>
+                    <p className="top-up-plan-desc" style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.5', margin: '0 0 24px', minHeight: '40px' }}>{p.desc}</p>
 
                     <button 
                       onClick={() => { 
@@ -446,10 +450,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
 
                     <div className="top-up-plan-divider" style={{ borderTop: '1px solid #444', margin: '0 -24px 24px' }}></div>
 
-                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '16px' }}>What's Included:</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                    <div className="top-up-plan-included-title" style={{ fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '16px' }}>What's Included:</div>
+                    <div className="top-up-plan-features" style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                       {p.features.map((feat, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#d5d5d5', fontSize: '13px' }}>
+                        <div className="top-up-plan-feature" key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#d5d5d5', fontSize: '13px' }}>
                           <Check size={14} color={p.best ? "#FFD700" : "#888"} strokeWidth={3} />
                           {feat}
                         </div>
@@ -461,8 +465,8 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             </>
           ) : step === 2 ? (
             <>
-              <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-                <div style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Payment Method</div>
+              <div className="top-up-payment-hero" style={{ textAlign: 'center', marginBottom: '28px' }}>
+                <div className="top-up-pricing-kicker" style={{ display: 'inline-block', border: '1px solid #555', padding: '4px 12px', fontSize: '11px', fontWeight: '600', color: '#ccc', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '16px', borderRadius: '4px' }}>Payment Method</div>
                 <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>Choose how to pay</h2>
                 <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>
                   Selected: <strong style={{ color: '#FFD700' }}>{PLAN_LABELS[form.plan]}</strong> · <strong style={{ color: '#fff' }}>{PLAN_PRICES[form.plan]}</strong>
@@ -474,9 +478,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div className="top-up-payment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <button
                   type="button"
+                  className="top-up-payment-option"
                   onClick={() => setStep(3)}
                   style={{ background: '#2a2a2a', border: '1px solid #444', color: '#fff', padding: '24px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px' }}
                 >
@@ -488,6 +493,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
 
                 <button
                   type="button"
+                  className="top-up-payment-option top-up-payment-option-featured"
                   onClick={handleStartDodoCheckout}
                   disabled={isStartingDodo || form.plan === 'tingi'}
                   style={{ background: '#333', border: '1px solid #FFD700', color: '#fff', padding: '24px', textAlign: 'left', cursor: (isStartingDodo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px', opacity: (isStartingDodo || form.plan === 'tingi') ? 0.55 : 1 }}
@@ -505,18 +511,18 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 </button>
               </div>
 
-              <button onClick={() => setStep(1)} disabled={isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: isStartingDodo ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
+              <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: isStartingDodo ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
             </>
           ) : (
             <>
               {/* Header */}
-              <div style={{ background: '#1f1f1f', borderRadius: '8px', padding: '16px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="top-up-checkout-summary" style={{ background: '#1f1f1f', borderRadius: '8px', padding: '16px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#aaa', fontSize: '14px' }}>Selected: <strong style={{ color: '#fff' }}>{PLAN_LABELS[form.plan]}</strong> · GCash Manual</span>
                 <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '16px' }}>{PLAN_PRICES[form.plan]}</span>
               </div>
               
               {/* Warning Alert */}
-              <div style={{ background: 'rgba(255, 215, 0, 0.05)', borderLeft: '3px solid #FFD700', borderRadius: '4px', padding: '16px', marginBottom: '32px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <div className="top-up-manual-alert" style={{ background: 'rgba(255, 215, 0, 0.05)', borderLeft: '3px solid #FFD700', borderRadius: '4px', padding: '16px', marginBottom: '32px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <AlertTriangle size={20} color="#FFD700" style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ color: '#ccc', fontSize: '13px', lineHeight: 1.6 }}>
                   <strong style={{ color: '#FFD700' }}>Manual GCash is not automated.</strong> Submit only once after paying. Duplicate or repeated proof submissions after claws are already added may be blocked for 7 days. Use the same email/account you want credited.
@@ -524,11 +530,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               </div>
 
               {/* Two Column Layout */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '32px', alignItems: 'start' }}>
+              <div className="top-up-checkout-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '32px', alignItems: 'start' }}>
                 
                 {/* Left: QR Code */}
-                <div style={{ textAlign: 'center', background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ background: '#fff', borderRadius: '12px', padding: '12px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                <div className="top-up-qr-panel" style={{ textAlign: 'center', background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div className="top-up-qr-frame" style={{ background: '#fff', borderRadius: '12px', padding: '12px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
                     <img src="/gcash_qr.png" alt="GCash QR" style={{ width: '100%', maxWidth: '220px', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: '4px' }} />
                   </div>
                   <p style={{ color: '#fff', fontSize: '15px', fontWeight: '600', margin: '0 0 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Smartphone size={18} color="#FFD700" style={{ marginRight: '8px' }} /> Scan with GCash</p>
@@ -536,20 +542,20 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 </div>
 
                 {/* Right: Form */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div>
+                <div className="top-up-checkout-form" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="top-up-form-field">
                     <label style={{ display: 'block', color: '#888', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GCash Number *</label>
                     <input type="text" placeholder="e.g. 09123456789" value={form.txnRef} onChange={e => setForm(f => ({ ...f, txnRef: e.target.value }))} style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', padding: '14px 16px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }} onFocus={e => e.target.style.borderColor = '#FFD700'} onBlur={e => e.target.style.borderColor = '#333'} />
                   </div>
-                  <div>
+                  <div className="top-up-form-field">
                     <label style={{ display: 'block', color: '#888', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upload Proof of Payment *</label>
                     <input type="file" accept="image/*" onChange={e => { if (e.target.files[0]) setForm(f => ({ ...f, screenshotName: e.target.files[0].name, screenshotFile: e.target.files[0] })) }} style={{ display: 'none' }} id="proof-upload" />
-                    <label htmlFor="proof-upload" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: '#1a1a1a', border: form.screenshotName ? '1px solid #FFD700' : '1px dashed #444', borderRadius: '8px', padding: '12px 16px', color: form.screenshotName ? '#FFD700' : '#666', fontSize: '14px', cursor: 'pointer', boxSizing: 'border-box', transition: 'all 0.2s' }}>
+                    <label className="top-up-proof-upload" htmlFor="proof-upload" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: '#1a1a1a', border: form.screenshotName ? '1px solid #FFD700' : '1px dashed #444', borderRadius: '8px', padding: '12px 16px', color: form.screenshotName ? '#FFD700' : '#666', fontSize: '14px', cursor: 'pointer', boxSizing: 'border-box', transition: 'all 0.2s' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><ImageIcon size={18} /> {form.screenshotName || 'Select screenshot...'}</span>
                       <span style={{ fontSize: '12px', fontWeight: '600', background: form.screenshotName ? '#FFD700' : '#333', color: form.screenshotName ? '#000' : '#fff', padding: '6px 12px', borderRadius: '4px', transition: 'all 0.2s' }}>Browse</span>
                     </label>
                   </div>
-                  <div>
+                  <div className="top-up-form-field">
                     <label style={{ display: 'block', color: '#666', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Email (Auto-filled)</label>
                     <input type="text" value={user?.email || ''} readOnly style={{ width: '100%', background: 'transparent', border: '1px solid #222', borderRadius: '8px', padding: '14px 16px', color: '#555', fontSize: '15px', outline: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }} />
                   </div>
@@ -558,9 +564,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #2a2a2a', paddingTop: '24px' }}>
-                <button onClick={() => setStep(2)} disabled={isSubmitting} style={{ padding: '14px 28px', background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '600', transition: 'all 0.2s' }} onMouseOver={e => { if(!isSubmitting){ e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#666'; } }} onMouseOut={e => { if(!isSubmitting){ e.currentTarget.style.color = '#aaa'; e.currentTarget.style.borderColor = '#444'; } }}>Back</button>
+              <div className="top-up-checkout-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid #2a2a2a', paddingTop: '24px' }}>
+                <button className="top-up-secondary-button" onClick={() => setStep(2)} disabled={isSubmitting} style={{ padding: '14px 28px', background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '600', transition: 'all 0.2s' }} onMouseOver={e => { if(!isSubmitting){ e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#666'; } }} onMouseOut={e => { if(!isSubmitting){ e.currentTarget.style.color = '#aaa'; e.currentTarget.style.borderColor = '#444'; } }}>Back</button>
                 <button 
+                  className="top-up-submit-button"
                   onClick={handleSubmit} 
                   disabled={isSubmitting} 
                   style={{ flex: 1, padding: '14px', background: '#FFD700', color: '#000', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s', opacity: isSubmitting ? 0.7 : 1 }}

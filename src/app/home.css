@@ -3153,6 +3153,518 @@
   border-radius: 8px !important;
 }
 
+/* Top-up pricing redesign: editorial table layout, professional yellow accent. */
+.modal-overlay .top-up-modal {
+  max-width: min(1120px, calc(100vw - 48px)) !important;
+}
+
+.top-up-pricing-hero {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr) !important;
+  align-items: end !important;
+  gap: 42px !important;
+  text-align: left !important;
+  padding: 42px 40px 36px !important;
+  margin: -24px -24px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 215, 0, 0.07), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)),
+    #070707 !important;
+}
+
+.top-up-pricing-hero > div:first-child:not(.top-up-pricing-title-row) {
+  grid-column: 1 / -1 !important;
+}
+
+.top-up-pricing-kicker {
+  width: fit-content !important;
+  border-color: rgba(255, 215, 0, 0.36) !important;
+  background: rgba(255, 215, 0, 0.045) !important;
+  color: #ffd700 !important;
+  border-radius: 999px !important;
+  padding: 5px 11px !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.07em !important;
+  margin: 0 !important;
+}
+
+.top-up-pricing-title-row {
+  display: contents !important;
+}
+
+.top-up-pricing-title-row h2 {
+  max-width: 610px !important;
+  margin: 0 !important;
+  color: #f7f7f7 !important;
+  font-size: clamp(42px, 5vw, 64px) !important;
+  line-height: 0.98 !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.top-up-pricing-title-row h2 span {
+  color: rgba(255, 255, 255, 0.46) !important;
+  font-weight: 400 !important;
+}
+
+.top-up-pricing-title-row p {
+  max-width: 330px !important;
+  margin: 0 !important;
+  color: rgba(255, 255, 255, 0.66) !important;
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+  font-weight: 400 !important;
+}
+
+.top-up-pricing-table {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  margin: 0 -24px -24px !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+.top-up-pricing-table .top-up-plan-card {
+  min-height: 500px !important;
+  padding: 0 !important;
+  border-width: 0 1px 0 0 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-radius: 0 !important;
+  background: #080808 !important;
+  box-shadow: none !important;
+}
+
+.top-up-pricing-table .top-up-plan-card:first-child {
+  border-left: 0 !important;
+}
+
+.top-up-pricing-table .top-up-plan-card:last-child {
+  border-right: 0 !important;
+}
+
+.top-up-pricing-table .top-up-plan-card-featured {
+  background:
+    linear-gradient(180deg, rgba(255, 215, 0, 0.075), rgba(255, 215, 0, 0.018)),
+    #141414 !important;
+  border-left: 1px solid rgba(255, 215, 0, 0.7) !important;
+  border-right: 1px solid rgba(255, 215, 0, 0.7) !important;
+  outline: 1px solid rgba(255, 215, 0, 0.7) !important;
+  outline-offset: -1px !important;
+}
+
+.top-up-pricing-table .top-up-plan-head {
+  min-height: 104px !important;
+  align-content: flex-start !important;
+  padding: 28px 24px 22px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+.top-up-pricing-table .top-up-plan-head img {
+  width: 24px !important;
+  height: 24px !important;
+  opacity: 0.92 !important;
+}
+
+.top-up-pricing-table .top-up-plan-head div[style*="font-size: 16px"] {
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase !important;
+}
+
+.top-up-pricing-table .top-up-plan-badge {
+  position: static !important;
+  min-height: 20px !important;
+  border-radius: 3px !important;
+  background: rgba(255, 215, 0, 0.94) !important;
+  color: #050505 !important;
+  font-size: 9px !important;
+  letter-spacing: 0.02em !important;
+  box-shadow: none !important;
+}
+
+.top-up-pricing-table .top-up-plan-price,
+.top-up-pricing-table .top-up-plan-desc,
+.top-up-pricing-table .top-up-plan-button,
+.top-up-pricing-table .top-up-plan-included-title,
+.top-up-pricing-table .top-up-plan-features {
+  margin-left: 24px !important;
+  margin-right: 24px !important;
+}
+
+.top-up-pricing-table .top-up-plan-price {
+  margin-top: 28px !important;
+  margin-bottom: 18px !important;
+}
+
+.top-up-pricing-table .top-up-plan-price span:first-child {
+  font-size: clamp(34px, 3.4vw, 44px) !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.top-up-pricing-table .top-up-plan-price span:last-child {
+  color: rgba(255, 255, 255, 0.58) !important;
+  font-size: 13px !important;
+}
+
+.top-up-pricing-table .top-up-plan-desc {
+  min-height: 44px !important;
+  color: rgba(255, 255, 255, 0.68) !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+  margin-bottom: 28px !important;
+}
+
+.top-up-pricing-table .top-up-plan-button {
+  width: calc(100% - 48px) !important;
+  min-height: 36px !important;
+  margin-bottom: 26px !important;
+  border-radius: 4px !important;
+  background: #f4f4f4 !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  color: #050505 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.top-up-pricing-table .top-up-plan-button:hover {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #050505 !important;
+}
+
+.top-up-pricing-table .top-up-plan-button-featured {
+  background: #ffd700 !important;
+  border-color: #ffd700 !important;
+  color: #050505 !important;
+}
+
+.top-up-pricing-table .top-up-plan-button-featured:hover {
+  background: #ffdf2a !important;
+  border-color: #ffdf2a !important;
+}
+
+.top-up-pricing-table .top-up-plan-divider {
+  margin: 0 0 24px !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.top-up-pricing-table .top-up-plan-included-title {
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.055em !important;
+}
+
+.top-up-pricing-table .top-up-plan-features {
+  gap: 14px !important;
+  padding-bottom: 28px !important;
+}
+
+.top-up-pricing-table .top-up-plan-feature {
+  align-items: flex-start !important;
+  gap: 11px !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+.top-up-pricing-table .top-up-plan-feature svg {
+  flex: 0 0 auto !important;
+  margin-top: 2px !important;
+  color: rgba(255, 255, 255, 0.64) !important;
+  stroke: currentColor !important;
+}
+
+.top-up-pricing-table .top-up-plan-card-featured .top-up-plan-feature svg {
+  color: #ffd700 !important;
+}
+
+@media (max-width: 980px) {
+  .top-up-pricing-hero {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+    padding: 30px 24px !important;
+  }
+
+  .top-up-pricing-table {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .top-up-pricing-table .top-up-plan-card:nth-child(2n) {
+    border-right: 0 !important;
+  }
+
+  .top-up-pricing-table .top-up-plan-card:nth-child(n + 3) {
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .top-up-pricing-hero {
+    margin: -16px -18px 0 !important;
+    padding: 24px 18px !important;
+  }
+
+  .top-up-pricing-title-row h2 {
+    font-size: 36px !important;
+  }
+
+  .top-up-pricing-table {
+    grid-template-columns: 1fr !important;
+    margin: 0 -18px -16px !important;
+  }
+
+  .top-up-pricing-table .top-up-plan-card {
+    min-height: 0 !important;
+    border-right: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  }
+}
+
+/* Top-up payment steps: same quiet table language as pricing. */
+.top-up-payment-hero {
+  padding: 36px 24px 24px !important;
+  margin: -24px -24px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent),
+    #080808 !important;
+}
+
+.top-up-payment-hero h2 {
+  font-size: clamp(32px, 3.8vw, 46px) !important;
+  line-height: 1 !important;
+  font-weight: 550 !important;
+  letter-spacing: -0.032em !important;
+}
+
+.top-up-payment-hero p {
+  color: rgba(255, 255, 255, 0.62) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.top-up-payment-grid {
+  gap: 0 !important;
+  margin: 0 -24px 24px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+.top-up-payment-option {
+  min-height: 210px !important;
+  padding: 28px 28px !important;
+  border-width: 0 1px 0 0 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  border-radius: 0 !important;
+  background: #080808 !important;
+  box-shadow: none !important;
+}
+
+.top-up-payment-option:last-child {
+  border-right: 0 !important;
+}
+
+.top-up-payment-option:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    #101010 !important;
+}
+
+.top-up-payment-option-featured {
+  background:
+    linear-gradient(180deg, rgba(255, 215, 0, 0.055), rgba(255, 215, 0, 0.012)),
+    #111111 !important;
+  border-color: rgba(255, 215, 0, 0.58) !important;
+  outline: 1px solid rgba(255, 215, 0, 0.58) !important;
+  outline-offset: -1px !important;
+}
+
+.top-up-payment-option svg {
+  color: #ffd700 !important;
+  stroke: currentColor !important;
+}
+
+.top-up-payment-option span:nth-of-type(1) {
+  font-size: 20px !important;
+  line-height: 1.15 !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.top-up-payment-option span:nth-of-type(2) {
+  color: rgba(255, 255, 255, 0.62) !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+}
+
+.top-up-payment-option span:nth-of-type(3) {
+  color: #ffd700 !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.07em !important;
+}
+
+.top-up-secondary-button {
+  min-height: 42px !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.top-up-secondary-button:hover {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+}
+
+.top-up-checkout-summary {
+  margin: -4px -4px 18px !important;
+  padding: 16px 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 4px !important;
+  background: #121212 !important;
+}
+
+.top-up-checkout-summary span:first-child {
+  color: rgba(255, 255, 255, 0.66) !important;
+}
+
+.top-up-checkout-summary span:last-child {
+  color: #f5f5f5 !important;
+  font-size: 18px !important;
+}
+
+.top-up-manual-alert {
+  margin-bottom: 28px !important;
+  border-left: 1px solid #ffd700 !important;
+  border-radius: 4px !important;
+  background: rgba(255, 215, 0, 0.045) !important;
+}
+
+.top-up-manual-alert div {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
+.top-up-checkout-grid {
+  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.05fr) !important;
+  gap: 28px !important;
+}
+
+.top-up-qr-panel {
+  min-height: 420px !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.04), transparent 32%),
+    #111111 !important;
+}
+
+.top-up-qr-frame {
+  border-radius: 4px !important;
+  padding: 10px !important;
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.38) !important;
+}
+
+.top-up-qr-frame img {
+  border-radius: 2px !important;
+}
+
+.top-up-checkout-form {
+  padding: 2px 0 !important;
+}
+
+.top-up-form-field label {
+  color: rgba(255, 255, 255, 0.48) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.065em !important;
+}
+
+.top-up-form-field input {
+  min-height: 48px !important;
+  border-radius: 4px !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  background: #101010 !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+}
+
+.top-up-form-field input:focus {
+  border-color: rgba(255, 215, 0, 0.55) !important;
+}
+
+.top-up-proof-upload {
+  min-height: 54px !important;
+  border-radius: 4px !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background: #101010 !important;
+}
+
+.top-up-proof-upload span:last-child {
+  border-radius: 3px !important;
+  background: #f4f4f4 !important;
+  color: #050505 !important;
+}
+
+.top-up-checkout-actions {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  padding-top: 22px !important;
+}
+
+.top-up-submit-button {
+  min-height: 44px !important;
+  border-radius: 4px !important;
+  background: #f4f4f4 !important;
+  color: #050505 !important;
+}
+
+.top-up-submit-button:hover {
+  background: #ffffff !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 760px) {
+  .top-up-payment-hero {
+    margin: -16px -18px 0 !important;
+    padding: 26px 18px 22px !important;
+  }
+
+  .top-up-payment-grid {
+    grid-template-columns: 1fr !important;
+    margin: 0 -18px 22px !important;
+  }
+
+  .top-up-payment-option {
+    min-height: 170px !important;
+    border-right: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+  }
+
+  .top-up-checkout-grid {
+    grid-template-columns: 1fr !important;
+    gap: 22px !important;
+  }
+
+  .top-up-qr-panel {
+    min-height: 0 !important;
+    padding: 24px 18px !important;
+  }
+
+  .top-up-checkout-actions {
+    flex-direction: column !important;
+  }
+}
+
 /* Senior hero refinement: calmer hierarchy and cleaner action grouping. */
 .hero-left {
   align-items: center !important;
@@ -3326,10 +3838,114 @@
   height: auto;
 }
 
+.desktop-workspace-banner {
+  position: relative;
+  width: min(100%, 1180px);
+  margin: 0 auto 58px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #080808;
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.38);
+}
+
+.desktop-workspace-banner img,
+.desktop-workspace-banner video {
+  display: block;
+  width: 100%;
+  height: clamp(280px, 42vw, 520px);
+  object-fit: cover;
+  object-position: center;
+  background: #080808;
+}
+
+.desktop-workspace-banner video {
+  pointer-events: none;
+}
+
+.desktop-workspace-banner::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 48%;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.7) 42%, rgba(0, 0, 0, 0.94)),
+    radial-gradient(circle at 18% 100%, rgba(255, 215, 0, 0.14), transparent 34%);
+}
+
+.desktop-workspace-overlay {
+  position: absolute;
+  left: clamp(22px, 4vw, 46px);
+  right: clamp(22px, 4vw, 46px);
+  bottom: clamp(20px, 3vw, 36px);
+  z-index: 1;
+  max-width: 680px;
+}
+
+.desktop-workspace-overlay span {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: #ffd700;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.desktop-workspace-overlay h2 {
+  max-width: 760px;
+  margin: 0;
+  color: #f6f6f6;
+  font-size: clamp(26px, 3.8vw, 48px);
+  line-height: 1.02;
+  font-weight: 550;
+  letter-spacing: -0.035em;
+}
+
+.desktop-workspace-overlay p {
+  max-width: 560px;
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
 @media (max-width: 980px) {
   .neural-engine-banner {
     margin: 4px auto 42px;
     border-radius: 6px;
+  }
+
+  .desktop-workspace-banner {
+    margin: 0 auto 44px;
+    border-radius: 6px;
+  }
+
+  .desktop-workspace-banner img,
+  .desktop-workspace-banner video {
+    height: clamp(260px, 56vw, 420px);
+  }
+}
+
+@media (max-width: 620px) {
+  .desktop-workspace-banner {
+    width: min(100%, 390px);
+  }
+
+  .desktop-workspace-banner img,
+  .desktop-workspace-banner video {
+    height: 330px;
+  }
+
+  .desktop-workspace-overlay h2 {
+    font-size: 25px;
+  }
+
+  .desktop-workspace-overlay p {
+    font-size: 13px;
   }
 }
 
