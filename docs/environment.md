@@ -29,6 +29,8 @@ If any are missing in production, startup fails before the app can serve partial
 - `DODO_PAYMENTS_API_KEY`: Dodo Payments API key.
 - `DODO_PAYMENTS_ENVIRONMENT`: Dodo environment, usually `live_mode`.
 - `DODO_PAYMENTS_WEBHOOK_SECRET`: Dodo webhook signing secret.
+- `PAYMONGO_SECRET_KEY`: PayMongo secret key used by the QRPh hosted checkout route.
+- `PAYMONGO_WEBHOOK_SECRET`: PayMongo webhook signing secret for automatic QRPh crediting.
 - `DODO_PRODUCT_TINGI`: Dodo product ID for the Tingi package.
 - `DODO_PRODUCT_BASIC`: Dodo product ID for the Basic package.
 - `DODO_PRODUCT_STARTER`: Dodo product ID for the Starter package.

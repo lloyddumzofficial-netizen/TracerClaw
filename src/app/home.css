@@ -3162,9 +3162,9 @@
   display: grid !important;
   grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr) !important;
   align-items: end !important;
-  gap: 42px !important;
+  gap: 22px 42px !important;
   text-align: left !important;
-  padding: 42px 40px 36px !important;
+  padding: 24px 40px 34px !important;
   margin: -24px -24px 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
   background:
@@ -3187,7 +3187,7 @@
   font-size: 10px !important;
   font-weight: 650 !important;
   letter-spacing: 0.07em !important;
-  margin: 0 !important;
+  margin: 0 0 8px !important;
 }
 
 .top-up-pricing-title-row {
@@ -3493,24 +3493,27 @@
   stroke: currentColor !important;
 }
 
-.top-up-payment-option span:nth-of-type(1) {
+.top-up-payment-option .top-up-payment-title {
   font-size: 20px !important;
   line-height: 1.15 !important;
   font-weight: 650 !important;
   letter-spacing: -0.01em !important;
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 
-.top-up-payment-option span:nth-of-type(2) {
+.top-up-payment-option .top-up-payment-desc {
   color: rgba(255, 255, 255, 0.62) !important;
   font-size: 13.5px !important;
   line-height: 1.55 !important;
+  font-weight: 450 !important;
 }
 
-.top-up-payment-option span:nth-of-type(3) {
-  color: #ffd700 !important;
+.top-up-payment-option .top-up-payment-status {
+  color: rgba(255, 255, 255, 0.48) !important;
   font-size: 11px !important;
   line-height: 1.2 !important;
   letter-spacing: 0.07em !important;
+  margin-top: auto !important;
 }
 
 .top-up-secondary-button {
@@ -4658,20 +4661,7 @@
 
 .start-screen-container {
   position: relative !important;
-  background:
-    linear-gradient(
-      90deg,
-      transparent calc(50% - 601px),
-      rgba(255, 255, 255, 0.12) calc(50% - 600px),
-      transparent calc(50% - 599px)
-    ),
-    linear-gradient(
-      90deg,
-      transparent calc(50% + 599px),
-      rgba(255, 255, 255, 0.12) calc(50% + 600px),
-      transparent calc(50% + 601px)
-    ),
-    #070707 !important;
+  background: #070707 !important;
 }
 
 .home-hero-shell,
@@ -4689,20 +4679,7 @@
   }
 
   .start-screen-container {
-    background:
-      linear-gradient(
-        90deg,
-        transparent 17px,
-        rgba(255, 255, 255, 0.12) 18px,
-        transparent 19px
-      ),
-      linear-gradient(
-        90deg,
-        transparent calc(100% - 19px),
-        rgba(255, 255, 255, 0.12) calc(100% - 18px),
-        transparent calc(100% - 17px)
-      ),
-      #070707 !important;
+    background: #070707 !important;
   }
 
 }
@@ -5192,13 +5169,13 @@
     linear-gradient(
       90deg,
       transparent calc(50% - 601px),
-      rgba(255, 255, 255, 0.095) calc(50% - 600px),
+      rgba(255, 255, 255, 0.07) calc(50% - 600px),
       transparent calc(50% - 599px)
     ),
     linear-gradient(
       90deg,
       transparent calc(50% + 599px),
-      rgba(255, 255, 255, 0.095) calc(50% + 600px),
+      rgba(255, 255, 255, 0.07) calc(50% + 600px),
       transparent calc(50% + 601px)
     );
 }
@@ -5209,15 +5186,214 @@
       linear-gradient(
         90deg,
         transparent 17px,
-        rgba(255, 255, 255, 0.085) 18px,
+        rgba(255, 255, 255, 0.065) 18px,
         transparent 19px
       ),
       linear-gradient(
         90deg,
         transparent calc(100% - 19px),
-        rgba(255, 255, 255, 0.085) calc(100% - 18px),
+        rgba(255, 255, 255, 0.065) calc(100% - 18px),
         transparent calc(100% - 17px)
       );
+  }
+}
+
+/* Mobile rescue pass: keep the homepage readable on real phone widths. */
+@media (max-width: 760px) {
+  .home-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    height: 56px !important;
+    background:
+      linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(11, 11, 11, 0.96)) !important;
+  }
+
+  .home-hero-shell {
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding: 0 14px 34px !important;
+    min-height: auto !important;
+  }
+
+  .home-copyright-notice {
+    width: 100% !important;
+    margin: 0 0 22px !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
+
+  .home-copyright-notice > div {
+    padding: 8px 0 !important;
+    gap: 8px !important;
+  }
+
+  .home-copyright-notice span {
+    font-size: 9.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .home-hero-inner,
+  .home-content-frame {
+    max-width: 362px !important;
+  }
+
+  .hero-section {
+    gap: 22px !important;
+  }
+
+  .hero-left {
+    gap: 16px !important;
+  }
+
+  .start-logo > img {
+    width: min(214px, 62vw) !important;
+    max-width: 214px !important;
+  }
+
+  .hero-byline {
+    margin-top: -2px !important;
+  }
+
+  .public-stats-pill {
+    min-height: 38px !important;
+    padding: 5px 10px !important;
+  }
+
+  .hero-copy {
+    max-width: 318px !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+  }
+
+  .hero-action-bar {
+    max-width: 330px !important;
+    gap: 8px !important;
+  }
+
+  .hero-action-bar .start-btn {
+    min-height: 36px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+  }
+
+  .hero-upload-box {
+    max-width: 330px !important;
+    min-height: 176px !important;
+    padding: 20px 16px !important;
+    border-radius: 7px !important;
+  }
+
+  .hero-upload-box .start-btn {
+    min-height: 50px !important;
+    border-radius: 7px !important;
+    font-size: 15px !important;
+  }
+
+  .hero-right {
+    width: 100% !important;
+    max-width: 330px !important;
+    gap: 14px !important;
+    margin-top: 2px !important;
+  }
+
+  .hero-right .ba-slider-card {
+    width: 100% !important;
+    max-width: 330px !important;
+    min-height: 0 !important;
+    border-radius: 7px !important;
+  }
+
+  .hero-right .ba-slider-stage {
+    aspect-ratio: 16 / 10 !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .desktop-workspace-banner,
+  .workflow-preview-section,
+  .edu-demo-section,
+  .edu-cards-section,
+  .product-features-section,
+  .how-it-works-section,
+  .site-footer {
+    width: 100% !important;
+    max-width: 362px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .desktop-workspace-banner {
+    margin-top: 42px !important;
+    margin-bottom: 42px !important;
+  }
+
+  .desktop-workspace-banner img,
+  .desktop-workspace-banner video {
+    height: 260px !important;
+  }
+
+  .desktop-workspace-overlay h2 {
+    max-width: 305px !important;
+    font-size: 23px !important;
+    line-height: 1.08 !important;
+  }
+
+  .desktop-workspace-overlay p {
+    max-width: 300px !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  .workflow-preview-section,
+  .edu-demo-section {
+    overflow: hidden !important;
+  }
+
+  .marquee-container {
+    min-height: 0 !important;
+    margin: 24px auto 0 !important;
+    overflow: visible !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.095) !important;
+  }
+
+  .marquee-content {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .marquee-content > div {
+    min-width: 0 !important;
+    height: 42px !important;
+    padding: 0 10px !important;
+    gap: 7px !important;
+    justify-content: flex-start !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  }
+
+  .marquee-content > div:nth-child(n + 5) {
+    display: none !important;
+  }
+
+  .marquee-content > div:nth-child(2n) {
+    border-right: 0 !important;
+  }
+
+  .marquee-content svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .marquee-content span {
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.04em !important;
   }
 }
 
