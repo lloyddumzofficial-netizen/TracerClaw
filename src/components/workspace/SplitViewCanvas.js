@@ -459,7 +459,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
           )}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
           <button onClick={() => setZoomLevel(z => Math.max(0.25, z - 0.25))} style={zoomBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor="#333"}>−</button>
-          <span style={{ color: "#FFD700", fontSize: "11px", minWidth: "42px", textAlign: "center", fontWeight: "600", fontFamily: "monospace" }}>{Math.round(zoomLevel * 100)}%</span>
+          <span style={{ color: "#FFD700", fontSize: "11px", minWidth: "42px", textAlign: "center", fontWeight: "600", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>{Math.round(zoomLevel * 100)}%</span>
           <button onClick={() => setZoomLevel(z => Math.min(5, z + 0.25))} style={zoomBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor="#333"}>+</button>
           <button onClick={() => setZoomLevel(1)} style={{ ...zoomBtnStyle, border: "none", color: "#888", padding: "4px 8px" }} onMouseOver={e => e.currentTarget.style.color="#FFD700"} onMouseOut={e => e.currentTarget.style.color="#888"}>
             <Maximize size={12} style={{ display: "inline", marginRight: "4px", verticalAlign: "middle" }} />Fit

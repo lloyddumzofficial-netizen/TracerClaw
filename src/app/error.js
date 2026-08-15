@@ -14,7 +14,7 @@ export default function Error({ error, reset }) {
   }, [error]);
 
   return (
-    <main style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "48px", fontFamily: "system-ui, sans-serif" }}>
+    <main style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "48px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>
       <div style={{ maxWidth: "520px", textAlign: "center" }}>
         <h1 style={{ margin: "0 0 12px", fontSize: "28px", color: "#FFD700" }}>Something went wrong</h1>
         <p style={{ color: "#aaa", lineHeight: 1.6, margin: "0 0 24px" }}>
@@ -23,13 +23,13 @@ export default function Error({ error, reset }) {
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
           <button
             onClick={() => reset()}
-            style={{ padding: "12px 24px", border: "none", borderRadius: "6px", background: "#FFD700", color: "#000", fontWeight: 700, fontSize: "15px", cursor: "pointer" }}
+            style={{ padding: "12px 24px", border: "none", borderRadius: "6px", background: "#FFD700", color: "#000", fontWeight: 600, fontSize: "15px", cursor: "pointer" }}
           >
             Try again
           </button>
           <a
             href="/"
-            style={{ padding: "12px 24px", border: "1px solid #555", borderRadius: "6px", background: "#333", color: "#fff", fontWeight: 700, fontSize: "15px", textDecoration: "none" }}
+            style={{ padding: "12px 24px", border: "1px solid #555", borderRadius: "6px", background: "#333", color: "#fff", fontWeight: 600, fontSize: "15px", textDecoration: "none" }}
           >
             Back to home
           </a>

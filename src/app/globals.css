@@ -28,7 +28,9 @@
 
   --radius: 0px;
   /* Sharp industrial corners */
-  --font-space-grotesk: "Space Grotesk", "Inter", "Segoe UI", Arial, sans-serif;
+  --font-space-grotesk: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  --font-inter: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  --font-outfit: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   --font-jetbrains-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
 }
 
@@ -42,7 +44,7 @@ html,
 body {
   background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   font-size: 13px;
   /* Smaller, professional desktop font size */
   user-select: none;
@@ -6212,4 +6214,507 @@ body {
 
 .crop-workspace-modal {
   border-radius: 10px !important;
+}
+
+/* Crop surfaces: match the thin professional Manrope typography. */
+.crop-workspace-modal,
+.crop-workspace-modal :where(h1, h2, h3, h4, p, span, strong, button, label, small, div) {
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+.crop-intro-card {
+  border-radius: 8px !important;
+}
+
+.crop-intro-kicker {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  color: rgba(255, 255, 255, 0.44) !important;
+}
+
+.crop-intro-heading h3 {
+  font-size: 25px !important;
+  line-height: 1.12 !important;
+  font-weight: 600 !important;
+  color: #f7f7f7 !important;
+}
+
+.crop-intro-lead,
+.crop-intro-rules p,
+.crop-guide-card p,
+.crop-tip-block span {
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.58) !important;
+}
+
+.crop-intro-rules span {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.crop-intro-warning {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  font-weight: 500 !important;
+}
+
+.crop-intro-check {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.52) !important;
+}
+
+.crop-intro-action,
+.crop-reset-action,
+.crop-secondary-action,
+.crop-primary-action {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  border-radius: 7px !important;
+}
+
+.crop-workspace-title h3 {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.crop-source-meta strong,
+.crop-guide-header strong,
+.crop-guide-label {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.crop-source-meta span,
+.crop-toolbar-right > span {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.44) !important;
+}
+
+.crop-zoom-controls strong {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+}
+
+.crop-guide-header {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+}
+
+.crop-guide-card {
+  border-radius: 8px !important;
+}
+
+.crop-guide-photo-frame {
+  border-radius: 6px !important;
+}
+
+/* AI trace settings panel: thinner Manrope typography to match the new UI. */
+.workspace-properties-panel,
+.workspace-properties-panel :where(h1, h2, h3, h4, p, span, strong, button, select, option, div) {
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+.workspace-properties-panel > div:first-of-type strong,
+.workspace-properties-panel .pp-lbl {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.workspace-properties-panel .pp-lbl {
+  color: rgba(255, 255, 255, 0.42) !important;
+}
+
+.workspace-properties-panel .pp-sel {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.workspace-properties-panel .pp-desc,
+.workspace-properties-panel .pp-warn span,
+.workspace-properties-panel .pp-row-lbl,
+.workspace-properties-panel .pp-row-val,
+.workspace-properties-panel .pp-card div[style],
+.workspace-properties-panel .pp-card span,
+.workspace-properties-panel .pp-sec span {
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.workspace-properties-panel .pp-desc,
+.workspace-properties-panel .pp-warn span {
+  font-size: 11px !important;
+  line-height: 1.42 !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.workspace-properties-panel .pp-card {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.workspace-properties-panel .pp-card > div,
+.workspace-properties-panel .pp-card strong,
+.workspace-properties-panel .pp-card span:first-child {
+  font-weight: 600 !important;
+}
+
+.workspace-properties-panel .pp-card div[style*="9px"] {
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.workspace-properties-panel button[style*="Advanced Settings"],
+.workspace-properties-panel .pp-svg-btn,
+.workspace-properties-panel .pp-sec,
+.workspace-properties-panel .pp-reset-action,
+.workspace-properties-panel .pp-secondary-action,
+.workspace-properties-panel .pp-primary-action {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.workspace-properties-panel .pp-row {
+  font-size: 10.5px !important;
+}
+
+.workspace-properties-panel .pp-row-lbl {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.workspace-properties-panel .pp-row-val,
+.workspace-properties-panel [style*="fontVariantNumeric"] {
+  font-weight: 500 !important;
+}
+
+.workspace-properties-panel [style*="fontWeight: \"700\""],
+.workspace-properties-panel [style*="fontWeight: \"800\""],
+.workspace-properties-panel [style*="font-weight: 700"],
+.workspace-properties-panel [style*="font-weight: 800"] {
+  font-weight: 600 !important;
+}
+
+.workspace-properties-panel .pp-sec:disabled span,
+.workspace-properties-panel .pp-svg-btn:disabled {
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.34) !important;
+}
+
+/* Workspace action buttons: sharp production UI edges. */
+.workspace-properties-panel .pp-svg-btn,
+.workspace-properties-panel .pp-sec,
+.workspace-properties-panel .pp-reset-action,
+.workspace-properties-panel .pp-secondary-action,
+.workspace-properties-panel .pp-primary-action {
+  border-radius: 0 !important;
+}
+
+/* Crop canvas guide grid: keep it useful but quiet behind the artwork. */
+.crop-canvas-stage {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px) !important;
+}
+
+/* Crop guide cards: compact sidebar reading rhythm. */
+.crop-guide-panel {
+  gap: 8px !important;
+}
+
+.crop-guide-card {
+  padding: 7px !important;
+  gap: 7px !important;
+}
+
+.crop-guide-photo-frame {
+  height: 164px !important;
+}
+
+.crop-guide-label {
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+
+.crop-guide-card p {
+  font-size: 11px !important;
+  line-height: 1.42 !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.56) !important;
+  margin: 0 !important;
+}
+
+/* Upscale Studio: minimal dark production UI polish. */
+.upscale-studio,
+.upscale-studio :where(h1, h2, h3, h4, p, span, strong, button, small, div) {
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+.upscale-studio {
+  grid-template-columns: minmax(0, 1fr) 300px !important;
+  background: #0d0d0d !important;
+}
+
+.upscale-canvas {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    #151515 !important;
+  background-size: 48px 48px, 48px 48px, auto !important;
+}
+
+.upscale-stage-tabs {
+  height: 38px !important;
+  background: #0f0f0f !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+}
+
+.upscale-stage-tab {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  color: rgba(255, 255, 255, 0.34) !important;
+  border-right-color: rgba(255, 255, 255, 0.075) !important;
+  background: transparent !important;
+}
+
+.upscale-stage-tab.is-active {
+  color: #ffd700 !important;
+  background: rgba(255, 215, 0, 0.035) !important;
+  box-shadow: inset 0 -1px 0 #ffd700 !important;
+}
+
+.upscale-stage-tab span {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.upscale-canvas-body {
+  padding: clamp(28px, 5vw, 72px) !important;
+}
+
+.upscale-empty-panel {
+  width: min(430px, calc(100% - 48px)) !important;
+  padding: 0 !important;
+  text-align: center !important;
+  align-items: center !important;
+}
+
+.upscale-empty-kicker {
+  margin-bottom: 10px !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+}
+
+.upscale-empty-panel h2 {
+  color: rgba(255, 255, 255, 0.74) !important;
+  font-size: 17px !important;
+  line-height: 1.3 !important;
+  font-weight: 600 !important;
+}
+
+.upscale-empty-panel p {
+  max-width: 390px !important;
+  margin: 12px 0 0 !important;
+  color: rgba(255, 255, 255, 0.38) !important;
+  font-size: 13px !important;
+  line-height: 1.52 !important;
+  font-weight: 400 !important;
+}
+
+.upscale-empty-actions {
+  margin-top: 24px !important;
+  gap: 8px !important;
+}
+
+.upscale-empty-btn {
+  height: 38px !important;
+  border-radius: 2px !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.upscale-empty-btn:hover,
+.upscale-empty-btn.is-active {
+  border-color: rgba(255, 215, 0, 0.52) !important;
+  background: rgba(255, 215, 0, 0.055) !important;
+  color: #ffd700 !important;
+}
+
+.upscale-empty-btn.is-primary {
+  border-color: #ffd700 !important;
+  background: #ffd700 !important;
+  color: #050505 !important;
+}
+
+.upscale-drop-note {
+  width: 72% !important;
+  margin-top: 16px !important;
+  padding-top: 16px !important;
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.upscale-side-panel {
+  width: 300px !important;
+  background: #101010 !important;
+  border-left-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.upscale-panel-section {
+  padding: 16px !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.upscale-panel-title {
+  margin-bottom: 12px !important;
+  color: rgba(255, 255, 255, 0.42) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+}
+
+.upscale-action-btn {
+  min-height: 36px !important;
+  border-radius: 0 !important;
+  border-color: rgba(255, 255, 255, 0.11) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  color: rgba(255, 255, 255, 0.48) !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.upscale-action-btn.is-process {
+  min-height: 48px !important;
+  border-color: rgba(255, 215, 0, 0.45) !important;
+  background: rgba(255, 215, 0, 0.04) !important;
+  color: #ffd700 !important;
+}
+
+.upscale-privacy-note {
+  margin-bottom: 18px !important;
+  padding: 14px !important;
+  border-color: rgba(255, 215, 0, 0.28) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 215, 0, 0.045) !important;
+}
+
+.upscale-privacy-note p {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.upscale-privacy-note small {
+  font-size: 10.5px !important;
+  line-height: 1.45 !important;
+  color: rgba(255, 255, 255, 0.58) !important;
+}
+
+.upscale-history-list {
+  gap: 10px !important;
+}
+
+.upscale-history-card {
+  grid-template-columns: 46px minmax(0, 1fr) 30px !important;
+  gap: 10px !important;
+  padding: 10px !important;
+  border-radius: 0 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.014) !important;
+}
+
+.upscale-history-card:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.upscale-history-thumb {
+  width: 46px !important;
+  height: 46px !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: #0b0b0b !important;
+}
+
+.upscale-history-info p {
+  margin-bottom: 4px !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.upscale-history-info span {
+  color: rgba(255, 255, 255, 0.38) !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+}
+
+.upscale-history-download {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 0 !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  color: rgba(255, 255, 255, 0.44) !important;
+}
+
+.workspace-command-btn.is-primary {
+  min-height: 30px !important;
+  padding: 0 12px !important;
+  border: 1px solid rgba(255, 215, 0, 0.28) !important;
+  border-radius: 2px !important;
+  background: rgba(255, 215, 0, 0.055) !important;
+  color: #ffd700 !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+.workspace-command-btn.is-primary:hover:not(:disabled) {
+  border-color: rgba(255, 215, 0, 0.55) !important;
+  background: rgba(255, 215, 0, 0.095) !important;
+  color: #ffe15c !important;
+}
+
+.workspace-command-btn.is-primary:disabled {
+  border-color: rgba(255, 215, 0, 0.14) !important;
+  background: rgba(255, 215, 0, 0.028) !important;
+  color: rgba(255, 215, 0, 0.38) !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 980px) {
+  .upscale-studio {
+    grid-template-columns: 1fr !important;
+  }
+
+  .upscale-side-panel {
+    width: 100% !important;
+  }
 }

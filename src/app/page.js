@@ -14,7 +14,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star, Play } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star, Play, Search, Layers, Zap } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";
@@ -87,10 +87,14 @@ function HomepageWorkflowPreview() {
           <img src="/samples/production-preview/Hue_Saturation.webp" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
         </figure>
       </div>
+    </section>
+  );
+}
 
-      <div className="workflow-promo-banner">
-        <img src="/small_banner.jpg" alt="DesaynClaw mockup to flat editable design banner" loading="lazy" />
-      </div>
+function NeuralEngineBanner() {
+  return (
+    <section className="neural-engine-banner" aria-label="DesaynClaw neural engine">
+      <img src="/small_banner.jpg" alt="DesaynClaw neural engine banner" loading="lazy" />
     </section>
   );
 }
@@ -127,6 +131,164 @@ function MarketingVideoPreview() {
             <Play size={58} fill="currentColor" strokeWidth={1.8} />
           </button>
         )}
+      </div>
+    </section>
+  );
+}
+
+function HowItWorksSection() {
+  const steps = [
+    {
+      icon: Search,
+      title: "Upload your source",
+      body: "Start with a logo, jersey mockup, product photo, or raster artwork you need cleaned for production.",
+      bullets: [
+        "PNG, JPG, JPEG, and WebP support",
+        "Desktop upload or phone scan",
+        "Optional AI noise cleanup",
+      ],
+    },
+    {
+      icon: Layers,
+      title: "Choose the right tool",
+      body: "Pick the workflow that fits the job: vector tracing, background removal, image upscale, or crop-to-extract.",
+      bullets: [
+        "Flat extract for apparel mockups",
+        "Precision SVG for logos and marks",
+        "4K upscale and transparent cutouts",
+      ],
+    },
+    {
+      icon: Zap,
+      title: "Export production files",
+      body: "Download clean output files ready for editing, printing, client delivery, or handoff to your production team.",
+      bullets: [
+        "Editable SVG and high-res PNG",
+        "ZIP package for complete delivery",
+        "Auto-deletes after 3 days",
+      ],
+    },
+  ];
+
+  return (
+    <section className="how-it-works-section" aria-label="How DesaynClaw works">
+      <div className="how-it-works-heading">
+        <h2>How it works</h2>
+        <p>Turn messy raster artwork into clean, scalable production files in a focused three-step workflow.</p>
+      </div>
+
+      <div className="how-step-line" aria-hidden="true">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+      </div>
+
+      <div className="how-steps-grid">
+        {steps.map((step) => {
+          const Icon = step.icon;
+          return (
+            <article className="how-step-card" key={step.title}>
+              <div className="how-step-icon"><Icon size={23} /></div>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+              <ul>
+                {step.bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ProductFeaturesSection({ publicStats, onNewProject, onUpscale, onBgRemover }) {
+  const completed = Number.isFinite(publicStats.completedExtractions)
+    ? publicStats.completedExtractions.toLocaleString()
+    : "--";
+
+  return (
+    <section className="product-features-section" aria-label="DesaynClaw product features">
+      <div className="product-features-heading">
+        <h2>Product Features</h2>
+        <p>Clean production tools for converting mockups, logos, and photos into usable print-ready files.</p>
+      </div>
+
+      <div className="product-features-grid">
+        <article className="feature-card feature-card-tall">
+          <div className="feature-icon-stack">
+            <div className="feature-icon-badge">
+              <img src="/favicon-feature.png" alt="" loading="lazy" />
+            </div>
+          </div>
+          <div className="feature-card-copy">
+            <h3>AI Production Workspace</h3>
+            <p>
+              Start from a raster image, isolate the artwork, clean the output, and prepare downloadable files without jumping between tools.
+            </p>
+          </div>
+          <div className="feature-card-actions">
+            <button type="button" onClick={onNewProject}>
+              <FilePlus size={14} />
+              New Project
+            </button>
+            <span className="feature-toggle" aria-hidden="true" />
+          </div>
+        </article>
+
+        <article className="feature-card feature-card-mini feature-card-tools">
+          <div>
+            <h3>Tools Connected</h3>
+            <p>Vectorize, Upscale, BG Remove</p>
+          </div>
+          <div className="feature-tool-row" aria-label="DesaynClaw tools">
+            <span><ImageIcon size={15} /></span>
+            <span><Scissors size={15} /></span>
+            <span><Monitor size={15} /></span>
+          </div>
+        </article>
+
+        <article className="feature-card feature-card-metric">
+          <strong>4K</strong>
+        </article>
+
+        <article className="feature-card feature-card-mini">
+          <div className="feature-card-inline">
+            <div>
+              <h3>Production Focus</h3>
+              <p>SVG, PNG, ZIP exports</p>
+            </div>
+            <span className="feature-pill">Print Ready</span>
+          </div>
+          <div className="feature-percent">98%</div>
+          <div className="feature-card-foot">
+            <span>Clean handoff</span>
+            <span>Fast revisions</span>
+          </div>
+        </article>
+
+        <article className="feature-card feature-card-mini feature-card-copy-only">
+          <h3>Client Delivery</h3>
+          <p>Send polished files for sublimation, branding, and apparel work with fewer manual cleanup steps.</p>
+        </article>
+
+        <article className="feature-card feature-card-wide">
+          <div>
+            <h3>Workspace Shortcuts</h3>
+            <p>Move faster through common production tasks.</p>
+          </div>
+          <div className="feature-key-row" aria-label="Workspace actions">
+            <button type="button" onClick={onUpscale}>Upscale</button>
+            <span>+</span>
+            <button type="button" onClick={onBgRemover}>Remove BG</button>
+          </div>
+          <div className="feature-stat-strip">
+            <span>{completed} extractions completed</span>
+            <span>Auto-delete after 3 days</span>
+          </div>
+        </article>
       </div>
     </section>
   );
@@ -200,8 +362,8 @@ function AnimatedCounter({ value }) {
       {/* Gradient Number */}
       <div style={{
         fontSize: "72px",
-        fontWeight: "800",
-        fontFamily: "var(--font-space-grotesk), inherit",
+        fontWeight: "600",
+        fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif",
         background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
@@ -682,7 +844,7 @@ export default function StartScreen() {
       )}
 
       {/* Top Navigation Bar */}
-      <header style={{ boxSizing: "border-box", position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
+      <header className="home-topbar" style={{ boxSizing: "border-box", position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
 
         <div style={{ display: "flex", width: "100%", maxWidth: "1200px", alignItems: "center", justifyContent: "space-between" }}>
           {/* Left: Brand/Logo Mini (Hidden at top to avoid redundancy) */}
@@ -697,7 +859,7 @@ export default function StartScreen() {
                 {/* Premium Credits Badge */}
                 <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#2a2a2a", padding: "6px 12px", borderRadius: "0", cursor: "pointer", border: "1px solid #444", transition: "border-color 0.2s" }} onMouseOver={e => e.currentTarget.style.borderColor = "#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor = "#444"}>
                   <img src="/Claws/Claws.webp" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
-                  <span style={{ color: "#FFD700", fontWeight: "bold", fontSize: "14px", fontFamily: "monospace" }}>{credits}</span>
+                  <span style={{ color: "#FFD700", fontWeight: "600", fontSize: "14px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>{credits}</span>
                   <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CLAWS</span>
                 </div>
 
@@ -726,7 +888,7 @@ export default function StartScreen() {
       {/* FULL WIDTH HERO SECTION */}
       <div className="home-hero-shell" style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
         {showCopyrightNotice && (
-          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", background: "#111", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 3 }}>
+          <div className="home-copyright-notice" style={{ position: "absolute", top: 0, left: 0, width: "100%", background: "#111", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 3 }}>
             <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "14px", color: "#d8d8d8", fontSize: "12px", lineHeight: "1.5", textAlign: "center" }}>
               <ShieldCheck size={15} color="#FFD700" style={{ flexShrink: 0 }} />
               <span>
@@ -866,7 +1028,7 @@ export default function StartScreen() {
                 </button>
                 <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "4px", alignItems: "center" }}>
                   <span style={{ color: "#888", fontSize: "14px" }}>or drop an image</span>
-                  <span style={{ color: "#555", fontSize: "12px", fontFamily: "monospace" }}>.png, .jpg, .jpeg, .webp</span>
+                  <span style={{ color: "#555", fontSize: "12px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>.png, .jpg, .jpeg, .webp</span>
                 </div>
               </div>
             </div>
@@ -976,9 +1138,35 @@ export default function StartScreen() {
 
         <HomepageWorkflowPreview />
 
+        <NeuralEngineBanner />
+
         <MarketingVideoPreview />
 
         <EduSection />
+
+        <HowItWorksSection />
+
+        <ProductFeaturesSection
+          publicStats={publicStats}
+          onNewProject={(e) => {
+            e?.stopPropagation?.();
+            if (requireDesktopTool()) return;
+            if (!user) { setShowLoginModal(true); return; }
+            setShowModal(true);
+          }}
+          onUpscale={(e) => {
+            e?.stopPropagation?.();
+            if (requireDesktopTool()) return;
+            if (!user) { setShowLoginModal(true); return; }
+            router.push('/upscale');
+          }}
+          onBgRemover={(e) => {
+            e?.stopPropagation?.();
+            if (requireDesktopTool()) return;
+            if (!user) { setShowLoginModal(true); return; }
+            bgRemoveInputRef.current.click();
+          }}
+        />
 
         {/* BG Remover Sample Section */}
         <section className="tool-showcase-section section-line-accent">
@@ -1248,21 +1436,39 @@ export default function StartScreen() {
           <img src="/banner-2.png" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
         </div>
 
-        <footer style={{ marginTop: "100px", borderTop: "1px solid #222", padding: "40px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-            <img src="/logo.png" alt="DesaynClaw Logo" style={{ width: "140px", height: "auto", filter: "grayscale(100%) opacity(0.7)" }} />
-            <span style={{ color: "#555", fontSize: "13px" }}>© 2024-2026</span>
+        <footer className="site-footer">
+          <div className="site-footer-main">
+            <div className="site-footer-brand">
+              <img src="/logo.png" alt="DesaynClaw Logo" />
+              <p>AI-powered production tools for clean SVG tracing, background removal, upscaling, and print-ready artwork delivery.</p>
+              <div className="site-footer-socials" aria-label="DesaynClaw social links">
+                <a href="https://www.facebook.com/desaynbro" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
+                <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer" aria-label="Messenger">m</a>
+                <a href="https://desaynclaw.com" target="_blank" rel="noreferrer" aria-label="Website">⌁</a>
+              </div>
+            </div>
+
+            <nav className="site-footer-links" aria-label="Footer links">
+              <div>
+                <h3>Resources</h3>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms of Service</a>
+                <a href="/refunds">Refund Policy</a>
+                <a href="/privacy">FAQ</a>
+              </div>
+              <div>
+                <h3>Company</h3>
+                <a href="/team">Team</a>
+                <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Contact</a>
+                <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Customer Support</a>
+                <a href="/workspace">Workspace</a>
+                <a href="/upscale">Image Upscale</a>
+              </div>
+            </nav>
           </div>
 
-
-          <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
-            <a href="/privacy" className="footer-link">Privacy Policy</a>
-            <a href="/terms" className="footer-link">Terms of Service</a>
-            <a href="#" className="footer-link">Cookie Policy</a>
-            <a href="/privacy" className="footer-link">FAQ</a>
-            <a href="/refunds" className="footer-link">Refund Policy</a>
-            <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer" className="footer-link">Contact</a>
-            <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer" className="footer-link" style={{ color: "#FFD700" }}>Customer Support</a>
+          <div className="site-footer-bottom">
+            <span>© DesaynClaw. All rights reserved 2024-2026</span>
           </div>
         </footer>
 

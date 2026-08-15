@@ -9,7 +9,13 @@ export default function MobileWarning() {
   const isMobileDevice = useIsMobileDevice();
 
   if (!isMobileDevice) return null;
-  if (pathname === "/" || pathname === "/mobile" || pathname === "/admin") return null;
+
+  const desktopOnlyRoutes = ["/workspace", "/bg-remover", "/upscale"];
+  const requiresDesktop = desktopOnlyRoutes.some((route) => (
+    pathname === route || pathname.startsWith(`${route}/`)
+  ));
+
+  if (!requiresDesktop) return null;
 
   return (
     <div style={{

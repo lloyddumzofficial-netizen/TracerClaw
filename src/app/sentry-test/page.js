@@ -20,17 +20,17 @@ export default function SentryTestPage() {
   };
 
   return (
-    <main style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", padding: "48px", fontFamily: "system-ui, sans-serif" }}>
+    <main style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff", padding: "48px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>
       <div style={{ maxWidth: "720px" }}>
         <h1 style={{ margin: "0 0 12px", fontSize: "32px" }}>Sentry Test</h1>
         <p style={{ color: "#aaa", lineHeight: 1.6 }}>
           Use this page after deployment to confirm browser errors arrive in Sentry.
         </p>
         <div style={{ display: "flex", gap: "12px", marginTop: "24px", flexWrap: "wrap" }}>
-          <button onClick={sendTestError} style={{ padding: "12px 16px", border: "1px solid #444", background: "#FFD700", color: "#000", fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={sendTestError} style={{ padding: "12px 16px", border: "1px solid #444", background: "#FFD700", color: "#000", fontWeight: 600, cursor: "pointer" }}>
             Capture Test Error
           </button>
-          <button onClick={throwUnhandledError} style={{ padding: "12px 16px", border: "1px solid #444", background: "#1a1a1a", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={throwUnhandledError} style={{ padding: "12px 16px", border: "1px solid #444", background: "#1a1a1a", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
             Throw Unhandled Error
           </button>
         </div>

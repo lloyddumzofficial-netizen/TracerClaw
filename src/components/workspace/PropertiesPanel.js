@@ -167,7 +167,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       flexShrink: 0,
       height: "100%",
       overflow: "hidden",
-      fontFamily: "var(--font-inter, 'Inter', sans-serif)",
+      fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif",
     }}>
 
       <style>{`

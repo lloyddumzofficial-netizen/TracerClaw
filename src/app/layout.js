@@ -9,7 +9,15 @@ import {
   openGraphImage,
   rootJsonLdGraph,
 } from "@/lib/siteMetadata";
+import { Manrope } from "next/font/google";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
@@ -160,7 +168,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body>
+      <body className={manrope.variable}>
         <AnalyticsProvider />
         {isMaintenance ? (
           <MaintenanceScreen />

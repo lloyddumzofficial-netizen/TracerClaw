@@ -108,7 +108,7 @@ function MobileUploadContent() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#262626", color: "#e0e0e0", display: "flex", flexDirection: "column", padding: "24px", fontFamily: "var(--font-outfit), monospace" }}>
+    <div style={{ minHeight: "100vh", background: "#262626", color: "#e0e0e0", display: "flex", flexDirection: "column", padding: "24px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "40px", marginTop: "20px" }}>
         <img src="/nav bar logo.png" alt="DesaynClaw Logo" style={{ height: "24px", width: "auto", filter: "opacity(0.8)" }} />
       </div>

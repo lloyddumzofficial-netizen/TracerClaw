@@ -45,14 +45,14 @@ export default function CookieConsent() {
         zIndex: 99998,
         maxWidth: "680px",
         width: "calc(100% - 40px)",
-        background: "#1a1a1a",
-        border: "1px solid #333",
-        borderRadius: "16px",
-        padding: "20px 24px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.01)), #151515",
+        border: "1px solid rgba(255,255,255,0.13)",
+        borderRadius: "6px",
+        padding: "16px 18px",
+        boxShadow: "0 18px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
         display: "flex",
         alignItems: "center",
-        gap: "16px",
+        gap: "14px",
         flexWrap: "wrap",
         animation: leaving ? "slideDown 0.4s ease forwards" : "slideUp 0.4s ease",
       }}
@@ -69,16 +69,26 @@ export default function CookieConsent() {
       `}</style>
 
       {/* Icon */}
-      <div style={{ flexShrink: 0, background: "rgba(255,215,0,0.1)", padding: "10px", borderRadius: "10px" }}>
-        <Cookie size={22} color="#FFD700" />
+      <div style={{
+        flexShrink: 0,
+        width: "38px",
+        height: "38px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(255,255,255,0.045)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "5px"
+      }}>
+        <Cookie size={18} color="rgba(255,215,0,0.82)" />
       </div>
 
       {/* Text */}
       <div style={{ flex: 1, minWidth: "200px" }}>
-        <p style={{ margin: 0, color: "#ddd", fontSize: "14px", lineHeight: "1.6" }}>
+        <p style={{ margin: 0, color: "rgba(255,255,255,0.72)", fontSize: "13.5px", lineHeight: "1.55", fontWeight: 400 }}>
           We use essential cookies and local storage to manage your session, remember your preferences, and keep the app working.
           {" "}
-          <a href="/privacy" style={{ color: "#FFD700", textDecoration: "underline", whiteSpace: "nowrap" }}>
+          <a href="/privacy" style={{ color: "rgba(255,215,0,0.9)", textDecoration: "none", borderBottom: "1px solid rgba(255,215,0,0.45)", whiteSpace: "nowrap" }}>
             Privacy Policy
           </a>
         </p>
@@ -90,36 +100,36 @@ export default function CookieConsent() {
           onClick={decline}
           style={{
             background: "transparent",
-            border: "1px solid #444",
-            color: "#888",
+            border: "1px solid rgba(255,255,255,0.14)",
+            color: "rgba(255,255,255,0.56)",
             padding: "8px 18px",
-            borderRadius: "8px",
+            borderRadius: "5px",
             fontSize: "13px",
             cursor: "pointer",
             transition: "all 0.2s",
             whiteSpace: "nowrap",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#666"; e.currentTarget.style.color = "#bbb"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.color = "#888"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.24)"; e.currentTarget.style.color = "rgba(255,255,255,0.78)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)"; e.currentTarget.style.color = "rgba(255,255,255,0.56)"; }}
         >
           Decline
         </button>
         <button
           onClick={accept}
           style={{
-            background: "#FFD700",
-            border: "none",
-            color: "#000",
+            background: "#f4f4f4",
+            border: "1px solid #f4f4f4",
+            color: "#050505",
             padding: "8px 20px",
-            borderRadius: "8px",
+            borderRadius: "5px",
             fontSize: "13px",
-            fontWeight: "700",
+            fontWeight: "600",
             cursor: "pointer",
             transition: "all 0.2s",
             whiteSpace: "nowrap",
           }}
-          onMouseEnter={(e) => e.currentTarget.style.background = "#e6c200"}
-          onMouseLeave={(e) => e.currentTarget.style.background = "#FFD700"}
+          onMouseEnter={(e) => e.currentTarget.style.background = "#ffffff"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "#f4f4f4"}
         >
           Accept All
         </button>

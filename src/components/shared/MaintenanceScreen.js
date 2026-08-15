@@ -10,7 +10,7 @@ export default function MaintenanceScreen() {
       justifyContent: 'center',
       background: '#0a0a0a', // Deep background matching the app
       color: '#ffffff',
-      fontFamily: 'var(--font-outfit), sans-serif',
+      fontFamily: 'var(--font-manrope), "Segoe UI", Arial, sans-serif',
       padding: '20px'
     }}>
       <div style={{
