@@ -65,9 +65,10 @@ function HomepageWorkflowPreview() {
     <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
       <div className="workflow-preview-copy">
         <div className="section-kicker">Production Preview</div>
-        <h2>From messy mockup to print-ready files.</h2>
+        <h2>Clean production files from rough client artwork.</h2>
         <p>
-          Preview the full handoff after upload: cleaned artwork, vector controls, transparent output, and export-ready files for real print shop work.
+          See the full handoff after upload: cropped artwork, vector controls,
+          transparent assets, and export-ready files built for real print shop work.
         </p>
         <div className="workflow-output-grid">
           <div><CheckCircle2 size={15} /> Editable SVG</div>
@@ -82,19 +83,15 @@ function HomepageWorkflowPreview() {
         </div>
       </div>
 
-      <div className="workflow-mockup" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <figure style={{ margin: 0, width: '80%' }}>
-          <img src="/samples/production-preview/Hue_Saturation.webp" alt="" loading="lazy" style={{ width: '100%', height: 'auto', display: 'block' }} />
+      <div className="workflow-mockup" aria-hidden="true">
+        <figure className="workflow-preview-figure">
+          <img src="/samples/production-preview/Hue_Saturation.webp" alt="" loading="lazy" />
+          <figcaption className="workflow-preview-caption">
+            <span>Output preview</span>
+            <strong>SVG + PNG + Palette</strong>
+          </figcaption>
         </figure>
       </div>
-    </section>
-  );
-}
-
-function NeuralEngineBanner() {
-  return (
-    <section className="neural-engine-banner" aria-label="DesaynClaw neural engine">
-      <img src="/small_banner.jpg" alt="DesaynClaw neural engine banner" loading="lazy" />
     </section>
   );
 }
@@ -115,9 +112,9 @@ function DesktopWorkspaceBanner() {
         aria-label="DesaynClaw desktop production workspace preview"
       />
       <div className="desktop-workspace-overlay">
-        <span>Desktop Production Workspace</span>
-        <h2>Built for cleaner handoffs, faster reviews, and files ready for real print work.</h2>
-        <p>Crop, clean, upscale, vectorize, preview, and export from one focused workspace.</p>
+        <span>DesaynClaw Studio</span>
+        <h2>Turn rough client files into production-ready artwork.</h2>
+        <p>One focused workspace for crop guidance, cleanup, vector output, previews, and final delivery.</p>
       </div>
     </section>
   );
@@ -1163,8 +1160,6 @@ export default function StartScreen() {
         <DesktopWorkspaceBanner />
 
         <HomepageWorkflowPreview />
-
-        <NeuralEngineBanner />
 
         <MarketingVideoPreview />
 

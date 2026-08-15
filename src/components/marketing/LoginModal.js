@@ -340,12 +340,20 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
           </div>
         </div>
         
-        {/* Right Side: Image */}
+        {/* Right Side: Video */}
         <div className="login-image-side">
-          <img 
-            src="/loginmodal.webp" 
-            alt="DesaynClaw Workspace" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          <video
+            className="login-banner-video"
+            src="/login-page.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            preload="metadata"
+            tabIndex={-1}
+            aria-label="DesaynClaw workspace preview"
           />
         </div>
 

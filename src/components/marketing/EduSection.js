@@ -3,6 +3,21 @@
 import { memo } from "react";
 
 const EduSection = memo(function EduSection() {
+  const workflowSteps = [
+    {
+      title: "Upload the real source file",
+      copy: "Start with a logo, jersey mockup, sketch, product photo, or client artwork that needs cleanup.",
+    },
+    {
+      title: "Pick the production tool",
+      copy: "Crop the printable area, trace to SVG, upscale rough images, or remove the background in one focused flow.",
+    },
+    {
+      title: "Export files ready to send",
+      copy: "Download editable SVG, high-res PNG, transparent assets, or a ZIP package for print handoff.",
+    },
+  ];
+
   return (
     <>
       {/* HOW TO USE / DEMO VIDEO SECTION */}
@@ -16,24 +31,28 @@ const EduSection = memo(function EduSection() {
             playsInline
             className="edu-demo-video-el"
           />
+          <div className="edu-demo-video-caption">
+            <span>Live workspace preview</span>
+            <strong>Crop, trace, upscale, export</strong>
+          </div>
         </div>
 
         <div className="edu-demo-text">
-          <p className="edu-demo-eyebrow">How to Use DesaynClaw</p>
-          <h2 className="edu-demo-heading">Convert images<br />in seconds.</h2>
+          <p className="edu-demo-eyebrow">Production Workflow</p>
+          <h2 className="edu-demo-heading">From upload to editable output.</h2>
           <p className="edu-demo-body">
-            Our advanced AI handles the complex tracing process for you. No manual pen tool required.
+            DesaynClaw keeps messy artwork moving through one clean handoff: isolate the artwork,
+            run the right AI tool, then export files your production workflow can actually use.
           </p>
 
           <ol className="edu-demo-steps">
-            {[
-              "Upload any PNG or JPEG logo, sketch, or photo.",
-              "Our neural engine cleans noise and traces perfect vector paths.",
-              "Download your crisp, infinitely scalable SVG instantly.",
-            ].map((step, i) => (
+            {workflowSteps.map((step, i) => (
               <li key={i} className="edu-demo-step">
                 <span className="edu-step-num">{i + 1}</span>
-                <span className="edu-step-text">{step}</span>
+                <span className="edu-step-content">
+                  <strong>{step.title}</strong>
+                  <span>{step.copy}</span>
+                </span>
               </li>
             ))}
           </ol>
