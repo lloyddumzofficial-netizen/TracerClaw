@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import { X, ShoppingCart } from "lucide-react";
+import { X } from "lucide-react";
 
 /**
  * PromoModal — A lightweight promotional popup that displays a banner.

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import { ImageIcon, Brain, Scan, PenTool, Scissors } from "lucide-react";
 import NodeCard from "./NodeCard";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";

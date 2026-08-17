@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { ImageMinus, X, Loader2, Sparkles, ShieldCheck, AlertCircle } from "lucide-react";
+import { ImageMinus, X, Loader2, Sparkles, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import LogoLoader from "@/components/ui/LogoLoader";
 import { safeJson } from "@/lib/safeJson";

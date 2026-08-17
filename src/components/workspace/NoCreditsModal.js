@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { CreditCard } from "lucide-react";
 import Image from "next/image";
 
 const NoCreditsModal = memo(function NoCreditsModal({ show, onClose, onTopUp }) {

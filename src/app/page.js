@@ -14,7 +14,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Loader2, Scan, Scissors, ShieldCheck, Code2, Star, Play, Search, Layers, Zap } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Code2, Star, Play, Search, Layers, Zap } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";

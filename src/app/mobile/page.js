@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Camera, Upload, CheckCircle2, Loader2, Image as ImageIcon } from "lucide-react";
+import { Camera, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import LogoLoader from "@/components/ui/LogoLoader";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";

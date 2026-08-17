@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { X, Image as ImageIcon, FileText, Shirt, Scissors } from "lucide-react";
+import { X, Shirt, Scissors } from "lucide-react";
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
 const LogoIcon = ({ size = 40 }) => (
