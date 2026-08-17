@@ -10,11 +10,11 @@ export const metadata = {
 const teamMembers = [
   {
     name: "Lloyd Dumz",
-    role: "Founder / Developer / Owner",
-    focus: "Leads the product vision, engineering direction, and production workflow behind DesaynClaw.",
+    role: "Founder / Developer / UX/UI Designer",
+    focus: "Designed and built the DesaynClaw product experience end to end, from the visual interface and user flow to the engineering systems behind the workspace.",
     image: "/Team/FOUNDER-DEVELOPER-OWNER.jpg",
     imageClass: "portrait-lloyd",
-    tags: ["Product", "Engineering"],
+    tags: ["Product", "UX/UI", "Engineering"],
     tone: "gold",
   },
   {

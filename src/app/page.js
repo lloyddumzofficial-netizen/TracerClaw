@@ -935,7 +935,7 @@ export default function StartScreen() {
             {/* LOGO AND UPLOAD BOX (ALWAYS VISIBLE) */}
             <div className="hero-left" style={{ margin: "0" }}>
               <div className="start-logo" style={{ marginBottom: "30px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-                <img src="/desaynclaw-hero-logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
+                <img src="/logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
 
                 {/* Refined byline */}
                 <div className="hero-byline" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
