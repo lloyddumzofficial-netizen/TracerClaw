@@ -153,7 +153,7 @@ export async function validateUrlForSSRF(urlString, options = {}) {
       return false;
     }
     return true;
-  } catch (err) {
+  } catch {
     return false; // Invalid URL or DNS resolution failed
   }
 }

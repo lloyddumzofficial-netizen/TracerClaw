@@ -220,12 +220,6 @@ export default function Workspace() {
     }
   }, [project?.id, logToConsole]);
 
-  const handleDownloadRaster = useCallback(async () => {
-    if (!project?.generated_image_url) return;
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(project.generated_image_url)}`;
-    await forceDownload(proxyUrl, `DesaynClaw_${project.name}_Raster.png`);
-  }, [project, forceDownload]);
-
   // Dedicated 4K download — uses upscaled_image_url (Step 2 ESRGAN output), NOT generated_image_url
   const handleDownloadUpscaled = useCallback(async () => {
     if (!project?.upscaled_image_url) return;

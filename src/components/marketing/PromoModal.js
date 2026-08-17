@@ -7,7 +7,7 @@ import { X } from "lucide-react";
  * PromoModal — A lightweight promotional popup that displays a banner.
  * Uses localStorage so it doesn't spam the user on every reload.
  */
-const PromoModal = memo(function PromoModal({ onBuyClick }) {
+const PromoModal = memo(function PromoModal() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -40,11 +40,6 @@ const PromoModal = memo(function PromoModal({ onBuyClick }) {
   const handleClose = () => {
     setShow(false);
     localStorage.setItem("promo_seen_timestamp", Date.now().toString());
-  };
-
-  const handleBuy = () => {
-    if (onBuyClick) onBuyClick();
-    handleClose();
   };
 
   if (!show) return null;
