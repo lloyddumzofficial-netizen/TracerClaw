@@ -24,7 +24,7 @@ const EduSection = memo(function EduSection() {
       <div className="edu-demo-section">
         <div className="edu-demo-video">
           <video
-            src="/demo.mp4"
+            src="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/VIDEO-SHOWREEL.mp4"
             autoPlay
             muted
             loop
