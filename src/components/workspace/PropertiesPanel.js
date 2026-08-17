@@ -146,8 +146,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
             ? "Crop Image First"
             : `Run Auto-Trace  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
-  const canTrace = !isBusy && !hasSvg && (noCredits || isCropped);
-
   const exportDetails = [
     { label: "File Format", value: "SVG", gold: false },
     { label: "Max Vectors", value: "Unlimited", gold: false },

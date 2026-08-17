@@ -67,7 +67,7 @@ export default function Workspace() {
   const [showPaletteNudge, setShowPaletteNudge] = useState(false);
   // Set when a generation finishes; converted into the visible nudge once the
   // auto-opened comparison is closed.
-  const [paletteNudgeQueued, setPaletteNudgeQueued] = useState(false);
+  const [, setPaletteNudgeQueued] = useState(false);
   const paletteNudgeRef = useRef(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -78,7 +78,7 @@ export default function Workspace() {
   const {
 
     traceState, nodeErrors, consoleRef,
-    logToConsole, clearConsole, handleExecuteTrace,
+    logToConsole, handleExecuteTrace,
   } = useTraceExecution({
     project,
     setProject,

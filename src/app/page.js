@@ -409,7 +409,6 @@ export default function StartScreen() {
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
-  const containerRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
 
   const [syncSessionId, setSyncSessionId] = useState("");

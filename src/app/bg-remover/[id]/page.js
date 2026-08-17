@@ -21,7 +21,7 @@ export default function BgRemoverPage() {
   const isMobileDevice = useIsMobileDevice();
 
   const [project, setProject] = useState(null);
-  const [user, setUser] = useState(null);
+  const [, setUser] = useState(null);
   const [userCredits, setUserCredits] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
