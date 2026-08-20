@@ -47,8 +47,8 @@ const PAYMENT_LOGOS = {
 };
 
 function PaymentLogoTile({ src, alt, wide = false, large = false }) {
-  const width = large ? 126 : wide ? 86 : 70;
-  const height = large ? 46 : 34;
+  const width = large ? 220 : wide ? 180 : 160;
+  const height = large ? 80 : 70;
   return (
     <span
       className="top-up-payment-logo-tile"
@@ -673,7 +673,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 0.78fr) minmax(240px, 1fr)', gap: '22px', alignItems: 'stretch' }}>
-                <div style={{ background: 'linear-gradient(180deg, rgba(245,245,245,1), rgba(226,226,226,1))', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '6px', padding: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '310px' }}>
+                <div style={{ background: '#ffffff', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '6px', padding: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '310px', gap: '16px' }}>
                   {qrphPayment?.qrImageUrl ? (
                     <img
                       src={qrphPayment.qrImageUrl}
@@ -683,6 +683,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   ) : (
                     <div style={{ color: '#111', fontSize: '13px', fontWeight: '600' }}>Preparing QR...</div>
                   )}
+                  {/* Payment logos strip */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', background: '#ffffff', borderRadius: '8px', padding: '14px 18px', width: '100%', boxSizing: 'border-box' }}>
+                    <img src="/qr-ph-logos/qr-ph-logo_svgstack_com_74171786789082.png" alt="QR Ph" style={{ width: '100px', height: '44px', objectFit: 'contain' }} />
+                    <img src="/qr-ph-logos/gcash-logo.png" alt="GCash" style={{ width: '100px', height: '44px', objectFit: 'contain' }} />
+                    <img src="/qr-ph-logos/Maya_logo.svg.webp" alt="Maya" style={{ width: '100px', height: '44px', objectFit: 'contain' }} />
+                  </div>
                 </div>
 
                 <div style={{ background: 'linear-gradient(180deg, rgba(28,28,28,0.98), rgba(14,14,14,0.98))', border: '1px solid rgba(255,255,255,0.11)', borderRadius: '6px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '18px' }}>
