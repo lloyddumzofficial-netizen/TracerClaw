@@ -4591,6 +4591,7 @@ body {
 
 .login-form-side {
   background: #111111 !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .login-form-side > div,
@@ -4640,6 +4641,8 @@ body {
 .login-image-side {
   background: #070707 !important;
   position: relative;
+  flex: 1 1 52%;
+  min-width: 0;
 }
 
 .login-banner-video {
@@ -4658,7 +4661,13 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(17,17,17,0.2), rgba(0,0,0,0.38));
+  background: linear-gradient(90deg, rgba(0,0,0,0.16), rgba(17,17,17,0.42));
+}
+
+@media (max-width: 767px), (max-height: 720px) {
+  .login-form-side {
+    border-left: 0;
+  }
 }
 
 @keyframes modalFadeIn {

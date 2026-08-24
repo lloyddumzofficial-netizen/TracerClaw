@@ -429,7 +429,6 @@ export default function StartScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [showCopyrightNotice, setShowCopyrightNotice] = useState(true);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   // ─── Modal Specific State ───────────────────────────────────────────────────
@@ -445,10 +444,6 @@ export default function StartScreen() {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // ─── Initialization ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    setShowCopyrightNotice(localStorage.getItem("desaynclaw-copyright-notice-dismissed") !== "1");
-  }, []);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") !== "auth-failed") return;
@@ -907,27 +902,6 @@ export default function StartScreen() {
 
       {/* FULL WIDTH HERO SECTION */}
       <div className="home-hero-shell" style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
-        {showCopyrightNotice && (
-          <div className="home-copyright-notice" style={{ position: "absolute", top: 0, left: 0, width: "100%", background: "#111", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 3 }}>
-            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "14px", color: "#d8d8d8", fontSize: "12px", lineHeight: "1.5", textAlign: "center" }}>
-              <ShieldCheck size={15} color="#FFD700" style={{ flexShrink: 0 }} />
-              <span>
-                Copyright reminder: only upload or generate designs you own, are authorized to use, or have rights to process. Unauthorized copyrighted or trademarked content may be removed.
-              </span>
-              <button
-                type="button"
-                aria-label="Dismiss copyright notice"
-                onClick={() => {
-                  localStorage.setItem("desaynclaw-copyright-notice-dismissed", "1");
-                  setShowCopyrightNotice(false);
-                }}
-                style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "auto" }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )}
         <div className="home-hero-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 2 }}>
 
           <div className="hero-section" style={{ justifyContent: "flex-start", margin: 0 }}>

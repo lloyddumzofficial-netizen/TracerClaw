@@ -99,7 +99,7 @@ export async function POST(request) {
           charge_amount: 1,
         });
       if (claimErr) {
-        console.error('[Billing] Claim RPC error:', claimErr);
+        logger.error('[Billing] Claim RPC error', claimErr);
         return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
       }
       const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
@@ -120,7 +120,6 @@ export async function POST(request) {
       const sharp = (await import('sharp')).default;
       const metadata = await sharp(rawSourceBuffer).metadata();
 
-      // Calculate closest aspect ratio for fal.ai Nano Banana Pro
       let targetAspectRatio = "auto";
       if (metadata && metadata.width && metadata.height) {
         const ratio = metadata.width / metadata.height;
@@ -153,9 +152,9 @@ export async function POST(request) {
 
         const { fal } = await import("@fal-ai/client");
 
-        let finalImageUrl = sourceUrl;
+        const finalImageUrl = sourceUrl;
 
-        logger.debug("[fal.ai Input URL]", { finalImageUrl });
+        logger.debug("[fal.ai Input ready]", { projectId });
 
         // ── Step 1: Extract flat design directly using nano-banana-pro/edit ──
         // Feed original source image directly — no pre-upscale step.
@@ -180,7 +179,7 @@ export async function POST(request) {
             logs: true,
             onQueueUpdate: (update) => {
               if (update.status === "IN_PROGRESS") {
-                update.logs.map((log) => log.message).forEach((message) => logger.debug("[API Step 1] Provider log", { message }));
+                logger.debug("[API Step 1] Provider progress", { status: update.status });
               }
             },
           }),
@@ -256,10 +255,10 @@ export async function POST(request) {
         }
 
       } catch (err) {
-        console.error("[fal.ai Error]:", err);
-        if (err.body && err.body.detail) {
-          console.error("[fal.ai Error Detail]:", JSON.stringify(err.body.detail, null, 2));
-        }
+        logger.error("[fal.ai] Generation failed", {
+          message: String(err?.message || "Unknown provider error").slice(0, 300),
+          status: err?.status || err?.statusCode || null,
+        });
         throw new Error(err.message || "Failed to generate image with fal.ai");
       }
 
@@ -355,12 +354,12 @@ export async function POST(request) {
         logs: true,
         onQueueUpdate: (update) => {
           if (update.status === "IN_PROGRESS") {
-            update.logs?.map((log) => log.message).forEach((message) => logger.debug("[API Step 2] Provider log", { message }));
+            logger.debug("[API Step 2] Provider progress", { status: update.status });
           }
         },
       });
 
-      logger.debug("[ESRGAN RAW Response]", upscalerResult?.data);
+      logger.debug("[ESRGAN response]", { hasImage: Boolean(upscalerResult?.data?.image || upscalerResult?.data?.image_url) });
 
       const upscaledUrl = upscalerResult?.data?.image?.url || upscalerResult?.data?.image_url;
       if (!upscaledUrl) {
@@ -376,7 +375,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid step parameter" }, { status: 400 });
 
   } catch (error) {
-    console.error(`[Trace API Error]:`, error.message);
+    logger.error("[Trace API] Request failed", { message: error?.message, projectId, failedStep });
 
     let didRefund = false;
     try {
@@ -423,12 +422,12 @@ export async function POST(request) {
           if (!refundRpcErr && refund?.status === 'refunded') {
             didRefund = true;
           } else {
-            console.error(`[Billing] refund_project_credit FAILED for project ${projectId} — left unrefunded for retry.`, refundRpcErr || refund);
+            logger.error("[Billing] Project refund failed; left eligible for retry", { projectId, error: refundRpcErr || refund });
           }
         }
       }
     } catch (refundErr) {
-      console.error(`[Billing] Refund failed:`, refundErr.message);
+      logger.error("[Billing] Refund exception", { projectId, message: refundErr?.message });
     }
 
     // Never expose raw internal error messages (API keys, stack traces) to the client

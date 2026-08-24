@@ -626,8 +626,29 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   className="top-up-payment-option top-up-payment-option-featured"
                   onClick={handleStartPayMongoCheckout}
                   disabled={isStartingPayMongo}
-                  style={{ background: 'linear-gradient(180deg, rgba(31,31,31,0.98), rgba(14,14,14,0.98))', border: '1px solid rgba(255, 215, 0, 0.24)', color: '#fff', padding: '26px 24px', textAlign: 'left', cursor: isStartingPayMongo ? 'not-allowed' : 'pointer', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '13px', minHeight: '210px', opacity: isStartingPayMongo ? 0.65 : 1, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
+                  style={{ position: 'relative', background: 'linear-gradient(180deg, rgba(31,31,31,0.98), rgba(14,14,14,0.98))', border: '1px solid rgba(255, 215, 0, 0.24)', color: '#fff', padding: '26px 24px', textAlign: 'left', cursor: isStartingPayMongo ? 'not-allowed' : 'pointer', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '13px', minHeight: '210px', opacity: isStartingPayMongo ? 0.65 : 1, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
                 >
+                  <span
+                    aria-label="Recommended payment option"
+                    style={{
+                      position: 'absolute',
+                      top: '14px',
+                      right: '14px',
+                      background: '#fff',
+                      color: '#111',
+                      border: '1px solid rgba(255,255,255,0.7)',
+                      borderRadius: '999px',
+                      padding: '4px 8px',
+                      fontSize: '9px',
+                      fontWeight: '800',
+                      lineHeight: 1,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
+                    }}
+                  >
+                    Recommended
+                  </span>
                   <PaymentLogoTile src={PAYMENT_LOGOS.qrph} alt="QRPh" large />
                   <span className="top-up-payment-title" style={{ fontSize: '18px', fontWeight: '650', color: '#f4f4f4' }}>QRPh Scan to Pay</span>
                   <span className="top-up-payment-desc" style={{ color: '#adadad', fontSize: '13px', lineHeight: 1.5, fontWeight: '450' }}>

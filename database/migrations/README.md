@@ -25,6 +25,8 @@ changes; the root-level SQL files are historical references.
 15. `015_add_scalability_admin_rpcs.sql`
 16. `016_add_scalability_public_stats_rpcs.sql`
 17. `017_add_palette_studio_gate.sql`
+18. `018_add_profile_avatar_public_stats.sql`
+19. `019_setup_paymongo_payments.sql`
 
 ## Historical Root Scripts
 

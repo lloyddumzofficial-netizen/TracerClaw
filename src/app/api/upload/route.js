@@ -2,6 +2,21 @@ import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { isAllowedStorageUrl, normalizeUserImageUrl } from "@/lib/ssrf";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { logger } from "@/lib/logger";
+
+function resolveProjectTraceType(traceType) {
+  if (traceType === "mockup_erase" || traceType === "mockup_preserve") return "mockup";
+  if (traceType === "logo") return "logo";
+  if (traceType === "bg_remover") return "bg_remover";
+  return "logo";
+}
+
+function resolveAiPromptMode(traceType) {
+  if (traceType === "mockup_erase") return "ERASE_LOGOS";
+  if (traceType === "mockup_preserve") return "PRESERVE_LOGOS";
+  if (traceType === "logo") return "LOGO_FLATTEN";
+  return null;
+}
 
 export async function POST(request) {
   try {
@@ -55,19 +70,16 @@ export async function POST(request) {
         { 
           name: safeName, 
           original_image_url: normalizedImageUrl,
-          trace_type: traceType === 'bg_remover' ? 'bg_remover' : (String(traceType || '').startsWith('mockup') ? 'mockup' : 'logo'),
+          trace_type: resolveProjectTraceType(traceType),
           user_id: user.id,
-          ai_prompt: traceType === 'mockup_erase' ? 'ERASE_LOGOS' 
-                   : traceType === 'mockup_preserve' ? 'PRESERVE_LOGOS'
-                   : traceType === 'logo' ? 'LOGO_FLATTEN'
-                   : null
+          ai_prompt: resolveAiPromptMode(traceType)
         }
       ])
       .select('id')
       .single();
 
     if (error) {
-      console.error("Supabase insert error:", error);
+      logger.error("[Upload] Project insert failed", error);
       throw new Error(`Failed to save project to database: ${error.message || JSON.stringify(error)}`);
     }
 
@@ -75,7 +87,7 @@ export async function POST(request) {
     return NextResponse.json({ success: true, projectId: data.id });
 
   } catch (error) {
-    console.error("Error in upload route:", error);
+    logger.error("[Upload] Request failed", error);
     return NextResponse.json(
       { error: "Failed to create project." },
       { status: 500 }

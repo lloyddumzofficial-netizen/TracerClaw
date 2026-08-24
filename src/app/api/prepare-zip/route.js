@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { adminSupabase } from "@/lib/supabase";
 import { deleteFromR2, uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { logger } from "@/lib/logger";
 import {
   DEFAULT_MAX_IMAGE_BYTES,
   DEFAULT_MAX_SVG_BYTES,
@@ -67,9 +68,21 @@ export async function POST(request) {
     const baseName = safeFileName(project.name);
     const assets = [
       project.original_image_url && { url: project.original_image_url, name: `DesaynClaw_${baseName}_Reference.png`, maxBytes: DEFAULT_MAX_IMAGE_BYTES },
-      project.generated_image_url && project.generated_image_url !== "REFUNDED" && { url: project.generated_image_url, name: `DesaynClaw_${baseName}_DesaynVision.png`, maxBytes: DEFAULT_MAX_IMAGE_BYTES },
-      project.upscaled_image_url && { url: project.upscaled_image_url, name: `DesaynClaw_${baseName}_Upscaled.png`, maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES },
-      project.svg_url && { url: project.svg_url, name: `DesaynClaw_${baseName}_Vector.svg`, maxBytes: DEFAULT_MAX_SVG_BYTES },
+      project.generated_image_url && project.generated_image_url !== "REFUNDED" && {
+        url: project.generated_image_url,
+        name: `DesaynClaw_${baseName}_DesaynVision.png`,
+        maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+      },
+      project.upscaled_image_url && {
+        url: project.upscaled_image_url,
+        name: `DesaynClaw_${baseName}_Upscaled.png`,
+        maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+      },
+      project.svg_url && {
+        url: project.svg_url,
+        name: `DesaynClaw_${baseName}_Vector.svg`,
+        maxBytes: DEFAULT_MAX_SVG_BYTES,
+      },
     ].filter(Boolean);
 
     if (assets.length === 0) {
@@ -91,7 +104,7 @@ export async function POST(request) {
 
     for (const asset of assets) {
       if (!isOwnedStorageUrl(asset.url, { userId: user.id, projectId })) {
-        console.warn(`[Prepare ZIP] Skipping unowned asset URL: ${asset.name}`);
+        logger.warn("[Prepare ZIP] Skipping unowned asset", { name: asset.name, projectId });
         continue;
       }
 
@@ -102,13 +115,13 @@ export async function POST(request) {
           allowedContentTypes: ["image/", "application/octet-stream"],
         });
         if (!response.ok) {
-          console.warn(`[Prepare ZIP] Skipping failed asset ${asset.name}: ${response.status}`);
+          logger.warn("[Prepare ZIP] Asset fetch failed", { name: asset.name, status: response.status, projectId });
           continue;
         }
         zip.file(asset.name, buffer);
         addedFiles++;
       } catch (error) {
-        console.warn(`[Prepare ZIP] Skipping failed asset ${asset.name}:`, error.message);
+        logger.warn("[Prepare ZIP] Asset processing failed", { name: asset.name, message: error?.message, projectId });
       }
     }
 
@@ -145,7 +158,7 @@ export async function POST(request) {
       fileName: `DesaynClaw_${baseName}_AllFiles.zip`,
     });
   } catch (error) {
-    console.error("[Prepare ZIP Error]:", error);
+    logger.error("[Prepare ZIP] Request failed", error);
     return NextResponse.json({ error: "Failed to prepare ZIP" }, { status: 500 });
   }
 }

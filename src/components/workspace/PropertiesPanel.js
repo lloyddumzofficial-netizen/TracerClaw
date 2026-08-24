@@ -116,7 +116,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
   ];
   const fmtTime = (s) => s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
 
-  const creditCost = svgEngine === "precision" ? 2 : 1;
+  const standardCreditCost = 1;
+  const precisionCreditCost = 2;
+  const creditCost = svgEngine === "precision" ? precisionCreditCost : standardCreditCost;
   const noCredits = userCredits !== null && userCredits < creditCost;
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url;
   const isBusy = traceState !== "idle" || isSavingCrop;
@@ -151,7 +153,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
     { label: "Max Vectors", value: "Unlimited", gold: false },
     { label: "Color Mode", value: "Full Color", gold: false },
     { label: "Max Size", value: "50 MP", gold: false },
-    { label: "Claws Required", value: `${creditCost} Claw`, gold: true },
+    { label: "Claws Required", value: `${creditCost} Claw${creditCost > 1 ? "s" : ""}`, gold: true },
   ];
 
   return (
@@ -306,7 +308,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 Standard SVG
               </div>
               <div style={{ fontSize: "9px", color: "#71717a" }}>
-                1 Claw • Includes Palette Studio
+                {standardCreditCost} Claw{standardCreditCost > 1 ? "s" : ""} • Includes Palette Studio
               </div>
             </div>
             <div style={{
@@ -314,7 +316,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
               background: "transparent", color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa",
               fontSize: "11px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0
-            }}>1</div>
+            }}>{standardCreditCost}</div>
           </button>
 
           {/* Precision */}
@@ -328,7 +330,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 Precision SVG
               </div>
               <div style={{ fontSize: "9px", color: "#71717a" }}>
-                2 Claws • Cleaner paths + smoother Palette Studio
+                {precisionCreditCost} Claws • Cleaner paths + smoother Palette Studio
               </div>
             </div>
             <div style={{
@@ -336,7 +338,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
               background: "transparent", color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa",
               fontSize: "11px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0
-            }}>2</div>
+            }}>{precisionCreditCost}</div>
           </button>
         </div>
 

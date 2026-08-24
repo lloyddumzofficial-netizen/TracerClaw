@@ -70,9 +70,8 @@ export async function POST(request) {
 
     // ==========================================
     // STAGE 3: VECTORIZE TO SVG
-    // Standard mode uses Recraft at the existing 1-credit pipeline cost.
-    // Precision mode adds one extra credit at Step 3, for a total of 2 credits,
-    // and calls Vectorizer.AI server-side with Basic auth.
+    // Standard uses the base pipeline charge from Step 1. Precision adds one
+    // extra Claw and calls Vectorizer.AI server-side with Basic auth.
     // The image is already upscaled by ESRGAN in Step 2.
     // Here we only convert to lossless PNG and apply optional Shadow Killer
     // color reduction before handing off to Recraft vectorize.

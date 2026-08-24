@@ -153,7 +153,24 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
           <X size={20} strokeWidth={2.5} />
         </button>
 
-        {/* Left Side: Form */}
+        {/* Left Side: Video */}
+        <div className="login-image-side">
+          <video
+            className="login-banner-video"
+            src="/login-page.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            preload="metadata"
+            tabIndex={-1}
+            aria-label="DesaynClaw workspace preview"
+          />
+        </div>
+
+        {/* Right Side: Form */}
         <div className="login-form-side">
           {/* Header Area */}
           <div style={{ 
@@ -338,23 +355,6 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
             )}
             </div>
           </div>
-        </div>
-        
-        {/* Right Side: Video */}
-        <div className="login-image-side">
-          <video
-            className="login-banner-video"
-            src="/login-page.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            disablePictureInPicture
-            controlsList="nodownload nofullscreen noremoteplayback"
-            preload="metadata"
-            tabIndex={-1}
-            aria-label="DesaynClaw workspace preview"
-          />
         </div>
 
       </div>
