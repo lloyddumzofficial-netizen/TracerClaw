@@ -371,9 +371,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               aria-valuemax={100}
               aria-label={`${stepMeta.label}: ${stepMeta.detail}`}
             >
-              <i ref={progressFillRef} style={{ width: `${stageStart}%` }}>
-                <b aria-hidden="true" />
-              </i>
+              <i ref={progressFillRef} style={{ width: `${stageStart}%` }} />
             </div>
             <p>{stepMeta.detail}</p>
             <div className="processing-layer-stack">
@@ -513,7 +511,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
       >
         {/* LEFT PANEL: Original Image */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: "1px solid #2a2a2a" }}>
-          <div ref={leftScrollRef} onScroll={handleLeftScroll} className="no-scrollbar" style={{ flex: 1, overflow: "auto", backgroundColor: "#1a1a1a", position: "relative" }}>
+          <div ref={leftScrollRef} onScroll={handleLeftScroll} className="no-scrollbar workspace-canvas-surface" style={{ flex: 1, overflow: "auto", backgroundColor: "#1a1a1a", position: "relative" }}>
             {/* Canvas label */}
             <div style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>ORIGINAL</div>
             {proxyOriginal ? (
@@ -530,7 +528,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
 
         {/* RIGHT PANEL: Outputs */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div ref={rightScrollRef} onScroll={handleRightScroll} className="no-scrollbar" style={{ flex: 1, overflow: "auto", backgroundColor: "#1c1c1c", position: "relative" }}>
+          <div ref={rightScrollRef} onScroll={handleRightScroll} className="no-scrollbar workspace-canvas-surface" style={{ flex: 1, overflow: "auto", backgroundColor: "#1c1c1c", position: "relative" }}>
             {/* Canvas label */}
             <div style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: activeTab === "svg" ? "rgba(255,215,0,0.35)" : "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>{rightLabel}</div>
             {activeUrl && traceState === "idle" ? (

@@ -1804,6 +1804,129 @@ body {
   }
 }
 
+/* Minimal processing card: compact, quiet, and consistent with the workspace UI. */
+.processing-layer-panel {
+  width: min(430px, calc(100% - 40px));
+  padding: 14px;
+  background: rgba(15, 15, 15, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(12px);
+}
+
+.processing-layer-header {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.processing-layer-header > span {
+  gap: 7px;
+}
+
+.processing-stage-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  animation: none;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.32);
+}
+
+.processing-layer-header strong {
+  gap: 8px;
+}
+
+.processing-layer-header strong em {
+  color: rgba(255, 255, 255, 0.34);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.processing-progress-track {
+  height: 3px;
+  margin: 11px 0 10px;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+}
+
+.processing-progress-track::after {
+  display: none;
+  animation: none;
+}
+
+.processing-progress-track i {
+  background: #ffd700;
+  border-radius: inherit;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.22);
+}
+
+.processing-layer-panel p {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.processing-layer-stack {
+  gap: 0;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.processing-layer-stack div {
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 9px;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.processing-layer-stack div:first-child {
+  justify-content: flex-start;
+  padding-left: 0;
+}
+
+.processing-layer-stack div:last-child {
+  justify-content: flex-end;
+  padding-right: 0;
+  border-right: 0;
+}
+
+.processing-layer-stack div.is-pending,
+.processing-layer-stack div.is-active,
+.processing-layer-stack div.is-done {
+  background: transparent;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
+  box-shadow: none;
+}
+
+.processing-layer-stack div.is-pending {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.processing-layer-stack div.is-active {
+  color: #ffd700;
+}
+
+.processing-layer-stack div.is-done {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.processing-stage-pip {
+  border-color: rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.34);
+}
+
 @keyframes outputRevealIn {
   0% {
     opacity: 0;
@@ -5931,8 +6054,17 @@ body {
 }
 
 .canvas-area {
-  background: #171717 !important;
+  background-color: #171717 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.075) 0 0.8px, transparent 0.95px) !important;
+  background-size: 22px 22px !important;
+  background-position: 0 0 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.workspace-canvas-surface {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.075) 0 0.8px, transparent 0.95px);
+  background-size: 22px 22px;
+  background-position: 0 0;
 }
 
 .canvas-area img {
@@ -6020,14 +6152,12 @@ body {
 .workspace-properties-panel .pp-sel,
 .workspace-properties-panel .pp-card,
 .workspace-properties-panel .pp-sec,
-.workspace-properties-panel .pp-svg-btn,
-.workspace-properties-panel button[style*="Advanced Settings"] {
+.workspace-properties-panel .pp-svg-btn {
   border-radius: 2px !important;
 }
 
 .workspace-properties-panel .pp-sel,
-.workspace-properties-panel .pp-card,
-.workspace-properties-panel button[style*="Advanced Settings"] {
+.workspace-properties-panel .pp-card {
   background: rgba(255, 255, 255, 0.025) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
@@ -6042,8 +6172,7 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 215, 0, 0.18);
 }
 
-.workspace-properties-panel .pp-card:not(.on):hover,
-.workspace-properties-panel button[style*="Advanced Settings"]:hover {
+.workspace-properties-panel .pp-card:not(.on):hover {
   background: rgba(255, 255, 255, 0.055) !important;
   border-color: rgba(255, 255, 255, 0.22) !important;
 }
@@ -6104,7 +6233,6 @@ body {
 .workspace-properties-panel .pp-sec,
 .workspace-properties-panel .pp-svg-btn,
 .workspace-properties-panel .pp-warn,
-.workspace-properties-panel button[style*="Advanced Settings"],
 .crop-workspace-modal,
 .crop-tool-mark,
 .crop-close-btn,
@@ -6283,7 +6411,6 @@ body {
   color: rgba(255, 255, 255, 0.45) !important;
 }
 
-.workspace-properties-panel button[style*="Advanced Settings"],
 .workspace-properties-panel .pp-svg-btn,
 .workspace-properties-panel .pp-sec,
 .workspace-properties-panel .pp-reset-action,

@@ -72,7 +72,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
 }) {
   const [vectorColors, setVectorColors] = useState("auto");
   const [svgEngine, setSvgEngine] = useState("standard");
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [downloading, setDownloading] = useState(null);
 
   // ── Live processing timer ──────────────────────────────────────────────────
@@ -213,6 +212,24 @@ const PropertiesPanel = memo(function PropertiesPanel({
           cursor: not-allowed; transform: none;
         }
 
+        .pp-trace-btn {
+          width: 100%; min-height: 42px; margin-bottom: 6px; padding: 9px 14px;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          color: #050505; background: #ffd700; border: 1px solid #ffd700;
+          border-radius: 4px; box-shadow: 0 0 16px rgba(255, 215, 0, 0.18);
+          font-family: inherit; font-size: 10px; font-weight: 700;
+          line-height: 1; letter-spacing: .06em; text-transform: uppercase;
+          cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+        }
+        .pp-trace-btn:hover:not(:disabled) {
+          background: #f0c900; border-color: #f0c900;
+          box-shadow: 0 0 22px rgba(255, 215, 0, 0.28); transform: translateY(-1px);
+        }
+        .pp-trace-btn:disabled {
+          color: #555; background: #242424; border-color: #333;
+          box-shadow: none; cursor: not-allowed; transform: none;
+        }
+
         .pp-sel-wrap { position: relative; display: flex; align-items: center; }
         .pp-sel-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 1; color: #a1a1aa; }
         .pp-sel {
@@ -349,101 +366,32 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </p>
       </div>
 
-      {/* ── ADVANCED SETTINGS ────────────────────────────── */}
-      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
-        <button onClick={() => setAdvancedOpen(v => !v)}
-          style={{
-            width: "100%", display: "flex", alignItems: "center",
-            justifyContent: "space-between", padding: "8px 12px",
-            background: "transparent", border: "1px solid #333",
-            color: "#e4e4e7", cursor: "pointer",
-            fontSize: "9px", fontWeight: "600",
-            letterSpacing: "0.5px", textTransform: "uppercase", transition: "border-color .15s",
-          }}
-          onMouseOver={e => e.currentTarget.style.borderColor = "#444"}
-          onMouseOut={e => e.currentTarget.style.borderColor = "#333"}
-        >
-          <span>Advanced Settings</span>
-          <ChevronDown size={14} style={{ transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-        </button>
-        {advancedOpen && (
-          <div style={{ paddingTop: "6px" }}>
-            <div className="pp-warn"><AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span></div>
-          </div>
-        )}
-      </div>
-
       {/* ── ACTIONS ──────────────────────────────────────── */}
       <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">Actions</span>
 
         {/* ── RUN AUTO-TRACE — always visible ── */}
         <button
+          className="pp-trace-btn"
           onClick={() => {
             if (isBusy) return;
             if (noCredits) { onOpenTopUp?.(); return; }
             if (isCropped) onExecuteTrace(vectorColors, svgEngine);
           }}
           disabled={isBusy || hasSvg || (!isCropped && !noCredits)}
-          style={{
-            width: "100%", padding: "7px 14px", marginBottom: "6px",
-            fontSize: "10px", fontWeight: "700",
-            textTransform: "uppercase", letterSpacing: "1px",
-            cursor: (isBusy || hasSvg || (!isCropped && !noCredits)) ? "not-allowed" : "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-            transition: "all .2s ease",
-            background: hasSvg
-              ? "transparent"
-              : isBusy
-                ? "transparent"
-                : (noCredits || isCropped)
-                  ? "#FFD700"
-                  : "rgba(255,215,0,0.06)",
-            border: "2px solid " + (
-              hasSvg ? "#2a2a2a"
-              : isBusy ? "#333"
-              : (noCredits || isCropped) ? "#FFD700"
-              : "#FFD70066"
-            ),
-            color: hasSvg
-              ? "#3f3f46"
-              : isBusy
-                ? "#555"
-                : (noCredits || isCropped)
-                  ? "#000"
-                  : "#FFD70099",
-            boxShadow: (!hasSvg && !isBusy && (noCredits || isCropped))
-              ? "0 0 18px rgba(255,215,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)"
-              : "none",
-            opacity: hasSvg ? 0.45 : 1,
-          }}
-          onMouseOver={e => {
-            if (!isBusy && !hasSvg && (noCredits || isCropped)) {
-              e.currentTarget.style.background = "#f0c900";
-              e.currentTarget.style.boxShadow = "0 0 28px rgba(255,215,0,0.4)";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.background = hasSvg ? "transparent" : isBusy ? "transparent" : (noCredits || isCropped) ? "#FFD700" : "rgba(255,215,0,0.06)";
-            e.currentTarget.style.boxShadow = (!hasSvg && !isBusy && (noCredits || isCropped)) ? "0 0 18px rgba(255,215,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)" : "none";
-            e.currentTarget.style.transform = "none";
-          }}
+          aria-busy={isBusy}
         >
           {hasSvg
-            ? <CheckCircle2 size={15} color="#3f3f46" />
+            ? <CheckCircle2 size={15} />
             : isBusy
               ? <span className="pp-spin"><Loader2 size={15} /></span>
               : null}
           {traceButtonLabel}
         </button>
 
-        {/* Warning — only when Advanced is closed */}
-        {!advancedOpen && (
-          <div className="pp-warn" style={{ marginBottom: "6px" }}>
-            <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
-          </div>
-        )}
+        <div className="pp-warn" style={{ marginBottom: "6px" }}>
+          <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
+        </div>
 
         {/* Export as SVG */}
         <button className="pp-svg-btn"

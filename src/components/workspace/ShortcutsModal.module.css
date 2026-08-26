@@ -1,0 +1,297 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 3, 3, 0.76);
+  backdrop-filter: blur(7px);
+  animation: shortcuts-overlay-in 140ms ease-out;
+}
+
+.dialog {
+  width: min(440px, 100%);
+  overflow: hidden;
+  color: #f4f4f5;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  animation: shortcuts-dialog-in 160ms ease-out;
+}
+
+.header {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #141414;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.headingGroup {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.iconBox {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  border-radius: 6px;
+}
+
+.title {
+  margin: 0;
+  color: #f4f4f5;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.closeButton {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.42);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.closeButton:hover {
+  color: #f4f4f5;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.closeButton:focus-visible,
+.doneButton:focus-visible {
+  outline: 2px solid rgba(255, 215, 0, 0.72);
+  outline-offset: 2px;
+}
+
+.body {
+  padding: 16px;
+}
+
+.sectionLabel {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shortcutList {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.shortcutRow {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+}
+
+.shortcutRow + .shortcutRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.shortcutIcon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 5px;
+}
+
+.shortcutCopy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcutLabel {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.shortcutDescription {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 9.5px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keyGroup {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-left: 8px;
+}
+
+.keycap {
+  min-width: 27px;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  color: #f0cf19;
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.keyJoiner {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.footer {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 16px;
+  background: #0e0e0e;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footerNote {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+
+.doneButton {
+  min-width: 92px;
+  min-height: 32px;
+  padding: 7px 16px;
+  color: #080808;
+  background: #ffd700;
+  border: 1px solid #ffd700;
+  border-radius: 4px;
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.doneButton:hover {
+  background: #f0c900;
+  border-color: #f0c900;
+  transform: translateY(-1px);
+}
+
+@keyframes shortcuts-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shortcuts-dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px) {
+  .overlay {
+    padding: 12px;
+  }
+
+  .header,
+  .body,
+  .footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .shortcutRow {
+    gap: 8px;
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  .shortcutIcon,
+  .shortcutDescription {
+    display: none;
+  }
+
+  .keyGroup {
+    margin-left: 4px;
+  }
+
+  .footerNote {
+    display: none;
+  }
+
+  .doneButton {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .dialog {
+    animation: none;
+  }
+}
