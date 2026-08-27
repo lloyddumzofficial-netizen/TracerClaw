@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
@@ -1425,9 +1426,18 @@ export default function StartScreen() {
           </div>
         )}
 
-        {/* Banner Image (banner-2.png) */}
+        {/* Lightweight footer brand banner */}
         <div style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
-          <img src="/banner-2.png" alt="DesaynClaw Features Banner" style={{ width: "100%", maxWidth: "1200px", height: "auto" }} />
+          <Image
+            src="/footer-banner.webp"
+            alt="DesaynClaw AI-powered design tools"
+            width={2400}
+            height={898}
+            sizes="(max-width: 1248px) calc(100vw - 48px), 1200px"
+            quality={75}
+            loading="lazy"
+            style={{ width: "100%", maxWidth: "1200px", height: "auto" }}
+          />
         </div>
 
         <footer className="site-footer">

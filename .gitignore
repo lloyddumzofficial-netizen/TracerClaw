@@ -20,6 +20,9 @@
 # production
 /build
 
+# Oversized local source master (optimized derivative is committed instead)
+/public/FOOTER IMAGE.png
+
 # misc
 .DS_Store
 *.pem
