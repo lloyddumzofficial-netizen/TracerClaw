@@ -142,7 +142,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       const result = await handler();
       if (successMessage) {
         const count = result?.files?.length;
-        setActionMessage(count ? `${successMessage} (${count} files).` : successMessage);
+        setActionMessage(result?.persistenceWarning || (count ? `${successMessage} (${count} files).` : successMessage));
       }
     } catch (error) {
       const needsDriveSetup = error?.code === "GOOGLE_DRIVE_API_DISABLED";

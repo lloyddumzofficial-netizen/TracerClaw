@@ -69,7 +69,7 @@ export default function WorkspaceIntegrationsPanel({ project, variant = "inline"
         fileCount: data.files?.length || 0,
       });
       onDriveSaved?.(data);
-      setMessage(`Saved ${data.files?.length || 0} file(s) to Google Drive.`);
+      setMessage(data.persistenceWarning || `Saved ${data.files?.length || 0} file(s) to Google Drive.`);
     } catch (error) {
       if (error.code === "GOOGLE_DRIVE_API_DISABLED") {
         setDriveAction({

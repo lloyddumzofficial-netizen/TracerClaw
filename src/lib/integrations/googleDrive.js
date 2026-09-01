@@ -236,7 +236,12 @@ export async function disconnectGoogleDrive(userId) {
   if (error) throw error;
 }
 
-export async function exportProjectToGoogleDrive({ userId, project }) {
+function isMissingDriveColumnError(error) {
+  const message = `${error?.code || ""} ${error?.message || ""} ${error?.details || ""}`;
+  return /google_drive_|schema cache|column/i.test(message);
+}
+
+export async function exportProjectToGoogleDrive({ userId, project, persistProjectExport = true }) {
   if (!googleDriveConfigured()) {
     throw new Error("Google Drive integration is not configured.");
   }
@@ -313,17 +318,33 @@ export async function exportProjectToGoogleDrive({ userId, project }) {
     files,
   };
 
-  const { error: updateError } = await adminSupabase
-    .from("projects")
-    .update({
-      google_drive_folder_id: result.folderId,
-      google_drive_folder_url: result.folderUrl,
-      google_drive_exported_at: new Date().toISOString(),
-      google_drive_export_signature: exportSignature,
-    })
-    .eq("id", project.id)
-    .eq("user_id", userId);
-  if (updateError) throw updateError;
+  if (persistProjectExport) {
+    const { error: updateError } = await adminSupabase
+      .from("projects")
+      .update({
+        google_drive_folder_id: result.folderId,
+        google_drive_folder_url: result.folderUrl,
+        google_drive_exported_at: new Date().toISOString(),
+        google_drive_export_signature: exportSignature,
+      })
+      .eq("id", project.id)
+      .eq("user_id", userId);
+    if (updateError) {
+      if (!isMissingDriveColumnError(updateError)) throw updateError;
+      logger.warn("[Google Drive] Export succeeded but project persistence columns are missing", {
+        userId,
+        projectId: project.id,
+        error: updateError,
+      });
+      result.persistenceSaved = false;
+      result.persistenceWarning = "Google Drive export saved, but the database migration must be applied to remember this folder after refresh.";
+    } else {
+      result.persistenceSaved = true;
+    }
+  } else {
+    result.persistenceSaved = false;
+    result.persistenceWarning = "Google Drive export saved, but the database migration must be applied to remember this folder after refresh.";
+  }
 
   return result;
 }
