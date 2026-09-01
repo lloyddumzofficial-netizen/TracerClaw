@@ -383,7 +383,7 @@ function AnimatedCounter({ value }) {
 
       {/* Gradient Number */}
       <div style={{
-        fontSize: "72px",
+        fontSize: "clamp(88px, 9vw, 118px)",
         fontWeight: "600",
         fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif",
         background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",

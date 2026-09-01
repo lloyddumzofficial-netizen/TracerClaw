@@ -6054,17 +6054,18 @@ body {
 }
 
 .canvas-area {
-  background-color: #171717 !important;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.075) 0 0.8px, transparent 0.95px) !important;
+  background-color: #121212 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.055) 0 0.8px, transparent 0.95px) !important;
   background-size: 22px 22px !important;
   background-position: 0 0 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .workspace-canvas-surface {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.075) 0 0.8px, transparent 0.95px);
-  background-size: 22px 22px;
-  background-position: 0 0;
+  background-color: #121212 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.055) 0 0.8px, transparent 0.95px) !important;
+  background-size: 22px 22px !important;
+  background-position: 0 0 !important;
 }
 
 .canvas-area img {
@@ -6509,6 +6510,118 @@ body {
 
 .crop-logo-guide-svg.is-bad-sample .crop-logo-guide-art {
   opacity: 0.42;
+}
+
+/* Crop modal connected-panel polish: keep the workspace feeling like one
+   professional tool surface instead of separate floating cards. */
+.crop-workspace-modal {
+  background: #0f0f0f !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    0 34px 110px rgba(0, 0, 0, 0.86),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+}
+
+.crop-workspace-header {
+  height: 48px !important;
+  padding: 0 16px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
+    #101010 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.crop-workspace-body {
+  grid-template-columns: minmax(0, 1fr) 282px !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  background: #101010 !important;
+}
+
+.crop-canvas-panel,
+.crop-guide-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #101010 !important;
+}
+
+.crop-canvas-panel {
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.crop-canvas-toolbar {
+  min-height: 42px !important;
+  padding: 0 14px !important;
+  background: #111111 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.crop-canvas-stage {
+  padding: 16px !important;
+  background-color: #121212 !important;
+}
+
+.crop-guide-panel {
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow-y: auto !important;
+}
+
+.crop-guide-header {
+  min-height: 42px !important;
+  padding: 0 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: #111111 !important;
+}
+
+.crop-guide-card {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  padding: 12px !important;
+  gap: 8px !important;
+  background: #101010 !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0 !important;
+}
+
+.crop-guide-card:hover {
+  background: #121212 !important;
+}
+
+.crop-guide-photo-frame {
+  height: 276px !important;
+  border-radius: 7px !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: #0b0b0b !important;
+}
+
+.crop-guide-tips-overlay {
+  padding: 48px 10px 10px !important;
+}
+
+.crop-workspace-actions {
+  min-height: 56px !important;
+  padding: 8px 10px 8px 14px !important;
+  background: #101010 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.crop-error-message {
+  margin: 0 !important;
+  border-width: 1px 0 0 !important;
+}
+
+@media (max-width: 900px) {
+  .crop-workspace-body {
+    grid-template-columns: 1fr !important;
+  }
+
+  .crop-canvas-panel {
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
 }
 
 /* Upscale Studio: minimal dark production UI polish. */
