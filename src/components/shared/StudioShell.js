@@ -15,6 +15,7 @@ const StudioShell = memo(function StudioShell({
   commandBar,
   statusLeft,
   statusRight,
+  extraTopActions,
   children,
 }) {
   return (
@@ -39,6 +40,7 @@ const StudioShell = memo(function StudioShell({
         </div>
 
         <div className="studio-top-actions">
+          {extraTopActions}
           {onShortcuts && (
             <button className="studio-ghost-btn" onClick={onShortcuts}>
               <Keyboard size={12} /> Shortcuts

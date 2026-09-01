@@ -14,6 +14,7 @@ import {
   HelpCircle,
   ExternalLink
 } from "lucide-react";
+import GoogleDriveMark from "./integrations/GoogleDriveMark";
 
 /* ─── Custom Icons ──────────────────────────────────────────────────────── */
 
@@ -62,17 +63,19 @@ const PropertiesPanel = memo(function PropertiesPanel({
   consoleRef,
   onExecuteTrace,
   onDownloadSvg,
-  onDownloadRaster,
+  onSaveToDrive,
   onDownloadAll,
   onOpenCompare,
   onOpenPalettePreview,
   onOpenCrop,
   onOpenRemoveBg,
   onOpenTopUp,
+  onOpenIntegrations,
 }) {
   const [vectorColors, setVectorColors] = useState("auto");
   const [svgEngine, setSvgEngine] = useState("standard");
   const [downloading, setDownloading] = useState(null);
+  const [actionMessage, setActionMessage] = useState("");
 
   // ── Live processing timer ──────────────────────────────────────────────────
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -128,11 +131,36 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const cropWarningCopy = isLogoWorkspace
     ? "Crop tightly around the mark and remove empty background."
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
+  const driveFolderUrl = project?.google_drive_folder_url || "";
+  const projectReadyForDrive = Boolean(project?.svg_url || project?.upscaled_image_url || project?.generated_image_url || project?.zip_url);
 
-  const handleDownloadClick = async (type, handler) => {
+  const handleDownloadClick = async (type, handler, successMessage = "") => {
     if (downloading) return;
     setDownloading(type);
-    try { await handler(); } finally { setDownloading(null); }
+    setActionMessage("");
+    try {
+      const result = await handler();
+      if (successMessage) {
+        const count = result?.files?.length;
+        setActionMessage(count ? `${successMessage} (${count} files).` : successMessage);
+      }
+    } catch (error) {
+      const needsDriveSetup = error?.code === "GOOGLE_DRIVE_API_DISABLED";
+      if (needsDriveSetup) onOpenIntegrations?.();
+      setActionMessage(needsDriveSetup
+        ? "Enable Google Drive API in Integrations, then retry."
+        : error?.message || "Action failed. Please try again.");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleDriveClick = () => {
+    if (driveFolderUrl) {
+      window.open(driveFolderUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    handleDownloadClick("drive", onSaveToDrive, "Saved to Google Drive");
   };
 
   const traceButtonLabel = hasSvg
@@ -413,10 +441,12 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>Download<br />All (ZIP)</span>
           </button>
           <button className="pp-sec"
-            onClick={() => handleDownloadClick("raster", onDownloadRaster)}
-            disabled={!project?.upscaled_image_url || !!downloading}>
-            {downloading === "raster" ? <span className="pp-spin"><Loader2 size={15} /></span> : <Download size={15} />}
-            <span>Export<br />as PNG</span>
+            onClick={handleDriveClick}
+            disabled={!driveFolderUrl && (!onSaveToDrive || !projectReadyForDrive || !!downloading)}>
+            {downloading === "drive"
+              ? <span className="pp-spin"><Loader2 size={15} /></span>
+              : <GoogleDriveMark className="pp-google-drive-icon" size={17} />}
+            <span>{driveFolderUrl ? <>Open Drive<br />Folder</> : <>Save to<br />Google Drive</>}</span>
           </button>
           <button className="pp-sec"
             // Anchor target for the "Palette Studio ready" nudge, which measures
@@ -435,6 +465,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>Before /<br />After Compare</span>
           </button>
         </div>
+        {actionMessage && (
+          <div className="pp-action-message" role="status">{actionMessage}</div>
+        )}
       </div>
 
       {/* ── EXPORT DETAILS ───────────────────────────────── */}

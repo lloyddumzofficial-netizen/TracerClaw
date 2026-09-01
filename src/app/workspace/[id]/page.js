@@ -10,7 +10,7 @@ import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-import { CheckCircle2, Palette, X } from "lucide-react";
+import { CheckCircle2, Palette, PlugZap, X } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "@/hooks/useTraceExecution";
@@ -26,10 +26,12 @@ import PalettePreviewModal from "@/components/workspace/PalettePreviewModal";
 import NoCreditsModal from "@/components/workspace/NoCreditsModal";
 import ShortcutsModal from "@/components/workspace/ShortcutsModal";
 import WorkspaceCommandBar from "@/components/workspace/WorkspaceCommandBar";
+import WorkspaceIntegrationsPanel from "@/components/workspace/integrations/WorkspaceIntegrationsPanel";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
+import { saveProjectToGoogleDrive } from "@/lib/integrations/clientApi";
 import { getWorkspaceTitle } from "@/lib/workspaceLabels";
 import { computeNudgePlacement } from "@/lib/anchoredNudge";
 
@@ -37,6 +39,16 @@ import { computeNudgePlacement } from "@/lib/anchoredNudge";
 const supabase = createClient();
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
+
+function clearDriveExportStatus(project) {
+  return {
+    ...project,
+    google_drive_folder_id: null,
+    google_drive_folder_url: null,
+    google_drive_exported_at: null,
+    google_drive_export_signature: null,
+  };
+}
 
 function normalizeProjectForWorkspace(project) {
   if (!project) return project;
@@ -72,6 +84,7 @@ export default function Workspace() {
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const [isSavingCrop, setIsSavingCrop] = useState(false);
 
   // ─── Hooks ────────────────────────────────────────────────────────────────
@@ -205,7 +218,7 @@ export default function Workspace() {
       const data = await safeJson(res, "Failed to apply edited SVG");
       if (!res.ok) throw new Error(data.error || "Failed to apply edited SVG");
       setProject(prev => prev ? ({
-        ...prev,
+        ...clearDriveExportStatus(prev),
         svg_url: data.url,
         zip_url: null,
         zip_signature: null,
@@ -220,13 +233,28 @@ export default function Workspace() {
     }
   }, [project?.id, logToConsole]);
 
-  // Dedicated 4K download — uses upscaled_image_url (Step 2 ESRGAN output), NOT generated_image_url
-  const handleDownloadUpscaled = useCallback(async () => {
-    if (!project?.upscaled_image_url) return;
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(project.upscaled_image_url)}`;
-    await forceDownload(proxyUrl, `DesaynClaw_${project.name}_4K.png`);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-  }, [project, forceDownload]);
+  const applyDriveExportResult = useCallback((data) => {
+    setProject(prev => prev ? ({
+      ...prev,
+      google_drive_folder_id: data.folderId || prev.google_drive_folder_id || null,
+      google_drive_folder_url: data.folderUrl || prev.google_drive_folder_url || null,
+      google_drive_exported_at: data.alreadySaved ? prev.google_drive_exported_at : new Date().toISOString(),
+      google_drive_export_signature: data.exportSignature || prev.google_drive_export_signature || null,
+    }) : prev);
+  }, []);
+
+  const handleSaveToDrive = useCallback(async () => {
+    if (!project?.id) return null;
+    const data = await saveProjectToGoogleDrive(project.id);
+    applyDriveExportResult(data);
+    logToConsole(
+      data.alreadySaved
+        ? "[System] Google Drive export already exists for this project."
+        : `[Success] Saved ${data.files?.length || 0} file(s) to Google Drive.`,
+      data.alreadySaved ? "info" : "success"
+    );
+    return data;
+  }, [project?.id, applyDriveExportResult, logToConsole]);
 
   const handleDownloadAll = useCallback(async () => {
     if (!project) return;
@@ -341,7 +369,7 @@ export default function Workspace() {
       logToConsole(`[Error] Failed to save crop: ${errorMsg}`, "error");
     } else {
       setProject(prev => ({
-        ...prev,
+        ...clearDriveExportStatus(prev),
         original_image_url: publicUrl,
         generated_image_url: null,
         upscaled_image_url: null,
@@ -359,7 +387,7 @@ export default function Workspace() {
       logToConsole(`[Error] Failed to save erased image: ${errorMsg}`, "error");
     } else {
       setProject(prev => ({
-        ...prev,
+        ...clearDriveExportStatus(prev),
         original_image_url: publicUrl,
         generated_image_url: null,
         upscaled_image_url: null,
@@ -381,7 +409,7 @@ export default function Workspace() {
       logToConsole(`[Error] Failed to remove background: ${errorMsg}`, "error");
     } else if (publicUrl) {
       setProject(prev => ({
-        ...prev,
+        ...clearDriveExportStatus(prev),
         original_image_url: publicUrl,
         generated_image_url: null,
         upscaled_image_url: null,
@@ -432,6 +460,48 @@ export default function Workspace() {
         onHome={() => router.push("/")}
         onCreditsClick={() => setShowTopUpModal(true)}
         onShortcuts={() => setShowShortcuts(true)}
+        extraTopActions={(
+          <div className="workspace-integrations-menu">
+            <button
+              type="button"
+              className={`studio-ghost-btn workspace-integrations-trigger ${showIntegrations ? "is-open" : ""}`}
+              onClick={() => setShowIntegrations(value => !value)}
+              aria-expanded={showIntegrations}
+              aria-controls="workspace-integrations-popover"
+            >
+              <PlugZap size={12} />
+              Integrations
+            </button>
+            {showIntegrations && (
+              <section
+                id="workspace-integrations-popover"
+                className="workspace-integrations-popover"
+                role="dialog"
+                aria-labelledby="workspace-integrations-title"
+              >
+                <div className="workspace-integrations-popover-header">
+                  <div>
+                    <span>Workspace</span>
+                    <h3 id="workspace-integrations-title">Delivery Integrations</h3>
+                  </div>
+                  <button
+                    type="button"
+                    className="workspace-integrations-popover-close"
+                    onClick={() => setShowIntegrations(false)}
+                    aria-label="Close integrations"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <WorkspaceIntegrationsPanel
+                  project={project}
+                  variant="popover"
+                  onDriveSaved={applyDriveExportResult}
+                />
+              </section>
+            )}
+          </div>
+        )}
         statusLeft={project?.svg_url ? (
           <>
             <CheckCircle2 size={12} color="#4ade80" />
@@ -477,13 +547,14 @@ export default function Workspace() {
           consoleRef={consoleRef}
           onExecuteTrace={onExecuteTrace}
           onDownloadSvg={handleDownloadSvg}
-          onDownloadRaster={handleDownloadUpscaled}
+          onSaveToDrive={handleSaveToDrive}
           onDownloadAll={handleDownloadAll}
           onOpenCompare={() => setShowCompare(true)}
           onOpenPalettePreview={() => setShowPalettePreview(true)}
           onOpenCrop={() => setShowCropModal(true)}
           onOpenRemoveBg={() => setShowRemoveBgModal(true)}
           onOpenTopUp={() => setShowTopUpModal(true)}
+          onOpenIntegrations={() => setShowIntegrations(true)}
         />
       </main>
 
@@ -584,6 +655,7 @@ export default function Workspace() {
         show={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
+
     </>
   );
 }

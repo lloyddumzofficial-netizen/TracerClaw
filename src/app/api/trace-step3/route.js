@@ -5,6 +5,7 @@ import { fetchWithRetry } from "@/lib/fetchWithRetry";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { logger } from "@/lib/logger";
+import { notifyProjectCompleted } from "@/lib/integrations/webhook";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
@@ -253,6 +254,20 @@ export async function POST(request) {
       })
       .eq('id', projectId)
       .eq('user_id', user.id);
+
+    try {
+      await notifyProjectCompleted(user.id, {
+        ...project,
+        svg_url: finalSvgUrl,
+        zip_url: null,
+      });
+    } catch (webhookError) {
+      logger.warn("[Trace Step 3] Webhook notification failed after SVG completion", {
+        projectId,
+        userId: user.id,
+        error: webhookError,
+      });
+    }
 
     return NextResponse.json({
       success: true,
