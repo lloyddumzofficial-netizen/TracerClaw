@@ -9,6 +9,7 @@ const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 const DRIVE_FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_ENDPOINT = "https://www.googleapis.com/upload/drive/v3/files";
+const DRIVE_EXPORT_SIGNATURE_VERSION = "gdrive:v2";
 
 export function googleDriveConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && integrationsCryptoConfigured());
@@ -171,9 +172,35 @@ function getDriveFolderUrl(folder) {
   return folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
 }
 
+function getProjectFolderSuffix(project) {
+  const stableId = String(project?.id || randomUUID()).replace(/[^\w-]+/g, "").slice(0, 8);
+  const rawDate = project?.created_at || project?.updated_at || new Date().toISOString();
+  const date = Number.isNaN(Date.parse(rawDate))
+    ? new Date().toISOString().slice(0, 10)
+    : new Date(rawDate).toISOString().slice(0, 10);
+
+  return `${date} - ${stableId}`;
+}
+
+function getDriveProjectFolderName(project) {
+  const baseName = safeExportName(project?.name);
+  return `${baseName} - ${getProjectFolderSuffix(project)}`;
+}
+
+function isLegacySharedProjectFolder(folder, project) {
+  return folder?.name === safeExportName(project?.name);
+}
+
 export function createDriveExportSignature(project) {
   const assets = buildProjectExportAssets(project).map(({ name, url }) => ({ name, url }));
-  return createHash("sha256").update(JSON.stringify(assets)).digest("hex");
+  const digest = createHash("sha256")
+    .update(JSON.stringify({
+      version: DRIVE_EXPORT_SIGNATURE_VERSION,
+      projectFolderName: getDriveProjectFolderName(project),
+      assets,
+    }))
+    .digest("hex");
+  return `${DRIVE_EXPORT_SIGNATURE_VERSION}:${digest}`;
 }
 
 export function projectDriveExportIsCurrent(project) {
@@ -280,7 +307,14 @@ export async function exportProjectToGoogleDrive({ userId, project, persistProje
       .eq("user_id", userId);
   }
 
-  const projectFolder = await getOrCreateDriveFolder(accessToken, safeExportName(project.name), rootFolder.id);
+  let projectFolder = project.google_drive_folder_id
+    ? await getDriveFolderById(accessToken, project.google_drive_folder_id)
+    : null;
+
+  if (!projectFolder?.id || projectFolder.trashed || isLegacySharedProjectFolder(projectFolder, project)) {
+    projectFolder = await getOrCreateDriveFolder(accessToken, getDriveProjectFolderName(project), rootFolder.id);
+  }
+
   const assets = buildProjectExportAssets(project);
   if (!assets.length) throw new Error("No project files are ready to export.");
 

@@ -132,7 +132,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const cropWarningCopy = isLogoWorkspace
     ? "Crop tightly around the mark and remove empty background."
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
-  const driveFolderUrl = project?.google_drive_folder_url || "";
+  const hasCurrentDriveExport = String(project?.google_drive_export_signature || "").startsWith("gdrive:v2:");
+  const driveFolderUrl = hasCurrentDriveExport ? project?.google_drive_folder_url || "" : "";
   const projectReadyForDrive = Boolean(project?.svg_url || project?.upscaled_image_url || project?.generated_image_url || project?.zip_url);
   const driveStatusLoading = integrationStatus?.loading === true;
   const driveConnected = Boolean(integrationStatus?.googleDrive?.connected);
