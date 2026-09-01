@@ -37,3 +37,14 @@ export function saveProjectToGoogleDrive(projectId) {
     body: JSON.stringify({ projectId }),
   });
 }
+
+export function getIntegrationStatus() {
+  return integrationFetch("/api/integrations/status", {
+    method: "GET",
+    headers: {},
+  });
+}
+
+export function getGoogleDriveConnectUrl(nextPath = "/") {
+  return `/api/integrations/google-drive/connect?next=${encodeURIComponent(nextPath)}`;
+}

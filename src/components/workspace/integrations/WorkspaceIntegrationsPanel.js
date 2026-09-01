@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, ExternalLink, FolderOpen, Loader2, PlugZap, Send, Unplug } from "lucide-react";
-import { integrationFetch, saveProjectToGoogleDrive } from "@/lib/integrations/clientApi";
+import { getGoogleDriveConnectUrl, getIntegrationStatus, integrationFetch, saveProjectToGoogleDrive } from "@/lib/integrations/clientApi";
 import GoogleDriveMark from "./GoogleDriveMark";
 import styles from "./WorkspaceIntegrationsPanel.module.css";
 
@@ -23,7 +23,7 @@ export default function WorkspaceIntegrationsPanel({ project, variant = "inline"
 
   const loadStatus = useCallback(async () => {
     try {
-      const data = await integrationFetch("/api/integrations/status", { method: "GET", headers: {} });
+      const data = await getIntegrationStatus();
       setStatus(data);
       setWebhookUrl(data.webhook?.url || "");
     } catch (error) {
@@ -39,7 +39,7 @@ export default function WorkspaceIntegrationsPanel({ project, variant = "inline"
   }, [loadStatus]);
 
   const connectDrive = () => {
-    window.location.href = `/api/integrations/google-drive/connect?next=${encodeURIComponent(nextPath)}`;
+    window.location.href = getGoogleDriveConnectUrl(nextPath);
   };
 
   const disconnectDrive = async () => {

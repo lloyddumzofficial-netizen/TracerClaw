@@ -15,6 +15,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import GoogleDriveMark from "./integrations/GoogleDriveMark";
+import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integrations/clientApi";
 
 /* ─── Custom Icons ──────────────────────────────────────────────────────── */
 
@@ -70,12 +71,12 @@ const PropertiesPanel = memo(function PropertiesPanel({
   onOpenCrop,
   onOpenRemoveBg,
   onOpenTopUp,
-  onOpenIntegrations,
 }) {
   const [vectorColors, setVectorColors] = useState("auto");
   const [svgEngine, setSvgEngine] = useState("standard");
   const [downloading, setDownloading] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
+  const [integrationStatus, setIntegrationStatus] = useState({ loading: true });
 
   // ── Live processing timer ──────────────────────────────────────────────────
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -133,6 +134,30 @@ const PropertiesPanel = memo(function PropertiesPanel({
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
   const driveFolderUrl = project?.google_drive_folder_url || "";
   const projectReadyForDrive = Boolean(project?.svg_url || project?.upscaled_image_url || project?.generated_image_url || project?.zip_url);
+  const driveStatusLoading = integrationStatus?.loading === true;
+  const driveConnected = Boolean(integrationStatus?.googleDrive?.connected);
+  const driveConfigured = integrationStatus?.configured?.googleDrive !== false;
+  const driveButtonDisabled = driveStatusLoading || !driveConfigured || Boolean(downloading) || (driveConnected && !driveFolderUrl && (!onSaveToDrive || !projectReadyForDrive));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadIntegrationStatus = async () => {
+      try {
+        const data = await getIntegrationStatus();
+        if (!cancelled) setIntegrationStatus({ ...data, loading: false });
+      } catch {
+        if (!cancelled) setIntegrationStatus({ loading: false });
+      }
+    };
+
+    loadIntegrationStatus();
+    window.addEventListener("focus", loadIntegrationStatus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", loadIntegrationStatus);
+    };
+  }, []);
 
   const handleDownloadClick = async (type, handler, successMessage = "") => {
     if (downloading) return;
@@ -146,9 +171,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
       }
     } catch (error) {
       const needsDriveSetup = error?.code === "GOOGLE_DRIVE_API_DISABLED";
-      if (needsDriveSetup) onOpenIntegrations?.();
       setActionMessage(needsDriveSetup
-        ? "Enable Google Drive API in Integrations, then retry."
+        ? "Google Drive API is disabled in Google Cloud. Enable it, wait a minute, then retry."
         : error?.message || "Action failed. Please try again.");
     } finally {
       setDownloading(null);
@@ -160,8 +184,29 @@ const PropertiesPanel = memo(function PropertiesPanel({
       window.open(driveFolderUrl, "_blank", "noopener,noreferrer");
       return;
     }
+    if (!driveConfigured) {
+      setActionMessage("Google Drive is not configured on the server yet.");
+      return;
+    }
+    if (!driveConnected) {
+      const nextPath = `${window.location.pathname}${window.location.search || ""}`;
+      window.location.href = getGoogleDriveConnectUrl(nextPath);
+      return;
+    }
     handleDownloadClick("drive", onSaveToDrive, "Saved to Google Drive");
   };
+
+  const driveButtonLabel = driveFolderUrl
+    ? <>Open Drive<br />Folder</>
+    : downloading === "drive"
+      ? <>Saving to<br />Drive</>
+      : driveStatusLoading
+        ? <>Checking<br />Drive</>
+        : !driveConfigured
+          ? <>Google Drive<br />Unavailable</>
+          : !driveConnected
+            ? <>Connect<br />Google Drive</>
+            : <>Save to<br />Google Drive</>;
 
   const traceButtonLabel = hasSvg
     ? "SVG Generated"
@@ -442,11 +487,11 @@ const PropertiesPanel = memo(function PropertiesPanel({
           </button>
           <button className="pp-sec"
             onClick={handleDriveClick}
-            disabled={!driveFolderUrl && (!onSaveToDrive || !projectReadyForDrive || !!downloading)}>
+            disabled={driveButtonDisabled}>
             {downloading === "drive"
               ? <span className="pp-spin"><Loader2 size={15} /></span>
               : <GoogleDriveMark className="pp-google-drive-icon" size={17} />}
-            <span>{driveFolderUrl ? <>Open Drive<br />Folder</> : <>Save to<br />Google Drive</>}</span>
+            <span>{driveButtonLabel}</span>
           </button>
           <button className="pp-sec"
             // Anchor target for the "Palette Studio ready" nudge, which measures
