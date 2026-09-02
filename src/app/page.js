@@ -802,8 +802,10 @@ export default function StartScreen() {
       const data = await safeJson(response, "Project creation failed");
       if (!response.ok) throw new Error(data.details || data.error || "Project creation failed");
 
-      if (isBgRemover) {
+      if (finalTraceType === "bg_remover") {
         router.push(`/bg-remover/${data.projectId}`);
+      } else if (finalTraceType === "element_pack") {
+        router.push(`/element-pack/${data.projectId}`);
       } else {
         router.push(`/workspace/${data.projectId}`);
       }
@@ -1073,7 +1075,11 @@ export default function StartScreen() {
                   setEditValue={setEditValue}
                   openMenuId={openMenuId}
                   setOpenMenuId={setOpenMenuId}
-                  onNavigate={(proj) => router.push(proj.trace_type === 'bg_remover' ? `/bg-remover/${proj.id}` : `/workspace/${proj.id}`)}
+                  onNavigate={(proj) => {
+                    if (proj.trace_type === "bg_remover") router.push(`/bg-remover/${proj.id}`);
+                    else if (proj.trace_type === "element_pack") router.push(`/element-pack/${proj.id}`);
+                    else router.push(`/workspace/${proj.id}`);
+                  }}
                   onStartEditing={(e, proj) => { e.stopPropagation(); setOpenMenuId(null); setEditingId(proj.id); setEditValue(proj.name); }}
                   onCancelEditing={(e) => { e.stopPropagation(); setEditingId(null); }}
                   onSaveRename={saveRename}

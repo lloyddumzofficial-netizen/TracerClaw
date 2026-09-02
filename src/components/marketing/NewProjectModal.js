@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Shirt, X, Scissors, ChevronLeft, ArrowRight } from "lucide-react";
+import { Boxes, Shirt, X, Scissors, ChevronLeft, ArrowRight } from "lucide-react";
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
 const LogoIcon = ({ size = 38 }) => (
@@ -190,6 +190,8 @@ const NewProjectModal = memo(function NewProjectModal({
     }
     if (cat === "logo") {
       setTraceType("logo");
+    } else if (cat === "element_pack") {
+      setTraceType("element_pack");
     } else {
       setTraceType("mockup_erase");
     }
@@ -227,7 +229,7 @@ const NewProjectModal = memo(function NewProjectModal({
         className="modal-content new-project-modal"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: step === "category" ? 820 : 480,
+          maxWidth: step === "category" ? 980 : 480,
           position: "relative",
           transition: "max-width 0.32s cubic-bezier(0.4,0,0.2,1)",
           width: "calc(100vw - 32px)",
@@ -274,7 +276,7 @@ const NewProjectModal = memo(function NewProjectModal({
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 13 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 13 }}>
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 icon={<Shirt size={38} strokeWidth={1.2} />}
@@ -293,6 +295,13 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="BG Remover Studio"
                 description="Remove backgrounds instantly with AI — perfect for products & portraits."
                 badge="AI"
+              />
+              <CategoryCard
+                onClick={() => handleCategorySelect("element_pack")}
+                icon={<Boxes size={38} strokeWidth={1.2} />}
+                title="Element Pack"
+                description="Split artwork into clean PNG elements for Photoshop layouts."
+                badge="NEW"
               />
             </div>
 
@@ -330,10 +339,12 @@ const NewProjectModal = memo(function NewProjectModal({
               }}>
                 {category === "logo"
                   ? <LogoIcon size={17} />
-                  : <Shirt size={17} strokeWidth={1.5} />}
+                  : category === "element_pack"
+                    ? <Boxes size={17} strokeWidth={1.5} />
+                    : <Shirt size={17} strokeWidth={1.5} />}
               </div>
               <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "#fff" }}>
-                {category === "logo" ? "Logo Workspace" : "Garment Workspace"}
+                {category === "logo" ? "Logo Workspace" : category === "element_pack" ? "Element Pack" : "Garment Workspace"}
               </h2>
             </div>
 
@@ -391,6 +402,18 @@ const NewProjectModal = memo(function NewProjectModal({
                   Works for{" "}
                   <strong style={{ color: "#FFD700" }}>icons, emblems, combined logos, and text-only wordmarks.</strong>{" "}
                   All text and colors will be preserved exactly as in the reference.
+                </p>
+              </div>
+            )}
+
+            {category === "element_pack" && (
+              <div style={{
+                background: "rgba(255,255,255,0.035)",
+                border: "1px solid rgba(255,255,255,0.09)",
+                borderRadius: 10, padding: "11px 14px", marginBottom: 18,
+              }}>
+                <p style={{ margin: 0, fontSize: "11.5px", color: "#777", lineHeight: 1.65 }}>
+                  Creates a lightweight ZIP of separated transparent PNG elements. Built for Photoshop workflows and does not use paid AI by default.
                 </p>
               </div>
             )}

@@ -8,6 +8,7 @@ function resolveProjectTraceType(traceType) {
   if (traceType === "mockup_erase" || traceType === "mockup_preserve") return "mockup";
   if (traceType === "logo") return "logo";
   if (traceType === "bg_remover") return "bg_remover";
+  if (traceType === "element_pack") return "element_pack";
   return "logo";
 }
 
