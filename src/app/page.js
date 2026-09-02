@@ -36,6 +36,7 @@ import TestimonialSection from "@/components/marketing/TestimonialSection";
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 const PUBLIC_STATS_CACHE_KEY = "desaynclaw-public-stats";
+const DRIVE_ANNOUNCEMENT_DISMISS_KEY = "desaynclaw-drive-announcement-v1";
 
 async function uploadFileToPresignedUrl(uploadUrl, file) {
   let lastError;
@@ -429,6 +430,7 @@ export default function StartScreen() {
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
@@ -445,6 +447,15 @@ export default function StartScreen() {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // ─── Initialization ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    setShowDriveAnnouncement(localStorage.getItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY) !== "1");
+  }, []);
+
+  const dismissDriveAnnouncement = () => {
+    localStorage.setItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY, "1");
+    setShowDriveAnnouncement(false);
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") !== "auth-failed") return;
@@ -900,6 +911,28 @@ export default function StartScreen() {
           </div>
         </div>
       </header>
+
+      {showDriveAnnouncement && (
+        <section className="home-announcement-banner" aria-label="Google Drive integration announcement">
+          <div className="home-announcement-inner">
+            <div className="home-announcement-icon" aria-hidden="true">
+              <img src="/Google_Drive_Logo_05.2026.png" alt="" />
+            </div>
+            <p>
+              <span>New</span>
+              Google Drive export is now available — save finished SVG, PNG, and ZIP project files straight to your Drive folder.
+            </p>
+            <button
+              type="button"
+              className="home-announcement-close"
+              onClick={dismissDriveAnnouncement}
+              aria-label="Dismiss announcement"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* FULL WIDTH HERO SECTION */}
       <div className="home-hero-shell" style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>

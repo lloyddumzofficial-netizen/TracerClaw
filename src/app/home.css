@@ -5832,3 +5832,107 @@
     transform: none;
   }
 }
+
+/* Homepage release announcement: thin, dismissible, and aligned with the studio UI. */
+.home-announcement-banner {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  z-index: 49;
+  display: flex;
+  justify-content: center;
+  padding: 10px 20px 0;
+  pointer-events: none;
+}
+
+.home-announcement-inner {
+  width: fit-content;
+  max-width: min(820px, calc(100vw - 48px));
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 7px 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background: rgba(12, 12, 12, 0.94);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.home-announcement-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.home-announcement-icon img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.home-announcement-inner p {
+  min-width: 0;
+  max-width: calc(100vw - 140px);
+  margin: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-announcement-inner p span {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 215, 0, 0.26);
+  border-radius: 999px;
+  color: #ffd700;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.home-announcement-close {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.44);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.home-announcement-close:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+@media (max-width: 720px) {
+  .home-announcement-inner {
+    width: 100%;
+  }
+
+  .home-announcement-inner p {
+    white-space: normal;
+  }
+}
