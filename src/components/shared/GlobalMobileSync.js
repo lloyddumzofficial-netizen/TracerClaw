@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { Boxes, X, Shirt, Scissors } from "lucide-react";
+import { X, Shirt, Scissors } from "lucide-react";
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
 const LogoIcon = ({ size = 40 }) => (
@@ -91,7 +91,7 @@ export default function GlobalMobileSync() {
             <img src={receivedImage} alt="Received from mobile" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", width: "100%" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", width: "100%" }}>
             <div
               onClick={() => handleRoute("mockup_erase")}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "20px 16px", border: "2px solid #444", borderRadius: 10, cursor: "pointer", background: "transparent", transition: "all 0.18s", textAlign: "center" }}
@@ -132,19 +132,6 @@ export default function GlobalMobileSync() {
               </div>
             </div>
 
-            <div
-              onClick={() => handleRoute("element_pack")}
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "20px 16px", border: "2px solid #444", borderRadius: 10, cursor: "pointer", background: "transparent", transition: "all 0.18s", textAlign: "center", position: "relative" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFD700"; e.currentTarget.style.background = "rgba(255,215,0,0.06)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#444"; e.currentTarget.style.background = "transparent"; }}
-            >
-              <div style={{ position: "absolute", top: 8, right: 8, background: "#FFD700", color: "#000", fontSize: "9px", fontWeight: 800, padding: "2px 6px", borderRadius: 4, letterSpacing: "0.5px" }}>NEW</div>
-              <div style={{ color: "#FFD700" }}><Boxes size={40} strokeWidth={1.2} /></div>
-              <div>
-                <p style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "15px", fontWeight: 700 }}>Element Pack</p>
-                <p style={{ margin: 0, fontSize: "11px", color: "#888", lineHeight: 1.5 }}>Split artwork for Photoshop.</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

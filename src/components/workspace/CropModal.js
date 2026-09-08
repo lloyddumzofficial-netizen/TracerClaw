@@ -18,6 +18,54 @@ const WHEEL_ZOOM_STEP = 0.1;
 const CROP_STAGE_PADDING = 18;
 const CROP_GUIDE_STORAGE_KEY = "desaynclaw_crop_guide_dismissed";
 
+async function uploadCropThroughServer({ token, blob, fileName }) {
+  const formData = new FormData();
+  formData.append("file", blob, fileName);
+  formData.append("purpose", "standard");
+
+  const response = await fetch("/api/upload-direct", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await safeJson(response, "Fallback crop upload failed");
+
+  if (!response.ok || !data.publicUrl) {
+    throw new Error(data.error || "Fallback crop upload failed");
+  }
+
+  return data.publicUrl;
+}
+
+async function uploadCropToStorage({ token, blob }) {
+  const fileName = `crop_${Date.now()}.jpg`;
+  const urlRes = await fetch("/api/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({
+      fileName,
+      contentType: "image/jpeg",
+      fileSize: blob.size,
+      purpose: "standard",
+    }),
+  });
+  const urlData = await safeJson(urlRes, "Failed to get upload URL");
+  if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
+
+  try {
+    const putRes = await fetch(urlData.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "image/jpeg" },
+      body: blob,
+    });
+    if (!putRes.ok) throw new Error("Failed to upload crop to storage");
+    return urlData.publicUrl;
+  } catch (error) {
+    console.warn("Direct crop upload failed, retrying through server:", error);
+    return uploadCropThroughServer({ token, blob, fileName });
+  }
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -257,20 +305,7 @@ const CropModal = memo(function CropModal({
         return;
       }
 
-      const urlRes = await fetch("/api/upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ fileName: `crop_${Date.now()}.jpg`, contentType: "image/jpeg", fileSize: blob.size }),
-      });
-      const urlData = await safeJson(urlRes, "Failed to get upload URL");
-      if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
-
-      const putRes = await fetch(urlData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "image/jpeg" },
-        body: blob,
-      });
-      if (!putRes.ok) throw new Error("Failed to upload crop to storage");
+      const croppedImageUrl = await uploadCropToStorage({ token, blob });
 
       const res = await fetch("/api/crop", {
         method: "POST",
@@ -278,12 +313,12 @@ const CropModal = memo(function CropModal({
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` // Required: route now verifies auth
         },
-        body: JSON.stringify({ projectId: project.id, croppedImageUrl: urlData.publicUrl }),
+        body: JSON.stringify({ projectId: project.id, croppedImageUrl }),
       });
       const data = await safeJson(res, "Failed to save crop");
       if (!res.ok) throw new Error(data.error);
 
-      onCropApplied?.(urlData.publicUrl);
+      onCropApplied?.(croppedImageUrl);
       onClose();
     } catch (err) {
       const message = err.message || "Failed to apply crop.";

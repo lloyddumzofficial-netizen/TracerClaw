@@ -28,6 +28,25 @@ function upscalePollDelay(attempt) {
   return 10000;
 }
 
+async function uploadImageThroughServer({ token, file }) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("purpose", "standard");
+
+  const response = await fetch("/api/upload-direct", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await safeJson(response, "Fallback upload failed");
+
+  if (!response.ok || !data.publicUrl) {
+    throw new Error(data.error || "Fallback upload failed");
+  }
+
+  return data.publicUrl;
+}
+
 // Surfaced in the button label so the cost is known before the click, matching
 // the workspace trace panel and the background-removal modal. This page was the
 // only paid action that revealed its price only after the user had committed.
@@ -192,12 +211,17 @@ export default function UpscalePage() {
 
       const { uploadUrl, publicUrl } = data;
 
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploadRes.ok) throw new Error("Failed to upload image to S3");
+      try {
+        const uploadRes = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!uploadRes.ok) throw new Error("Failed to upload image to S3");
+      } catch (uploadError) {
+        console.warn("Direct upscale upload failed, retrying through server:", uploadError);
+        return uploadImageThroughServer({ token, file });
+      }
       return publicUrl;
     } catch (error) {
       console.error(error);

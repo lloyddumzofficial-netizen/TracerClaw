@@ -28,6 +28,8 @@
 
   --radius: 0px;
   /* Sharp industrial corners */
+  --font-manrope: "Manrope", "Segoe UI", Arial, sans-serif;
+  /* Local-safe font stack. Avoids network font fetch during build. */
   --font-space-grotesk: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   --font-inter: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   --font-outfit: var(--font-manrope), "Segoe UI", Arial, sans-serif;

@@ -14,6 +14,7 @@
     "test:integration": "vitest run tests/integration tests/api",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "r2:cors": "node scripts/configure-r2-cors.mjs",
     "test:smoke": "playwright test production-smoke.spec.js"
   },
   "dependencies": {

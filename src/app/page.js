@@ -62,6 +62,50 @@ async function uploadFileToPresignedUrl(uploadUrl, file) {
   throw lastError || new Error("Failed to upload image to storage");
 }
 
+async function uploadFileThroughServer({ token, file, purpose }) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("purpose", purpose);
+
+  const response = await fetch("/api/upload-direct", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await safeJson(response, "Fallback upload failed");
+
+  if (!response.ok || !data.publicUrl) {
+    throw new Error(data.error || "Fallback upload failed");
+  }
+
+  return data.publicUrl;
+}
+
+async function uploadImageToStorage({ token, file, purpose }) {
+  const urlRes = await fetch("/api/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size,
+      purpose,
+    })
+  });
+
+  const urlData = await safeJson(urlRes, "Failed to get upload URL");
+  if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
+
+  try {
+    const putRes = await uploadFileToPresignedUrl(urlData.uploadUrl, file);
+    if (!putRes.ok) throw new Error("Failed to upload image to storage");
+    return urlData.publicUrl;
+  } catch (error) {
+    console.warn("Direct R2 upload failed, retrying through server:", error);
+    return uploadFileThroughServer({ token, file, purpose });
+  }
+}
+
 function HomepageWorkflowPreview() {
   return (
     <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
@@ -740,8 +784,9 @@ export default function StartScreen() {
       return;
     }
 
-    // Limit upload to 10MB to save bandwidth and prevent AI processing timeouts
-    const maxUploadBytes = resolveImageUploadLimit({ purpose: isBgRemover ? "bg_remover" : "standard" });
+    const finalTraceType = isBgRemover ? "bg_remover" : (mobileTraceType || modalTraceType);
+    const uploadPurpose = finalTraceType === "bg_remover" ? "bg_remover" : "standard";
+    const maxUploadBytes = resolveImageUploadLimit({ purpose: uploadPurpose });
     if (file.size > maxUploadBytes) {
       toast.error(`File is too large! Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
       return;
@@ -766,24 +811,11 @@ export default function StartScreen() {
       const token = sessionRes.data.session?.access_token;
       if (!token) { setIsUploading(false); handleLogin(); return; }
 
-      const urlRes = await fetch("/api/upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({
-          fileName: fileToUpload.name,
-          contentType: fileToUpload.type,
-          fileSize: fileToUpload.size,
-          purpose: isBgRemover ? "bg_remover" : "standard",
-        })
+      const imageUrl = await uploadImageToStorage({
+        token,
+        file: fileToUpload,
+        purpose: uploadPurpose,
       });
-
-      const urlData = await safeJson(urlRes, "Failed to get upload URL");
-      if (!urlRes.ok || !urlData.uploadUrl) throw new Error(urlData.error || "Failed to get upload URL");
-
-      const putRes = await uploadFileToPresignedUrl(urlData.uploadUrl, fileToUpload);
-      if (!putRes.ok) throw new Error("Failed to upload image to storage");
-
-      const finalTraceType = isBgRemover ? "bg_remover" : (mobileTraceType || modalTraceType);
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -792,7 +824,7 @@ export default function StartScreen() {
           "Authorization": `Bearer ${token}` // Required: server verifies user server-side
         },
         body: JSON.stringify({
-          imageUrl: urlData.publicUrl,
+          imageUrl,
           projectName: isBgRemover ? fileToUpload.name.replace(/\.[^/.]+$/, "") : (modalProjectName || file.name),
           traceType: finalTraceType
           // userId intentionally omitted — server reads from verified token
@@ -804,8 +836,6 @@ export default function StartScreen() {
 
       if (finalTraceType === "bg_remover") {
         router.push(`/bg-remover/${data.projectId}`);
-      } else if (finalTraceType === "element_pack") {
-        router.push(`/element-pack/${data.projectId}`);
       } else {
         router.push(`/workspace/${data.projectId}`);
       }
@@ -848,7 +878,7 @@ export default function StartScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="start-screen-container" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
+    <div id="start" className="start-screen-container" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
       <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
         DesaynClaw AI Vector Tracer and Sublimation Design Extractor
       </h1>
@@ -1077,7 +1107,6 @@ export default function StartScreen() {
                   setOpenMenuId={setOpenMenuId}
                   onNavigate={(proj) => {
                     if (proj.trace_type === "bg_remover") router.push(`/bg-remover/${proj.id}`);
-                    else if (proj.trace_type === "element_pack") router.push(`/element-pack/${proj.id}`);
                     else router.push(`/workspace/${proj.id}`);
                   }}
                   onStartEditing={(e, proj) => { e.stopPropagation(); setOpenMenuId(null); setEditingId(proj.id); setEditValue(proj.name); }}
@@ -1504,7 +1533,7 @@ export default function StartScreen() {
                 <a href="/team">Team</a>
                 <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Contact</a>
                 <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Customer Support</a>
-                <a href="/workspace">Workspace</a>
+                <a href="/#start">Start Workspace</a>
                 <a href="/upscale">Image Upscale</a>
               </div>
             </nav>
