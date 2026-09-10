@@ -10,6 +10,7 @@ const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 const DRIVE_FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_ENDPOINT = "https://www.googleapis.com/upload/drive/v3/files";
 const DRIVE_EXPORT_SIGNATURE_VERSION = "gdrive:v2";
+export const GOOGLE_DRIVE_RECONNECT_REQUIRED = "GOOGLE_DRIVE_RECONNECT_REQUIRED";
 
 export function googleDriveConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && integrationsCryptoConfigured());
@@ -81,7 +82,18 @@ export async function refreshGoogleAccessToken(refreshToken) {
     }),
   });
   const data = await response.json();
-  if (!response.ok || !data.access_token) throw new Error(data.error_description || data.error || "Google refresh failed");
+  if (!response.ok || !data.access_token) {
+    const message = data.error_description || data.error || "Google refresh failed";
+    const error = new Error(message);
+    if (
+      data.error === "invalid_grant" ||
+      /expired|revoked|invalid_grant|invalid_rapt/i.test(message)
+    ) {
+      error.code = GOOGLE_DRIVE_RECONNECT_REQUIRED;
+      error.message = "Google Drive connection expired. Please reconnect Google Drive and try again.";
+    }
+    throw error;
+  }
   return data.access_token;
 }
 
@@ -294,7 +306,22 @@ export async function exportProjectToGoogleDrive({ userId, project, persistProje
     throw new Error("Google Drive is not connected.");
   }
 
-  const accessToken = await refreshGoogleAccessToken(decryptSecret(settings.google_drive_refresh_token_enc));
+  let accessToken;
+  try {
+    accessToken = await refreshGoogleAccessToken(decryptSecret(settings.google_drive_refresh_token_enc));
+  } catch (error) {
+    if (error?.code === GOOGLE_DRIVE_RECONNECT_REQUIRED) {
+      try {
+        await disconnectGoogleDrive(userId);
+      } catch (disconnectError) {
+        logger.warn("[Google Drive] Failed to clear expired connection", {
+          userId,
+          error: disconnectError,
+        });
+      }
+    }
+    throw error;
+  }
   let rootFolder = settings.google_drive_folder_id
     ? await getDriveFolderById(accessToken, settings.google_drive_folder_id)
     : null;

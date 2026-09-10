@@ -17,6 +17,8 @@ import {
 import GoogleDriveMark from "./integrations/GoogleDriveMark";
 import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integrations/clientApi";
 
+const GOOGLE_DRIVE_RECONNECT_REQUIRED = "GOOGLE_DRIVE_RECONNECT_REQUIRED";
+
 /* ─── Custom Icons ──────────────────────────────────────────────────────── */
 
 const IconColorRings = () => (
@@ -77,6 +79,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const [downloading, setDownloading] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
   const [integrationStatus, setIntegrationStatus] = useState({ loading: true });
+  const [driveRequiresReconnect, setDriveRequiresReconnect] = useState(false);
 
   // ── Live processing timer ──────────────────────────────────────────────────
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -146,7 +149,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
     const loadIntegrationStatus = async () => {
       try {
         const data = await getIntegrationStatus();
-        if (!cancelled) setIntegrationStatus({ ...data, loading: false });
+        if (!cancelled) {
+          setIntegrationStatus({ ...data, loading: false });
+          setDriveRequiresReconnect(false);
+        }
       } catch {
         if (!cancelled) setIntegrationStatus({ loading: false });
       }
@@ -172,8 +178,27 @@ const PropertiesPanel = memo(function PropertiesPanel({
       }
     } catch (error) {
       const needsDriveSetup = error?.code === "GOOGLE_DRIVE_API_DISABLED";
+      const needsDriveReconnect =
+        error?.code === GOOGLE_DRIVE_RECONNECT_REQUIRED ||
+        /expired|revoked|not connected/i.test(error?.message || "");
+
+      if (needsDriveReconnect) {
+        setDriveRequiresReconnect(true);
+        setIntegrationStatus((current) => ({
+          ...current,
+          googleDrive: {
+            ...(current?.googleDrive || {}),
+            connected: false,
+            email: null,
+            connectedAt: null,
+          },
+        }));
+      }
+
       setActionMessage(needsDriveSetup
         ? "Google Drive API is disabled in Google Cloud. Enable it, wait a minute, then retry."
+        : needsDriveReconnect
+          ? "Google Drive session expired. Please reconnect Google Drive, then save again."
         : error?.message || "Action failed. Please try again.");
     } finally {
       setDownloading(null);
@@ -185,6 +210,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       window.open(driveFolderUrl, "_blank", "noopener,noreferrer");
       return;
     }
+    setDriveRequiresReconnect(false);
     if (!driveConfigured) {
       setActionMessage("Google Drive is not configured on the server yet.");
       return;
@@ -206,7 +232,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
         : !driveConfigured
           ? <>Google Drive<br />Unavailable</>
           : !driveConnected
-            ? <>Connect<br />Google Drive</>
+            ? driveRequiresReconnect
+              ? <>Reconnect<br />Google Drive</>
+              : <>Connect<br />Google Drive</>
             : <>Save to<br />Google Drive</>;
 
   const traceButtonLabel = hasSvg

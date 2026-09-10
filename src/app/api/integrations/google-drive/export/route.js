@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { requireBearerUser } from "@/lib/integrations/auth";
-import { exportProjectToGoogleDrive, projectDriveExportIsCurrent } from "@/lib/integrations/googleDrive";
+import {
+  GOOGLE_DRIVE_RECONNECT_REQUIRED,
+  exportProjectToGoogleDrive,
+  projectDriveExportIsCurrent,
+} from "@/lib/integrations/googleDrive";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
 
@@ -97,11 +101,17 @@ export async function POST(request) {
   } catch (error) {
     logger.error("[Google Drive] Export failed", error);
     const message = error?.message || "Failed to export to Google Drive";
-    const status = /not configured|not connected/i.test(message) ? 503 : 500;
+    const status = error?.code === GOOGLE_DRIVE_RECONNECT_REQUIRED
+      ? 409
+      : /not configured|not connected/i.test(message) ? 503 : 500;
     return NextResponse.json({
       error: message,
       code: error?.code || null,
-      actionUrl: error?.actionUrl || null,
+      actionUrl: error?.actionUrl || (
+        error?.code === GOOGLE_DRIVE_RECONNECT_REQUIRED
+          ? "/api/integrations/google-drive/connect"
+          : null
+      ),
     }, { status });
   }
 }
