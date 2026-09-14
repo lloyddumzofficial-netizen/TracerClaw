@@ -8,6 +8,20 @@ function isTraceTimeoutError(error) {
   return /504|failed to fetch|timed?\s*out|too long to respond/i.test(error?.message || "");
 }
 
+function isExpectedTraceError(error) {
+  return /temporarily unavailable|session expired|too many requests|INSUFFICIENT_CREDITS/i.test(error?.message || "");
+}
+
+function getTraceErrorMessage(response, errData) {
+  if (errData?.error === "INSUFFICIENT_CREDITS") return "INSUFFICIENT_CREDITS";
+  if (errData?.code === "AI_PROVIDER_UNAVAILABLE") return errData.error;
+  if (response.status === 401) return "Your session expired. Please sign in again, then retry.";
+  if (response.status === 403 && /forbidden/i.test(errData?.error || "")) {
+    return "AI generation is temporarily unavailable. Please try again shortly.";
+  }
+  return errData?.error || `Error ${response.status}`;
+}
+
 /**
  * useTraceExecution — Manages the full 3-step AI pipeline execution.
  *
@@ -76,19 +90,25 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       vector_colors: vectorColors,
     });
 
-    // Deduct locally in UI for immediate feedback
-    if (userCredits > 0) setUserCredits(prev => Math.max(0, prev - creditCost));
-
     // Fetch auth token once — used for all secure API calls in this pipeline
     let authToken = null;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       authToken = session?.access_token || null;
     } catch {
-      // Token fetch failed — save-asset calls will still work via server-side project check
+      // Handled below with the same user-facing session message.
     }
 
     try {
+      if (!authToken) {
+        throw new Error("Your session expired. Please sign in again, then retry.");
+      }
+
+      // Deduct locally in UI for immediate feedback only after we know the
+      // secure trace request can include a session token. The server remains
+      // the source of truth for the actual atomic charge/refund.
+      if (userCredits > 0) setUserCredits(prev => Math.max(0, prev - creditCost));
+
       // ─── Step 1: Gemini ───────────────────────────────────────────────
       clearConsole("[Step 1] Analyzing Image with DesaynVision™...");
 
@@ -103,7 +123,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       if (!res1.ok) {
         const errData = await safeJson(res1, res1.status === 504 ? "504 Timeout" : `Server Error ${res1.status}`);
-        const msg = errData.error || `Error ${res1.status}`;
+        const msg = getTraceErrorMessage(res1, errData);
         if (msg === "INSUFFICIENT_CREDITS") {
           setUserCredits(0);
           onNoCredits?.();
@@ -146,7 +166,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       if (!res2.ok) {
         const errData = await safeJson(res2, res2.status === 504 ? "504 Timeout" : `Server Error ${res2.status}`);
-        const msg = errData.error || `Error ${res2.status}`;
+        const msg = getTraceErrorMessage(res2, errData);
         setNodeErrors(prev => ({ ...prev, step2: msg }));
         throw new Error(msg);
       }
@@ -188,7 +208,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       if (!res3.ok) {
         const errData = await safeJson(res3, res3.status === 504 ? "504 Timeout" : `Server Error ${res3.status}`);
-        const msg = errData.error || `Error ${res3.status}`;
+        const msg = getTraceErrorMessage(res3, errData);
         setNodeErrors(prev => ({ ...prev, step3: msg }));
         throw new Error(msg);
       }
@@ -248,8 +268,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         ? "The AI engine timed out before finishing. Try a tighter crop or simpler image; any claw charged for a fully failed run is restored automatically."
         : error.message;
 
-      if (!isTimeout) {
-        // Only surface unexpected errors to the dev overlay, not timeout noise
+      if (!isTimeout && !isExpectedTraceError(error)) {
+        // Only surface unexpected errors to the dev overlay, not known
+        // operational states like provider downtime, rate limits, or sessions.
         console.error("[Trace Error]", error);
         analytics.error(error, {
           area: "trace_execution",

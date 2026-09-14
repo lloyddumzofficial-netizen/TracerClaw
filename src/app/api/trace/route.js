@@ -10,6 +10,49 @@ import { logger } from "@/lib/logger";
 export const runtime = 'nodejs';
 export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is safe
 
+const AI_PROVIDER_UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE";
+
+function getProviderStatus(error) {
+  return error?.status || error?.statusCode || error?.response?.status || null;
+}
+
+function isAiProviderError(error) {
+  const message = String(error?.message || "");
+  const providerStatus = getProviderStatus(error);
+
+  return (
+    error?.code === AI_PROVIDER_UNAVAILABLE ||
+    providerStatus === 401 ||
+    providerStatus === 402 ||
+    providerStatus === 403 ||
+    /fal\.ai|fal-ai|FAL_KEY|Forbidden|Unauthorized|payment|required|insufficient|quota|credits?/i.test(message)
+  );
+}
+
+function getClientTraceError(error, didRefund) {
+  if (isAiProviderError(error)) {
+    return {
+      status: 503,
+      body: {
+        error: didRefund
+          ? "AI engine is temporarily unavailable. Your claw has been refunded automatically."
+          : "AI engine is temporarily unavailable. Please try again shortly.",
+        code: AI_PROVIDER_UNAVAILABLE,
+        refunded: didRefund,
+      },
+    };
+  }
+
+  return {
+    status: 500,
+    body: {
+      error: error?.message || "Failed to process trace step",
+      code: "TRACE_STEP_FAILED",
+      refunded: didRefund,
+    },
+  };
+}
+
 export async function POST(request) {
   let projectId;
   let userId;
@@ -259,7 +302,10 @@ export async function POST(request) {
           message: String(err?.message || "Unknown provider error").slice(0, 300),
           status: err?.status || err?.statusCode || null,
         });
-        throw new Error(err.message || "Failed to generate image with fal.ai");
+        const providerError = new Error(err?.message || "Failed to generate image with fal.ai");
+        providerError.code = AI_PROVIDER_UNAVAILABLE;
+        providerError.status = getProviderStatus(err);
+        throw providerError;
       }
 
       // Upload server-side and hand the client a URL.
@@ -430,13 +476,11 @@ export async function POST(request) {
       logger.error("[Billing] Refund exception", { projectId, message: refundErr?.message });
     }
 
-    // Never expose raw internal error messages (API keys, stack traces) to the client
-    const isProviderError = error.message?.includes('FAL') || error.message?.includes('fal') || error.message?.includes('API');
-    const safeMessage = isProviderError
-      ? (didRefund
-          ? 'AI processing failed. Your claw has been refunded automatically.'
-          : 'AI processing failed. Please try again.')
-      : (error.message || 'Failed to process trace step');
-    return NextResponse.json({ error: safeMessage }, { status: 500 });
+    // Never expose raw internal provider messages (API keys, billing details,
+    // provider stack traces) to the client. fal.ai can surface account/billing
+    // problems as a plain "Forbidden"; classify that as an operational outage
+    // and keep the user's project recoverable/refundable.
+    const clientError = getClientTraceError(error, didRefund);
+    return NextResponse.json(clientError.body, { status: clientError.status });
   }
 }
