@@ -10,6 +10,121 @@ import { notifyProjectCompleted } from "@/lib/integrations/webhook";
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
 
+function cleanSvgText(svgText) {
+  let cleaned = String(svgText || "")
+    .replace(/^```(xml|svg)?\n?/i, '')
+    .replace(/\n?```$/i, '')
+    .trim();
+
+  const svgStartMatch = cleaned.match(/<svg[\s\S]*?>/i);
+  if (!svgStartMatch) {
+    throw new Error("Vector provider did not return a valid SVG document.");
+  }
+
+  const startIndex = cleaned.indexOf(svgStartMatch[0]);
+  cleaned = cleaned.substring(startIndex);
+
+  if (!/<\/svg>/i.test(cleaned)) {
+    throw new Error("Vector provider returned an incomplete SVG document.");
+  }
+
+  if (!cleaned.includes('xmlns="http://www.w3.org/2000/svg"')) {
+    cleaned = cleaned.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+
+  return cleaned;
+}
+
+async function readProviderError(response, fallbackMessage) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const data = await response.json().catch(() => null);
+    return data?.error?.message || data?.message || data?.error || fallbackMessage;
+  }
+  const text = await response.text().catch(() => "");
+  return text || fallbackMessage;
+}
+
+async function refundPrecisionCredit({ userId }) {
+  const { data: refundRows, error: refundErr } = await adminSupabase
+    .rpc('adjust_user_credit_with_log', {
+      target_user_id: userId,
+      credit_delta: 1,
+      log_action: 'Refund Precision SVG Engine',
+    });
+  const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+  if (refundErr || refund?.status !== 'adjusted') {
+    logger.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`, refundErr || refund);
+    return false;
+  }
+  return true;
+}
+
+async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 110000 }) {
+  const vectorizeFormData = new FormData();
+  vectorizeFormData.append('image', imageBlob, 'image.png');
+
+  logger.info("[Step 3] Sending to standard vector engine");
+  const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
+    body: vectorizeFormData,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+
+  if (!recraftVectorRes.ok) {
+    const errText = await readProviderError(recraftVectorRes, "Standard vectorization failed.");
+    throw new Error(`Vectorization failed: ${errText}`);
+  }
+
+  const vectorData = await recraftVectorRes.json();
+  const vectorUrl = vectorData?.image?.url;
+  if (!vectorUrl) {
+    throw new Error("Standard vector engine did not return an SVG URL.");
+  }
+
+  const { response: svgRes, buffer: svgDownloadBuffer } = await fetchWithSSRFProtection(vectorUrl, {
+    allowedHosts: getAllowedProviderHosts(),
+    maxBytes: DEFAULT_MAX_SVG_BYTES,
+    allowedContentTypes: ['image/svg+xml', 'text/plain', 'application/octet-stream'],
+  });
+  if (!svgRes.ok) throw new Error("Failed to fetch vectorized SVG");
+
+  return cleanSvgText(svgDownloadBuffer.toString('utf8'));
+}
+
+async function vectorizeWithPrecisionEngine({ imageBlob, colors, vectorizerApiId, vectorizerApiSecret, timeoutMs = 80000 }) {
+  const vectorizerFormData = new FormData();
+  vectorizerFormData.append('image', imageBlob, 'image.png');
+  vectorizerFormData.append('output.file_format', 'svg');
+  vectorizerFormData.append('output.svg.adobe_compatibility_mode', 'true');
+  vectorizerFormData.append('output.svg.fixed_size', 'false');
+  if (colors && colors !== "auto") {
+    vectorizerFormData.append('processing.max_colors', String(parseInt(colors, 10)));
+  }
+
+  const basicAuth = Buffer.from(`${vectorizerApiId}:${vectorizerApiSecret}`).toString('base64');
+  logger.info("[Step 3] Sending to precision vector engine");
+  const vectorizerRes = await fetchWithRetry("https://api.vectorizer.ai/api/v1/vectorize", {
+    method: "POST",
+    headers: { "Authorization": `Basic ${basicAuth}` },
+    body: vectorizerFormData,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+
+  if (!vectorizerRes.ok) {
+    const errText = await readProviderError(vectorizerRes, "Precision vectorization failed.");
+    throw new Error(`Precision vectorization failed: ${errText}`);
+  }
+
+  const svgArrayBuffer = await vectorizerRes.arrayBuffer();
+  if (svgArrayBuffer.byteLength > DEFAULT_MAX_SVG_BYTES) {
+    throw new Error("Precision SVG output is too large. Try cropping tighter or use Standard SVG.");
+  }
+
+  return cleanSvgText(Buffer.from(svgArrayBuffer).toString('utf8'));
+}
+
 export async function POST(request) {
   let projectId;
   let userId;
@@ -117,108 +232,68 @@ export async function POST(request) {
 
     const blob = new Blob([compressedBuffer], { type: 'image/png' });
     let svgText;
+    let engineUsed = svgEngine;
+    let precisionFallback = false;
+    let precisionWarning = null;
 
     if (svgEngine === "precision") {
       const vectorizerApiId = process.env.VECTORIZER_API_ID;
       const vectorizerApiSecret = process.env.VECTORIZER_API_SECRET;
 
-      if (!vectorizerApiId || !vectorizerApiSecret) {
-        return NextResponse.json(
-          { error: "Precision SVG engine is not configured yet. Please use Standard SVG for now." },
-          { status: 503 }
-        );
-      }
+      if (vectorizerApiId && vectorizerApiSecret) {
+        const { data: chargeRows, error: chargeErr } = await adminSupabase
+          .rpc('adjust_user_credit_with_log', {
+            target_user_id: user.id,
+            credit_delta: -1,
+            log_action: 'Precision SVG Engine',
+          });
+        if (chargeErr) {
+          console.error("[Step 3] Precision charge RPC failed:", chargeErr);
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
+        const charge = Array.isArray(chargeRows) ? chargeRows[0] : chargeRows;
+        if (charge?.status === 'insufficient_credits') {
+          return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+        }
+        if (charge?.status !== 'adjusted') {
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
+        precisionCreditDeducted = true;
 
-      const { data: chargeRows, error: chargeErr } = await adminSupabase
-        .rpc('adjust_user_credit_with_log', {
-          target_user_id: user.id,
-          credit_delta: -1,
-          log_action: 'Precision SVG Engine',
+        try {
+          svgText = await vectorizeWithPrecisionEngine({
+            imageBlob: blob,
+            colors,
+            vectorizerApiId,
+            vectorizerApiSecret,
+            timeoutMs: 80000,
+          });
+        } catch (precisionError) {
+          logger.warn("[Step 3] Precision SVG failed; falling back to standard SVG", {
+            projectId,
+            userId: user.id,
+            error: precisionError?.message,
+          });
+          if (precisionCreditDeducted && await refundPrecisionCredit({ userId: user.id })) {
+            precisionCreditDeducted = false;
+          }
+          precisionFallback = true;
+          precisionWarning = "Precision SVG was temporarily unavailable, so Standard SVG was generated and the extra Precision claw was restored.";
+          engineUsed = "standard";
+          svgText = await vectorizeWithStandardEngine({ imageBlob: blob, timeoutMs: 35000 });
+        }
+      } else {
+        logger.warn("[Step 3] Precision SVG requested without provider credentials; falling back to standard SVG", {
+          projectId,
+          userId: user.id,
         });
-      if (chargeErr) {
-        console.error("[Step 3] Precision charge RPC failed:", chargeErr);
-        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        precisionFallback = true;
+        precisionWarning = "Precision SVG is not configured yet, so Standard SVG was generated instead.";
+        engineUsed = "standard";
+        svgText = await vectorizeWithStandardEngine({ imageBlob: blob });
       }
-      const charge = Array.isArray(chargeRows) ? chargeRows[0] : chargeRows;
-      if (charge?.status === 'insufficient_credits') {
-        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
-      }
-      if (charge?.status !== 'adjusted') {
-        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
-      }
-      precisionCreditDeducted = true;
-
-      const vectorizerFormData = new FormData();
-      vectorizerFormData.append('image', blob, 'image.png');
-      vectorizerFormData.append('output.file_format', 'svg');
-      vectorizerFormData.append('output.svg.adobe_compatibility_mode', 'true');
-      vectorizerFormData.append('output.svg.fixed_size', 'false');
-      if (colors && colors !== "auto") {
-        vectorizerFormData.append('processing.max_colors', String(parseInt(colors, 10)));
-      }
-
-      const basicAuth = Buffer.from(`${vectorizerApiId}:${vectorizerApiSecret}`).toString('base64');
-      logger.info("[Step 3] Sending to Vectorizer.AI precision engine");
-      const vectorizerRes = await fetchWithRetry("https://api.vectorizer.ai/api/v1/vectorize", {
-        method: "POST",
-        headers: { "Authorization": `Basic ${basicAuth}` },
-        body: vectorizerFormData,
-        signal: AbortSignal.timeout(110000),
-      });
-
-      if (!vectorizerRes.ok) {
-        const errText = await vectorizerRes.text();
-        throw new Error(`Precision vectorization failed: ${errText}`);
-      }
-
-      const svgArrayBuffer = await vectorizerRes.arrayBuffer();
-      if (svgArrayBuffer.byteLength > DEFAULT_MAX_SVG_BYTES) {
-        throw new Error("Precision SVG output is too large. Try cropping tighter or use Standard SVG.");
-      }
-      svgText = Buffer.from(svgArrayBuffer).toString('utf8');
     } else {
-      const vectorizeFormData = new FormData();
-      vectorizeFormData.append('image', blob, 'image.png');
-
-      logger.info("[Step 3] Sending to Recraft vectorize");
-      const recraftVectorRes = await fetchWithRetry("https://external.api.recraft.ai/v1/images/vectorize", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${process.env.RECRAFT_API_KEY}` },
-        body: vectorizeFormData,
-        signal: AbortSignal.timeout(110000), // 110s — large images need time to upload + process
-      });
-
-      if (!recraftVectorRes.ok) {
-        const errText = await recraftVectorRes.text();
-        throw new Error(`Vectorization failed: ${errText}`);
-      }
-
-      const vectorData = await recraftVectorRes.json();
-      const vectorUrl = vectorData.image.url;
-
-      const { response: svgRes, buffer: svgDownloadBuffer } = await fetchWithSSRFProtection(vectorUrl, {
-        allowedHosts: getAllowedProviderHosts(),
-        maxBytes: DEFAULT_MAX_SVG_BYTES,
-        allowedContentTypes: ['image/svg+xml', 'text/plain', 'application/octet-stream'],
-      });
-      if (!svgRes.ok) throw new Error("Failed to fetch vectorized SVG");
-      svgText = svgDownloadBuffer.toString('utf8');
-    }
-
-    // --- FIX FOR ADOBE ILLUSTRATOR "INVALID SVG" ERROR ---
-    // 1. Remove markdown backticks if AI accidentally included them
-    svgText = svgText.replace(/^```(xml|svg)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    
-    // 2. Remove anything before the <svg> tag (like invalid <?xml ... ?> declarations)
-    const svgStartMatch = svgText.match(/<svg[\s\S]*?>/i);
-    if (svgStartMatch) {
-      const startIndex = svgText.indexOf(svgStartMatch[0]);
-      svgText = svgText.substring(startIndex);
-    }
-
-    // 3. Ensure xmlns is present
-    if (!svgText.includes('xmlns="http://www.w3.org/2000/svg"')) {
-      svgText = svgText.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+      svgText = await vectorizeWithStandardEngine({ imageBlob: blob });
     }
 
     // ─── Semantic Layer Grouping — REMOVED ────────────────────────────────────
@@ -272,7 +347,10 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       step: 3,
-      svg_url: finalSvgUrl
+      svg_url: finalSvgUrl,
+      engineUsed,
+      precisionFallback,
+      warning: precisionWarning,
     });
 
   } catch (error) {
@@ -282,16 +360,7 @@ export async function POST(request) {
       // Refund the EXTRA precision claw — that service genuinely was not
       // delivered. Check the result rather than assuming it moved.
       if (precisionCreditDeducted && userId) {
-        const { data: refundRows, error: refundErr } = await adminSupabase
-          .rpc('adjust_user_credit_with_log', {
-            target_user_id: userId,
-            credit_delta: 1,
-            log_action: 'Refund Precision SVG Engine',
-          });
-        const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
-        if (refundErr || refund?.status !== 'adjusted') {
-          console.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`, refundErr || refund);
-        } else {
+        if (await refundPrecisionCredit({ userId })) {
           precisionCreditDeducted = false;
         }
       }

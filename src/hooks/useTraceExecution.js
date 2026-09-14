@@ -218,6 +218,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         ...prev,
         svg_url: data3.svg_url,
       }));
+      if (data3.warning) {
+        logToConsole(`[System] ${data3.warning}`, "normal");
+      }
       logToConsole("[Success] Vectorization Complete!", "success");
       analytics.traceCompleted({
         project_id: project.id,
