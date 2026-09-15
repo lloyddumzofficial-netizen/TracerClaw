@@ -232,25 +232,6 @@ export function sortPalette(items, mode) {
   return list.sort(byUsage);
 }
 
-/**
- * Filter by hex fragment. A bare "f00" matches #ff0000-ish entries by text, and
- * a full 3- or 6-digit hex also matches visually-near colors so a user pasting a
- * brand color still finds the closest swatch actually present in the artwork.
- */
-export function filterPalette(items, query) {
-  const raw = (query || "").trim().toLowerCase();
-  if (!raw) return items;
-
-  const term = raw.replace(/^#/, "");
-  if (!term) return items;
-
-  const exact = expandHex(term);
-  return items.filter((item) => {
-    if (item.color.replace("#", "").includes(term)) return true;
-    return exact ? colorDistance(item.color, exact) <= 40 : false;
-  });
-}
-
 export function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }

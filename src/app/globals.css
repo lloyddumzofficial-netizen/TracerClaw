@@ -5814,6 +5814,506 @@ body {
   }
 }
 
+/* Palette Studio professional pass: sharper, quieter, closer to DesaynClaw's
+   workspace chrome. Keep this as an override layer so the editor logic/layout
+   above remains untouched. */
+.palette-modal {
+  --palette-shell: #070707;
+  --palette-panel: #0f0f0f;
+  --palette-panel-raised: #141414;
+  --palette-line: rgba(255, 255, 255, 0.12);
+  --palette-soft-line: rgba(255, 255, 255, 0.065);
+  --palette-muted: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 95px),
+    var(--palette-shell);
+  box-shadow:
+    0 26px 90px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.palette-header,
+.palette-footer {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)),
+    #101010;
+}
+
+.palette-header {
+  min-height: 56px;
+  padding-inline: 20px;
+}
+
+.palette-brand img {
+  width: 136px;
+  opacity: 0.84;
+}
+
+.palette-header-meta {
+  gap: 8px;
+}
+
+.palette-header-meta span,
+.palette-header-meta strong,
+.palette-modal .icon-btn-small,
+.palette-view-controls,
+.palette-view-controls button,
+.palette-side-head strong,
+.palette-search,
+.palette-sort button,
+.palette-swatch-grid-priority,
+.recolor-swatch,
+.recolor-hex-row,
+.palette-footer button,
+.palette-canvas>span {
+  border-radius: 4px;
+}
+
+.palette-header-meta span,
+.palette-header-meta strong {
+  min-height: 29px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #141414;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.palette-header-meta strong {
+  border-color: rgba(255, 215, 0, 0.34);
+  background: rgba(255, 215, 0, 0.035);
+  color: #fff;
+}
+
+.palette-body {
+  grid-template-columns: minmax(0, 1fr) minmax(392px, 430px);
+  background: #070707;
+}
+
+.palette-artboard {
+  padding: 38px 34px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.045), transparent 33%),
+    #050505;
+  background-size: 28px 28px, 28px 28px, auto, auto;
+}
+
+.palette-svg-preview {
+  padding: 12px;
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.018);
+  filter: drop-shadow(0 26px 58px rgba(0, 0, 0, 0.58));
+}
+
+.palette-svg-preview.is-color-focused::before {
+  inset: 12px;
+  border-radius: 2px;
+}
+
+.palette-view-controls {
+  top: 20px;
+  right: 20px;
+  gap: 4px;
+  padding: 4px;
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(18, 18, 18, 0.96);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+}
+
+.palette-side {
+  grid-template-rows: 58px 214px 48px minmax(0, 1fr);
+  border-left-color: rgba(255, 255, 255, 0.11);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 170px),
+    #0f0f0f;
+}
+
+.palette-side-head {
+  padding-inline: 15px 18px;
+  border-bottom-color: rgba(255, 255, 255, 0.11);
+}
+
+.palette-side-head span,
+.palette-list-title span {
+  font-size: 12px;
+  letter-spacing: 1.75px;
+}
+
+.palette-side-head strong {
+  min-height: 24px;
+  padding: 0 12px;
+  border-color: rgba(255, 215, 0, 0.35);
+  background: rgba(255, 215, 0, 0.035);
+}
+
+.palette-clusters {
+  height: 214px;
+  min-height: 214px;
+  border-bottom-color: rgba(255, 255, 255, 0.11);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 70% 25%, rgba(255, 215, 0, 0.055), transparent 26%),
+    #111;
+  background-size: 24px 24px, 24px 24px, auto, auto;
+}
+
+.palette-cluster {
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset -10px -12px 0 rgba(0, 0, 0, 0.16),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.18),
+    0 16px 28px rgba(0, 0, 0, 0.38);
+}
+
+.palette-cluster.active {
+  outline-width: 1px;
+  outline-offset: 4px;
+  box-shadow:
+    0 0 0 1px rgba(255, 215, 0, 0.42),
+    0 18px 32px rgba(0, 0, 0, 0.45);
+}
+
+.palette-tools {
+  min-height: 48px;
+  border-bottom-color: rgba(255, 255, 255, 0.11);
+}
+
+.palette-tools button {
+  min-height: 48px;
+  background: #101010;
+}
+
+.palette-tools button:hover:not(:disabled),
+.palette-tools button:focus-visible:not(:disabled) {
+  background: #161616;
+}
+
+.palette-tools button.active {
+  background: #151515;
+}
+
+.palette-tools button.active::after {
+  height: 2px;
+}
+
+.palette-list {
+  padding: 14px 15px 0;
+}
+
+.palette-search {
+  min-height: 34px;
+  border-color: rgba(255, 255, 255, 0.13);
+  background: #121212;
+}
+
+.palette-search:focus-within {
+  background: #151515;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.2);
+}
+
+.palette-sort {
+  gap: 6px;
+}
+
+.palette-sort button {
+  min-height: 29px;
+  background: #121212;
+}
+
+.palette-sort button.active {
+  background: #ffd700;
+}
+
+.palette-swatch-grid-priority {
+  gap: 8px;
+  padding: 12px;
+  border-color: rgba(255, 255, 255, 0.11);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent),
+    #111;
+}
+
+.palette-swatch-grid button {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+}
+
+.palette-swatch-grid span {
+  width: 27px;
+  height: 27px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 8px 14px rgba(0, 0, 0, 0.3);
+}
+
+.palette-swatch-grid button.active {
+  box-shadow: 0 0 0 1px #ffd700, 0 0 0 4px rgba(255, 215, 0, 0.1);
+}
+
+.recolor-panel {
+  margin-top: 8px;
+  padding-top: 12px;
+  background: #0f0f0f;
+}
+
+.recolor-swatch-label,
+.recolor-swatch {
+  border-radius: 4px;
+}
+
+.recolor-quick-dot {
+  width: 17px;
+  height: 17px;
+}
+
+.palette-footer {
+  min-height: 62px;
+  padding-inline: 20px 16px;
+}
+
+.palette-footer .palette-action-primary {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.palette-footer .palette-action-primary:hover:not(:disabled),
+.palette-footer .palette-action-primary:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Recolor compact correction: after the professional pass, this area should
+   read as a compact control group, not a large empty panel. */
+.palette-side .recolor-panel {
+  margin-top: 8px;
+  padding: 10px 10px 11px;
+}
+
+.palette-side .recolor-panel-header {
+  margin-bottom: 8px;
+}
+
+.palette-side .recolor-panel-controls {
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 9px;
+}
+
+.palette-side .recolor-swatch-label,
+.palette-side .recolor-swatch {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+}
+
+.palette-side .recolor-panel-right {
+  grid-template-columns: minmax(118px, 1fr) max-content;
+  gap: 8px;
+}
+
+.palette-side .recolor-hex-row {
+  min-height: 32px;
+}
+
+.palette-side .recolor-hex-input {
+  height: 31px;
+}
+
+.palette-side .recolor-quick-colors {
+  gap: 4px;
+}
+
+.palette-side .recolor-quick-dot {
+  width: 15px;
+  height: 15px;
+  flex-basis: 15px;
+}
+
+.palette-side .recolor-panel-status {
+  margin-top: 7px;
+  min-height: 14px;
+  font-size: 10px;
+}
+
+/* Palette Studio lower-panel spacing fix: keep the recolor controls inside the
+   side panel instead of visually crashing into the footer. */
+.palette-side .recolor-panel {
+  margin: 10px 0 0;
+  padding: 12px 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent),
+    #101010;
+}
+
+.palette-side .recolor-panel-header {
+  margin-bottom: 9px;
+  padding-inline: 0;
+}
+
+.palette-side .recolor-panel-controls {
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.palette-side .recolor-swatch-label,
+.palette-side .recolor-swatch {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+}
+
+.palette-side .recolor-panel-right {
+  display: grid;
+  grid-template-columns: minmax(118px, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.palette-side .recolor-hex-row {
+  min-height: 34px;
+}
+
+.palette-side .recolor-hex-input {
+  height: 33px;
+}
+
+.palette-side .recolor-quick-colors {
+  margin-top: 0;
+  min-height: 18px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 5px;
+}
+
+.palette-side .recolor-quick-dot {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.palette-side .recolor-panel-status {
+  margin-top: 8px;
+  padding-bottom: 0;
+  min-height: 15px;
+  gap: 5px;
+  flex-wrap: wrap;
+  line-height: 1.2;
+}
+
+.palette-side .recolor-status-sep {
+  opacity: 0.45;
+}
+
+.palette-footer {
+  min-height: 66px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+@media (max-width: 980px) {
+  .palette-side {
+    grid-template-rows: 52px 148px 48px minmax(0, 1fr);
+  }
+
+  .palette-clusters {
+    height: 148px;
+    min-height: 148px;
+  }
+
+  .palette-side .recolor-panel {
+    padding-bottom: 14px;
+  }
+}
+
+/* Palette Studio compact recolor final pass: keep this after the lower-panel
+   safety rules so the recolor selection stays tight and intentional. */
+.palette-side .recolor-panel {
+  margin: 8px 0 0;
+  padding: 10px 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent),
+    #101010;
+}
+
+.palette-side .recolor-panel-header {
+  margin-bottom: 8px;
+}
+
+.palette-side .recolor-panel-controls {
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 9px;
+}
+
+.palette-side .recolor-swatch-label,
+.palette-side .recolor-swatch {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+}
+
+.palette-side .recolor-panel-right {
+  display: grid;
+  grid-template-columns: minmax(118px, 1fr) max-content;
+  align-items: center;
+  gap: 8px;
+}
+
+.palette-side .recolor-hex-row {
+  min-height: 32px;
+}
+
+.palette-side .recolor-hex-input {
+  height: 31px;
+}
+
+.palette-side .recolor-quick-colors {
+  margin-top: 0;
+  min-height: 16px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.palette-side .recolor-quick-dot {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+.palette-side .recolor-panel-status {
+  margin-top: 7px;
+  min-height: 14px;
+  gap: 5px;
+  flex-wrap: wrap;
+  line-height: 1.2;
+  font-size: 10px;
+}
+
+.palette-side .palette-filters {
+  margin: 8px 0 9px;
+}
+
+.palette-side .palette-sort {
+  gap: 6px;
+}
+
+.palette-side .palette-sort button {
+  min-height: 28px;
+}
+
+.palette-footer {
+  min-height: 64px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
 /* ─── EduSection ─────────────────────────────────────────── */
 
 /* Demo video + steps */

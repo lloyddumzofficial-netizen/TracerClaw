@@ -1,4 +1,4 @@
-import { GitCompareArrows, GitMerge, Layers3, Loader2, Pencil, Redo2, Search, Undo2, X } from "lucide-react";
+import { GitCompareArrows, GitMerge, Layers3, Loader2, Pencil, Redo2, Undo2 } from "lucide-react";
 import PaletteRecolorPanel from "./PaletteRecolorPanel";
 import {
   DEFAULT_BUBBLE_LAYOUT,
@@ -21,9 +21,7 @@ export default function PaletteColorMapPanel({
   hasEdits,
   visiblePalette,
   displayPalette,
-  paletteQuery,
   paletteSort,
-  onSetPaletteQuery,
   onSetPaletteSort,
   loading,
   selectedItem,
@@ -179,34 +177,11 @@ export default function PaletteColorMapPanel({
           <Layers3 size={14} />
           <span>Detected Palette</span>
           <small>
-            {paletteQuery
-              ? `${displayPalette.length} of ${visiblePalette.length} colors match "${paletteQuery}".`
-              : `${visiblePalette.length} SVG colors. Select a color to inspect, or drag in Merge mode.`}
+            {`${visiblePalette.length} SVG colors. Select a color to inspect, or drag in Merge mode.`}
           </small>
         </div>
 
         <div className="palette-filters">
-          <div className="palette-search">
-            <Search size={13} aria-hidden="true" />
-            <input
-              type="text"
-              value={paletteQuery}
-              onChange={(event) => onSetPaletteQuery(event.target.value)}
-              placeholder="Search hex, e.g. 1a1 or #ff0000"
-              aria-label="Search palette colors by hex"
-              spellCheck={false}
-            />
-            {paletteQuery && (
-              <button
-                type="button"
-                className="palette-search-clear"
-                onClick={() => onSetPaletteQuery("")}
-                aria-label="Clear color search"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
           <div className="palette-sort" role="group" aria-label="Sort palette">
             {PALETTE_SORTS.map(option => (
               <button
@@ -233,8 +208,7 @@ export default function PaletteColorMapPanel({
         ) : (
           displayPalette.length === 0 ? (
             <div className="palette-empty">
-              <strong>No colors match "{paletteQuery}".</strong>
-              <button type="button" onClick={() => onSetPaletteQuery("")}>Clear search</button>
+              <strong>No palette colors detected.</strong>
             </div>
           ) : (
             <div className="palette-swatch-grid palette-swatch-grid-priority">

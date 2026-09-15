@@ -11,7 +11,6 @@ import {
   clamp,
   colorDistance,
   extractPalette,
-  filterPalette,
   getSvgDimensions,
   getSvgSize,
   normalizeColor,
@@ -119,7 +118,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   const [viewPan, setViewPan] = useState({ x: 0, y: 0 });
   const [editHistory, setEditHistory] = useState([]);
   const [redoHistory, setRedoHistory] = useState([]);
-  const [paletteQuery, setPaletteQuery] = useState("");
   const [paletteSort, setPaletteSort] = useState("usage");
   // Non-committed recolor shown while the picker is being dragged.
   const [previewSvgText, setPreviewSvgText] = useState(null);
@@ -174,7 +172,6 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
         setEditHistory([]);
         setRedoHistory([]);
         setPreviewSvgText(null);
-        setPaletteQuery("");
         setPaletteSort("usage");
         setDragMergeColor(null);
         setMergeTargetColor(null);
@@ -215,8 +212,8 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   }, [featured, visiblePalette]);
 
   const displayPalette = useMemo(
-    () => sortPalette(filterPalette(visiblePalette, paletteQuery), paletteSort),
-    [visiblePalette, paletteQuery, paletteSort]
+    () => sortPalette(visiblePalette, paletteSort),
+    [visiblePalette, paletteSort]
   );
 
   const selectedItem = palette.find(item => item.color === selectedColor) || palette[0] || null;
@@ -733,9 +730,7 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
             hasEdits={hasEdits}
             visiblePalette={visiblePalette}
             displayPalette={displayPalette}
-            paletteQuery={paletteQuery}
             paletteSort={paletteSort}
-            onSetPaletteQuery={setPaletteQuery}
             onSetPaletteSort={setPaletteSort}
             loading={loading}
             selectedItem={selectedItem}
