@@ -18,6 +18,8 @@ const MOBILE_SCAN_LIMIT = 250;
 const MOBILE_DELETE_LIMIT = 25;
 const ZIP_BATCH_LIMIT = 25;
 const UPSCALE_RECONCILE_LIMIT = 20;
+const GENERATION_RECONCILE_LIMIT = 20;
+const GENERATION_STALE_MINUTES = 15;
 // A queued upscale finishes in seconds to a couple of minutes. Anything still
 // unresolved after this long was abandoned by the client and will never be
 // reconciled, because nothing but the browser poll ever checks it.
@@ -137,6 +139,54 @@ async function reconcileAbandonedUpscales(results) {
   }
 }
 
+async function reconcileGenerationAttempts(results) {
+  const staleBefore = new Date(Date.now() - GENERATION_STALE_MINUTES * 60_000).toISOString();
+  const { data: attempts, error: attemptsError } = await adminSupabase
+    .from('generation_attempts')
+    .select('id, user_id, project_id, operation')
+    .eq('status', 'processing')
+    .lt('created_at', staleBefore)
+    .order('created_at', { ascending: true })
+    .limit(GENERATION_RECONCILE_LIMIT);
+
+  // During a staged deploy the cleanup route can run before migration 020.
+  if (attemptsError?.code === '42P01' || attemptsError?.code === 'PGRST205') return;
+  if (attemptsError) throw attemptsError;
+  if (!attempts?.length) return;
+
+  for (const attempt of attempts) {
+    try {
+      const { data: refundRows, error: refundError } = await adminSupabase
+        .rpc('refund_generation_attempt', {
+          target_user_id: attempt.user_id,
+          target_attempt_id: attempt.id,
+          refund_action: 'Refund (Interrupted Generation)',
+          error_code_value: 'INTERRUPTED_GENERATION',
+        });
+      const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+      if (refundError || !['refunded', 'already_refunded'].includes(refund?.status)) {
+        logger.error('[Cron] Generation attempt refund failed', {
+          attemptId: attempt.id,
+          error: refundError || refund,
+        });
+        continue;
+      }
+
+      await adminSupabase
+        .from('projects')
+        .update({ failed_at: new Date().toISOString(), failed_step: attempt.operation })
+        .eq('id', attempt.project_id)
+        .eq('user_id', attempt.user_id);
+      if (refund?.status === 'refunded') results.generationsRefunded++;
+    } catch (error) {
+      logger.error('[Cron] Generation attempt reconciliation failed', {
+        attemptId: attempt.id,
+        message: error?.message,
+      });
+    }
+  }
+}
+
 export async function GET(request) {
   // Simple cron secret check to prevent random people from triggering it
   const authHeader = request.headers.get('authorization');
@@ -151,6 +201,7 @@ export async function GET(request) {
     zipCacheDeleted: 0,
     upscalesRecovered: 0,
     upscalesRefunded: 0,
+    generationsRefunded: 0,
     projectBatchLimit: PROJECT_BATCH_LIMIT,
     mobileScanLimit: MOBILE_SCAN_LIMIT,
     mobileDeleteLimit: MOBILE_DELETE_LIMIT,
@@ -270,6 +321,13 @@ export async function GET(request) {
       await reconcileAbandonedUpscales(results);
     } catch (upscaleErr) {
       console.warn('[Cron] Upscale reconciliation failed (non-fatal):', upscaleErr.message);
+    }
+
+    // ─── 5. Refund serverless runs interrupted before their catch block ──────
+    try {
+      await reconcileGenerationAttempts(results);
+    } catch (generationErr) {
+      console.warn('[Cron] Generation reconciliation failed (non-fatal):', generationErr.message);
     }
 
     logger.info("[Cron] Done", results);

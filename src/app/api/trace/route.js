@@ -4,6 +4,12 @@ import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning } from "@/lib/tracePrompts";
 import { logger } from "@/lib/logger";
+import {
+  claimGenerationAttempt,
+  completeGenerationAttempt,
+  isGenerationAttemptStale,
+  refundGenerationAttempt,
+} from "@/server/billing";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -57,6 +63,8 @@ export async function POST(request) {
   let projectId;
   let userId;
   let failedStep = "unknown";
+  let generationAttemptId = null;
+  let usedIdempotentBilling = false;
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -82,7 +90,7 @@ export async function POST(request) {
 
     const body = await request.json();
     projectId = body.projectId;
-    const { step, croppedImageUrl } = body;
+    const { step, croppedImageUrl, requestKey } = body;
     failedStep = String(step);
 
     if (!projectId || !step) {
@@ -134,23 +142,82 @@ export async function POST(request) {
     // project.user_id is guaranteed non-null from check above.
     // ============================================================
     if (step === 1) {
-      const { data: claimRows, error: claimErr } = await adminSupabase
-        .rpc('claim_project_credit', {
-          target_user_id: project.user_id,
-          target_project_id: projectId,
-          charge_action: 'Extract & Vectorize',
-          charge_amount: 1,
-        });
-      if (claimErr) {
-        logger.error('[Billing] Claim RPC error', claimErr);
-        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      const idempotentClaim = await claimGenerationAttempt({
+        userId: project.user_id,
+        projectId,
+        operation: "trace",
+        requestKey,
+        chargeAction: "Extract & Vectorize",
+      });
+
+      if (idempotentClaim.mode === "error") {
+        return NextResponse.json({
+          error: "Billing verification failed. No retry charge was attempted.",
+          code: "BILLING_VERIFICATION_FAILED",
+        }, { status: 503 });
       }
-      const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
-      if (claim?.status === 'insufficient_credits') {
-        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
-      }
-      if (claim?.status !== 'charged') {
-        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      if (idempotentClaim.mode === "idempotent") {
+        usedIdempotentBilling = true;
+        generationAttemptId = idempotentClaim.attempt_id;
+        if (idempotentClaim.status === "already_claimed") {
+          if (idempotentClaim.attempt_status === "completed" && idempotentClaim.result_url) {
+            return NextResponse.json({
+              success: true,
+              step: 1,
+              fileUrl: idempotentClaim.result_url,
+              mimeType: idempotentClaim.result_mime_type || "image/png",
+              replayed: true,
+            });
+          }
+          if (idempotentClaim.attempt_status === "processing") {
+            if (isGenerationAttemptStale(idempotentClaim.attempt_created_at)) {
+              const refund = await refundGenerationAttempt({
+                userId,
+                attemptId: generationAttemptId,
+                action: 'Refund (Interrupted Generation)',
+                errorCode: 'INTERRUPTED_GENERATION',
+              });
+              return NextResponse.json({
+                error: "The interrupted generation was closed. Your claw was restored; please start again.",
+                code: "GENERATION_ATTEMPT_CLOSED",
+                refunded: refund?.status === 'refunded' || refund?.status === 'already_refunded',
+              }, { status: 409 });
+            }
+            return NextResponse.json({
+              error: "This generation is still processing. Please wait a moment, then retry.",
+              code: "GENERATION_IN_PROGRESS",
+            }, { status: 409 });
+          }
+          return NextResponse.json({
+            error: "The previous attempt was closed. Please start the generation again.",
+            code: "GENERATION_ATTEMPT_CLOSED",
+          }, { status: 409 });
+        }
+        if (idempotentClaim.status === "insufficient_credits") {
+          return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+        }
+        if (idempotentClaim.status !== "charged") {
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
+      } else {
+        const { data: claimRows, error: claimErr } = await adminSupabase
+          .rpc('claim_project_credit', {
+            target_user_id: project.user_id,
+            target_project_id: projectId,
+            charge_action: 'Extract & Vectorize',
+            charge_amount: 1,
+          });
+        if (claimErr) {
+          logger.error('[Billing] Claim RPC error', claimErr);
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
+        const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+        if (claim?.status === 'insufficient_credits') {
+          return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+        }
+        if (claim?.status !== 'charged') {
+          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        }
       }
     }
 
@@ -209,9 +276,8 @@ export async function POST(request) {
         // function mid-flight the catch block never runs — so the user is
         // charged with no server-side refund. Bound it with headroom for the
         // download, resize and R2 upload that still have to happen after this.
-        const FAL_BUDGET_MS = 100_000;
-        const result = await Promise.race([
-          fal.subscribe("fal-ai/nano-banana-pro/edit", {
+        const FAL_BUDGET_MS = 85_000;
+        const result = await fal.subscribe("fal-ai/nano-banana-pro/edit", {
             input: {
               image_urls: [finalImageUrl],
               prompt: prompt,
@@ -220,19 +286,13 @@ export async function POST(request) {
               ...nanoBananaTuning,
             },
             logs: true,
+            abortSignal: AbortSignal.timeout(FAL_BUDGET_MS),
             onQueueUpdate: (update) => {
               if (update.status === "IN_PROGRESS") {
                 logger.debug("[API Step 1] Provider progress", { status: update.status });
               }
             },
-          }),
-          new Promise((_, reject) =>
-            setTimeout(
-              () => reject(new Error("The AI engine took too long to respond. Please try again.")),
-              FAL_BUDGET_MS
-            )
-          ),
-        ]);
+          });
 
         logger.debug("[fal.ai response images]", { count: result?.data?.images?.length ?? 0 });
 
@@ -322,6 +382,7 @@ export async function POST(request) {
         `projects/${projectId}/generated_flat_${Date.now()}.${extractExt}`,
         generatedMimeType
       );
+      await completeGenerationAttempt(generationAttemptId, extractedUrl, generatedMimeType);
 
       return NextResponse.json({
         success: true,
@@ -398,6 +459,7 @@ export async function POST(request) {
           output_format: "png",
         },
         logs: true,
+        abortSignal: AbortSignal.timeout(70_000),
         onQueueUpdate: (update) => {
           if (update.status === "IN_PROGRESS") {
             logger.debug("[API Step 2] Provider progress", { status: update.status });
@@ -452,7 +514,15 @@ export async function POST(request) {
           (current?.generated_image_url && current.generated_image_url !== 'REFUNDED')
         );
 
-        if (current?.credit_deducted && !current.refunded && !hasUsableOutput) {
+        if (usedIdempotentBilling && generationAttemptId) {
+          const refund = await refundGenerationAttempt({
+            userId,
+            attemptId: generationAttemptId,
+            action: 'Refund (Failed Generation)',
+            errorCode: error?.code || 'TRACE_STEP_FAILED',
+          });
+          didRefund = refund?.status === 'refunded';
+        } else if (current?.credit_deducted && !current.refunded && !hasUsableOutput) {
           // Move the money FIRST, then mark it. The old order set refunded=true
           // before the transfer, so a failed transfer left the ledger and the
           // balance disagreeing with no way to retry.

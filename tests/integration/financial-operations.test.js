@@ -226,7 +226,7 @@ describe("Credit refunds", () => {
       target_project_id: "project-1",
       refund_action: "Refund",
       failed_step_value: "trace",
-      mark_generated_refunded: true,
+      mark_generated_refunded: false,
     });
   });
 });

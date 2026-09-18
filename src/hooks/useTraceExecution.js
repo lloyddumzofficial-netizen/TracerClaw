@@ -3,13 +3,14 @@
 import { useState, useCallback, useRef } from "react";
 import { analytics } from "@/lib/analytics";
 import { safeJson } from "@/lib/safeJson";
+import { clearGenerationRequestKey, getOrCreateGenerationRequestKey } from "@/lib/generationRequestKey";
 
 function isTraceTimeoutError(error) {
   return /504|failed to fetch|timed?\s*out|too long to respond/i.test(error?.message || "");
 }
 
 function isExpectedTraceError(error) {
-  return /temporarily unavailable|session expired|too many requests|INSUFFICIENT_CREDITS/i.test(error?.message || "");
+  return /temporarily unavailable|session expired|too many requests|INSUFFICIENT_CREDITS|billing verification failed/i.test(error?.message || "");
 }
 
 function getTraceErrorMessage(response, errData) {
@@ -111,6 +112,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       // ─── Step 1: Gemini ───────────────────────────────────────────────
       clearConsole("[Step 1] Analyzing Image with DesaynVision™...");
+      const requestKey = getOrCreateGenerationRequestKey("trace", project.id);
 
       const res1 = await fetch("/api/trace", {
         method: "POST",
@@ -118,12 +120,21 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
           "Content-Type": "application/json",
           ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ projectId: project.id, step: 1 }),
+        body: JSON.stringify({ projectId: project.id, step: 1, requestKey }),
       });
 
       if (!res1.ok) {
         const errData = await safeJson(res1, res1.status === 504 ? "504 Timeout" : `Server Error ${res1.status}`);
         const msg = getTraceErrorMessage(res1, errData);
+        if (errData?.code === "GENERATION_IN_PROGRESS") {
+          setNodeErrors(prev => ({ ...prev, step1: msg }));
+          logToConsole(`[System] ${msg}`, "normal");
+          setTraceState("idle");
+          return { success: false, inProgress: true };
+        }
+        if (errData?.code === "GENERATION_ATTEMPT_CLOSED" || errData?.refunded) {
+          clearGenerationRequestKey("trace", project.id);
+        }
         if (msg === "INSUFFICIENT_CREDITS") {
           setUserCredits(0);
           onNoCredits?.();
@@ -131,7 +142,10 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
           return;
         }
         setNodeErrors(prev => ({ ...prev, step1: msg }));
-        throw new Error(msg);
+        const stepError = new Error(msg);
+        stepError.serverRefunded = Boolean(errData?.refunded);
+        stepError.skipRefund = errData?.code === "BILLING_VERIFICATION_FAILED";
+        throw stepError;
       }
 
       const data1 = await safeJson(res1, "Trace step 1 failed");
@@ -147,6 +161,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       });
       const saveData1 = await safeJson(save1, "Failed to save image");
       if (!save1.ok) throw new Error(saveData1.error || "Failed to save image");
+      clearGenerationRequestKey("trace", project.id);
 
       setProject(prev => ({ ...prev, generated_image_url: saveData1.url }));
       logToConsole("[Success] Image Extracted by DesaynVision™!", "success");
@@ -239,20 +254,25 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       const isTimeout = isTraceTimeoutError(error);
 
-      // Attempt client-side refund request
+      // Legacy safety net only. New idempotent attempts are refunded by the
+      // failing server route, so calling /api/refund again would be redundant.
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          const refundRes = await fetch("/api/refund", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ projectId: project.id }),
-          });
-          const refundData = await safeJson(refundRes, "Refund request failed");
-          if (refundData.success) {
+          if (!error.serverRefunded && !error.skipRefund) {
+            const refundRes = await fetch("/api/refund", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ projectId: project.id }),
+            });
+            const refundData = await safeJson(refundRes, "Refund request failed");
+            if (refundData.success) {
+              logToConsole("[System] Generation failed. Charged claws were restored.", "success");
+            }
+          } else {
             logToConsole("[System] Generation failed. Charged claws were restored.", "success");
           }
 

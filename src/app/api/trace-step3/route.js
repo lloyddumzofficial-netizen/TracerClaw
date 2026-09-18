@@ -60,7 +60,7 @@ async function refundPrecisionCredit({ userId }) {
   return true;
 }
 
-async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 110000 }) {
+async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 70_000 }) {
   const vectorizeFormData = new FormData();
   vectorizeFormData.append('image', imageBlob, 'image.png');
 
@@ -93,7 +93,7 @@ async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 110000 }) {
   return cleanSvgText(svgDownloadBuffer.toString('utf8'));
 }
 
-async function vectorizeWithPrecisionEngine({ imageBlob, colors, vectorizerApiId, vectorizerApiSecret, timeoutMs = 80000 }) {
+async function vectorizeWithPrecisionEngine({ imageBlob, colors, vectorizerApiId, vectorizerApiSecret, timeoutMs = 55_000 }) {
   const vectorizerFormData = new FormData();
   vectorizerFormData.append('image', imageBlob, 'image.png');
   vectorizerFormData.append('output.file_format', 'svg');
@@ -266,7 +266,7 @@ export async function POST(request) {
             colors,
             vectorizerApiId,
             vectorizerApiSecret,
-            timeoutMs: 80000,
+            timeoutMs: 55_000,
           });
         } catch (precisionError) {
           logger.warn("[Step 3] Precision SVG failed; falling back to standard SVG", {
@@ -280,7 +280,7 @@ export async function POST(request) {
           precisionFallback = true;
           precisionWarning = "Precision SVG was temporarily unavailable, so Standard SVG was generated and the extra Precision claw was restored.";
           engineUsed = "standard";
-          svgText = await vectorizeWithStandardEngine({ imageBlob: blob, timeoutMs: 35000 });
+          svgText = await vectorizeWithStandardEngine({ imageBlob: blob, timeoutMs: 30_000 });
         }
       } else {
         logger.warn("[Step 3] Precision SVG requested without provider credentials; falling back to standard SVG", {

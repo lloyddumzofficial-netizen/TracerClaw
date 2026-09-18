@@ -11,6 +11,7 @@ import StudioShell from "@/components/shared/StudioShell";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { formatSavedAgo } from "@/lib/formatSavedAgo";
+import { clearGenerationRequestKey, getOrCreateGenerationRequestKey } from "@/lib/generationRequestKey";
 
 const supabase = createClient();
 
@@ -83,6 +84,7 @@ export default function BgRemoverPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
+      const requestKey = getOrCreateGenerationRequestKey("remove_bg", project.id);
 
       const res = await fetch("/api/remove-bg", {
         method: "POST",
@@ -90,7 +92,7 @@ export default function BgRemoverPage() {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ projectId: project.id, keepOriginal: true })
+        body: JSON.stringify({ projectId: project.id, keepOriginal: true, requestKey })
       });
 
       const data = await safeJson(res, "Failed to remove background");
@@ -102,10 +104,17 @@ export default function BgRemoverPage() {
         return;
       }
 
+      if (res.status === 409 && data.code === "GENERATION_IN_PROGRESS") {
+        setErrorMsg(data.error);
+        return;
+      }
+
       if (!res.ok) {
+        clearGenerationRequestKey("remove_bg", project.id);
         throw new Error(data.error || "Failed to remove background");
       }
 
+      clearGenerationRequestKey("remove_bg", project.id);
       setProject(prev => ({ ...prev, generated_image_url: data.transparent_image_url }));
 
       // Update credits locally

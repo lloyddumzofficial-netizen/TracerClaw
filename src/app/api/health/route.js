@@ -3,6 +3,7 @@ import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 import {
   buildInfo,
   checkDatabase,
+  checkCapabilities,
   checkEnv,
   checkRlsEnforced,
   checkSchema,
@@ -57,8 +58,9 @@ export async function GET(request) {
     checkRlsEnforced(),
   ]);
   const env = checkEnv();
+  const capabilities = checkCapabilities();
 
-  const checks = { env, database, schema, rls };
+  const checks = { env, database, schema, rls, capabilities };
   const failed = Object.entries(checks)
     .filter(([, v]) => v && v.ok === false)
     .map(([k]) => k);

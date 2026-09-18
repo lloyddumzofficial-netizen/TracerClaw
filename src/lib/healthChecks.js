@@ -30,6 +30,7 @@ export const REQUIRED_ENV = [
  * Listed so a missing one shows up as a warning instead of vanishing silently.
  */
 export const OPTIONAL_ENV = [
+  "NEXT_PUBLIC_SITE_URL",
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
   "VECTORIZER_API_ID",
@@ -45,6 +46,11 @@ export const OPTIONAL_ENV = [
   "DODO_PRODUCT_BASIC",
   "DODO_PRODUCT_STARTER",
   "DODO_PRODUCT_PRO",
+  "PAYMONGO_SECRET_KEY",
+  "PAYMONGO_WEBHOOK_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "INTEGRATION_ENCRYPTION_KEY",
   "NEXT_PUBLIC_GA4_MEASUREMENT_ID",
   "NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION",
   "NEXT_PUBLIC_CLARITY_PROJECT_ID",
@@ -70,6 +76,10 @@ export const REQUIRED_COLUMNS = {
   ],
   profiles: ["id", "email", "credits"],
   credit_logs: ["user_id", "action", "amount"],
+  generation_attempts: [
+    "id", "request_key", "user_id", "project_id", "operation", "status",
+    "charge_amount", "result_url", "result_mime_type", "error_code", "created_at", "updated_at",
+  ],
 };
 
 export function checkEnv() {
@@ -79,6 +89,20 @@ export function checkEnv() {
     ok: missingRequired.length === 0,
     missingRequired,
     missingOptional,
+  };
+}
+
+/** Feature readiness without exposing any secret values. */
+export function checkCapabilities() {
+  const has = (name) => Boolean(process.env[name]);
+  return {
+    aiGeneration: has("FAL_KEY"),
+    standardSvg: has("RECRAFT_API_KEY"),
+    precisionSvg: has("VECTORIZER_API_ID") && has("VECTORIZER_API_SECRET"),
+    distributedRateLimit: has("UPSTASH_REDIS_REST_URL") && has("UPSTASH_REDIS_REST_TOKEN"),
+    googleDrive: has("GOOGLE_CLIENT_ID") && has("GOOGLE_CLIENT_SECRET") && has("INTEGRATION_ENCRYPTION_KEY"),
+    dodoPayments: has("DODO_PAYMENTS_API_KEY") && has("DODO_PAYMENTS_WEBHOOK_SECRET"),
+    paymongo: has("PAYMONGO_SECRET_KEY") && has("PAYMONGO_WEBHOOK_SECRET"),
   };
 }
 

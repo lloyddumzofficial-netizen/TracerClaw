@@ -515,9 +515,14 @@ export default function Workspace() {
 
       {showPaletteNudge && project?.svg_url && (
         <div className="palette-ready-nudge" ref={paletteNudgeRef} role="status" aria-live="polite">
-          <div>
-            <strong>Palette Studio ready</strong>
-            <span>Edit or merge SVG colors when needed.</span>
+          <div className="palette-ready-copy">
+            <span className="palette-ready-icon" aria-hidden="true">
+              <Palette size={13} />
+            </span>
+            <div>
+              <strong>Palette ready</strong>
+              <span>Edit SVG colors and merges.</span>
+            </div>
           </div>
           <button
             type="button"
@@ -527,8 +532,7 @@ export default function Workspace() {
               setShowPalettePreview(true);
             }}
           >
-            <Palette size={14} />
-            View Palette
+            Open
           </button>
           <button
             type="button"

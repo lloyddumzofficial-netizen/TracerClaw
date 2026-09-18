@@ -2385,21 +2385,17 @@ body {
   left: 0;
   top: 0;
   z-index: 40;
-  width: 288px;
+  width: 276px;
   max-width: calc(100vw - 24px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
-  padding: 11px 11px 11px 13px;
-  background: rgba(20, 20, 20, 0.97);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 3px;
-  box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 2px 0 0 #ffd700;
-  backdrop-filter: blur(12px);
+  gap: 8px;
+  padding: 8px;
+  background: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.46);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.22s ease, transform 0.22s ease;
@@ -2422,14 +2418,7 @@ body {
    even when the card is clamped against a viewport edge. */
 .palette-ready-nudge::before,
 .palette-ready-nudge::after {
-  content: "";
-  position: absolute;
-  top: var(--nudge-arrow-y, 50%);
-  width: 0;
-  height: 0;
-  border-top: 9px solid transparent;
-  border-bottom: 9px solid transparent;
-  transform: translateY(-50%);
+  display: none;
 }
 
 .palette-ready-nudge[data-arrow="right"]::before {
@@ -2471,24 +2460,43 @@ body {
   min-width: 0;
 }
 
+.palette-ready-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.palette-ready-nudge .palette-ready-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.06);
+  border: 1px solid rgba(255, 215, 0, 0.24);
+}
+
 .palette-ready-nudge strong {
-  color: #fff;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
+  color: #ededed;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
 }
 
 .palette-ready-nudge span {
-  margin-top: 2px;
-  color: #9b9b9b;
-  font-size: 10px;
-  line-height: 1.3;
+  margin-top: 1px;
+  color: #858585;
+  font-size: 9.5px;
+  line-height: 1.25;
 }
 
 .palette-ready-action,
 .palette-ready-close {
-  height: 30px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2501,16 +2509,14 @@ body {
 
 /* Primary action reads as a real CTA, matching the gold Export button. */
 .palette-ready-action {
-  gap: 6px;
-  padding: 0 12px;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
+  padding: 0 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
   white-space: nowrap;
-  background: #ffd700;
-  border-color: #ffd700;
-  color: #111;
+  background: transparent;
+  border-color: rgba(255, 215, 0, 0.38);
+  color: #e8c800;
 }
 
 .palette-ready-action svg {
@@ -2518,9 +2524,9 @@ body {
 }
 
 .palette-ready-action:hover {
-  background: #ffe34d;
-  border-color: #ffe34d;
-  color: #111;
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.65);
+  color: #ffd700;
 }
 
 .palette-ready-action:focus-visible,
@@ -2530,7 +2536,7 @@ body {
 }
 
 .palette-ready-close {
-  width: 28px;
+  width: 26px;
   padding: 0;
   border-color: transparent;
   background: transparent;
@@ -7016,10 +7022,10 @@ body {
 .crop-logo-guide-svg {
   display: block !important;
   width: 100% !important;
-  height: 128px !important;
-  margin-top: 2px !important;
+  height: 112px !important;
+  margin-top: 1px !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 6px !important;
+  border-radius: 4px !important;
   background: #0d0d0d !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
 }
@@ -7029,7 +7035,7 @@ body {
 }
 
 .crop-logo-guide-svg.is-bad-sample .crop-logo-guide-art {
-  opacity: 0.42;
+  opacity: 0.48;
 }
 
 /* Crop modal connected-panel polish: keep the workspace feeling like one
@@ -7038,17 +7044,13 @@ body {
   background: #0f0f0f !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   border-radius: 10px !important;
-  box-shadow:
-    0 34px 110px rgba(0, 0, 0, 0.86),
-    inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.86) !important;
 }
 
 .crop-workspace-header {
   height: 48px !important;
   padding: 0 16px !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
-    #101010 !important;
+  background: #101010 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 

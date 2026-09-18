@@ -765,13 +765,18 @@ export default function StartScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      await fetch(`/api/project?id=${id}`, {
+      const response = await fetch(`/api/project?id=${id}`, {
         method: "DELETE",
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || `Delete failed (${response.status})`);
+      }
     } catch (err) {
       console.error("Failed to delete", err);
       analytics.error(err, { area: "project_delete" });
+      toast.error("Project could not be deleted. It has been restored to your list.");
       fetchRecentProjects(user?.id);
     }
   };

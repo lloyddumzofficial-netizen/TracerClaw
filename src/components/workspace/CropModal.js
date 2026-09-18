@@ -485,35 +485,27 @@ const CropModal = memo(function CropModal({
                     <CheckCircle2 size={14} />
                     Tight logo crop
                   </div>
-                  <p>Frame only the logo edges. Keep the crop close so the SVG has no empty padding.</p>
-                  <svg className="crop-logo-guide-svg" viewBox="0 0 240 128" width="100%" height="128" aria-label="Tight logo crop example">
+                  <p>Keep the frame close to the outermost artwork.</p>
+                  <svg className="crop-logo-guide-svg" viewBox="0 0 256 112" role="img" aria-label="Tight logo crop example">
                     <defs>
-                      <linearGradient id="logoGuideBgGood" x1="0" x2="1" y1="0" y2="1">
-                        <stop offset="0" stopColor="#151515" />
-                        <stop offset="1" stopColor="#0a0a0a" />
-                      </linearGradient>
-                      <filter id="logoGuideGlowGood" x="-40%" y="-40%" width="180%" height="180%">
-                        <feGaussianBlur stdDeviation="5" result="blur" />
-                        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1 0 0 0 0 0.84 0 0 0 0 0 0 0 0 .22 0" />
-                        <feBlend in="SourceGraphic" />
-                      </filter>
+                      <pattern id="logoGuideGridGood" width="16" height="16" patternUnits="userSpaceOnUse">
+                        <path d="M16 0H0V16" fill="none" stroke="rgba(255,255,255,.025)" />
+                      </pattern>
                     </defs>
-                    <rect width="240" height="128" fill="url(#logoGuideBgGood)" />
-                    <path d="M0 95 C48 78 72 104 120 86 C168 68 184 91 240 70" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth="18" />
-                    <g className="crop-logo-guide-art" filter="url(#logoGuideGlowGood)">
-                      <rect x="63" y="42" width="30" height="30" rx="7" fill="#ffd700" />
-                      <path d="M74 64V50h8c6 0 10 4 10 9s-4 9-10 9h-8zm7-5h1c2 0 4-1 4-4s-2-4-4-4h-1v8z" fill="#050505" />
-                      <text x="102" y="61" fill="#f6f6f6" fontSize="18" fontWeight="700" letterSpacing="1.2">DESAYN</text>
-                      <text x="180" y="61" fill="#ffd700" fontSize="19" fontWeight="600" fontStyle="italic">Claw</text>
+                    <rect width="256" height="112" fill="#0c0d0e" />
+                    <rect width="256" height="112" fill="url(#logoGuideGridGood)" />
+                    <text x="218" y="17" textAnchor="end" fill="rgba(74,222,128,.72)" fontSize="7" fontWeight="700" letterSpacing="1.2">CORRECT</text>
+                    <rect x="31" y="25" width="194" height="57" fill="rgba(74,222,128,.025)" stroke="rgba(74,222,128,.82)" strokeWidth="1.25" strokeDasharray="4 4" />
+                    <g className="crop-logo-guide-art">
+                      <rect x="46" y="39" width="29" height="29" rx="6" fill="#ffd700" />
+                      <path d="M56 62V46h8c6 0 10 3 10 8s-4 8-10 8h-8zm6-5h2c2 0 4-1 4-3s-2-3-4-3h-2v6z" fill="#080808" />
+                      <text x="83" y="60" fill="#f5f5f5" fontSize="16" fontWeight="700" letterSpacing=".8">DESAYN</text>
+                      <text x="151" y="60" fill="#ffd700" fontSize="17" fontWeight="600" fontStyle="italic">Claw</text>
                     </g>
-                    <rect x="54" y="31" width="142" height="52" fill="rgba(74,222,128,.04)" stroke="#4ade80" strokeWidth="2" strokeDasharray="5 5" />
                     <g fill="#4ade80">
-                      <rect x="51" y="28" width="7" height="7" />
-                      <rect x="192" y="28" width="7" height="7" />
-                      <rect x="51" y="80" width="7" height="7" />
-                      <rect x="192" y="80" width="7" height="7" />
+                      <path d="M27 21h12v3h-9v9h-3zM229 21h-12v3h9v9h3zM27 86h12v-3h-9v-9h-3zM229 86h-12v-3h9v-9h3z" />
                     </g>
-                    <text x="64" y="104" fill="rgba(255,255,255,.54)" fontSize="10" fontWeight="600" letterSpacing=".8">CLEAN EDGE CROP</text>
+                    <text x="128" y="99" textAnchor="middle" fill="rgba(255,255,255,.42)" fontSize="8" fontWeight="600" letterSpacing="1.1">MINIMAL EDGE SPACE</text>
                   </svg>
                 </div>
                 <div className="crop-guide-card is-bad">
@@ -521,29 +513,29 @@ const CropModal = memo(function CropModal({
                     <XCircle size={14} />
                     Avoid extra space
                   </div>
-                  <p>Do not include large blank margins. Extra space makes exports harder to place and scale.</p>
-                  <svg className="crop-logo-guide-svg is-bad-sample" viewBox="0 0 240 128" width="100%" height="128" aria-label="Logo crop with too much empty space example">
+                  <p>Remove blank margins before generating the SVG.</p>
+                  <svg className="crop-logo-guide-svg is-bad-sample" viewBox="0 0 256 112" role="img" aria-label="Logo crop with too much empty space example">
                     <defs>
-                      <pattern id="logoGuideGridBad" width="12" height="12" patternUnits="userSpaceOnUse">
-                        <path d="M12 0H0V12" fill="none" stroke="rgba(255,255,255,.035)" strokeWidth="1" />
+                      <pattern id="logoGuideGridBad" width="16" height="16" patternUnits="userSpaceOnUse">
+                        <path d="M16 0H0V16" fill="none" stroke="rgba(255,255,255,.025)" />
                       </pattern>
                     </defs>
-                    <rect width="240" height="128" fill="#0d0d0d" />
-                    <rect width="240" height="128" fill="url(#logoGuideGridBad)" />
+                    <rect width="256" height="112" fill="#0c0d0e" />
+                    <rect width="256" height="112" fill="url(#logoGuideGridBad)" />
+                    <text x="218" y="17" textAnchor="end" fill="rgba(255,91,91,.7)" fontSize="7" fontWeight="700" letterSpacing="1.2">AVOID</text>
                     <g className="crop-logo-guide-art is-muted">
-                      <rect x="97" y="48" width="28" height="28" rx="7" fill="#ffd700" />
-                      <path d="M107 69V55h8c6 0 10 4 10 9s-4 9-10 9h-8zm7-5h1c2 0 4-1 4-4s-2-4-4-4h-1v8z" fill="#050505" />
-                      <text x="130" y="67" fill="#f6f6f6" fontSize="15" fontWeight="700" letterSpacing="1">DESAYN</text>
+                      <rect x="91" y="43" width="22" height="22" rx="5" fill="#ffd700" />
+                      <path d="M99 59V48h6c4 0 7 2 7 6s-3 6-7 6h-6zm5-4h1c2 0 3 0 3-2s-1-2-3-2h-1v4z" fill="#080808" />
+                      <text x="120" y="58" fill="#f5f5f5" fontSize="12" fontWeight="700" letterSpacing=".7">DESAYN</text>
                     </g>
-                    <rect x="38" y="18" width="164" height="92" fill="rgba(255,68,68,.035)" stroke="#ff5b5b" strokeWidth="2" strokeDasharray="5 5" />
+                    <rect x="24" y="23" width="208" height="61" fill="rgba(255,91,91,.018)" stroke="rgba(255,91,91,.75)" strokeWidth="1.25" strokeDasharray="4 4" />
+                    <g stroke="rgba(255,91,91,.52)" strokeWidth="1">
+                      <path d="M35 54h46M175 54h46" strokeDasharray="2 3" />
+                    </g>
                     <g fill="#ff5b5b">
-                      <rect x="35" y="15" width="7" height="7" />
-                      <rect x="198" y="15" width="7" height="7" />
-                      <rect x="35" y="107" width="7" height="7" />
-                      <rect x="198" y="107" width="7" height="7" />
+                      <path d="M20 19h12v3h-9v9h-3zM236 19h-12v3h9v9h3zM20 88h12v-3h-9v-9h-3zM236 88h-12v-3h9v-9h3z" />
                     </g>
-                    <path d="M58 96H182" stroke="rgba(255,91,91,.65)" strokeWidth="1" strokeDasharray="3 5" />
-                    <text x="58" y="104" fill="rgba(255,255,255,.48)" fontSize="10" fontWeight="600" letterSpacing=".8">TOO MUCH EMPTY AREA</text>
+                    <text x="128" y="99" textAnchor="middle" fill="rgba(255,255,255,.38)" fontSize="8" fontWeight="600" letterSpacing="1.1">EXCESS EMPTY SPACE</text>
                   </svg>
                 </div>
               </>

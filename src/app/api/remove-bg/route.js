@@ -5,6 +5,12 @@ import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { fal } from "@fal-ai/client";
 import { logger } from "@/lib/logger";
+import {
+  claimGenerationAttempt,
+  completeGenerationAttempt,
+  isGenerationAttemptStale,
+  refundGenerationAttempt,
+} from "@/server/billing";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // Enough time for BG removal + R2 upload
@@ -18,6 +24,8 @@ export async function POST(request) {
   // charged the user a claw that was never returned.
   let projectId;
   let creditDeducted = false;
+  let generationAttemptId = null;
+  let usedIdempotentBilling = false;
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -45,7 +53,7 @@ export async function POST(request) {
 
     const body = await request.json();
     projectId = body.projectId;
-    const { keepOriginal } = body;
+    const { keepOriginal, requestKey } = body;
 
     if (!projectId) {
       return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
@@ -81,23 +89,81 @@ export async function POST(request) {
     // ============================================================
     // ATOMIC CREDIT DEDUCTION
     // ============================================================
-    const { data: claimRows, error: claimErr } = await adminSupabase
-      .rpc('claim_project_credit', {
-        target_user_id: user.id,
-        target_project_id: projectId,
-        charge_action: 'Background Removal',
-        charge_amount: 1,
-      });
-    if (claimErr) {
-      console.error('[Remove BG] Claim RPC error:', claimErr);
-      return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+    const idempotentClaim = await claimGenerationAttempt({
+      userId: user.id,
+      projectId,
+      operation: "remove_bg",
+      requestKey,
+      chargeAction: "Background Removal",
+    });
+
+    if (idempotentClaim.mode === "error") {
+      return NextResponse.json({
+        error: "Billing verification failed. No retry charge was attempted.",
+        code: "BILLING_VERIFICATION_FAILED",
+      }, { status: 503 });
     }
-    const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
-    if (claim?.status === 'insufficient_credits') {
-      return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
-    }
-    if (claim?.status !== 'charged') {
-      return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+    if (idempotentClaim.mode === "idempotent") {
+      usedIdempotentBilling = true;
+      generationAttemptId = idempotentClaim.attempt_id;
+      if (idempotentClaim.status === "already_claimed") {
+        if (idempotentClaim.attempt_status === "completed" && idempotentClaim.result_url) {
+          return NextResponse.json({
+            success: true,
+            transparent_image_url: idempotentClaim.result_url,
+            original_image_url: keepOriginal ? project.original_image_url : idempotentClaim.result_url,
+            replayed: true,
+          });
+        }
+        if (idempotentClaim.attempt_status === "processing") {
+          if (isGenerationAttemptStale(idempotentClaim.attempt_created_at)) {
+            const refund = await refundGenerationAttempt({
+              userId,
+              attemptId: generationAttemptId,
+              action: 'Refund (Interrupted Background Removal)',
+              errorCode: 'INTERRUPTED_GENERATION',
+            });
+            return NextResponse.json({
+              error: "The interrupted background removal was closed. Your claw was restored; please start again.",
+              code: "GENERATION_ATTEMPT_CLOSED",
+              refunded: refund?.status === 'refunded' || refund?.status === 'already_refunded',
+            }, { status: 409 });
+          }
+          return NextResponse.json({
+            error: "Background removal is still processing. Please wait a moment, then retry.",
+            code: "GENERATION_IN_PROGRESS",
+          }, { status: 409 });
+        }
+        return NextResponse.json({
+          error: "The previous attempt was closed. Please start background removal again.",
+          code: "GENERATION_ATTEMPT_CLOSED",
+        }, { status: 409 });
+      }
+      if (idempotentClaim.status === "insufficient_credits") {
+        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+      }
+      if (idempotentClaim.status !== "charged") {
+        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      }
+    } else {
+      const { data: claimRows, error: claimErr } = await adminSupabase
+        .rpc('claim_project_credit', {
+          target_user_id: user.id,
+          target_project_id: projectId,
+          charge_action: 'Background Removal',
+          charge_amount: 1,
+        });
+      if (claimErr) {
+        console.error('[Remove BG] Claim RPC error:', claimErr);
+        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      }
+      const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+      if (claim?.status === 'insufficient_credits') {
+        return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
+      }
+      if (claim?.status !== 'charged') {
+        return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+      }
     }
     creditDeducted = true;
 
@@ -111,6 +177,7 @@ export async function POST(request) {
         image_url: project.original_image_url
       },
       logs: true,
+      abortSignal: AbortSignal.timeout(75_000),
       onQueueUpdate: (update) => {
         if (update.status === "IN_PROGRESS") {
           update.logs.map((log) => logger.debug("[Remove BG] Provider log", { message: log.message }));
@@ -175,6 +242,7 @@ export async function POST(request) {
     if (updateError) {
       throw new Error("Failed to update project with new image URL");
     }
+    await completeGenerationAttempt(generationAttemptId, r2Url, "image/png");
 
     return NextResponse.json({ 
       success: true, 
@@ -189,7 +257,18 @@ export async function POST(request) {
     // If credit was already deducted but AI/R2/DB failed, refund it.
     if (creditDeducted && userId) {
       try {
-        const { data: refundRows, error: refundRpcErr } = await adminSupabase
+        if (usedIdempotentBilling && generationAttemptId) {
+          const refund = await refundGenerationAttempt({
+            userId,
+            attemptId: generationAttemptId,
+            action: 'Refund (Background Removal Error)',
+            errorCode: error?.code || 'REMOVE_BG_FAILED',
+          });
+          if (refund?.status === 'refunded') {
+            logger.info("[Remove BG] Refunded generation attempt", { userId, generationAttemptId });
+          }
+        } else {
+          const { data: refundRows, error: refundRpcErr } = await adminSupabase
           .rpc('refund_project_credit', {
             target_user_id: userId,
             target_project_id: projectId,
@@ -197,11 +276,12 @@ export async function POST(request) {
             failed_step_value: 'remove-bg',
             mark_generated_refunded: false,
           });
-        const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
-        if (!refundRpcErr && refund?.status === 'refunded') {
-          logger.info("[Remove BG] Refunded credit after processing error", { userId });
-        } else {
-          console.error(`[Remove BG] CRITICAL: refund_project_credit failed for user ${userId} — left unrefunded for retry.`, refundRpcErr || refund);
+          const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
+          if (!refundRpcErr && refund?.status === 'refunded') {
+            logger.info("[Remove BG] Refunded credit after processing error", { userId });
+          } else {
+            console.error(`[Remove BG] CRITICAL: refund_project_credit failed for user ${userId} — left unrefunded for retry.`, refundRpcErr || refund);
+          }
         }
       } catch (refundErr) {
         // Non-fatal: log but don't block the error response
