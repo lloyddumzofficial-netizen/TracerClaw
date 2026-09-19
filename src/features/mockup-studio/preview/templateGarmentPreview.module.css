@@ -1,0 +1,18 @@
+.previewShell{min-height:0;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--preview-backdrop,#071827) 80%,#fff 20%) 0,var(--preview-backdrop,#071827) 48%,#050607 100%);display:grid;grid-template-rows:minmax(0,1fr) 38px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+.previewGrid{min-height:0;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(20px,4vw,70px);padding:clamp(24px,4vw,54px) clamp(28px,5vw,76px)}
+.templateView{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);align-items:center}
+.viewLabel{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.08)}
+.viewLabel span{color:rgba(255,255,255,.78);font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}
+.viewLabel small{color:rgba(255,255,255,.32);font-size:7px;font-weight:600;letter-spacing:.04em}
+.templateCanvas{position:relative;width:min(100%,390px);max-height:100%;justify-self:center;filter:drop-shadow(0 28px 24px rgba(0,0,0,.55));isolation:isolate}
+.templatePart{position:absolute;display:block;overflow:hidden;background:#131b2b;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-position:center;mask-position:center}
+.templatePart img{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
+.templateBase{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain;mix-blend-mode:multiply;pointer-events:none;user-select:none}
+.previewFooter{border-top:1px solid rgba(255,255,255,.08);padding:0 12px;display:flex;align-items:center;justify-content:space-between;background:#101010;color:#626262;font-size:8px;font-weight:600;letter-spacing:.03em}
+@media(max-width:720px){.previewGrid{grid-template-columns:1fr;padding:24px}.templateCanvas{width:min(100%,300px)}.viewLabel{margin-bottom:8px}.previewFooter{display:none}}
+
+.previewGrid{gap:clamp(24px,3vw,54px);padding:18px clamp(24px,4vw,58px)}
+.templateView{height:100%;overflow:hidden}
+.templateCanvas{height:100%;width:auto;max-width:100%;min-height:0}
+.viewLabel{margin-bottom:9px;padding-bottom:7px}
+@media(max-width:720px){.previewGrid{padding:18px}.templateCanvas{height:auto;width:min(100%,280px)}}

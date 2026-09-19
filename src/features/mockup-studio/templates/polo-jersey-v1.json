@@ -1,0 +1,134 @@
+{
+  "id": "polo-jersey",
+  "version": 1,
+  "source": "desaynclaw-mockup-masters/mockup-studio/masters/polo-jersey",
+  "views": {
+    "front": {
+      "canvas": {
+        "width": 874,
+        "height": 1086,
+        "aspectRatio": 0.80478821
+      },
+      "base": "/mockup-studio/templates/v1/polo-jersey/front/base.webp",
+      "parts": {
+        "body_bleed": {
+          "left": 0.0,
+          "top": 0.0,
+          "width": 100.0,
+          "height": 99.63168,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/body-bleed.png"
+        },
+        "body": {
+          "left": 12.70023,
+          "top": 3.22284,
+          "width": 74.59954,
+          "height": 93.73849,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/body.png"
+        },
+        "left_sleeve": {
+          "left": 79.06178,
+          "top": 12.06262,
+          "width": 20.93822,
+          "height": 30.29466,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/left-sleeve.png"
+        },
+        "right_sleeve": {
+          "left": 0.0,
+          "top": 11.69429,
+          "width": 20.8238,
+          "height": 30.01842,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/right-sleeve.png"
+        },
+        "left_cuff": {
+          "left": 81.35011,
+          "top": 36.18785,
+          "width": 18.64989,
+          "height": 6.16943,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/left-cuff.png"
+        },
+        "right_cuff": {
+          "left": 0.0,
+          "top": 35.63536,
+          "width": 18.19222,
+          "height": 6.07735,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/right-cuff.png"
+        },
+        "collar": {
+          "left": 33.40961,
+          "top": 0.0,
+          "width": 32.6087,
+          "height": 14.18048,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/collar.png"
+        },
+        "placket": {
+          "left": 47.59725,
+          "top": 11.23389,
+          "width": 4.69108,
+          "height": 15.46961,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/front/masks/placket.png"
+        }
+      },
+      "smartObjectCount": 11
+    },
+    "back": {
+      "canvas": {
+        "width": 880,
+        "height": 1111,
+        "aspectRatio": 0.79207921
+      },
+      "base": "/mockup-studio/templates/v1/polo-jersey/back/base.webp",
+      "parts": {
+        "body_bleed": {
+          "left": 0.0,
+          "top": 0.0,
+          "width": 100.0,
+          "height": 100.0,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/body-bleed.png"
+        },
+        "body": {
+          "left": 13.18182,
+          "top": 3.69037,
+          "width": 73.75,
+          "height": 96.30963,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/body.png"
+        },
+        "left_sleeve": {
+          "left": 0.0,
+          "top": 13.41134,
+          "width": 20.45455,
+          "height": 29.973,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/left-sleeve.png"
+        },
+        "right_sleeve": {
+          "left": 80.0,
+          "top": 13.32133,
+          "width": 20.0,
+          "height": 29.70297,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/right-sleeve.png"
+        },
+        "left_cuff": {
+          "left": 0.0,
+          "top": 37.08371,
+          "width": 18.40909,
+          "height": 6.30063,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/left-cuff.png"
+        },
+        "right_cuff": {
+          "left": 82.15909,
+          "top": 37.08371,
+          "width": 17.84091,
+          "height": 5.94059,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/right-cuff.png"
+        },
+        "collar": {
+          "left": 33.75,
+          "top": 0.0,
+          "width": 33.40909,
+          "height": 6.0306,
+          "mask": "/mockup-studio/templates/v1/polo-jersey/back/masks/collar.png"
+        }
+      },
+      "smartObjectCount": 6
+    }
+  }
+}

@@ -27,6 +27,13 @@ changes; the root-level SQL files are historical references.
 17. `017_add_palette_studio_gate.sql`
 18. `018_add_profile_avatar_public_stats.sql`
 19. `019_setup_paymongo_payments.sql`
+20. `020_setup_user_integrations.sql`
+21. `021_generation_attempt_idempotency.sql`
+22. `022_fix_generation_attempt_charge_parameter.sql`
+23. `023_fix_generation_attempt_timestamp_type.sql`
+24. `024_mockup_studio.sql`
+25. `025_repair_mockup_billing_rpc.sql`
+26. `026_expand_mockup_garment_catalog.sql`
 
 ## Historical Root Scripts
 

@@ -20,6 +20,7 @@ const ZIP_BATCH_LIMIT = 25;
 const UPSCALE_RECONCILE_LIMIT = 20;
 const GENERATION_RECONCILE_LIMIT = 20;
 const GENERATION_STALE_MINUTES = 15;
+const MOCKUP_QUEUE_STALE_MINUTES = 20;
 // A queued upscale finishes in seconds to a couple of minutes. Anything still
 // unresolved after this long was abandoned by the client and will never be
 // reconciled, because nothing but the browser poll ever checks it.
@@ -187,6 +188,28 @@ async function reconcileGenerationAttempts(results) {
   }
 }
 
+async function reconcileInterruptedMockupClaims(results) {
+  const staleBefore = new Date(Date.now() - MOCKUP_QUEUE_STALE_MINUTES * 60_000).toISOString();
+  const { data: jobs, error } = await adminSupabase.from('mockup_jobs')
+    .select('id,user_id,provider_requests')
+    .eq('status', 'queueing')
+    .lt('created_at', staleBefore)
+    .order('created_at', { ascending: true })
+    .limit(20);
+  if (error?.code === '42P01' || error?.code === 'PGRST205') return;
+  if (error) throw error;
+  for (const job of jobs || []) {
+    if (Object.keys(job.provider_requests || {}).length) continue;
+    const { data } = await adminSupabase.rpc('refund_mockup_render', {
+      target_user_id: job.user_id,
+      target_job_id: job.id,
+      error_code_value: 'INTERRUPTED_MOCKUP_SUBMISSION',
+    });
+    const refund = Array.isArray(data) ? data[0] : data;
+    if (refund?.status === 'refunded') results.mockupJobsRefunded++;
+  }
+}
+
 export async function GET(request) {
   // Simple cron secret check to prevent random people from triggering it
   const authHeader = request.headers.get('authorization');
@@ -202,6 +225,7 @@ export async function GET(request) {
     upscalesRecovered: 0,
     upscalesRefunded: 0,
     generationsRefunded: 0,
+    mockupJobsRefunded: 0,
     projectBatchLimit: PROJECT_BATCH_LIMIT,
     mobileScanLimit: MOBILE_SCAN_LIMIT,
     mobileDeleteLimit: MOBILE_DELETE_LIMIT,
@@ -328,6 +352,15 @@ export async function GET(request) {
       await reconcileGenerationAttempts(results);
     } catch (generationErr) {
       console.warn('[Cron] Generation reconciliation failed (non-fatal):', generationErr.message);
+    }
+
+    // ─── 6. Recover claims interrupted before provider submission ───────────
+    // Active render recovery and complete R2-prefix cleanup run in dedicated,
+    // short-batch cron routes so this general maintenance task stays bounded.
+    try {
+      await reconcileInterruptedMockupClaims(results);
+    } catch (mockupErr) {
+      console.warn('[Cron] Mockup claim recovery failed (non-fatal):', mockupErr.message);
     }
 
     logger.info("[Cron] Done", results);

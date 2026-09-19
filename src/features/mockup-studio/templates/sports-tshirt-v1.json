@@ -1,0 +1,113 @@
+{
+  "id": "sports-tshirt",
+  "version": 3,
+  "source": "desaynclaw-mockup-masters",
+  "views": {
+    "front": {
+      "canvas": {
+        "width": 3536,
+        "height": 4579,
+        "aspectRatio": 0.77222101
+      },
+      "base": "/mockup-studio/templates/v3/sports-tshirt/front/base.webp",
+      "parts": {
+        "body": {
+          "left": 12.5,
+          "top": 2.66434,
+          "width": 75.84842,
+          "height": 97.33566,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/front/masks/body.png"
+        },
+        "left_sleeve": {
+          "left": 80.71267,
+          "top": 10.81022,
+          "width": 19.28733,
+          "height": 32.67089,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/front/masks/left-sleeve.png"
+        },
+        "right_sleeve": {
+          "left": 0.39593,
+          "top": 10.65735,
+          "width": 19.48529,
+          "height": 32.34331,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/front/masks/right-sleeve.png"
+        },
+        "collar": {
+          "left": 33.17308,
+          "top": 0.0,
+          "width": 34.07805,
+          "height": 12.44813,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/front/masks/collar.png"
+        },
+        "left_cuff": {
+          "left": 80.71267,
+          "top": 37.10417,
+          "width": 19.28733,
+          "height": 6.37694,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/front/masks/left-cuff.png"
+        },
+        "right_cuff": {
+          "left": 0.39593,
+          "top": 36.82027,
+          "width": 19.48529,
+          "height": 6.18039,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/front/masks/right-cuff.png"
+        }
+      },
+      "smartObjectCount": 7
+    },
+    "back": {
+      "canvas": {
+        "width": 3480,
+        "height": 4503,
+        "aspectRatio": 0.77281812
+      },
+      "base": "/mockup-studio/templates/v3/sports-tshirt/back/base.webp",
+      "parts": {
+        "body": {
+          "left": 12.01149,
+          "top": 2.66489,
+          "width": 75.71839,
+          "height": 97.33511,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/back/masks/body.png"
+        },
+        "left_sleeve": {
+          "left": 0.0,
+          "top": 10.97046,
+          "width": 19.5977,
+          "height": 32.6449,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/back/masks/left-sleeve.png"
+        },
+        "right_sleeve": {
+          "left": 79.85632,
+          "top": 10.83722,
+          "width": 20.14368,
+          "height": 32.57828,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/back/masks/right-sleeve.png"
+        },
+        "collar": {
+          "left": 34.22414,
+          "top": 0.0,
+          "width": 31.63793,
+          "height": 3.26449,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/back/masks/collar.png"
+        },
+        "left_cuff": {
+          "left": 0.0,
+          "top": 37.50833,
+          "width": 19.5977,
+          "height": 6.10704,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/back/masks/left-cuff.png"
+        },
+        "right_cuff": {
+          "left": 79.85632,
+          "top": 35.53187,
+          "width": 20.14368,
+          "height": 7.88363,
+          "mask": "/mockup-studio/templates/v3/sports-tshirt/back/masks/right-cuff.png"
+        }
+      },
+      "smartObjectCount": 4
+    }
+  }
+}

@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Shirt, X, Scissors, ChevronLeft, ArrowRight } from "lucide-react";
+import { Shirt, X, Scissors, ChevronLeft, ArrowRight, Camera } from "lucide-react";
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
 const LogoIcon = ({ size = 38 }) => (
@@ -169,6 +169,7 @@ const NewProjectModal = memo(function NewProjectModal({
   onClose,
   onSelectImage,
   onSelectBgRemover,
+  onSelectMockupStudio,
 }) {
   const [step, setStep] = useState("category");
   const [category, setCategory] = useState(null);
@@ -185,6 +186,11 @@ const NewProjectModal = memo(function NewProjectModal({
     if (cat === "bg_remover") {
       // Skip details step — trigger file upload immediately
       onSelectBgRemover?.();
+      handleClose();
+      return;
+    }
+    if (cat === "mockup_studio") {
+      onSelectMockupStudio?.();
       handleClose();
       return;
     }
@@ -227,7 +233,7 @@ const NewProjectModal = memo(function NewProjectModal({
         className="modal-content new-project-modal"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: step === "category" ? 820 : 480,
+          maxWidth: step === "category" ? 1060 : 480,
           position: "relative",
           transition: "max-width 0.32s cubic-bezier(0.4,0,0.2,1)",
           width: "calc(100vw - 32px)",
@@ -267,14 +273,14 @@ const NewProjectModal = memo(function NewProjectModal({
           <>
             <div style={{ marginBottom: 22 }}>
               <h2 style={{ margin: "0 0 5px 0", fontSize: "19px", fontWeight: 700, letterSpacing: "-0.4px", color: "#fff" }}>
-                What are you tracing?
+                What are you creating?
               </h2>
               <p style={{ margin: 0, color: "#4a4a4a", fontSize: "12.5px" }}>
                 Choose a workspace to get started.
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 13 }}>
+            <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 13 }}>
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 icon={<Shirt size={38} strokeWidth={1.2} />}
@@ -293,6 +299,13 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="BG Remover Studio"
                 description="Remove backgrounds instantly with AI — perfect for products & portraits."
                 badge="AI"
+              />
+              <CategoryCard
+                onClick={() => handleCategorySelect("mockup_studio")}
+                icon={<Camera size={38} strokeWidth={1.2} />}
+                title="Mockup Studio"
+                description="Turn exact jersey panels into a premium five-view campaign set."
+                badge="NEW"
               />
             </div>
 

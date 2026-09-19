@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "@/lib/logger";
 
@@ -86,4 +86,37 @@ export async function deleteFromR2(fileUrl, options = {}) {
   });
   await s3Client.send(command); // Let errors propagate so callers can handle them
   logger.info("[R2 Delete] Deleted key", { fileKey });
+}
+
+export async function deleteR2Prefix(prefix, options = {}) {
+  const normalized = String(prefix || "").replace(/^\/+/, "");
+  const allowedPrefixes = options.allowedPrefixes || [];
+  if (!normalized || normalized.length < 24 || normalized.includes("..") || !normalized.endsWith("/")) {
+    throw new Error("Refusing to delete an invalid R2 prefix.");
+  }
+  if (!allowedPrefixes.some(allowed => normalized.startsWith(allowed))) {
+    throw new Error("Refusing to delete an R2 prefix outside the approved project path.");
+  }
+
+  let continuationToken;
+  let deleted = 0;
+  do {
+    const listed = await s3Client.send(new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: normalized,
+      ContinuationToken: continuationToken,
+      MaxKeys: 500,
+    }));
+    const objects = (listed.Contents || []).map(item => ({ Key: item.Key })).filter(item => item.Key);
+    if (objects.length) {
+      const result = await s3Client.send(new DeleteObjectsCommand({
+        Bucket: bucketName,
+        Delete: { Objects: objects, Quiet: true },
+      }));
+      if (result.Errors?.length) throw new Error(`R2 could not delete ${result.Errors.length} project objects.`);
+      deleted += objects.length;
+    }
+    continuationToken = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+  } while (continuationToken);
+  return deleted;
 }

@@ -1385,6 +1385,10 @@ export default function StartScreen() {
             if (requireDesktopTool()) return;
             bgRemoveInputRef.current.click();
           }}
+          onSelectMockupStudio={() => {
+            if (requireDesktopTool()) return;
+            router.push("/mockup-studio");
+          }}
         />
 
         <OnboardingModal

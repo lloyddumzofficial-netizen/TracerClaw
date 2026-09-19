@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/mockup-jobs",
+      "schedule": "15 0 * * *"
+    },
+    {
+      "path": "/api/cron/mockup-cleanup",
+      "schedule": "30 0 * * *"
+    },
+    {
       "path": "/api/cron/cleanup",
       "schedule": "0 0 * * *"
     }
