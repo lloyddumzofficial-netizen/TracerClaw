@@ -2,11 +2,11 @@ import { MOCKUP_MODEL, MOCKUP_SHOTS } from "@/features/mockup-studio/config";
 import { buildMockupPrompt } from "@/server/mockups/prompts";
 
 const SHOT_REFERENCE_PRIORITY = Object.freeze({
-  hero: ["production_board", "front", "left_sleeve", "right_sleeve", "back", "style_reference"],
-  front: ["production_board", "canonical_hero", "front", "left_sleeve", "right_sleeve", "back", "style_reference"],
-  back: ["production_board", "canonical_hero", "back", "left_sleeve", "right_sleeve", "front", "style_reference"],
-  sleeve: ["production_board", "canonical_hero", "left_sleeve", "front", "back", "right_sleeve", "style_reference"],
-  detail: ["production_board", "canonical_hero", "left_sleeve", "front", "back", "right_sleeve", "style_reference"],
+  hero: ["left_sleeve", "right_sleeve", "canonical_front", "canonical_back", "production_board", "front", "back", "canonical_hero", "style_reference"],
+  front: ["left_sleeve", "right_sleeve", "canonical_front", "canonical_back", "production_board", "front", "back", "canonical_hero", "style_reference"],
+  back: ["left_sleeve", "right_sleeve", "canonical_back", "canonical_front", "production_board", "back", "front", "canonical_hero", "style_reference"],
+  sleeve: ["left_sleeve", "canonical_front", "production_board", "canonical_hero", "front", "back", "right_sleeve", "canonical_back", "style_reference"],
+  detail: ["left_sleeve", "canonical_front", "production_board", "canonical_hero", "front", "back", "right_sleeve", "canonical_back", "style_reference"],
 });
 
 export function orderMockupReferences({ imageUrls = [], assetRoles = [], shot }) {
@@ -37,12 +37,14 @@ export async function submitMockupViews({ imageUrls, assetRoles, style, colors, 
       ...(webhookUrl ? { webhookUrl } : {}),
       input: {
         image_urls: references.map(item => item.imageUrl),
+        system_prompt: "You are a production-fidelity garment photographer. Treat every supplied artwork panel as immutable manufacturing data. Camera, support, drape, lighting and background may change; printed motifs, lettering, colors, panel identity and left/right sleeve assignment may never change. Production fidelity always outranks artistic composition.",
         prompt: buildMockupPrompt({ shot: shot.key, style, colors, assetRoles: references.map(item => item.role), garmentType }),
         num_images: 1,
         aspect_ratio: shot.key === "detail" ? "4:5" : "4:5",
         output_format: "png",
         resolution: "1K",
         limit_generations: true,
+        thinking_level: "high",
       },
     });
     requests[shot.key] = submitted.request_id;

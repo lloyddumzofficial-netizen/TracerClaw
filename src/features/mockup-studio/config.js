@@ -26,6 +26,42 @@ export const MOCKUP_BACKDROP_PRESETS = Object.freeze({
   },
 });
 
+// Philippine production names are retained because they are the terms users
+// give local jersey suppliers. The directions describe visible construction
+// instead of pretending every supplier uses one universal GSM/specification.
+export const MOCKUP_FABRIC_PRESETS = Object.freeze({
+  micro_cool: {
+    label: "Micro Cool",
+    description: "Fine micro-perforated knit with tiny, evenly spaced cooling pores.",
+    direction: "fine matte micro-polyester sports knit with dense, tiny and evenly spaced round ventilation pores; lighter and tighter than open eyelet mesh; soft flexible drape; sublimation ink visibly absorbed into the yarns without sitting on top",
+  },
+  yonex: {
+    label: "Yonex",
+    description: "Compact athletic knit with a refined face and controlled structure.",
+    direction: "compact single-face performance polyester knit commonly sold as Yonex fabric in Philippine garment production; very fine understated pebbled knit face, moderate body and shape retention, low sheen, smooth sublimation detail and no large open mesh holes; do not add any Yonex brand mark",
+  },
+  drifit: {
+    label: "Dri-Fit",
+    description: "Light moisture-wicking micro-knit with subtle capillary texture.",
+    direction: "lightweight moisture-wicking polyester performance knit with a subtle micro-grid or bird's-eye capillary structure; small shallow pores, quick-dry matte face and soft athletic drape; keep the surface textile-realistic and unbranded, with no Nike or Dri-FIT logo",
+  },
+  neoprene: {
+    label: "Neoprene",
+    description: "Dense smooth bonded fabric with thicker, sculpted structure.",
+    direction: "dense neoprene-like bonded performance fabric with a smooth fine-knit outer face, visibly thicker cross-section, cushioned body and structured sculptural folds; closed surface with no ventilation holes; matte and fabric-faced rather than shiny rubber or wetsuit gloss",
+  },
+  air_cool: {
+    label: "Air Cool",
+    description: "Open eyelet mesh with clearly visible airflow holes.",
+    direction: "light open-eyelet polyester mesh with clearly visible, regular ventilation holes larger than Micro Cool pores; airy dimensional lattice, soft edges around every opening, low sheen and breathable loose drape; sublimated color remains inside the fibers",
+  },
+  polydex: {
+    label: "Polydex",
+    description: "Smooth dense interlock with crisp print definition and heavier drape.",
+    direction: "dense smooth double-knit polyester interlock commonly sold as Polydex for sublimation; tight closed face with almost no visible holes, extremely fine knit grain, crisp graphic definition, richer structured drape and a clean matte finish",
+  },
+});
+
 export const DEFAULT_MOCKUP_COLORS = Object.freeze({
   body: "#111827",
   collar: "#111827",
@@ -34,6 +70,7 @@ export const DEFAULT_MOCKUP_COLORS = Object.freeze({
   rightCuff: "#FFD700",
   backdrop: "#071827",
   backdropPreset: "cinematic_gradient",
+  fabricPreset: "micro_cool",
 });
 
 export const MOCKUP_ALLOWED_MIME_TYPES = [
@@ -78,17 +115,17 @@ export const MOCKUP_SHOTS = Object.freeze([
 export const MOCKUP_STYLE_PRESETS = Object.freeze({
   studio: {
     label: "Studio Mannequin",
-    description: "Photoreal torso mannequin, dark studio, controlled commercial light.",
+    description: "Sculpted torso views, refined three-quarter angles and construction close-ups.",
     direction: "Use one matte dark graphite headless mannequin form appropriate to the selected garment throughout the set, with believable anatomy and no visible branding. Present it in a premium seamless studio with a large diffused softbox and subtle edge light. The selected garment remains the only visual subject",
   },
   editorial: {
     label: "Hanging Editorial",
-    description: "Premium rack presentation with natural drape and true fabric weight.",
+    description: "Premium rack angles, natural drape and intimate hanger-mounted details.",
     direction: "Use one simple black hanger or matching minimal garment support appropriate to the selected garment on a dark brushed-metal rack throughout the set. Let every piece hang with natural gravity, accurate fabric weight and restrained editorial shadows",
   },
   performance: {
     label: "Performance Campaign",
-    description: "Athletic mannequin, deeper contrast, realistic campaign energy.",
+    description: "Low athletic angles, sculpted contrast and tactile shoulder details.",
     direction: "Use one matte black athletic headless mannequin form appropriate to the selected garment throughout the set, posed only enough to reveal construction. Use controlled cinematic contrast without haze, motion effects or visual clutter",
   },
 });
@@ -130,6 +167,10 @@ export function getSafeMockupBackdrop(value) {
   return MOCKUP_BACKDROP_PRESETS[value] ? value : DEFAULT_MOCKUP_COLORS.backdropPreset;
 }
 
+export function getSafeMockupFabric(value) {
+  return MOCKUP_FABRIC_PRESETS[value] ? value : DEFAULT_MOCKUP_COLORS.fabricPreset;
+}
+
 export function normalizeMockupColors(value = {}) {
   const colors = value && typeof value === "object" ? value : {};
   const safeHex = (input, fallback) => /^#[0-9a-f]{6}$/i.test(String(input || "")) ? String(input).toUpperCase() : fallback;
@@ -141,5 +182,6 @@ export function normalizeMockupColors(value = {}) {
     rightCuff: safeHex(colors.rightCuff, DEFAULT_MOCKUP_COLORS.rightCuff),
     backdrop: safeHex(colors.backdrop, DEFAULT_MOCKUP_COLORS.backdrop),
     backdropPreset: getSafeMockupBackdrop(colors.backdropPreset),
+    fabricPreset: getSafeMockupFabric(colors.fabricPreset),
   };
 }

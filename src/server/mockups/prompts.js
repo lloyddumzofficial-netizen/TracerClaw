@@ -1,6 +1,6 @@
 import {
-  MOCKUP_BACKDROP_PRESETS, MOCKUP_SHOTS, MOCKUP_STYLE_PRESETS,
-  getSafeMockupBackdrop, getSafeMockupStyle, normalizeMockupColors,
+  MOCKUP_BACKDROP_PRESETS, MOCKUP_FABRIC_PRESETS, MOCKUP_SHOTS, MOCKUP_STYLE_PRESETS,
+  getSafeMockupBackdrop, getSafeMockupFabric, getSafeMockupStyle, normalizeMockupColors,
 } from "@/features/mockup-studio/config";
 import { getGarmentProfile, getSafeGarmentType } from "@/features/mockup-studio/garmentCatalog";
 
@@ -19,6 +19,34 @@ const SHOT_LIGHTING = {
   sleeve: "Use grazing side light parallel to the fabric surface to reveal weave, piping and seam relief; keep highlights textile-soft and never glossy.",
   detail: "Use a large diffused strip light at a very low grazing angle so individual fibers, pores, stitches and absorbed ink become visible without harsh specular clipping.",
 };
+
+const STYLE_SHOT_DIRECTIONS = Object.freeze({
+  studio: Object.freeze({
+    hero: "Build a sculptural three-quarter torso composition on the matte graphite mannequin, photographed slightly below the collar line so the neck form, shoulder roll and chest plane have believable depth while the complete hem stays visible. Keep the pose restrained and product-led, like a premium sportswear lookbook rather than a generic ecommerce mockup.",
+    front: "Use a refined centered mannequin composition with clean shoulder symmetry, realistic torso volume and a quiet gallery-like stance. Keep the camera square for production comparison while allowing soft fabric relief and real depth around the collar, sleeve joins and side seams.",
+    back: "Use the same mannequin from a clean rear product angle with the shoulder blades and rear collar subtly modeled by light. Maintain an exact square rear view while retaining dimensional fabric drape instead of flattening the garment.",
+    sleeve: "Frame an intimate oblique shoulder-to-cuff construction view on the same mannequin, with the near shoulder creating optical depth and the full required sleeve panel remaining readable. The crop may feel editorial but must not cut off the cuff or shift the artwork.",
+    detail: "Create a true premium macro photograph of the real collar, shoulder seam or cuff construction on the same mannequin. Use shallow but sufficient depth of field so pores, rib channels, stitching and absorbed ink are tactile while the selected artwork coordinates remain exact.",
+  }),
+  editorial: Object.freeze({
+    hero: "Present one garment on a matte-black hanger attached to a restrained dark metal rack, photographed from a slightly low front three-quarter angle. Show the rail or hanger hardware only where it strengthens the composition; preserve natural gravity, a relaxed hem and believable sleeve drape without twisting the production panels.",
+    front: "Create a straight-on hanging front portrait with the hanger centered and the complete garment unobstructed. Let gravity form subtle vertical folds and a natural hem, but keep the shoulders level and all front artwork directly comparable to the source.",
+    back: "Create a straight-on hanging rear portrait of the same hanger and rack system, with the rear collar, shoulder line and full back artwork unobstructed. Use restrained rack depth and realistic drape without showing a second garment or any front artwork.",
+    sleeve: "Photograph the hanging garment from rack height at a shallow side angle, following the shoulder seam toward the complete wearer's-left sleeve and cuff. Retain enough hanger, collar and front torso to establish the same garment while preserving the sleeve print map exactly.",
+    detail: "Create an intimate hanger-mounted macro of a real collar-to-shoulder, sleeve seam or cuff junction. Show the support and rail only as soft contextual shapes; prioritize textile pores, seam tension, piping and natural gravity without adding labels, logos or props.",
+  }),
+  performance: Object.freeze({
+    hero: "Use a low, close athletic three-quarter camera on the matte performance mannequin so the collar, near shoulder and chest feel powerful and dimensional while the complete garment and hem remain in frame. Create campaign energy through camera position, sculpted light and posture only—never through motion blur or distorted anatomy.",
+    front: "Use a confident centered athletic-manikin portrait with slightly lower camera height, strong shoulder definition and complete front artwork readability. Preserve square production geometry and suppress wide-angle distortion even though the lighting feels more dramatic.",
+    back: "Use a powerful but square rear athletic composition with controlled highlights traveling across the rear shoulder and seam structure. Keep the entire back panel, both sleeves and hem readable and do not rotate far enough to reveal front artwork.",
+    sleeve: "Use a close oblique over-shoulder construction angle that makes the wearer's-left shoulder, sleeve seam, panel texture and cuff feel tactile. Keep the full required sleeve artwork visible and use perspective depth without stretching, enlarging or relocating its motifs.",
+    detail: "Create a high-magnification performance detail of the real shoulder seam, collar edge or cuff, with directional grazing light revealing micro-mesh, absorbed ink, piping and stitch relief. Keep exposure controlled and physically plausible, never glossy or CGI-like.",
+  }),
+});
+
+function getStyleShotDirection(style, shot) {
+  return STYLE_SHOT_DIRECTIONS[style]?.[shot] || STYLE_SHOT_DIRECTIONS.studio[shot];
+}
 
 const SHORTS_SHOT_DIRECTIONS = {
   hero: "cinematic low three-quarter hero view of one standalone pair of basketball shorts, suspended or worn on a matte lower-body mannequin, rotated 28–35 degrees so the front, waistband and one side insert are visible; show the complete garment from waistband to both hems with a 70mm lens",
@@ -95,12 +123,16 @@ function getVisibleArtwork(profile, shot) {
   return VISIBLE_ARTWORK[shot];
 }
 
-const MATERIAL_LOCK = [
-  "Treat every output in this set as a photograph of the SAME physical garment or coordinated kit made from the SAME fabric roll.",
-  "Material lock: premium 150 GSM matte micro-mesh performance polyester; fine uniform breathable pores; soft textile hand; sublimation ink absorbed into the fibers; no surface sticker or raised print.",
-  "All main production panels use one identical micro-mesh weave, scale, thickness and matte finish. Bound openings, collar, cuffs and waistband use compact purpose-appropriate rib or elastic construction only, with clean double-needle stitching and realistic seam tension.",
-  "Keep identical panel geometry, seam paths, openings, sleeve or leg length, trim widths, hems, piping and garment proportions in every camera view.",
-].join(" ");
+function getMaterialLock(fabricKey) {
+  const fabric = MOCKUP_FABRIC_PRESETS[getSafeMockupFabric(fabricKey)];
+  return [
+    "Treat every output in this set as a photograph of the SAME physical garment or coordinated kit made from the SAME fabric roll.",
+    `SELECTED FABRIC — ${fabric.label}. Render ${fabric.direction}. This selection controls the base cloth of every main garment panel in every view.`,
+    "All main production panels use one identical weave, pore scale, yarn scale, thickness, hand feel and finish. Bound openings, collar, cuffs and waistband use compact purpose-appropriate rib or elastic construction only, with clean double-needle stitching and realistic seam tension.",
+    "Keep identical panel geometry, seam paths, openings, sleeve or leg length, trim widths, hems, piping and garment proportions in every camera view.",
+    "For the Detail view, move optically close enough that the selected weave and individual yarn structure are unmistakable, but preserve the real artwork region and its exact printed colors. Never substitute generic honeycomb mesh, random hexagons or a different fabric texture.",
+  ].join(" ");
+}
 
 const PHOTOGRAPHY_LOCK = [
   "Photographic realism lock: premium commercial sportswear photography captured in-camera, not an illustration and not a 3D render.",
@@ -123,11 +155,15 @@ function describeReferences(assetRoles) {
     right_cuff: "wearer's-right cuff",
   };
   return assetRoles.map((role, index) => {
+    if (role === "canonical_front") return `Image ${index + 1}: PIXEL-LOCKED CANONICAL FRONT ARTWORK MAP—sole authority for front artwork identity, typography, character, layout, colors, seams and trim; reproduce that mapped design on real dimensional fabric without redrawing any element, but never copy the reference's flat cutout presentation, technical lighting or rigid silhouette into the final photograph`;
+    if (role === "canonical_back") return `Image ${index + 1}: PIXEL-LOCKED CANONICAL BACK ARTWORK MAP—sole authority for back artwork identity, typography, layout, colors, seams and trim; reproduce that mapped design on real dimensional fabric without redrawing any element, but never copy the reference's flat cutout presentation, technical lighting or rigid silhouette into the final photograph`;
     if (role === "production_board") return `Image ${index + 1}: PRODUCTION REFERENCE BOARD—authoritative map for garment construction, panel identity, placement and exact trim swatches; never reproduce the board layout, labels, borders or typography`;
-    if (role === "canonical_hero") return `Image ${index + 1}: CANONICAL HERO PHOTOGRAPH—lock the same physical garment, mannequin or hanger, fabric, seam geometry, trim widths, lighting family and campaign identity; change only the camera view requested below`;
+    if (role === "canonical_hero") return `Image ${index + 1}: PRESENTATION CONTINUITY REFERENCE—reuse only the same mannequin or hanger, fabric behavior, seam geometry, trim widths, lighting family and campaign mood; never use this generated photograph to override, reinterpret or repair any raw named artwork panel, especially left_sleeve or right_sleeve`;
     if (role === "style_reference") {
       return `Image ${index + 1}: REALISM REFERENCE only—borrow its photographic lighting, textile credibility and premium mood; never copy its garment design, logos, words or colors`;
     }
+    if (role === "left_sleeve") return `Image ${index + 1}: IMMUTABLE WEARER'S-LEFT SLEEVE UV MAP—sole authority for every printed pixel, blank area, stripe, motif, direction and color on the anatomical left sleeve; never mirror it or substitute any other panel`;
+    if (role === "right_sleeve") return `Image ${index + 1}: IMMUTABLE WEARER'S-RIGHT SLEEVE UV MAP—sole authority for every printed pixel, blank area, stripe, motif, direction and color on the anatomical right sleeve; never mirror it or substitute any other panel`;
     if (role === "logo") return `Image ${index + 1}: optional logo/sponsor artwork—use only where already indicated by the supplied garment artwork`;
     return `Image ${index + 1}: exact ${anatomicalRole[role] || role.replaceAll("_", " ")} production artwork`;
   }).join("; ");
@@ -149,11 +185,23 @@ function getTrimColorLock(garmentType, colors, garmentLabel) {
   return `TRIM COLOR CONTRACT — Use ${collar} for the neckline, collar or waistband trim appropriate to ${garmentLabel}, ${leftCuff} for the left cuff or binding, and ${rightCuff} for the right cuff or binding. These selector colors remain authoritative unless a matching optional trim artwork reference is supplied.`;
 }
 
+function getSleeveIdentityLock(shot) {
+  const shotMapping = {
+    hero: "The camera is at the wearer's FRONT-LEFT: the wearer's-left sleeve is the nearer dominant sleeve and appears on the viewer's RIGHT; the wearer's-right sleeve appears on the viewer's LEFT.",
+    front: "In the straight front view, the wearer's-left sleeve appears on the viewer's RIGHT and the wearer's-right sleeve appears on the viewer's LEFT.",
+    back: "In the straight rear view, the wearer's-left sleeve appears on the viewer's LEFT and the wearer's-right sleeve appears on the viewer's RIGHT.",
+    sleeve: "The featured near sleeve is strictly the wearer's-left sleeve; show the complete supplied left-sleeve motif from shoulder seam to cuff without substituting the right sleeve.",
+    detail: "The macro sleeve region is strictly sampled from the supplied wearer's-left sleeve artwork and its matching cuff; it is not a newly designed decorative fabric swatch.",
+  }[shot];
+  return `LEFT/RIGHT SLEEVE IDENTITY CONTRACT — The left_sleeve and right_sleeve inputs are two independent immutable production maps, never style suggestions. ${shotMapping} Copy each named sleeve map edge-to-edge onto only its matching sleeve, preserving every motif, blank area, stripe, angle, scale, orientation and color from shoulder seam through cuff. Never mirror, swap, rotate, simplify, continue torso artwork onto a sleeve, invent a solid-color sleeve, or borrow a motif from the opposite sleeve. Perspective may foreshorten the mapped fabric but may not redesign it. Before finalizing, verify both visible sleeves against their named source images.`;
+}
+
 export function buildMockupPrompt({ shot, style, colors = {}, assetRoles = [], garmentType }) {
   const safeShot = MOCKUP_SHOTS.some(item => item.key === shot) ? shot : "hero";
   const safeGarmentType = getSafeGarmentType(garmentType);
   const garment = getGarmentProfile(safeGarmentType);
-  const preset = MOCKUP_STYLE_PRESETS[getSafeMockupStyle(style)];
+  const safeStyle = getSafeMockupStyle(style);
+  const preset = MOCKUP_STYLE_PRESETS[safeStyle];
   const safeColors = normalizeMockupColors(colors);
   const backdrop = MOCKUP_BACKDROP_PRESETS[getSafeMockupBackdrop(safeColors.backdropPreset)];
   const indexedAssets = describeReferences(assetRoles);
@@ -163,15 +211,17 @@ export function buildMockupPrompt({ shot, style, colors = {}, assetRoles = [], g
     `TASK — Create a cinematic, editorial-grade commercial photograph of ${garment.construction}. It must feel art-directed and photographed by a specialist sportswear campaign team, never like a generic ecommerce mockup.`,
     `GARMENT TYPE LOCK — The selected template is ${garment.label}. ${garment.exclusions}. Do not blend this template with any other garment category.`,
     `SHOT — ${getShotDirection(garment, safeShot)}. ${getVisibleArtwork(garment, safeShot)}`,
+    `CAMPAIGN CAMERA LANGUAGE — ${getStyleShotDirection(safeStyle, safeShot)} Treat this as camera, support, drape and lighting direction only. Never borrow garment graphics, logos, words, colors, neckline shapes or panel construction from a mood reference.`,
     `SHOT-SPECIFIC LIGHT — ${SHOT_LIGHTING[safeShot]}`,
     `GARMENT PRESENTATION — ${preset.direction}. Keep the exact same presentation system, mannequin or hanger identity across the complete five-image campaign, adapted anatomically to the selected ${garment.label}.`,
     `CUSTOM BACKDROP — Use ${safeColors.backdrop} as the dominant backdrop hue. Build ${backdrop.direction}. The selected backdrop changes only the environment and reflected light; it must never recolor the jersey, artwork or skin of the mannequin.`,
     "COMPOSITION — Design a premium vertical 4:5 campaign frame with deliberate negative space, strong visual hierarchy and subtle foreground/background layering. Keep the selected garment dominant. Do not center every shot identically; follow the specified camera position while preserving production clarity.",
     `REFERENCE MAP — ${indexedAssets}. Artwork references are authoritative design data, not loose visual inspiration.`,
     "ARTWORK LOCK — Apply each production panel only to its named garment area as a fixed UV-style print map, not as inspiration. Preserve every supplied logo, letter, number, line, motif, negative space, spacing, scale, orientation, edge and color. Keep every element at the same proportional distance from the collar, shoulder seam, side seam, underarm, cuff and hem in all five views. Perspective may foreshorten the fabric naturally, but the print must remain attached to the same fabric coordinates. Never redraw, simplify, translate, mirror, move, re-center, resize, crop away, duplicate, continue across a seam or replace artwork. Preserve deliberate blank areas.",
+    getSleeveIdentityLock(safeShot),
     TOP_PLACEMENT_LOCKS[safeGarmentType] || "PANEL PLACEMENT MAP — Preserve every production panel as a fixed print map anchored to its real construction seams and hems.",
     `SOURCE COLOR LOCK — The uploaded body, back, sleeve and side-panel artwork is the only authority for all main garment colors. Preserve those source colors exactly; never recolor, tint, harmonize, replace or reinterpret the body or panel palette. Apply trim only to construction elements valid for ${garment.label}. Do not shift source hue, contrast or saturation between shots, even when the backdrop changes the surrounding atmosphere. ${trimColorLock}`,
-    `GARMENT IDENTITY LOCK — ${MATERIAL_LOCK}`,
+    `GARMENT IDENTITY LOCK — ${getMaterialLock(safeColors.fabricPreset)}`,
     `CAMERA AND LIGHT LOCK — ${PHOTOGRAPHY_LOCK}`,
     "QUALITY BAR — Resolve authentic micro-mesh pores, individual rib-knit channels, precise overlock construction, double-needle topstitching, sublimation ink inside fibers, soft fold compression and realistic shadow occlusion at seams. Preserve clean logo edges without making them look pasted on. The final image should withstand close inspection as a real photographed sample garment.",
     `STRICT EXCLUSIONS — ${NEGATIVE_CONSTRAINTS}`,

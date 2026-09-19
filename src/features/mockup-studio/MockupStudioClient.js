@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { safeJson } from "@/lib/safeJson";
 import { toast } from "@/components/ui/Toast";
 import {
-  DEFAULT_MOCKUP_COLORS, MOCKUP_BACKDROP_PRESETS, MOCKUP_PARTS,
+  DEFAULT_MOCKUP_COLORS, MOCKUP_BACKDROP_PRESETS, MOCKUP_FABRIC_PRESETS, MOCKUP_PARTS,
   MOCKUP_RENDER_COST, MOCKUP_SHOTS, MOCKUP_STYLE_PRESETS,
   MOCKUP_TOTAL_MAX_BYTES, formatMockupMegabytes,
   validateMockupAsset,
@@ -50,17 +50,19 @@ async function putWithRetry(uploadUrl, file) {
 
 function AssetSlot({ role, asset, busy, required, spec, onChoose, onRemove }) {
   const part = MOCKUP_PARTS[role];
+  const actionLabel = busy ? "Uploading" : asset ? "Replace" : "Upload";
   return (
     <article className={`${styles.assetSlot} ${asset ? styles.assetReady : ""}`}>
-      <button type="button" className={styles.assetButton} onClick={() => onChoose(role)} disabled={busy}>
-        <span className={styles.assetPreview}>
-          {asset ? <img src={asset.file_url} alt={`${part.label} preview`} /> : <span>{part.shortLabel}</span>}
-        </span>
+      <button type="button" className={`${styles.assetButton} ${!asset ? styles.assetButtonEmpty : ""}`} onClick={() => onChoose(role)} disabled={busy} aria-label={`${actionLabel} ${part.label}`}>
+        {asset ? <span className={styles.assetPreview}><img src={asset.file_url} alt={`${part.label} preview`} /></span> : null}
         <span className={styles.assetCopy}>
           <strong>{part.label}{required ? <em>Required</em> : null}</strong>
           <small>{asset ? `${asset.width} × ${asset.height}px` : spec ? `${spec.width} × ${spec.height}px · fit required` : `PNG, JPG or WebP · ${formatMockupMegabytes(part.maxBytes)} max`}</small>
         </span>
-        <span className={styles.assetAction}>{busy ? "Wait" : asset ? "Ready" : "Add"}</span>
+        <span className={styles.assetAction} data-busy={busy ? "true" : undefined}>
+          {asset && !busy ? <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 8 2.4 2.4L12 5" /></svg> : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 11V3m0 0L5 6m3-3 3 3M3 10v3h10v-3" /></svg>}
+          <span>{actionLabel}</span>
+        </span>
       </button>
       {asset && <button type="button" className={styles.assetRemove} onClick={() => onRemove(role)} aria-label={`Remove ${part.label}`}>×</button>}
     </article>
@@ -78,22 +80,15 @@ function CampaignStyleIcon({ type }) {
 }
 
 function RenderVisualizer({ active, index }) {
-  const shot = MOCKUP_SHOTS[index];
   return (
     <div className={`${styles.renderVisualizer} ${active ? styles.renderVisualizerActive : ""}`} aria-label={active ? `Rendering view ${index + 1}` : `View ${index + 1} queued`}>
-      <div className={styles.viewBlueprint} aria-hidden="true">
-        <span>{String(index + 1).padStart(2, "0")}</span>
-        <i className={styles.viewScan} />
-        <b /><b /><b /><b />
-      </div>
-      <div className={styles.viewLoaderCopy}><span>{shot?.label || `View ${index + 1}`}</span><strong>{active ? "Rendering view" : "Waiting for anchor"}</strong></div>
-      <div className={styles.viewLoaderTrack}><i /></div>
+      <span className={active ? styles.normalSpinner : styles.queuedIndicator} aria-hidden="true" />
+      <span className={styles.normalLoaderLabel}>{active ? "Generating preview…" : "Queued"}</span>
     </div>
   );
 }
 
 function CampaignProcessingOverlay({ completed, stage }) {
-  const activeStep = completed === 0 ? 0 : Math.min(completed, MOCKUP_SHOTS.length - 1);
   const progress = completed === 0 ? 6 : Math.min(96, completed * 20);
   const detail = completed === 0
     ? "Building the production reference and matching the supplied artwork"
@@ -102,15 +97,11 @@ function CampaignProcessingOverlay({ completed, stage }) {
       : `Preserving placement across ${MOCKUP_SHOTS.length - completed} remaining view${MOCKUP_SHOTS.length - completed === 1 ? "" : "s"}`;
   return (
     <div className={styles.campaignProcessing} aria-live="polite" aria-label={`${stage.label}. ${detail}`}>
-      <div className={styles.processingGrid} />
-      <div className={styles.processingFrame} aria-hidden="true"><i /><i /><i /><i /></div>
-      <div className={styles.processingSweep} aria-hidden="true" />
       <section className={styles.processingPanel}>
         <header><span><i />Campaign render</span><strong>{completed}<em>/5 views</em></strong></header>
         <div className={styles.processingProgress} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{ width: `${progress}%` }}><b /></i></div>
         <h3>{stage.label}</h3>
         <p>{detail}</p>
-        <div className={styles.processingSteps}>{MOCKUP_SHOTS.map((shot, index) => <span key={shot.key} data-state={index < completed ? "done" : index === activeStep ? "active" : "pending"}><i>{index < completed ? "✓" : index + 1}</i>{shot.label}</span>)}</div>
       </section>
     </div>
   );
@@ -528,23 +519,30 @@ export default function MockupStudioClient() {
 
   return (
     <main className={styles.studio}>
-      <header className={styles.topbar}>
+      <header className={`${styles.topbar} ${!project ? styles.landingTopbar : ""}`}>
         <div className={styles.topbarActions}><button className={styles.homeButton} onClick={() => router.push("/")}>Home</button>{project ? <button className={styles.homeButton} onClick={startNewProject} disabled={rendering}>New project</button> : null}</div>
-        <div className={styles.brand}><Image src="/logo.png" alt="DesaynClaw" width={134} height={26} priority /><div className={styles.productIdentity}><strong>Mockup Studio</strong><span>Garment visualization workspace</span></div></div>
+        {project ? <div className={styles.brand}><Image src="/logo.png" alt="DesaynClaw" width={134} height={26} priority /><div className={styles.productIdentity}><strong>Mockup Studio</strong><span>Garment visualization workspace</span></div></div> : null}
         <div className={styles.credit}><strong>{credits ?? "—"}</strong><span>Claws available</span></div>
       </header>
 
       {!project ? (
         <section className={styles.startScreen}>
-          <div className={styles.startKicker}>DESAYNCLAW / MOCKUP PRODUCTION</div>
-          <h1>Build a controlled garment campaign.</h1>
-          <p>Select the exact construction, upload every production panel, and create a consistent five-view presentation without changing the original design.</p>
-          <label className={styles.projectNameLabel}>Project name<input value={projectName} maxLength={100} onChange={event => setProjectName(event.target.value)} /></label>
-          <div className={styles.garmentPicker} aria-label="Choose a locked garment template">{Object.entries(AVAILABLE_GARMENT_CATALOG).map(([key, garment], index) => <button type="button" key={key} className={garmentType === key ? styles.garmentActive : ""} onClick={() => setGarmentType(key)} aria-pressed={garmentType === key}><span className={styles.garmentIndex}>{String(index + 1).padStart(2, "0")}</span><span><strong>{garment.label}</strong><small>{garment.description}</small></span></button>)}</div>
-          <button className={styles.primaryButton} onClick={createProject} disabled={creating || !projectName.trim()}>{creating ? "Creating project…" : "Create project"}</button>
-          <div className={styles.startFacts}><span>Locked garment construction</span><span>5 premium views</span><span>3-day auto cleanup</span></div>
+          <div className={styles.startLayout}>
+            <div className={styles.startIntro}>
+              <div className={styles.landingBrand}><Image src="/logo.png" alt="DesaynClaw" width={154} height={30} priority /><div><strong>Mockup Studio</strong><span>Garment visualization workspace</span></div></div>
+              <h1>Create a professional garment mockup set.</h1>
+              <p>Upload your exact front, back, and sleeve artwork. DesaynClaw keeps the design consistent across five presentation-ready views.</p>
+              <div className={styles.startFacts}><span>Source artwork preserved</span><span>Five consistent views</span><span>Private for 3 days</span></div>
+            </div>
+            <div className={styles.setupPanel}>
+              <header className={styles.setupHeader}><span>New project</span><h2>Set up your campaign</h2><p>Name the project and choose the garment you want to present.</p></header>
+              <label className={styles.projectNameLabel}>Project name<input value={projectName} maxLength={100} onChange={event => setProjectName(event.target.value)} /></label>
+              <div className={styles.garmentPicker} aria-label="Choose a locked garment template">{Object.entries(AVAILABLE_GARMENT_CATALOG).map(([key, garment], index) => <button type="button" key={key} className={garmentType === key ? styles.garmentActive : ""} onClick={() => setGarmentType(key)} aria-pressed={garmentType === key}><span className={styles.garmentIndex}>{String(index + 1).padStart(2, "0")}</span><span><strong>{garment.label}</strong><small>{garment.description}</small></span></button>)}</div>
+              <div className={styles.setupFooter}><button className={styles.primaryButton} onClick={createProject} disabled={creating || !projectName.trim()}>{creating ? "Creating project…" : "Create mockup project"}</button><small>Creating a project is free. Claws are charged only when you generate the final set.</small></div>
+            </div>
+          </div>
           <section className={styles.recentProjects} aria-labelledby="recent-projects-title">
-            <header><div><span>YOUR WORK</span><h2 id="recent-projects-title">Recent projects</h2></div><p>Drafts and completed sets are kept for 3 days.</p></header>
+            <header><div><span>Your work</span><h2 id="recent-projects-title">Continue a recent project</h2></div><p>Drafts and completed sets are available for 3 days.</p></header>
             {loadingProjects ? <div className={styles.recentEmpty}>Loading projects…</div> : recentProjects.length ? (
               <div className={styles.recentGrid}>{recentProjects.map(item => {
                 const profile = getGarmentProfile(item.garment_type);
@@ -559,7 +557,6 @@ export default function MockupStudioClient() {
       ) : (
         <div className={styles.workspace}>
           <aside className={styles.leftPanel}>
-            <div className={styles.panelHeading}><span>01</span><div><h2>Design panels</h2><p>Required artwork is never replaced by a generic pattern.</p></div></div>
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={event => prepareSelectedAsset(event.target.files?.[0])} />
             <div className={styles.garmentLock}><span>GARMENT</span><div><strong>{garmentProfile.label}</strong><small>{garmentProfile.description} · locked for this project</small></div></div>
             <div className={styles.assetList}>{garmentParts.required.map(role => <AssetSlot key={role} role={role} asset={assets[role]} busy={uploadingRole === role} required spec={getPanelPreparationSpec(garmentType, role)} onChoose={chooseAsset} onRemove={removeAsset} />)}</div>
@@ -576,7 +573,7 @@ export default function MockupStudioClient() {
           </aside>
 
           <section className={styles.canvasPanel}>
-            <div className={styles.canvasHeader}><div><span>TECHNICAL PREVIEW · {garmentProfile.shortLabel}</span><h1>{projectName}</h1></div><div className={`${styles.previewStatus} ${renderReady ? styles.previewStatusReady : ""}`}>{!requiredReady ? `${garmentParts.required.filter(role => assets[role]).length}/${garmentParts.required.length} required panels` : !artDirectionReady ? "Art direction required" : "Ready to render"}</div></div>
+            <div className={styles.canvasHeader}><h1>{projectName}</h1><div className={`${styles.previewStatus} ${renderReady ? styles.previewStatusReady : ""}`}>{!requiredReady ? `${garmentParts.required.filter(role => assets[role]).length}/${garmentParts.required.length} required panels` : !artDirectionReady ? "Art direction required" : "Ready to render"}</div></div>
             <div className={styles.previewShell}>
               <GarmentPreview assets={assets} colors={colors} garmentType={garmentType} />
               {rendering ? <CampaignProcessingOverlay completed={outputs.length} stage={renderStage} /> : null}
@@ -603,15 +600,21 @@ export default function MockupStudioClient() {
           <aside className={styles.rightPanel}>
             <div className={styles.rightPanelScroll}>
               <div className={styles.panelHeading}><span>02</span><div><h2>Art direction</h2><p>Controlled presets keep the set visually consistent.</p></div></div>
-              <section className={`${styles.directionReview} ${artDirectionReady ? styles.directionReviewReady : ""}`} aria-live="polite">
-                <div><span className={styles.preflightLabel}>Preflight</span><strong>{artDirectionReady ? "Visual direction confirmed" : "Confirm the visual direction"}</strong><p>Review the campaign style and backdrop before generating.</p></div>
-                <div className={styles.reviewSteps}><span data-complete={styleReviewed}>Campaign style</span><span data-complete={backdropReviewed}>Backdrop</span></div>
-              </section>
               <section className={styles.controlSection}><h3>Trim colors</h3>{Object.entries(colorLabels).map(([key, label]) => <label className={styles.colorControl} key={key}><span>{label}</span><input type="color" value={colors[key]} onChange={event => setColors(current => ({ ...current, [key]: event.target.value }))} /><code>{colors[key].toUpperCase()}</code></label>)}</section>
+              <section className={styles.controlSection}>
+                <div className={styles.controlTitle}><h3>Garment fabric</h3><span>Material lock</span></div>
+                <label className={styles.fabricControl}>
+                  <span className={styles.srOnly}>Garment fabric</span>
+                  <select value={colors.fabricPreset} onChange={event => setColors(current => ({ ...current, fabricPreset: event.target.value }))}>
+                    {Object.entries(MOCKUP_FABRIC_PRESETS).map(([key, fabric]) => <option key={key} value={key}>{fabric.label}</option>)}
+                  </select>
+                  <small>{MOCKUP_FABRIC_PRESETS[colors.fabricPreset]?.description}</small>
+                </label>
+              </section>
               <section className={styles.controlSection}><div className={styles.controlTitle}><h3>Campaign style</h3><span>{styleReviewed ? "Selected" : "Required"}</span></div><div className={styles.styleList}>{Object.entries(MOCKUP_STYLE_PRESETS).map(([key, preset]) => <button type="button" key={key} className={stylePreset === key && styleReviewed ? styles.styleActive : ""} onClick={() => { setStylePreset(key); setStyleReviewed(true); }} aria-pressed={stylePreset === key && styleReviewed}><span className={styles.campaignIcon}><CampaignStyleIcon type={key} /></span><div><strong>{preset.label}</strong><small>{preset.description}</small></div>{stylePreset === key && styleReviewed ? <span className={styles.styleMark}>Selected</span> : null}</button>)}</div></section>
               <section className={styles.controlSection}>
                 <div className={styles.controlTitle}><h3>Backdrop</h3><span>{backdropReviewed ? "Selected" : "Required"}</span></div>
-                <label className={styles.backdropColor}><span>Campaign color</span><input type="color" value={colors.backdrop} onChange={event => { setColors(current => ({ ...current, backdrop: event.target.value })); setBackdropReviewed(true); }} /><code>{colors.backdrop.toUpperCase()}</code></label>
+                <label className={styles.backdropColor} style={{ "--campaign-color": colors.backdrop }}><span>Campaign color</span><input type="color" value={colors.backdrop} onChange={event => { setColors(current => ({ ...current, backdrop: event.target.value })); setBackdropReviewed(true); }} /><code>{colors.backdrop.toUpperCase()}</code></label>
                 <div className={styles.backdropGrid}>{Object.entries(MOCKUP_BACKDROP_PRESETS).map(([key, preset]) => <button type="button" key={key} className={colors.backdropPreset === key && backdropReviewed ? styles.backdropActive : ""} onClick={() => { setColors(current => ({ ...current, backdropPreset: key })); setBackdropReviewed(true); }} aria-pressed={colors.backdropPreset === key && backdropReviewed}><span className={styles.backdropSwatch} style={{ background: `radial-gradient(circle at 55% 42%, ${colors.backdrop}, #070707 72%)` }} /><strong>{preset.label}</strong><small>{preset.description}</small></button>)}</div>
               </section>
             </div>
@@ -632,6 +635,7 @@ export default function MockupStudioClient() {
         assets={assets}
         colors={colors}
         styleLabel={MOCKUP_STYLE_PRESETS[stylePreset]?.label || stylePreset}
+        fabricLabel={MOCKUP_FABRIC_PRESETS[colors.fabricPreset]?.label || "Micro Cool"}
         backdropLabel={MOCKUP_BACKDROP_PRESETS[colors.backdropPreset]?.label || "Custom campaign color"}
         busy={rendering}
         onClose={() => setPreflightOpen(false)}

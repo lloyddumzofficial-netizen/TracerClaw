@@ -13,6 +13,7 @@ export default function MockupPreflightModal({
   assets,
   colors,
   styleLabel,
+  fabricLabel,
   backdropLabel,
   busy,
   onClose,
@@ -64,6 +65,7 @@ export default function MockupPreflightModal({
             <dl>
               <div><dt>Garment</dt><dd>{garmentLabel}</dd></div>
               <div><dt>Campaign style</dt><dd>{styleLabel}</dd></div>
+              <div><dt>Fabric</dt><dd>{fabricLabel}</dd></div>
               <div><dt>Backdrop</dt><dd><i className={styles.inlineSwatch} style={{ backgroundColor: colors.backdrop }} />{backdropLabel}</dd></div>
               <div><dt>Output</dt><dd>5 controlled 1K PNG views</dd></div>
             </dl>
@@ -84,7 +86,7 @@ export default function MockupPreflightModal({
         </div>
 
         <footer className={styles.footer}>
-          <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} /><span aria-hidden="true">✓</span><strong>I reviewed the artwork, trim colors, campaign style, and backdrop.</strong></label>
+          <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} /><span aria-hidden="true">✓</span><strong>I reviewed the artwork, fabric, trim colors, campaign style, and backdrop.</strong></label>
           <div><span><strong>{MOCKUP_RENDER_COST}</strong> Claws · charged once for the complete set</span><button type="button" onClick={onConfirm} disabled={!approved || blocked || busy}>{busy ? "Starting render…" : "Confirm and generate"}</button></div>
         </footer>
       </section>

@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { requireUser } from "@/server/api/auth";
 import { isValidGenerationRequestKey } from "@/server/billing";
-import { createMockupWebhookUrl, createProductionReferenceBoard, loadMockupAssets, loadOwnedMockupProject, submitMockupViews } from "@/server/mockups";
+import { createMockupWebhookUrl, createProductionReferenceBoard, loadMockupAssets, loadOwnedMockupProject, renderSourceLockedView, submitMockupViews } from "@/server/mockups";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { MOCKUP_RENDER_COST, MOCKUP_SHOTS } from "@/features/mockup-studio/config";
 import { getGarmentParts, getGarmentProfile, isGarmentPartAllowed } from "@/features/mockup-studio/garmentCatalog";
@@ -80,11 +80,19 @@ export async function POST(request, { params }) {
       const order = [...profile.requiredParts, ...profile.optionalParts];
       return order.indexOf(a.role) - order.indexOf(b.role);
     });
-    const referenceBoard = await createProductionReferenceBoard({ assets: ordered, colors: project.colors || {}, garmentLabel: profile.label, garmentType: project.garment_type });
-    const referenceBoardUrl = await uploadToR2(referenceBoard, `users/${auth.user.id}/mockups/${id}/references/${jobId}-production-board.png`, "image/png");
+    const [referenceBoard, lockedFront, lockedBack] = await Promise.all([
+      createProductionReferenceBoard({ assets: ordered, colors: project.colors || {}, garmentLabel: profile.label, garmentType: project.garment_type }),
+      renderSourceLockedView({ assets: ordered, colors: project.colors || {}, garmentType: project.garment_type, view: "front" }),
+      renderSourceLockedView({ assets: ordered, colors: project.colors || {}, garmentType: project.garment_type, view: "back" }),
+    ]);
+    const [referenceBoardUrl, lockedFrontUrl, lockedBackUrl] = await Promise.all([
+      uploadToR2(referenceBoard, `users/${auth.user.id}/mockups/${id}/references/${jobId}-production-board.png`, "image/png"),
+      uploadToR2(lockedFront, `users/${auth.user.id}/mockups/${id}/references/${jobId}-canonical-front.png`, "image/png"),
+      uploadToR2(lockedBack, `users/${auth.user.id}/mockups/${id}/references/${jobId}-canonical-back.png`, "image/png"),
+    ]);
     const providerRequests = await submitMockupViews({
-      imageUrls: [referenceBoardUrl, ...ordered.map(asset => asset.file_url)],
-      assetRoles: ["production_board", ...ordered.map(asset => asset.role)],
+      imageUrls: [lockedFrontUrl, lockedBackUrl, referenceBoardUrl, ...ordered.map(asset => asset.file_url)],
+      assetRoles: ["canonical_front", "canonical_back", "production_board", ...ordered.map(asset => asset.role)],
       style: project.style_preset,
       colors: project.colors || {},
       garmentType: project.garment_type,
@@ -92,6 +100,8 @@ export async function POST(request, { params }) {
       webhookUrl: createMockupWebhookUrl(jobId),
     });
     providerRequests._referenceBoard = referenceBoardUrl;
+    providerRequests._canonicalFront = lockedFrontUrl;
+    providerRequests._canonicalBack = lockedBackUrl;
     providerRequests._phase = "hero";
     const now = new Date().toISOString();
     const { error: updateError } = await adminSupabase.from("mockup_jobs").update({

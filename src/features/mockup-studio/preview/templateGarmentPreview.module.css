@@ -1,4 +1,4 @@
-.previewShell{min-height:0;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--preview-backdrop,#071827) 80%,#fff 20%) 0,var(--preview-backdrop,#071827) 48%,#050607 100%);display:grid;grid-template-rows:minmax(0,1fr) 38px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+.previewShell{min-height:0;border:0;border-radius:0;background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--preview-backdrop,#071827) 80%,#fff 20%) 0,var(--preview-backdrop,#071827) 48%,#050607 100%);display:grid;grid-template-rows:minmax(0,1fr) 38px;overflow:hidden;box-shadow:none}
 .previewGrid{min-height:0;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(20px,4vw,70px);padding:clamp(24px,4vw,54px) clamp(28px,5vw,76px)}
 .templateView{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);align-items:center}
 .viewLabel{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.08)}

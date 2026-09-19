@@ -54,12 +54,14 @@ export async function POST(request, { params }) {
       .filter(asset => isGarmentPartAllowed(project.garment_type, asset.role))
       .sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role));
     const heroUrl = outputsResult.data?.find(output => output.view_type === "hero")?.file_url;
+    const frontUrl = requests._canonicalFront || outputsResult.data?.find(output => output.view_type === "front")?.file_url;
+    const backUrl = requests._canonicalBack || outputsResult.data?.find(output => output.view_type === "back")?.file_url;
     const boardUrl = requests._referenceBoard;
-    if (!boardUrl || !heroUrl) throw new Error("Campaign references are incomplete.");
+    if (!boardUrl || !frontUrl || !backUrl || !heroUrl) throw new Error("Campaign references are incomplete.");
 
     const retryRequest = await submitMockupViews({
-      imageUrls: [boardUrl, heroUrl, ...assets.map(asset => asset.file_url)],
-      assetRoles: ["production_board", "canonical_hero", ...assets.map(asset => asset.role)],
+      imageUrls: [frontUrl, backUrl, boardUrl, heroUrl, ...assets.map(asset => asset.file_url)],
+      assetRoles: ["canonical_front", "canonical_back", "production_board", "canonical_hero", ...assets.map(asset => asset.role)],
       style: project.style_preset,
       colors: project.colors || {},
       garmentType: project.garment_type,

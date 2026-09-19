@@ -64,9 +64,11 @@ async function loadCampaignReferences(userId, job, requests, outputByView) {
   if (!project) throw new Error("Mockup project is unavailable.");
   const assets = orderedAssets(project, assetsResult.data || []);
   const boardUrl = requests._referenceBoard;
+  const frontUrl = requests._canonicalFront || outputByView.get("front")?.file_url;
+  const backUrl = requests._canonicalBack || outputByView.get("back")?.file_url;
   const heroUrl = outputByView.get("hero")?.file_url;
-  if (!boardUrl || !heroUrl) throw new Error("Campaign references are incomplete.");
-  return { project, assets, boardUrl, heroUrl };
+  if (!boardUrl || !frontUrl || !backUrl || !heroUrl) throw new Error("Campaign references are incomplete.");
+  return { project, assets, boardUrl, frontUrl, backUrl, heroUrl };
 }
 
 async function restoreFailedRetry(userId, job, requests) {
@@ -166,13 +168,14 @@ export async function processMockupJob({ userId, jobId, job: suppliedJob }) {
     if (reservation) {
       try {
         const refs = await loadCampaignReferences(userId, job, requests, outputByView);
+        const remainingShots = MOCKUP_SHOTS.filter(shot => shot.key !== "hero");
         const campaignRequests = await submitMockupViews({
-          imageUrls: [refs.boardUrl, refs.heroUrl, ...refs.assets.map(asset => asset.file_url)],
-          assetRoles: ["production_board", "canonical_hero", ...refs.assets.map(asset => asset.role)],
+          imageUrls: [refs.frontUrl, refs.backUrl, refs.boardUrl, refs.heroUrl, ...refs.assets.map(asset => asset.file_url)],
+          assetRoles: ["canonical_front", "canonical_back", "production_board", "canonical_hero", ...refs.assets.map(asset => asset.role)],
           style: refs.project.style_preset,
           colors: refs.project.colors || {},
           garmentType: refs.project.garment_type,
-          shots: MOCKUP_SHOTS.filter(shot => shot.key !== "hero"),
+          shots: remainingShots,
           webhookUrl: createMockupWebhookUrl(job.id),
         });
         requests = { ...reservedRequests, ...campaignRequests, _phase: "campaign" };

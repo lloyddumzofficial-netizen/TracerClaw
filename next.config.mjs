@@ -34,6 +34,9 @@ function resolveBuildDirty() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingIncludes: {
+    '/api/mockups/*/render': ['./public/mockup-studio/templates/**/*'],
+  },
   env: {
     BUILD_COMMIT: resolveBuildCommit(),
     // "true" means the deploy was built from a working tree with uncommitted

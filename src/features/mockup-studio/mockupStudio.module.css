@@ -190,6 +190,46 @@
 @media(max-width:1180px){.processingPanel{width:calc(100% - 48px);bottom:18px}.processingSteps>span{font-size:7px;padding:0 5px}.processingPanel>p{margin-bottom:10px}}
 @media(max-width:620px){.campaignProcessing{inset:14px 12px 48px}.processingFrame{inset:14px}.processingPanel{bottom:12px;width:calc(100% - 24px);padding:12px}.processingSteps{grid-template-columns:repeat(5,70px);overflow:hidden}.processingSteps>span{font-size:0}.processingSteps>span>i{margin:auto}.processingPanel>p{font-size:9px}}
 
+/* Clean artwork upload rows: no empty thumbnail boxes and no yellow status chrome. */
+.assetList{gap:8px}
+.assetSlot{border-color:#292929;border-radius:2px;background:#101010;overflow:visible;box-shadow:inset 2px 0 #242424}
+.assetSlot:hover{border-color:#444;background:#131313;box-shadow:inset 2px 0 #686868}
+.assetReady{border-color:#303030}
+.assetButton{min-height:70px;grid-template-columns:60px minmax(0,1fr) 84px;gap:0;padding:0;border-radius:1px;overflow:hidden}
+.assetButtonEmpty{grid-template-columns:minmax(0,1fr) 84px;padding-left:0}
+.assetPreview{width:48px;height:48px;margin-left:10px;border:0;border-radius:1px;background:#090909;box-shadow:inset 0 0 0 1px #292929}
+.assetCopy{gap:5px}
+.assetCopy{padding:0 12px}
+.assetButtonEmpty .assetCopy{padding-left:14px}
+.assetCopy strong{color:#e1e1e1;font-size:11.5px;font-weight:650}
+.assetCopy strong em{color:#777;font-size:7px;letter-spacing:.075em}
+.assetCopy small{color:#707070;font-size:9px}
+.assetAction{width:84px;height:100%;min-height:70px;padding:0 10px;border:0;border-left:1px solid #2e2e2e;border-radius:0;background:#151515;color:#c8c8c8;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:8px;font-weight:720;letter-spacing:.065em;text-transform:uppercase}
+.assetAction svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.assetSlot:hover .assetAction{border-left-color:#444;background:#1b1b1b;color:#fff}
+.assetSlot:hover .assetAction svg{transform:translateY(-1px)}
+.assetAction svg{transition:transform .18s ease}
+.assetAction[data-busy="true"]{color:#8b8b8b}
+.assetReady{box-shadow:inset 2px 0 #5b5b5b}.assetReady .assetAction{color:#d0d0d0}
+.assetRemove{right:-5px;top:-5px;border-radius:3px;background:#171717}
+.canvasHeader h1{margin-top:0}
+.rightPanelScroll>.controlSection:first-of-type{padding-top:1px}
+
+.srOnly{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.fabricControl{display:block}
+.fabricControl select{width:100%;height:40px;border:1px solid rgba(255,255,255,.16);border-radius:4px;background:#0f0f0f;color:#e2e2e2;padding:0 34px 0 11px;font:600 10.5px/1 inherit;letter-spacing:.01em;cursor:pointer;color-scheme:dark}
+.fabricControl select:hover{border-color:rgba(255,255,255,.3);background:#131313}
+.fabricControl select:focus-visible{outline:1px solid rgba(255,255,255,.6);outline-offset:2px}
+.fabricControl small{display:block;margin-top:7px;color:#898989;font-size:8.7px;line-height:1.45}
+
+@media(min-width:941px){
+  .rightPanelScroll .fabricControl select{height:36px;font-size:9.5px}
+  .rightPanelScroll .fabricControl small{margin-top:5px;font-size:8px;line-height:1.35}
+}
+
+@media(max-width:1180px){.assetButton{grid-template-columns:56px minmax(0,1fr) 76px}.assetButtonEmpty{grid-template-columns:minmax(0,1fr) 76px}.assetAction{width:76px;padding:0 8px}}
+@media(max-width:620px){.assetButton{grid-template-columns:54px minmax(0,1fr) 42px}.assetButtonEmpty{grid-template-columns:minmax(0,1fr) 42px}.assetPreview{width:44px;height:44px}.assetAction{width:42px;min-width:42px;padding:0}.assetAction span{display:none}}
+
 /* Quiet per-view queue cards: production frames instead of generic garment icons. */
 .renderVisualizer{width:100%;height:100%;padding:11px 10px 62px;display:grid;grid-template-rows:minmax(48px,1fr) auto 3px;place-items:stretch;gap:8px;color:#666}
 .viewBlueprint{position:relative;min-height:0;overflow:hidden;border:1px solid rgba(255,255,255,.07);background:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.023) 1px,transparent 1px),radial-gradient(circle at 50% 44%,rgba(255,255,255,.045),transparent 60%);background-size:18px 18px,18px 18px,auto;display:grid;place-items:center}.viewBlueprint>span{color:#3f3f3f;font:650 18px/1 var(--font-jetbrains-mono),monospace;letter-spacing:-.05em}.viewBlueprint>b{position:absolute;width:12px;height:12px;border-color:rgba(255,255,255,.17)}.viewBlueprint>b:nth-of-type(1){left:7px;top:7px;border-left:1px solid;border-top:1px solid}.viewBlueprint>b:nth-of-type(2){right:7px;top:7px;border-right:1px solid;border-top:1px solid}.viewBlueprint>b:nth-of-type(3){right:7px;bottom:7px;border-right:1px solid;border-bottom:1px solid}.viewBlueprint>b:nth-of-type(4){left:7px;bottom:7px;border-left:1px solid;border-bottom:1px solid}
@@ -200,3 +240,101 @@
 @keyframes viewBlueprintScan{0%{transform:translateX(-120%) skewX(-8deg);opacity:0}18%{opacity:.8}80%{opacity:.55}100%{transform:translateX(650%) skewX(-8deg);opacity:0}}
 @keyframes viewTrackTravel{0%{transform:translateX(-110%)}100%{transform:translateX(340%)}}
 @media(prefers-reduced-motion:reduce){.renderVisualizerActive .viewScan,.renderVisualizerActive .viewLoaderTrack>i{animation:none}.renderVisualizerActive .viewScan{display:none}.renderVisualizerActive .viewLoaderTrack>i{transform:none;width:42%}}
+
+/* Homepage-aligned Mockup Studio landing page. */
+.landingTopbar{grid-template-columns:1fr auto;border-bottom-color:transparent;background:#070707}
+.landingTopbar .topbarActions{grid-column:1}.landingTopbar .credit{grid-column:2}
+.landingTopbar .homeButton{min-width:74px;border:1px solid #292929;background:#111;color:#d0d0d0}.landingTopbar .homeButton:hover{border-color:#444;background:#171717;color:#fff}
+.startScreen{width:100%;max-width:none;min-height:calc(100vh - 72px);margin:0;padding:clamp(64px,8vh,92px) 32px 72px;background:#070707;text-align:left}
+.startLayout{width:min(1160px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,520px);align-items:center;gap:clamp(56px,7vw,112px)}
+.startIntro{max-width:580px}
+.landingBrand{display:flex;align-items:center;gap:16px;margin-bottom:28px}.landingBrand img{display:block;width:154px;height:auto;object-fit:contain}.landingBrand>div{position:relative;display:grid;gap:4px;padding-left:16px}.landingBrand>div:before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:1px;background:#303030}.landingBrand strong{color:#e5e5e5;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.landingBrand span{color:#626262;font-size:8px;letter-spacing:.04em}
+.startScreen .startIntro h1{max-width:650px;margin:18px 0 18px;color:#f4f4f4;font-size:clamp(42px,4.6vw,64px);font-weight:620;line-height:1.02;letter-spacing:-.052em}
+.startIntro>p{max-width:570px;margin:0;color:#8b8b8b;font-size:14px;line-height:1.7}
+.startFacts{margin:28px 0 0;justify-content:flex-start;gap:18px;color:#656565;font-size:9px;font-weight:650;letter-spacing:.025em;text-transform:none}
+.startFacts span{gap:0}.startFacts span+span:before{display:none}
+.setupPanel{padding:30px;border:0;border-radius:3px;background:#0f0f0f;box-shadow:0 18px 48px rgba(0,0,0,.26)}
+.setupHeader{margin-bottom:24px}.setupHeader>span{display:block;margin-bottom:8px;color:#707070;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.setupHeader h2{margin:0;color:#ededed;font-size:21px;font-weight:640;letter-spacing:-.025em}.setupHeader p{margin:7px 0 0;color:#717171;font-size:10.5px;line-height:1.55}
+.setupPanel .projectNameLabel{max-width:none;margin:0 0 16px;color:#777;font-size:9px;font-weight:650;letter-spacing:.07em;text-transform:uppercase}
+.setupPanel .projectNameLabel input{height:46px;margin-top:8px;border-color:#292929;border-radius:2px;background:#161616;box-shadow:none}
+.setupPanel .projectNameLabel input:hover{border-color:#353535}.setupPanel .projectNameLabel input:focus{border-color:#777;box-shadow:0 0 0 3px rgba(255,255,255,.045)}
+.setupPanel .garmentPicker{max-width:none;margin:0 0 20px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.setupPanel .garmentPicker button{min-height:78px;border-color:#272727;border-radius:2px;background:#141414;padding:13px;grid-template-columns:24px 1fr;box-shadow:none}
+.setupPanel .garmentPicker button:hover{border-color:#393939;background:#181818}
+.setupPanel .garmentPicker strong{color:#dedede;font-size:11px}.setupPanel .garmentPicker small{color:#6c6c6c;font-size:8.5px}
+.setupPanel .garmentIndex{color:#5f5f5f}.setupPanel .garmentActive{border-color:#303030!important;background:#17170f!important;box-shadow:inset 2px 0 #ffd700!important}.setupPanel .garmentActive .garmentIndex{color:#b9b9b9}.setupPanel .garmentActive:after{color:#b9b9b9}
+.setupFooter{display:grid;gap:10px}.setupFooter .primaryButton{width:100%;min-height:46px;border-radius:2px;justify-content:center;font-size:10.5px;letter-spacing:.02em}.setupFooter small{color:#5e5e5e;font-size:8.5px;line-height:1.45;text-align:left}
+.recentProjects{width:min(1160px,100%);max-width:none;margin:68px auto 0;padding:0;border:0;text-align:left}
+.recentProjects>header{align-items:flex-end;margin-bottom:17px}.recentProjects>header>div>span{color:#6b6b6b;font-size:8px;letter-spacing:.1em;text-transform:uppercase}.recentProjects h2{margin-top:6px;font-size:19px}.recentProjects>header p{color:#626262;font-size:9px}
+.recentGrid{gap:12px}.projectCard{border:0;border-radius:8px;background:#101010;box-shadow:inset 0 0 0 1px #202020}.projectCard:hover{background:#141414;box-shadow:inset 0 0 0 1px #353535}.projectThumb{border:0;background:#0d0d0d}.projectCardBody>span{color:#858585}
+.recentEmpty{border:0;border-radius:8px;background:#101010;box-shadow:inset 0 0 0 1px #202020}
+@media(max-width:940px){.startLayout{grid-template-columns:1fr;gap:42px}.startIntro{max-width:680px}.setupPanel{width:100%;max-width:680px}.recentProjects{margin-top:54px}}
+@media(max-width:620px){.startScreen{padding:44px 16px 52px}.landingBrand{gap:12px;margin-bottom:24px}.landingBrand img{width:132px}.landingBrand>div{padding-left:12px}.landingBrand span{display:none}.startScreen .startIntro h1{font-size:clamp(38px,12vw,50px)}.startIntro>p{font-size:12px}.startFacts{display:grid;gap:7px}.setupPanel{padding:20px;border-radius:2px}.setupPanel .garmentPicker{grid-template-columns:1fr}.recentProjects>header{align-items:flex-start}.recentProjects>header p{margin-top:4px}.recentGrid{grid-template-columns:1fr}}
+
+/* Desktop art-direction panel: every control fits without visible scroll chrome. */
+@media(min-width:941px){
+  .rightPanelScroll{overflow-y:auto;padding:14px 15px 3px;display:flex;flex-direction:column;scrollbar-width:none}
+  .rightPanelScroll::-webkit-scrollbar{display:none}
+  .rightPanelScroll .panelHeading{gap:8px;padding-bottom:11px;margin-bottom:11px}
+  .rightPanelScroll .panelHeading>span{min-width:20px;font-size:7px;padding-top:3px}
+  .rightPanelScroll .panelHeading h2{margin-bottom:3px;font-size:13px}
+  .rightPanelScroll .panelHeading p{font-size:8.5px;line-height:1.35}
+  .rightPanelScroll .controlSection{padding-bottom:10px;margin-bottom:10px}
+  .rightPanelScroll .controlSection h3{margin-bottom:8px;font-size:10px}
+  .rightPanelScroll .colorControl,.rightPanelScroll .backdropColor{min-height:38px;grid-template-columns:minmax(0,1fr) 30px 68px;gap:8px;font-size:9px}
+  .rightPanelScroll .colorControl input,.rightPanelScroll .backdropColor input{width:28px;height:26px;border-radius:4px;padding:2px}
+  .rightPanelScroll .colorControl code,.rightPanelScroll .backdropColor code{padding:5px 3px;font-size:8px}
+  .rightPanelScroll .styleList{gap:5px}
+  .rightPanelScroll .styleList button{min-height:58px;padding:9px 10px;grid-template-columns:32px minmax(0,1fr) auto;gap:9px;border-radius:4px}
+  .rightPanelScroll .campaignIcon{width:32px;height:32px;border-radius:4px}
+  .rightPanelScroll .campaignIcon svg{width:17px;height:17px}
+  .rightPanelScroll .styleList strong{font-size:10.5px}
+  .rightPanelScroll .styleList small{margin-top:3px;overflow:hidden;font-size:8.3px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+  .rightPanelScroll .styleMark{font-size:6px}
+  .rightPanelScroll .backdropColor{min-height:46px;margin-bottom:8px;padding-bottom:7px;grid-template-columns:minmax(0,1fr) 40px 68px}
+  .rightPanelScroll .backdropColor input{width:38px;height:32px;border-color:rgba(255,255,255,.34)}
+  .rightPanelScroll .backdropColor span{color:#d0d0d0;font-weight:650}
+  .rightPanelScroll .backdropColor code{color:#c7c7c7;font-weight:650}
+  .rightPanelScroll>.controlSection:last-child{flex:1;min-height:210px;margin-bottom:0;padding-bottom:8px;border-bottom:0;display:flex;flex-direction:column}
+  .rightPanelScroll .backdropGrid{flex:1;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(68px,1fr));gap:6px}
+  .rightPanelScroll .backdropGrid button{height:100%;min-height:84px;padding:9px;display:flex;flex-direction:column;align-items:stretch;justify-content:center;border-radius:4px}
+  .rightPanelScroll .backdropSwatch{width:100%;height:42px;flex:0 0 42px;border-radius:3px}
+  .rightPanelScroll .backdropGrid strong{margin-top:7px;color:#e2e2e2;font-size:9.5px;line-height:1.25;white-space:normal;overflow:visible}
+  .rightPanelScroll .backdropGrid small{display:-webkit-box;margin-top:3px;color:#898989;font-size:8.4px;line-height:1.35;white-space:normal;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .renderActions{padding:10px 15px 11px}
+  .renderActions .renderSummary{margin-bottom:8px;gap:4px}
+  .renderActions .generateButton{min-height:44px}
+  .renderActions .billingNote{margin-top:6px;font-size:7px}
+}
+
+/* Integrated main preview: continuous workspace surface, not a floating card. */
+.canvasPanel{background:#080808;background-image:none}
+.previewStage{padding:0;overflow:hidden}
+.campaignProcessing{inset:0 0 38px;border-left:0;border-right:0;border-radius:0}
+
+@media(max-width:940px){.previewStage{padding:0}.campaignProcessing{inset:0 0 38px}}
+
+/* Make the user-selected campaign color immediately readable. */
+.backdropColor{position:relative}
+.backdropColor:after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--campaign-color);box-shadow:0 0 12px color-mix(in srgb,var(--campaign-color) 40%,transparent);opacity:.92}
+
+/* Conventional render feedback: quiet spinner, progress bar, and queued state. */
+.renderVisualizer{width:100%;height:100%;padding:0 0 48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:linear-gradient(180deg,#121212,#0d0d0d);color:#747474}
+.normalSpinner{width:22px;height:22px;flex:0 0 22px;border:2px solid #3b3b3b;border-top-color:#f0f0f0;border-right-color:#858585;border-radius:50%;transform-origin:center;will-change:transform;animation:normalLoaderSpin .72s linear infinite}
+.queuedIndicator{width:8px;height:8px;border-radius:50%;background:#404040}
+.normalLoaderLabel{color:#777;font-size:8px;font-weight:650;letter-spacing:.02em}
+.renderVisualizerActive .normalLoaderLabel{color:#b0b0b0}
+
+.campaignProcessing{display:grid;place-items:center;background:rgba(8,8,8,.78);box-shadow:none;backdrop-filter:blur(3px);border:0}
+.processingPanel{position:relative;left:auto;bottom:auto;width:min(430px,calc(100% - 48px));transform:none;padding:18px 20px;border:1px solid #343434;border-left:1px solid #343434;border-radius:4px;background:#111;box-shadow:0 16px 45px rgba(0,0,0,.42);backdrop-filter:none}
+.processingPanel header>span{font-size:9px;letter-spacing:.055em;text-transform:none}
+.processingPanel header>span>i{width:13px;height:13px;flex:0 0 13px;border:2px solid #454545;border-top-color:#f0f0f0;border-right-color:#858585;border-radius:50%;background:none;box-shadow:none;transform-origin:center;will-change:transform;animation:normalLoaderSpin .72s linear infinite}
+.processingPanel header strong{color:#d0d0d0;font-size:12px}
+.processingProgress{height:3px;margin:12px 0;background:#2a2a2a}
+.processingProgress>i{background:#bcbcbc;box-shadow:none}
+.processingProgress>i>b{display:none}
+.processingPanel h3{font-size:12px;font-weight:650}
+.processingPanel>p{margin-bottom:0;color:#858585;font-size:9.5px}
+
+@keyframes normalLoaderSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.normalSpinner,.processingPanel header>span>i{animation-duration:1.6s}}
