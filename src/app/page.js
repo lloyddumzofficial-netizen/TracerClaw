@@ -1506,7 +1506,7 @@ export default function StartScreen() {
         {/* Lightweight footer brand banner */}
         <div style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
           <Image
-            src="/footer-banner.webp"
+            src="/cover-photo-banner.jpg"
             alt="DesaynClaw AI-powered design tools"
             width={2400}
             height={898}
