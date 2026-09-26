@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Shirt, CheckCircle, Package, Tag, Mail, Smartphone, Check, ArrowRight, ImageIcon, History, Clock, AlertTriangle } from "lucide-react";
+import { X, Shirt, CheckCircle, Package, Check, ArrowRight, History, Clock } from "lucide-react";
 import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
@@ -31,19 +31,16 @@ const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
   features: PLANS_META[plan.key]?.features || [],
 }));
 
-const PLAN_LABELS = Object.fromEntries(
-  Object.values(CREDIT_PLANS).map((p) => [p.key, `${p.label} — ${p.credits} Claws`])
-);
 const PLAN_PRICES = Object.fromEntries(
   Object.values(CREDIT_PLANS).map((p) => [p.key, p.price])
 );
 const DODO_ENABLED_PLANS = new Set(
   Object.values(CREDIT_PLANS).filter((p) => p.dodoEnabled).map((p) => p.key)
 );
-
 const PAYMENT_LOGOS = {
-  gcash: "/Payments-logo/gcash-logo.png",
   qrph: "/Payments-logo/qr-ph-logo_svgstack_com_74171786789082.png",
+  gcash: "/Payments-logo/gcash-logo.png",
+  maya: "/Payments-logo/Maya_logo.svg.webp",
   dodo: "/Payments-logo/dodo-payments.png",
 };
 
@@ -77,14 +74,15 @@ function PaymentLogoTile({ src, alt, wide = false, large = false }) {
   );
 }
 
-function formatSubmittedAgo(createdAt) {
-  if (!createdAt) return "just now";
-  const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins === 1) return "1 minute ago";
-  if (mins < 60) return `${mins} minutes ago`;
-  const hrs = Math.floor(mins / 60);
-  return hrs === 1 ? "1 hour ago" : `${hrs} hours ago`;
+function PaymentBrandStrip({ light = false }) {
+  return (
+    <span className={`top-up-payment-brand-strip${light ? " top-up-payment-brand-strip-light" : ""}`}>
+      <Image className="top-up-payment-brand-logo top-up-payment-brand-logo-qrph" src={PAYMENT_LOGOS.qrph} alt="QR Ph" width={94} height={42} />
+      <span className="top-up-payment-brand-divider" aria-hidden="true" />
+      <Image className="top-up-payment-brand-logo top-up-payment-brand-logo-gcash" src={PAYMENT_LOGOS.gcash} alt="GCash" width={94} height={42} />
+      <Image className="top-up-payment-brand-logo top-up-payment-brand-logo-maya" src={PAYMENT_LOGOS.maya} alt="Maya" width={82} height={42} />
+    </span>
+  );
 }
 
 function getPlanAnalytics(planKey) {
@@ -105,33 +103,11 @@ function formatCurrencyFromMinor(amount, currency = "PHP") {
   }).format(major);
 }
 
-function isExpiredStorageTokenError(error) {
-  return /exp.*claim.*timestamp.*check failed/i.test(error?.message || "");
-}
-
-async function getFreshSession(supabase) {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) throw error;
-
-  const expiresAtMs = session?.expires_at ? session.expires_at * 1000 : 0;
-  if (session && expiresAtMs > Date.now() + 60_000) return session;
-
-  return refreshCurrentSession(supabase);
-}
-
-async function refreshCurrentSession(supabase) {
-  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-  if (refreshError) throw refreshError;
-  return refreshData?.session || null;
-}
-
 const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, onClose, onLoginRequired }) {
   const [fallbackSupabase] = useState(() => createClient());
   const supabase = supabaseProp || fallbackSupabase;
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ plan: "pro", txnRef: "", screenshotName: "", screenshotFile: null });
-  const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({ plan: "pro" });
   const [isStartingDodo, setIsStartingDodo] = useState(false);
   const [isStartingPayMongo, setIsStartingPayMongo] = useState(false);
   const [qrphPayment, setQrphPayment] = useState(null);
@@ -139,32 +115,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const [logs, setLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [mounted, setMounted] = useState(false);
-  // A submitted GCash payment waits on manual admin approval. The confirmation
-  // screen after submitting was local state, so closing the modal erased every
-  // trace of it — reopening showed a fresh plan picker, as though the payment
-  // had never happened. Session replay showed a user idle for ~13 minutes after
-  // paying. Reading the request back on open makes the wait visible.
-  const [pendingRequest, setPendingRequest] = useState(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!show || !user) return;
-    let cancelled = false;
-    supabase
-      .from("payment_requests")
-      .select("id, plan, status, reference_number, created_at")
-      .eq("user_id", user.id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .then(({ data, error }) => {
-        if (!cancelled && !error) setPendingRequest(data?.[0] || null);
-      });
-    return () => { cancelled = true; };
-  }, [show, user, supabase, submitted]);
 
   useEffect(() => {
     if (activeTab === "history" && user) {
@@ -220,12 +174,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const handleClose = useCallback(() => {
     onClose();
     setStep(1);
-    setSubmitted(false);
     setIsStartingDodo(false);
     setIsStartingPayMongo(false);
     setQrphPayment(null);
     setActiveTab("plans");
-    setForm({ plan: "pro", txnRef: "", screenshotName: "", screenshotFile: null });
+    setForm({ plan: "pro" });
   }, [onClose]);
 
   const handleStartDodoCheckout = useCallback(async () => {
@@ -234,7 +187,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
       return;
     }
     if (!DODO_ENABLED_PLANS.has(form.plan)) {
-      toast.error("Mini is available via GCash only. Please choose Basic, Starter, or Pro for card payments.");
+      toast.error("Mini is available through QR Ph only. Choose Basic, Starter, or Professional for card payments.");
       return;
     }
 
@@ -310,82 +263,6 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     }
   }, [form.plan, onLoginRequired, supabase, user]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!form.txnRef.trim() || !form.screenshotFile) {
-      toast.error("Please enter your GCash number and upload proof of payment.");
-      return;
-    }
-    if (!user) {
-      toast.error("You must be logged in.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const session = await getFreshSession(supabase);
-      let token = session?.access_token;
-      if (!token) throw new Error("Please log in again before submitting payment proof.");
-
-      const fileExt = form.screenshotFile.name.split(".").pop();
-      const fileName = `proof_${user.id}_${Date.now()}.${fileExt}`;
-
-      let { error: uploadError } = await supabase.storage
-        .from("payment_proofs")
-        .upload(fileName, form.screenshotFile);
-      if (isExpiredStorageTokenError(uploadError)) {
-        const refreshedSession = await refreshCurrentSession(supabase);
-        token = refreshedSession?.access_token || token;
-        ({ error: uploadError } = await supabase.storage
-          .from("payment_proofs")
-          .upload(fileName, form.screenshotFile));
-      }
-      if (uploadError) throw uploadError;
-
-      const { data: publicData } = supabase.storage.from("payment_proofs").getPublicUrl(fileName);
-
-      const response = await fetch("/api/payments/gcash/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          plan: form.plan,
-          referenceNumber: form.txnRef,
-          proofUrl: publicData.publicUrl,
-        }),
-      });
-
-      const data = await safeJson(response, "Failed to submit payment request.");
-
-      // If this reference was already approved, credits are already in their account.
-      // Treat this as success/info — not an error — so users aren't confused.
-      if (data.alreadyApproved) {
-        toast.success("✅ Your claws were already added! Please check your balance.");
-        analytics.creditsPurchased({
-          ...getPlanAnalytics(form.plan),
-          provider: "gcash",
-          status: "already_approved",
-        });
-        setSubmitted(true);
-        return;
-      }
-
-      if (!response.ok) throw new Error(data.error || "Failed to submit payment request.");
-
-      analytics.creditsPurchased({
-        ...getPlanAnalytics(form.plan),
-        provider: "gcash",
-        status: "payment_request_submitted",
-      });
-      setSubmitted(true);
-    } catch (err) {
-      analytics.error(err, { area: "credits_purchase", plan: form.plan, provider: "gcash" });
-      toast.error(`Error submitting request: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [form, user, supabase]);
 
   if (!show || !mounted) return null;
 
@@ -416,13 +293,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
               <span style={{ fontWeight: '500', fontSize: '11px', color: '#7d7d7d' }}>Top up claws for production work</span>
             </div>
           </div>
-          {!submitted && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#777', fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              <span style={{ color: activeTab === 'plans' ? '#d8d8d8' : '#777' }}>Plans</span>
-              <span style={{ width: '18px', height: '1px', background: 'rgba(255,255,255,0.16)' }} />
-              <span style={{ color: step === 2 || step === 3 || step === "qrph" ? '#d8d8d8' : '#777' }}>Payment</span>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#777', fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <span style={{ color: activeTab === 'plans' ? '#d8d8d8' : '#777' }}>Plans</span>
+            <span style={{ width: '18px', height: '1px', background: 'rgba(255,255,255,0.16)' }} />
+            <span style={{ color: step === 2 || step === "qrph" ? '#d8d8d8' : '#777' }}>QR Ph</span>
+          </div>
           <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}><X size={16} /></button>
         </div>
 
@@ -445,40 +320,6 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         </div>
 
         <div className="top-up-modal-body" style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
-          {/* Persistent status for a GCash payment awaiting manual approval.
-              Shown on every open until an admin approves, so the wait is never
-              silent. Non-blocking: Dodo checkout stays available underneath. */}
-          {pendingRequest && !submitted && (
-            <div style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.35)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <Clock size={15} color="#FFD700" />
-                <strong style={{ color: '#FFD700', fontSize: '13px' }}>GCash payment under review</strong>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                {[
-                  { label: 'Submitted', done: true },
-                  { label: 'Under review', done: true, current: true },
-                  { label: 'Claws added', done: false },
-                ].map((s, i) => (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: i === 2 ? '0 0 auto' : 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.done ? '#FFD700' : '#444', flexShrink: 0 }} />
-                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: s.current ? '#FFD700' : s.done ? '#aaa' : '#666', fontWeight: s.current ? 700 : 500, whiteSpace: 'nowrap' }}>{s.label}</span>
-                    </div>
-                    {i < 2 && <div style={{ height: '1px', background: '#444', flex: 1, minWidth: '10px' }} />}
-                  </div>
-                ))}
-              </div>
-
-              <p style={{ margin: 0, fontSize: '11px', color: '#aaa', lineHeight: 1.5 }}>
-                {PLAN_LABELS[pendingRequest.plan] || pendingRequest.plan} · Ref {pendingRequest.reference_number || '—'} · submitted {formatSubmittedAgo(pendingRequest.created_at)}.
-                <br />
-                Claws are usually added within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>. You do not need to pay again — reopen this window any time to check.
-              </p>
-            </div>
-          )}
-
           {activeTab === 'history' ? (
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>
@@ -510,21 +351,6 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   ))}
                 </div>
               )}
-            </div>
-          ) : submitted ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
-                <CheckCircle size={48} color="#FFD700" strokeWidth={1.5} />
-              </div>
-              <h3 style={{ margin: '0 0 8px', color: '#fff', fontWeight: '700', fontSize: '20px' }}>Request Submitted</h3>
-              <p style={{ color: '#aaa', fontSize: '14px', margin: '0 0 8px' }}>We have received your payment request.</p>
-              <div style={{ background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '16px', margin: '24px 0', textAlign: 'left' }}>
-                <p style={{ margin: '0 0 10px', color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Package size={14} style={{ marginRight: '8px', color: '#555' }} /> Package: <strong style={{ color: '#fff', marginLeft: '6px' }}>{PLAN_LABELS[form.plan]}</strong></p>
-                <p style={{ margin: '0 0 10px', color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Tag size={14} style={{ marginRight: '8px', color: '#555' }} /> Ref No: <strong style={{ color: '#fff', marginLeft: '6px' }}>{form.txnRef || '—'}</strong></p>
-                <p style={{ margin: 0, color: '#888', fontSize: '13px', display: 'flex', alignItems: 'center' }}><Mail size={14} style={{ marginRight: '8px', color: '#555' }} /> Account: <strong style={{ color: '#fff', marginLeft: '6px' }}>{user?.email}</strong></p>
-              </div>
-              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 24px' }}>Claws are usually added within <strong style={{ color: '#FFD700' }}>10-30 minutes</strong>. Thank you.</p>
-              <button onClick={handleClose} style={{ width: '100%', padding: '14px', background: 'transparent', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#333'; e.currentTarget.style.borderColor = '#777'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#444'; }}>Close</button>
             </div>
           ) : step === 1 ? (
             <>
@@ -568,7 +394,6 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                           return;
                         }
                         setForm(f => ({ ...f, plan: p.key })); 
-                        analytics.checkoutStarted({ ...getPlanAnalytics(p.key), provider: "gcash" });
                         setStep(2); 
                       }}
                       className={`top-up-plan-button${p.best ? ' top-up-plan-button-featured' : ''}`}
@@ -597,66 +422,42 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
           ) : step === 2 ? (
             <>
               <div className="top-up-payment-hero" style={{ textAlign: 'center', marginBottom: '28px' }}>
-                <div className="top-up-pricing-kicker" style={{ fontSize: '11px', fontWeight: '650', color: '#8f8f8f', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px' }}>Payment method</div>
-                <h2 style={{ margin: '0 0 8px', fontSize: '30px', fontWeight: '650', color: '#fff', letterSpacing: '-0.02em' }}>Choose how to pay</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>
-                  Selected: <strong style={{ color: '#f4f4f4' }}>{PLAN_LABELS[form.plan]}</strong> · <strong style={{ color: '#f4f4f4' }}>{PLAN_PRICES[form.plan]}</strong>
-                </p>
-                {form.plan === 'tingi' && (
-                  <p style={{ margin: '10px 0 0', color: '#a9a9a9', fontSize: '13px', fontWeight: '500' }}>
-                    Mini supports GCash Manual and QRPh. Card / International starts at Basic.
-                  </p>
-                )}
+                <div className="top-up-payment-eyebrow">Secure checkout</div>
+                <h2>Choose a payment method</h2>
+                <p>Pay once and your Claws are credited automatically after confirmation.</p>
+                <div className="top-up-payment-plan-summary">
+                  <span className="top-up-payment-plan-name">{CREDIT_PLANS[form.plan]?.label} package</span>
+                  <span className="top-up-payment-plan-values">
+                    <strong className="top-up-payment-plan-value">{CREDIT_PLANS[form.plan]?.credits} Claws</strong>
+                    <span className="top-up-payment-plan-dot" aria-hidden="true">·</span>
+                    <strong className="top-up-payment-plan-value">{PLAN_PRICES[form.plan]}</strong>
+                  </span>
+                </div>
               </div>
 
-              <div className="top-up-payment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-                <button
-                  type="button"
-                  className="top-up-payment-option"
-                  onClick={() => setStep(3)}
-                  style={{ background: 'linear-gradient(180deg, rgba(28,28,28,0.98), rgba(15,15,15,0.98))', border: '1px solid rgba(255,255,255,0.11)', color: '#fff', padding: '26px 24px', textAlign: 'left', cursor: 'pointer', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '13px', minHeight: '210px' }}
-                >
-                  <PaymentLogoTile src={PAYMENT_LOGOS.gcash} alt="GCash" wide />
-                  <span className="top-up-payment-title" style={{ fontSize: '18px', fontWeight: '650', color: '#f4f4f4' }}>GCash Manual</span>
-                  <span className="top-up-payment-desc" style={{ color: '#adadad', fontSize: '13px', lineHeight: 1.5, fontWeight: '450' }}>Scan the QR code, upload payment proof, then wait for admin approval. Best for Philippine GCash users.</span>
-                  <span className="top-up-payment-status" style={{ color: '#8e8e8e', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 'auto' }}>Manual approval</span>
-                </button>
-
+              <div className="top-up-payment-grid">
                 <button
                   type="button"
                   className="top-up-payment-option top-up-payment-option-featured"
                   onClick={handleStartPayMongoCheckout}
-                  disabled={isStartingPayMongo}
-                  style={{ position: 'relative', background: 'linear-gradient(180deg, rgba(31,31,31,0.98), rgba(14,14,14,0.98))', border: '1px solid rgba(255, 215, 0, 0.24)', color: '#fff', padding: '26px 24px', textAlign: 'left', cursor: isStartingPayMongo ? 'not-allowed' : 'pointer', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '13px', minHeight: '210px', opacity: isStartingPayMongo ? 0.65 : 1, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
+                  disabled={isStartingPayMongo || isStartingDodo}
+                  style={{ cursor: (isStartingPayMongo || isStartingDodo) ? 'not-allowed' : 'pointer', opacity: (isStartingPayMongo || isStartingDodo) ? 0.65 : 1 }}
                 >
-                  <span
-                    aria-label="Recommended payment option"
-                    style={{
-                      position: 'absolute',
-                      top: '14px',
-                      right: '14px',
-                      background: '#fff',
-                      color: '#111',
-                      border: '1px solid rgba(255,255,255,0.7)',
-                      borderRadius: '999px',
-                      padding: '4px 8px',
-                      fontSize: '9px',
-                      fontWeight: '800',
-                      lineHeight: 1,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-                    }}
-                  >
-                    Recommended
+                  <span className="top-up-payment-option-head">
+                    <PaymentBrandStrip />
+                    <span className="top-up-payment-option-tag">Local e-wallet</span>
                   </span>
-                  <PaymentLogoTile src={PAYMENT_LOGOS.qrph} alt="QRPh" large />
-                  <span className="top-up-payment-title" style={{ fontSize: '18px', fontWeight: '650', color: '#f4f4f4' }}>QRPh Scan to Pay</span>
-                  <span className="top-up-payment-desc" style={{ color: '#adadad', fontSize: '13px', lineHeight: 1.5, fontWeight: '450' }}>
-                    Generate a secure PayMongo QR inside this window. Claws are added automatically after payment confirmation.
+                  <span className="top-up-payment-copy">
+                    <span className="top-up-payment-title">QR Ph</span>
+                    <span className="top-up-payment-desc">
+                      Generate a secure QR code, then scan it using GCash, Maya, or any QR Ph-enabled app.
+                    </span>
                   </span>
-                  <span className="top-up-payment-status" style={{ color: '#8e8e8e', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 'auto' }}>
-                    {isStartingPayMongo ? 'Generating QR...' : 'In-app QR payment'}
+                  <span className="top-up-payment-option-foot">
+                    <span>No screenshot or manual approval</span>
+                    <span className="top-up-payment-status">
+                      {isStartingPayMongo ? 'Generating QR…' : <>Continue <ArrowRight size={14} /></>}
+                    </span>
                   </span>
                 </button>
 
@@ -665,170 +466,117 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   className="top-up-payment-option"
                   onClick={handleStartDodoCheckout}
                   disabled={isStartingDodo || isStartingPayMongo || form.plan === 'tingi'}
-                  style={{ background: 'linear-gradient(180deg, rgba(28,28,28,0.86), rgba(15,15,15,0.9))', border: '1px solid rgba(255,255,255,0.09)', color: '#fff', padding: '26px 24px', textAlign: 'left', cursor: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', borderRadius: '5px', display: 'flex', flexDirection: 'column', gap: '13px', minHeight: '210px', opacity: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 0.58 : 1 }}
+                  style={{ cursor: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', opacity: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 0.58 : 1 }}
                 >
-                  <PaymentLogoTile src={PAYMENT_LOGOS.dodo} alt="Dodo Payments" wide />
-                  <span className="top-up-payment-title" style={{ fontSize: '18px', fontWeight: '650', color: '#f4f4f4' }}>Card / International</span>
-                  <span className="top-up-payment-desc" style={{ color: '#adadad', fontSize: '13px', lineHeight: 1.5, fontWeight: '450' }}>
-                    {form.plan === 'tingi'
-                      ? 'Not available for Mini because card fees are too high for micro-payments.'
-                      : 'Pay through Dodo Payments hosted checkout. Claws are added automatically after payment confirmation.'}
+                  <span className="top-up-payment-option-head">
+                    <PaymentLogoTile src={PAYMENT_LOGOS.dodo} alt="Dodo Payments" wide />
+                    <span className="top-up-payment-option-tag">Cards worldwide</span>
                   </span>
-                  <span className="top-up-payment-status" style={{ color: form.plan === 'tingi' ? '#777' : '#8e8e8e', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 'auto' }}>
-                    {form.plan === 'tingi' ? 'Choose Basic or higher' : isStartingDodo ? 'Starting checkout...' : 'Automated checkout'}
+                  <span className="top-up-payment-copy">
+                    <span className="top-up-payment-title">Dodo Payments</span>
+                    <span className="top-up-payment-desc">
+                      {form.plan === 'tingi'
+                        ? 'Card checkout starts at Basic. Use QR Ph for the Mini package.'
+                        : 'Pay securely using your debit or credit card through the Dodo hosted checkout.'}
+                    </span>
+                  </span>
+                  <span className="top-up-payment-option-foot">
+                    <span>{form.plan === 'tingi' ? 'Unavailable for Mini' : 'Debit and credit cards supported'}</span>
+                    <span className="top-up-payment-status">
+                      {form.plan === 'tingi' ? 'Basic or higher' : isStartingDodo ? 'Opening…' : <>Continue <ArrowRight size={14} /></>}
+                    </span>
                   </span>
                 </button>
               </div>
 
-              <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingDodo || isStartingPayMongo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: (isStartingDodo || isStartingPayMongo) ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
+              <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingPayMongo || isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: (isStartingPayMongo || isStartingDodo) ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
             </>
           ) : step === "qrph" ? (
-            <div style={{ maxWidth: '740px', margin: '0 auto', padding: '4px 0 8px' }}>
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-                  <PaymentLogoTile src={PAYMENT_LOGOS.qrph} alt="QRPh" large />
+            <div className="top-up-qrph-screen">
+              <div className="top-up-qrph-header">
+                <span className="top-up-qrph-eyebrow">QR Ph · Automatic payment</span>
+                <h2>Scan with GCash or Maya</h2>
+                <p>Open your e-wallet, scan the code, and confirm the exact amount.</p>
+                <div className="top-up-qrph-order" aria-label="Selected package and amount">
+                  <span>{CREDIT_PLANS[form.plan]?.label} package</span>
+                  <strong>{CREDIT_PLANS[form.plan]?.credits} Claws</strong>
+                  <span aria-hidden="true">·</span>
+                  <strong>{qrphPayment?.amount ? formatCurrencyFromMinor(qrphPayment.amount, qrphPayment.currency) : PLAN_PRICES[form.plan]}</strong>
                 </div>
-                <h2 style={{ margin: '0 0 8px', fontSize: '30px', lineHeight: 1.08, fontWeight: '650', color: '#fff', letterSpacing: '-0.02em' }}>Scan to pay with QRPh</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px', lineHeight: 1.5 }}>
-                  {PLAN_LABELS[form.plan]} · {qrphPayment?.amount ? formatCurrencyFromMinor(qrphPayment.amount, qrphPayment.currency) : PLAN_PRICES[form.plan]}
-                </p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 0.78fr) minmax(240px, 1fr)', gap: '22px', alignItems: 'stretch' }}>
-                <div style={{ background: '#ffffff', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '6px', padding: '18px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '310px', gap: '16px' }}>
+              <div className="top-up-qrph-layout">
+                <div className="top-up-qrph-code-card">
                   {qrphPayment?.qrImageUrl ? (
                     <img
                       src={qrphPayment.qrImageUrl}
                       alt="QRPh payment code"
-                      style={{ width: '100%', maxWidth: '286px', height: 'auto', display: 'block' }}
+                      className="top-up-qrph-code"
                     />
                   ) : (
-                    <div style={{ color: '#111', fontSize: '13px', fontWeight: '600' }}>Preparing QR...</div>
+                    <div className="top-up-qrph-preparing">Preparing QR...</div>
                   )}
-                  {/* Payment logos strip */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', background: '#ffffff', borderRadius: '8px', padding: '14px 18px', width: '100%', boxSizing: 'border-box' }}>
-                    <img src="/qr-ph-logos/qr-ph-logo_svgstack_com_74171786789082.png" alt="QR Ph" style={{ width: '100px', height: '44px', objectFit: 'contain' }} />
-                    <img src="/qr-ph-logos/gcash-logo.png" alt="GCash" style={{ width: '100px', height: '44px', objectFit: 'contain' }} />
-                    <img src="/qr-ph-logos/Maya_logo.svg.webp" alt="Maya" style={{ width: '100px', height: '44px', objectFit: 'contain' }} />
-                  </div>
+                  <PaymentBrandStrip light />
                 </div>
 
-                <div style={{ background: 'linear-gradient(180deg, rgba(28,28,28,0.98), rgba(14,14,14,0.98))', border: '1px solid rgba(255,255,255,0.11)', borderRadius: '6px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '18px' }}>
+                <div className="top-up-qrph-details">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
-                      <span style={{ color: '#8f8f8f', fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase' }}>PayMongo QRPh</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', color: qrphPayment?.status === 'paid' ? '#9be7b0' : qrphPayment?.status === 'failed' ? '#ff9a9a' : '#cfcfcf', fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                        <span style={{ width: '7px', height: '7px', borderRadius: '999px', background: qrphPayment?.status === 'paid' ? '#55d678' : qrphPayment?.status === 'failed' ? '#ff6f6f' : '#a7a7a7' }} />
-                        {qrphPayment?.status === 'paid' ? 'Paid' : qrphPayment?.status === 'failed' ? 'Failed' : 'Waiting'}
+                    <div className="top-up-qrph-details-head">
+                      <span className="top-up-qrph-provider">Secure checkout</span>
+                      <span
+                        className={`top-up-qrph-status top-up-qrph-status-${qrphPayment?.status === 'paid' ? 'paid' : qrphPayment?.status === 'failed' ? 'failed' : 'waiting'}`}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        <span className="top-up-qrph-status-dot" aria-hidden="true" />
+                        {qrphPayment?.status === 'paid' ? 'Paid' : qrphPayment?.status === 'failed' ? 'Failed' : 'Waiting for payment'}
                       </span>
                     </div>
 
-                    <div style={{ marginBottom: '18px' }}>
-                      <div style={{ color: '#777', fontSize: '12px', marginBottom: '5px' }}>Amount due</div>
-                      <div style={{ color: '#fff', fontSize: '34px', lineHeight: 1, fontWeight: '650', letterSpacing: '-0.02em' }}>
+                    <div className="top-up-qrph-amount">
+                      <span>Amount due</span>
+                      <strong>
                         {qrphPayment?.amount ? formatCurrencyFromMinor(qrphPayment.amount, qrphPayment.currency) : PLAN_PRICES[form.plan]}
-                      </div>
+                      </strong>
                     </div>
 
-                    <div style={{ display: 'grid', gap: '12px', color: '#b6b6b6', fontSize: '13px', lineHeight: 1.45 }}>
+                    <div className="top-up-qrph-steps">
                       {[
-                        'Open your banking or e-wallet app and scan the QR code.',
-                        'Keep this window open while PayMongo confirms the payment.',
-                        'Your claws are added automatically after confirmation.',
+                        'Open GCash or Maya and tap Scan QR.',
+                        'Scan this code and confirm the exact amount shown.',
+                        'Keep this window open—your Claws are added automatically after confirmation.',
                       ].map((item, index) => (
-                        <div key={item} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: '10px', alignItems: 'start' }}>
-                          <span style={{ color: '#777', fontSize: '11px', fontWeight: '700', paddingTop: '2px' }}>{index + 1}</span>
+                        <div className="top-up-qrph-step" key={item}>
+                          <span>{index + 1}</span>
                           <span>{item}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.09)', paddingTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <div className="top-up-qrph-footer">
+                    <p>Keep this window open while we confirm your payment.</p>
+                    <div className="top-up-qrph-actions">
                     <button
                       type="button"
                       onClick={() => setStep(2)}
-                      style={{ flex: '1 1 120px', padding: '12px 14px', background: 'transparent', color: '#d5d5d5', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '5px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                      className="top-up-qrph-button top-up-qrph-button-secondary"
                     >
                       Back
                     </button>
                     <button
                       type="button"
                       onClick={handleClose}
-                      style={{ flex: '1 1 150px', padding: '12px 14px', background: '#f4f4f4', color: '#080808', border: '1px solid #f4f4f4', borderRadius: '5px', cursor: 'pointer', fontSize: '13px', fontWeight: '700' }}
+                      className="top-up-qrph-button top-up-qrph-button-primary"
                     >
                       {qrphPayment?.status === 'paid' ? 'Done' : 'Close'}
                     </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              {/* Header */}
-              <div className="top-up-checkout-summary" style={{ background: '#1f1f1f', borderRadius: '8px', padding: '16px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#aaa', fontSize: '14px' }}>Selected: <strong style={{ color: '#fff' }}>{PLAN_LABELS[form.plan]}</strong> · GCash Manual</span>
-                <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '16px' }}>{PLAN_PRICES[form.plan]}</span>
-              </div>
-              
-              {/* Warning Alert */}
-              <div className="top-up-manual-alert" style={{ background: 'rgba(255, 215, 0, 0.05)', borderLeft: '3px solid #FFD700', borderRadius: '4px', padding: '16px', marginBottom: '32px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <AlertTriangle size={20} color="#FFD700" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ color: '#ccc', fontSize: '13px', lineHeight: 1.6 }}>
-                  <strong style={{ color: '#FFD700' }}>Manual GCash is not automated.</strong> Submit only once after paying. Duplicate or repeated proof submissions after claws are already added may be blocked for 7 days. Use the same email/account you want credited.
-                </div>
-              </div>
-
-              {/* Two Column Layout */}
-              <div className="top-up-checkout-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '32px', alignItems: 'start' }}>
-                
-                {/* Left: QR Code */}
-                <div className="top-up-qr-panel" style={{ textAlign: 'center', background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px', padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div className="top-up-qr-frame" style={{ background: '#fff', borderRadius: '12px', padding: '12px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                    <img src="/gcash_qr.png" alt="GCash QR" style={{ width: '100%', maxWidth: '220px', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: '4px' }} />
-                  </div>
-                  <p style={{ color: '#fff', fontSize: '15px', fontWeight: '600', margin: '0 0 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Smartphone size={18} color="#FFD700" style={{ marginRight: '8px' }} /> Scan with GCash</p>
-                  <p style={{ color: '#888', fontSize: '13px', margin: 0, letterSpacing: '0.5px' }}>LL**D D. · +63 948 562 ••••</p>
-                </div>
-
-                {/* Right: Form */}
-                <div className="top-up-checkout-form" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div className="top-up-form-field">
-                    <label style={{ display: 'block', color: '#888', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GCash Number *</label>
-                    <input type="text" placeholder="e.g. 09123456789" value={form.txnRef} onChange={e => setForm(f => ({ ...f, txnRef: e.target.value }))} style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', padding: '14px 16px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }} onFocus={e => e.target.style.borderColor = '#FFD700'} onBlur={e => e.target.style.borderColor = '#333'} />
-                  </div>
-                  <div className="top-up-form-field">
-                    <label style={{ display: 'block', color: '#888', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upload Proof of Payment *</label>
-                    <input type="file" accept="image/*" onChange={e => { if (e.target.files[0]) setForm(f => ({ ...f, screenshotName: e.target.files[0].name, screenshotFile: e.target.files[0] })) }} style={{ display: 'none' }} id="proof-upload" />
-                    <label className="top-up-proof-upload" htmlFor="proof-upload" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: '#1a1a1a', border: form.screenshotName ? '1px solid #FFD700' : '1px dashed #444', borderRadius: '8px', padding: '12px 16px', color: form.screenshotName ? '#FFD700' : '#666', fontSize: '14px', cursor: 'pointer', boxSizing: 'border-box', transition: 'all 0.2s' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><ImageIcon size={18} /> {form.screenshotName || 'Select screenshot...'}</span>
-                      <span style={{ fontSize: '12px', fontWeight: '600', background: form.screenshotName ? '#FFD700' : '#333', color: form.screenshotName ? '#000' : '#fff', padding: '6px 12px', borderRadius: '4px', transition: 'all 0.2s' }}>Browse</span>
-                    </label>
-                  </div>
-                  <div className="top-up-form-field">
-                    <label style={{ display: 'block', color: '#666', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Email (Auto-filled)</label>
-                    <input type="text" value={user?.email || ''} readOnly style={{ width: '100%', background: 'transparent', border: '1px solid #222', borderRadius: '8px', padding: '14px 16px', color: '#555', fontSize: '15px', outline: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }} />
-                  </div>
-                  <p style={{ margin: '4px 0 0', color: '#888', fontSize: '13px', lineHeight: 1.6 }}>After paying, fill in the number, attach screenshot and submit. Claws arrive within <strong style={{ color: '#FFD700' }}>10–30 minutes</strong>.</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="top-up-checkout-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid #2a2a2a', paddingTop: '24px' }}>
-                <button className="top-up-secondary-button" onClick={() => setStep(2)} disabled={isSubmitting} style={{ padding: '14px 28px', background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '600', transition: 'all 0.2s' }} onMouseOver={e => { if(!isSubmitting){ e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#666'; } }} onMouseOut={e => { if(!isSubmitting){ e.currentTarget.style.color = '#aaa'; e.currentTarget.style.borderColor = '#444'; } }}>Back</button>
-                <button 
-                  className="top-up-submit-button"
-                  onClick={handleSubmit} 
-                  disabled={isSubmitting} 
-                  style={{ flex: 1, padding: '14px', background: '#FFD700', color: '#000', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s', opacity: isSubmitting ? 0.7 : 1 }}
-                  onMouseOver={e => { if(!isSubmitting) e.currentTarget.style.opacity = '0.9'; }}
-                  onMouseOut={e => { if(!isSubmitting) e.currentTarget.style.opacity = '1'; }}
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Payment'}
-                </button>
-              </div>
-            </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>,

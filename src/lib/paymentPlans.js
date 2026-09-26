@@ -7,7 +7,7 @@ export const CREDIT_PLANS = {
     amount: 6000,       // ₱60 = 6000 centavos | ₱30/credit
     currency: "PHP",
     dodoProductEnv: "DODO_PRODUCT_TINGI",
-    dodoEnabled: false, // GCash only — no Dodo for Mini
+    dodoEnabled: false, // QR Ph only — no card checkout for Mini
   },
   basic: {
     key: "basic",

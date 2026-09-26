@@ -93,7 +93,7 @@ export default function RefundPolicy() {
 
         {/* Section 5 */}
         <Section num="5" title="Payment Processing">
-          Payments are processed manually or through our approved payment channels (GCash, bank transfer, etc.). We do not store your payment credentials. All transactions are subject to the terms and fees of the respective payment provider.
+          Payments are processed automatically through approved providers such as QR Ph. You can scan a QR Ph code using GCash, Maya, or another compatible app. We do not store your payment credentials. All transactions are subject to the terms and fees of the respective payment provider.
         </Section>
 
         {/* Section 6 */}

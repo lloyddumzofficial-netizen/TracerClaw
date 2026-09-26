@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTableRouter, jsonRequest, mockQuery, okRateLimit } from "../helpers/routeTestUtils.js";
+import { jsonRequest, mockQuery, okRateLimit } from "../helpers/routeTestUtils.js";
 
 const adminSupabase = {
   auth: {
@@ -42,58 +42,23 @@ beforeEach(() => {
   });
 });
 
-describe("GCash payment submission", () => {
-  it("normalizes references and creates one pending payment request", async () => {
-    const insertSingle = vi.fn(async () => ({ data: { id: "pay-1", created_at: "2026-01-01" }, error: null }));
-    const insertSelect = vi.fn(() => ({ single: insertSingle }));
-    const insert = vi.fn(() => ({ select: insertSelect }));
-    const tableRouter = createTableRouter({
-      payment_requests: () => {
-        const query = mockQuery({ data: null, error: null });
-        query.insert = insert;
-        return query;
-      },
-    });
-    adminSupabase.from = tableRouter.from;
-
+describe("Legacy manual GCash submission", () => {
+  it("is permanently disabled in favor of automatic QR Ph", async () => {
+    adminSupabase.from = vi.fn();
     const { POST } = await import("@/app/api/payments/gcash/submit/route.js");
-    const res = await POST(jsonRequest({
-      plan: "basic",
-      referenceNumber: " 123 456 789 ",
-      proofUrl: "https://storage.example/proof.png",
-    }));
+    const res = await POST(jsonRequest({ plan: "basic" }));
     const body = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(body).toEqual({ success: true, requestId: "pay-1" });
-    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      plan: "basic",
-      reference_number: "123456789",
-      status: "pending",
-      user_id: "user-1",
+    expect(res.status).toBe(410);
+    expect(body).toEqual(expect.objectContaining({
+      code: "MANUAL_GCASH_DISABLED",
+      error: expect.stringMatching(/QR Ph/i),
     }));
-  });
-
-  it("blocks a second pending GCash request for the same user", async () => {
-    const tableRouter = createTableRouter({
-      payment_requests: () => mockQuery({ data: { id: "pending-1" }, error: null }),
-    });
-    adminSupabase.from = tableRouter.from;
-
-    const { POST } = await import("@/app/api/payments/gcash/submit/route.js");
-    const res = await POST(jsonRequest({
-      plan: "basic",
-      referenceNumber: "abc",
-      proofUrl: "https://storage.example/proof.png",
-    }));
-    const body = await res.json();
-
-    expect(res.status).toBe(409);
-    expect(body.error).toMatch(/already have a pending/i);
+    expect(adminSupabase.from).not.toHaveBeenCalled();
   });
 });
 
-describe("Manual GCash approval", () => {
+describe("Legacy manual GCash approval", () => {
   it("approves through the atomic RPC and sends receipt email after credit grant", async () => {
     adminSupabase.auth.getUser.mockResolvedValue({
       data: { user: { id: "admin-1", email: "admin@desaynclaw.test" } },
@@ -130,7 +95,7 @@ describe("Manual GCash approval", () => {
 });
 
 describe("Dodo checkout", () => {
-  it("rejects GCash-only packages before creating a local payment", async () => {
+  it("rejects QR-Ph-only packages before creating a local payment", async () => {
     adminSupabase.from = vi.fn();
 
     const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
@@ -138,7 +103,7 @@ describe("Dodo checkout", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toMatch(/only available via GCash/i);
+    expect(body.error).toMatch(/QR Ph/i);
     expect(adminSupabase.from).not.toHaveBeenCalled();
   });
 

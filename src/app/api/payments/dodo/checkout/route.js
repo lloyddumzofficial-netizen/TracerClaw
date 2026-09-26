@@ -36,7 +36,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
     if (!plan.dodoEnabled) {
-      return NextResponse.json({ error: "This package is only available via GCash manual payment." }, { status: 400 });
+      return NextResponse.json({ error: "This package is available through automatic QR Ph payment only." }, { status: 400 });
     }
 
     const productId = getDodoProductId(plan);
