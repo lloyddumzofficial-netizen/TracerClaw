@@ -3829,87 +3829,29 @@
   position: relative;
   width: min(100%, 1180px);
   margin: 22px auto 58px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: #080808;
-  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.38);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.desktop-workspace-banner img,
-.desktop-workspace-banner video {
+.desktop-workspace-banner img {
   display: block;
   width: 100%;
-  height: clamp(280px, 42vw, 520px);
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   object-position: center;
-  background: #080808;
-}
-
-.desktop-workspace-banner video {
-  pointer-events: none;
+  background: transparent;
 }
 
 .desktop-workspace-banner::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: 48%;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.7) 42%, rgba(0, 0, 0, 0.94)),
-    radial-gradient(circle at 18% 100%, rgba(255, 215, 0, 0.14), transparent 34%);
-}
-
-.desktop-workspace-overlay {
-  position: absolute;
-  left: clamp(22px, 4vw, 46px);
-  right: clamp(22px, 4vw, 46px);
-  bottom: clamp(20px, 3vw, 36px);
-  z-index: 1;
-  max-width: 680px;
-}
-
-.desktop-workspace-overlay span {
-  display: inline-flex;
-  margin-bottom: 12px;
-  position: relative;
-  color: rgba(255, 215, 0, 0.92);
-  font-size: 10.5px;
-  line-height: 1.2;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.desktop-workspace-overlay h2 {
-  max-width: 720px;
-  margin: 0;
-  color: #f6f6f6;
-  font-size: clamp(28px, 3.5vw, 46px);
-  line-height: 1.04;
-  font-weight: 550;
-  letter-spacing: -0.035em;
-}
-
-.desktop-workspace-overlay p {
-  max-width: 560px;
-  margin: 12px 0 0;
-  color: rgba(255, 255, 255, 0.66);
-  font-size: 14px;
-  line-height: 1.55;
-  font-weight: 400;
+  content: none;
 }
 
 @media (max-width: 980px) {
   .desktop-workspace-banner {
     margin: 0 auto 44px;
-    border-radius: 6px;
-  }
-
-  .desktop-workspace-banner img,
-  .desktop-workspace-banner video {
-    height: clamp(260px, 56vw, 420px);
   }
 }
 
@@ -3918,17 +3860,8 @@
     width: min(100%, 390px);
   }
 
-  .desktop-workspace-banner img,
-  .desktop-workspace-banner video {
-    height: 330px;
-  }
-
-  .desktop-workspace-overlay h2 {
-    font-size: 25px;
-  }
-
-  .desktop-workspace-overlay p {
-    font-size: 13px;
+  .desktop-workspace-banner img {
+    height: auto;
   }
 }
 
@@ -5328,21 +5261,8 @@
     margin-bottom: 42px !important;
   }
 
-  .desktop-workspace-banner img,
-  .desktop-workspace-banner video {
-    height: 260px !important;
-  }
-
-  .desktop-workspace-overlay h2 {
-    max-width: 305px !important;
-    font-size: 23px !important;
-    line-height: 1.08 !important;
-  }
-
-  .desktop-workspace-overlay p {
-    max-width: 300px !important;
-    font-size: 12px !important;
-    line-height: 1.45 !important;
+  .desktop-workspace-banner img {
+    height: auto !important;
   }
 
   .workflow-preview-section,

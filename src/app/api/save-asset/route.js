@@ -3,14 +3,18 @@ import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl } from "@/lib/ssrf";
+import { logger } from "@/lib/logger";
 
-export const maxDuration = 60;
+export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 const ALLOWED_REMOTE_HOSTS = [...getAllowedStorageHosts(), ...getAllowedProviderHosts()];
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/svg+xml'];
 const MAX_JSON_BODY_BYTES = Math.ceil(DEFAULT_MAX_IMAGE_BYTES * 1.4);
 
 export async function POST(request) {
+  let projectId;
+  let step;
   try {
     // ─── Auth: verify the caller owns this project ────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -38,7 +42,8 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { projectId, step, base64, mimeType, fileUrl } = body;
+    ({ projectId, step } = body);
+    const { base64, mimeType, fileUrl } = body;
 
     if (!projectId || !step) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -91,6 +96,7 @@ export async function POST(request) {
         const { response, buffer: remoteBuffer, finalUrl } = await fetchWithSSRFProtection(normalizedFileUrl, {
           allowedHosts: ALLOWED_REMOTE_HOSTS,
           maxBytes,
+          timeoutMs: step === 2 ? 30_000 : 15_000,
           allowedContentTypes: [
             'image/',
             'application/octet-stream',
@@ -118,38 +124,52 @@ export async function POST(request) {
       // re-run after a failed step 2 or 3 fell through to the DEFAULT prompt —
       // silently turning "Extract Pattern Only" into "Keep All Artwork" and
       // charging another claw for the wrong output. Leave it alone.
-      await adminSupabase.from('projects').update({
+      const { error: saveError } = await adminSupabase.from('projects').update({
         generated_image_url: finalUrl,
         zip_url: null,
         zip_signature: null,
         zip_generated_at: null
       }).eq('id', projectId).eq('user_id', user.id);
+      if (saveError) throw new Error(`Database update failed: ${saveError.message}`);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 
     if (step === 2) {
       const finalUrl = passthroughUrl
         || await uploadToR2(buffer, `projects/${projectId}/upscaled_${Date.now()}.${ext}`, finalMimeType);
-      await adminSupabase.from('projects').update({
+      const { error: saveError } = await adminSupabase.from('projects').update({
         upscaled_image_url: finalUrl,
         zip_url: null,
         zip_signature: null,
         zip_generated_at: null
       }).eq('id', projectId).eq('user_id', user.id);
+      if (saveError) throw new Error(`Database update failed: ${saveError.message}`);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 
     if (step === 3) {
       const finalUrl = passthroughUrl
         || await uploadToR2(buffer, `projects/${projectId}/vector_${Date.now()}.svg`, "image/svg+xml");
-      await adminSupabase.from('projects').update({ svg_url: finalUrl, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
+      const { error: saveError } = await adminSupabase.from('projects').update({ svg_url: finalUrl, zip_url: null, zip_signature: null, zip_generated_at: null }).eq('id', projectId).eq('user_id', user.id);
+      if (saveError) throw new Error(`Database update failed: ${saveError.message}`);
       return NextResponse.json({ success: true, url: finalUrl });
     }
 
     return NextResponse.json({ error: "Invalid step" }, { status: 400 });
 
   } catch (error) {
-    console.error("[Save Asset Error]", error);
-    return NextResponse.json({ error: "Failed to save asset." }, { status: 500 });
+    const timedOut = /abort|timeout/i.test(`${error?.name || ''} ${error?.message || ''}`);
+    logger.error("[Save Asset] Failed", {
+      projectId,
+      step,
+      timedOut,
+      error,
+    });
+    return NextResponse.json({
+      error: timedOut
+        ? "The processed image transfer timed out. Please retry this step."
+        : "The processed image could not be stored. Please retry this step.",
+      code: timedOut ? "ASSET_TRANSFER_TIMEOUT" : "ASSET_SAVE_FAILED",
+    }, { status: 500 });
   }
 }

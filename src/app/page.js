@@ -144,24 +144,15 @@ function HomepageWorkflowPreview() {
 
 function DesktopWorkspaceBanner() {
   return (
-    <section className="desktop-workspace-banner" aria-label="DesaynClaw desktop production workspace">
-      <video
-        src="/bvrYpLjLQvBsMs7_qFkCB_20260815_054232_var0.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        disablePictureInPicture
-        controlsList="nodownload nofullscreen noremoteplayback"
-        preload="metadata"
-        tabIndex={-1}
-        aria-label="DesaynClaw desktop production workspace preview"
+    <section className="desktop-workspace-banner" aria-label="DesaynClaw desktop production workspace preview">
+      <Image
+        src="/cover-photo_png.png"
+        alt="DesaynClaw production workspace"
+        width={6000}
+        height={2571}
+        sizes="(max-width: 620px) 390px, (max-width: 980px) 100vw, 1180px"
+        loading="lazy"
       />
-      <div className="desktop-workspace-overlay">
-        <span>DesaynClaw Studio</span>
-        <h2>Turn rough client files into production-ready artwork.</h2>
-        <p>One focused workspace for crop guidance, cleanup, vector output, previews, and final delivery.</p>
-      </div>
     </section>
   );
 }

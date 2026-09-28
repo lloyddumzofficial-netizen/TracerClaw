@@ -9,20 +9,23 @@
  *     model weights above the user prompt.
  */
 
+export const NANO_BANANA_EDIT_MODEL = "fal-ai/nano-banana-pro/edit";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SYSTEM PROMPT — highest-priority invariants. Applies to every garment mode.
 // ─────────────────────────────────────────────────────────────────────────────
-const GARMENT_SYSTEM_PROMPT = `You are a forensic textile-print reconstruction engine, not an illustrator, not a designer, and not a concept artist.
+const GARMENT_SYSTEM_PROMPT = `You are a source-locked textile artwork restoration engine, not an illustrator, designer, or concept artist.
 
-Your only job is to output the flat, print-ready artwork panel that was printed on the garment in the input image. You reconstruct; you never create.
+Your only job is to recover the flat print artwork visible on the selected garment panel. Copy the source; do not redesign it.
 
-Four invariants override every other consideration:
-1. NO GARMENT SHAPE: your output is a flat rectangle filled edge to edge with artwork. Never a shirt silhouette, never a neckline, never an armhole, never a sleeve, never a seam or hem, never a background around the artwork. If someone could tell your output came from a shirt, you failed.
-2. SELECTED PANEL ONLY: reproduce the cropped front or back body panel's design. Sleeves, collars, and neck binding are excluded unless they are intentionally inside the user's crop.
-3. EVIDENCE ONLY: every pixel you output must correspond to something visible in the input. Never invent, never approximate, never "improve", never beautify, never stylize.
-4. FULL COLOR: reproduce the exact colors of the input. Never desaturate, never posterize, never reduce the palette, never shift hue.
+These priorities are absolute and must be followed in this order:
+1. SOURCE IDENTITY LOCK: visible PRINTED artwork is immutable. Preserve its exact composition, text, logos, colors, shape count, scale, spacing, edge paths, and relative positions. Photographic shadows, reflections, highlights, fabric shine, folds, and lighting falloff are not printed artwork and must be removed. Never recompose, re-letter, simplify, beautify, modernize, or replace the print with a similar design.
+2. NO GARMENT SHAPE: output one flat rectangle filled edge to edge with artwork. No shirt silhouette, neckline, armhole, sleeve, seam, hem, mannequin, photo background, or empty border.
+3. SELECTED PANEL ONLY: reproduce only the cropped front or back body panel. Exclude sleeves, collars, and neck binding unless the user intentionally included them as the selected subject.
+4. OBSERVED BEFORE INFERRED: pixels visible in the source always override any inferred continuation. Infer only the small areas physically hidden by a garment cutout or fold, and only by continuing the nearest visible color or boundary. Never invent a new motif, word, logo, stripe, or character detail.
+5. COLOR AND EDGE LOCK: retain the source palette and every intentional boundary. Remove photographic lighting and fabric texture without moving, rounding, thickening, thinning, or softening the printed design edges.
 
-If you are ever unsure between "make it look nice" and "make it match", always choose "make it match".`;
+If "cleaner" conflicts with "closer to the source," choose closer to the source.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — the single most-violated requirement: output a full-bleed flat
@@ -81,10 +84,10 @@ Then map that same 10 x 10 grid onto your output rectangle and reconstruct it ce
 // which unwrap the torso into a full-bleed rectangle).
 // ─────────────────────────────────────────────────────────────────────────────
 const LOGO_REGISTRATION_LOCK = `== FRAMING LOCK ==
-- Keep the input's exact framing: same field of view, same edges, same center point, same scale, same rotation (0°).
-- DO NOT zoom in, zoom out, crop, pan, rotate, tilt, or re-center. The logo occupies the same fraction of the canvas as it does in the input.
+- Keep the LOGO FOREGROUND's exact framing: same field of view, same center point, same scale, same rotation (0°).
+- DO NOT zoom in, zoom out, crop the logo, pan, rotate, tilt, or re-center. The isolated logo occupies the same fraction of the canvas as it does in the input.
 - NORMALIZED COORDINATE RULE: every element lands at the same normalized (x, y) position it occupies in the input. If a star sits at 22% width / 71% height, it sits at 22% / 71% in your output.
-- Do NOT add margins, padding, borders, frames, or a background that is not in the input.
+- Background pixels are excluded from registration and must be replaced by pure white according to the LOGO ISOLATION rule.
 
 == STEP 0: COORDINATE MAPPING (DO THIS BEFORE DRAWING ANYTHING) ==
 Mentally overlay a 10 x 10 grid on the input. For each cell, record the dominant color, every edge that crosses it, and which shape that edge belongs to. Reconstruct cell by cell, then walk the grid again before output and confirm each cell matches.`;
@@ -104,9 +107,86 @@ Target output: the flat rectangular source artwork file that was sent to the fab
 - The output must read as an Adobe Illustrator sublimation print file: crisp, flat, print-ready.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SHARED BLOCK — separates literal source copying from the very small amount of
+// extrapolation required to close neckline/armhole cutouts. This prevents the
+// model from treating the whole panel as a creative redraw.
+// ─────────────────────────────────────────────────────────────────────────────
+const SOURCE_AUTHORITY_LOCK = `== SOURCE AUTHORITY — COPY FIRST, INFER LAST ==
+Treat the input as the only authority. Do not reconstruct visible artwork from memory and do not generate a cleaner alternative.
+
+Split the panel into two zones before editing:
+A. OBSERVED ZONE — every printed pixel that is actually visible.
+- Copy the PRINTED CONTENT of this zone literally. Its shapes, text, logos, printed colors, printed gradients, scale, spacing, and edge paths are locked. Do not copy photographic illumination layered over that content.
+- Do not move an element to make the layout more balanced. Do not straighten an intentional curve. Do not replace a difficult logo, mascot, letter, or number with a cleaner approximation.
+- Preserve irregular details when they are printed artwork. Remove only distortions caused by fabric folds, camera perspective, lighting, weave, blur, or compression.
+
+B. MISSING ZONE — only pixels absent because of a neckline, armhole, fold, crop boundary, or physical occlusion.
+- Fill the smallest missing area necessary to complete the rectangular panel.
+- Continue only the nearest visible region or boundary using its existing direction, width, spacing, and color progression.
+- Stop the continuation as soon as the missing area is filled. Never propagate that inferred geometry into the observed zone.
+- Never place text, logos, numbers, characters, emblems, or new decorative shapes inside a missing zone unless a directly visible continuation proves they belong there.
+
+VISIBLE-EVIDENCE OVERRIDE: if an inferred continuation conflicts with even one visible source edge, discard the inference and follow the visible edge.`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED BLOCK — separates printed gradients from photographed lighting. The
+// source lock applies to the ink design, never to light/shadow captured by the
+// camera. This keeps the accurate geometry while producing a production flat.
+// ─────────────────────────────────────────────────────────────────────────────
+const PHOTOMETRIC_ARTIFACT_REMOVAL = `== PHOTOGRAPHIC LIGHT REMOVAL — ZERO SHADOWS OR REFLECTIONS ==
+The source is a photograph of printed fabric. Separate the underlying PRINT from the LIGHT falling on that fabric. Preserve the print exactly; remove the light completely.
+
+REMOVE ALL photographic illumination artifacts, even when they cover a large visible area:
+- cast shadows, self-shadows, body shadows, mannequin shadows, contact shadows, and dark pools near the waist or hem
+- fold shading, wrinkle shading, seam shadows, puckering shadows, drape gradients, and dark valleys caused by fabric depth
+- specular reflections, glossy streaks, white shine, hot spots, softbox reflections, window reflections, glare, bloom, and lens flare
+- rim light, edge light, colored reflected light, ambient color cast, exposure falloff, vignetting, and darkened corners
+- fabric sheen and directional shimmer that changes with surface angle
+
+LIGHTING-DETECTION TEST — classify a soft tonal change as PHOTOGRAPHIC and remove it when ANY of these is true:
+1. It follows a fold, bulge, waist curve, hem, seam, body contour, or change in fabric angle.
+2. It darkens or brightens several unrelated printed colors and shapes at the same time.
+3. It has a broad soft edge, blurred pool, glossy streak, hotspot, or highlight shaped like a light source rather than a printed graphic.
+4. It changes brightness while the underlying hue and printed boundaries continue through it.
+5. A matching design region elsewhere is evenly lit and proves the darker or brighter patch is not part of the print.
+
+PRINTED-GRADIENT TEST — keep a gradient only when it is anchored to the artwork:
+- its boundary or ramp follows the printed composition rather than the garment's folds or body curvature;
+- it remains inside a specific design region or intentionally crosses regions as one coherent graphic effect;
+- it has a deliberate start point, end point, direction, and color progression that makes sense in the flat design;
+- it does not behave like illumination across the entire photographed garment.
+When uncertain, compare the same color region above, below, left, and right. Repeated base color and continuing graphic edges are evidence of the underlying print; the inconsistent light or dark overlay is photography and must be removed.
+
+HOW TO REPAIR A SHADOWED OR REFLECTIVE AREA:
+- Keep every underlying printed boundary in exactly the same position.
+- Recover each region's base print color from the nearest evenly lit portion of that SAME region. Do not borrow a color from a different shape.
+- Continue genuine printed gradients, patterns, stripes, and facets through the affected area using their existing direction and spacing.
+- Normalize only the unwanted illumination. Do not flatten intentional printed gradients and do not redraw the design.
+- A solid printed color must become one uniform color from edge to edge, including the lower torso and all four corners.
+
+PRODUCTION REJECTION GATE: reject the output if any area still looks photographed, dimensional, glossy, wrinkled, shaded, reflective, spotlighted, or darker because of garment curvature. The finished panel must look self-illuminated and uniformly flat, with zero evidence of a camera or light source.`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED BLOCK — corrects the fuzzy, jagged and haloed boundaries seen in user
+// comparisons without changing the geometry those boundaries describe.
+// ─────────────────────────────────────────────────────────────────────────────
+const EDGE_INTEGRITY_LOCK = `== EDGE INTEGRITY — CLEAN WITHOUT REDESIGN ==
+Every printed boundary must follow the same path as the source while rendering cleanly at the output resolution.
+
+- Preserve the exact contour, corner position, angle, curvature, stroke width, taper, notch, overlap, and termination point of every visible edge.
+- Hard printed edges remain hard. Soft printed edges remain soft only when the softness is visibly part of the artwork.
+- Use a narrow, natural anti-aliased transition only along the true boundary. Do not create stair-step jaggies, saw-tooth edges, pixel chunks, doubled contours, ringing, color fringing, white halos, dark halos, glow, feathering, blur, or smeared edge pixels.
+- Never "improve" an edge by rounding a sharp corner, smoothing away a deliberate notch, straightening an intentional curve, widening a thin stripe, or merging two nearby shapes.
+- Remove photographic edge contamination caused by fabric weave, wrinkles, shadows, JPEG blocks, camera sharpening, and chromatic fringing while keeping the underlying printed boundary in the same location.
+- At T-junctions and overlaps, preserve which shape is on top and keep all meeting points closed and precise. No gaps, leaks, pinholes, or accidental bridges between colors.
+- Thin strokes, small counters inside letters, tiny gaps, and narrow accent lines must remain open and distinct; they may not collapse or fuse.
+
+EDGE AUDIT: inspect the entire canvas at 200% zoom. Compare each boundary against the input from top-left to bottom-right. Repair any shifted, swollen, eroded, jagged, haloed, or blurry edge before output.`;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — geometry fidelity. The "shape pixels are not accurate" fix.
 // ─────────────────────────────────────────────────────────────────────────────
-const GEOMETRY_FIDELITY = `== GEOMETRY FIDELITY — TARGET IS 98%+ SHAPE ACCURACY ==
+const GEOMETRY_FIDELITY = `== GEOMETRY FIDELITY — SOURCE-LOCKED SHAPES ==
 Operate as a forensic geometry engine. Every polygon in the input has one exact shape and one exact place. Reproduce both.
 
 - Preserve every polygon, angle, corner, cut, notch, diagonal, intersection, edge, offset, taper, thickness, spacing, proportion, and alignment.
@@ -118,7 +198,7 @@ Operate as a forensic geometry engine. Every polygon in the input has one exact 
 - NEVER SIMPLIFY: no smoothing, no rounding of sharp corners, no straightening of intentional irregularities, no cleanup of asymmetry.
 - MICRO DETAIL SURVIVAL: micro triangles, micro slashes, tiny bevels, chamfers, clipped corners, micro zigzags, thin connectors, hairline strokes, subtle breaks, partial shapes cut off by the canvas edge — every one survives intact.
 - ASYMMETRY LOCK: do NOT mirror, reflect, symmetrize, or kaleidoscope. If the left side differs from the right side, reproduce both sides differently, exactly as in the input.
-- OCCLUSION RULE: if a shape is partially hidden, reconstruct only from what is visible. Never fabricate hidden geometry, never continue a line on assumption, never fill an unknown region with a generic esports pattern.`;
+- OCCLUSION RULE: never guess the identity of a hidden object. In the small missing zones required for full bleed, continue only a directly adjacent, clearly established boundary according to SOURCE AUTHORITY. Otherwise use the nearest surrounding color field. Never fill an unknown region with a generic esports pattern.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — color fidelity.
@@ -135,6 +215,14 @@ const COLOR_FIDELITY = `== COLOR FIDELITY — FULL COLOR, EXACT MATCH ==
   - When a region is ambiguous, treat it as photography and flatten it. A too-clean output is acceptable; a dirty output is not.
 - GLOWS AND SHEENS: printed glows, inner highlights, edge sheens, and metallic gold ramps are design elements — reproduce them. Only photographic lighting is removed.
 - COLOR ZONE MAP: before outputting, verify the dominant color at the top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, and bottom-right of your output matches the input at those same nine positions.`;
+
+const LOGO_COLOR_FIDELITY = `== FOREGROUND COLOR LOCK — EXACT LOGO COLORS ==
+- Apply color matching only to the isolated logo foreground. Ignore every color belonging to the removed background.
+- Sample the exact visible color of every foreground region and reproduce it without hue shift, recoloring, palette replacement, saturation boost, brightness lift, contrast grading, or stylistic harmonization.
+- A burgundy foreground remains that exact burgundy; pink remains that exact pink; gold remains that exact gold. Do not make the whole logo monochrome and do not force foreground colors to match the removed background.
+- Preserve every intentional foreground gradient, highlight, shadow shape, blend, and color separation when it is drawn artwork inside the logo.
+- Remove only photographic color casts and lighting contamination. Recover the foreground region's own ink color from nearby pixels of that same region.
+- Audit every foreground element side by side against the reference. Its hue, saturation, relative brightness, and gradient direction must match the reference exactly.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — flat fill purity. Stops photographed fabric texture, creases and
@@ -164,7 +252,7 @@ SOLID REGION DETECTION — do this for every region before you output:
 2. If YES → sample its dominant color, then fill the ENTIRE region with that one hex value. Zero variation, zero texture, zero noise. Every pixel identical.
 3. If NO (it is a genuine printed gradient) → render it as a perfectly smooth, banding-free ramp, still with zero texture and zero noise.
 
-Edges between regions must be crisp and clean: a hard, precise boundary with no fuzz, no halo, no soft grey transition pixels, and no leftover anti-aliasing mud from the photograph.
+Edges between regions must be crisp and clean. Preserve one narrow, natural anti-aliased transition on the true boundary, with no fuzz, halo, grey fringe, doubled contour, or leftover anti-aliasing mud from the photograph. Do not remove anti-aliasing so aggressively that curves and diagonals become jagged.
 
 The finished output must look like clean vector artwork exported straight from Adobe Illustrator — flat, pure, and printable — not like a photograph of a shirt.`;
 
@@ -182,7 +270,17 @@ const CANVAS_RULES = `== CANVAS RULES ==
 // ─────────────────────────────────────────────────────────────────────────────
 const GARMENT_FRAMING_CHECK = `1. FRAMING — CHECK THIS FIRST AND HARDEST: is your output a full-bleed rectangle of pure artwork? Trace all four edges and all four corners. If you can see a neckline, a collar, a shoulder slope, an armhole, a sleeve, a hem curve, a shirt outline, or ANY background around the artwork, you have failed. Delete the garment shape and extend the design outward until it fills the frame completely.`;
 
-const LOGO_FRAMING_CHECK = `1. Registration: overlay your output on the input. Do all edges, corners, and shape positions line up? Any drift is a failure.`;
+const LOGO_FINAL_GATE = `== FINAL LOGO VALIDATION — MANDATORY BEFORE OUTPUT ==
+Inspect the result at maximum zoom and compare it side by side against the reference:
+1. Isolation: every pixel outside the logo foreground is pure white #FFFFFF. No source background color, texture, photograph, pattern, border, shadow, or reflection remains.
+2. Completeness: every foreground word, character, mascot detail, icon, ring, stroke, symbol, and decorative element is present. Nothing belonging to the logo was mistaken for background.
+3. Geometry: foreground shape count, contours, vertex positions, proportions, spacing, edge angles, overlap order, and micro details match exactly.
+4. Text: read the output and reference character by character. Letterforms, wording, capitalization, curvature, spacing, and placement are identical.
+5. Color: compare each foreground region only. Exact hue, saturation, brightness, gradients, and separations; no recoloring or palette drift.
+6. Edges: crisp natural anti-aliasing with no blur, jaggies, halos, ringing, color fringing, gaps, swelling, erosion, or doubled contours.
+7. Canvas: one isolated logo on a uniform pure white #FFFFFF background. No mockup, scene, fabric, garment, or extra object.
+
+Reject and repair the result if any check fails. Output only when the foreground logo is visually indistinguishable from the reference and only the background has changed to white.`;
 
 const buildFinalGate = (modeChecks, framingCheck = GARMENT_FRAMING_CHECK) => `== FINAL VALIDATION — MANDATORY BEFORE OUTPUT ==
 Inspect your reconstruction at maximum zoom and compare it against the input, region by region. Verify every item:
@@ -192,6 +290,7 @@ ${framingCheck}
 4. Canvas: rectangle only, edge-to-edge, no garment silhouette, no mockup furniture, no sleeve artwork.
 5. Cleanliness: no fabric wrinkles, no photographic shadows, no fabric sheen, no reflections, no ghost silhouettes, no smudges, no blur patches, no white holes.
 6. FLAT FILL PURITY — inspect every solid-color region at maximum zoom, and the white and black regions hardest of all. Is each one a single uniform hex value at every pixel? If you can see texture, grain, noise, mottling, creases, grey patches, or dirt, flatten that region to one pure color and check again. White must be exactly #FFFFFF.
+7. EDGE INTEGRITY — inspect every contour at 200% zoom. It must follow the source path with clean natural anti-aliasing and no jaggies, halos, fringing, swelling, erosion, gaps, or merged details.
 ${modeChecks}
 
 If any check fails, refine and re-check. Only output when the reconstruction is visually indistinguishable from the input under the rules of this mode. The user will inspect this side by side with the original at 200% zoom.`;
@@ -209,9 +308,15 @@ ${FULL_BLEED_PANEL_LOCK}
 
 ${FLAT_PANEL_CONVERSION}
 
+${SOURCE_AUTHORITY_LOCK}
+
+${PHOTOMETRIC_ARTIFACT_REMOVAL}
+
 ${CANVAS_RULES}
 
 ${GEOMETRY_FIDELITY}
+
+${EDGE_INTEGRITY_LOCK}
 
 ${COLOR_FIDELITY}
 
@@ -260,9 +365,9 @@ Small leftover fragments count as a full failure.
 
 Then run the opposite check, which is equally important: scan for anything that is MISSING. If the input has a mascot, a character, a face, or an illustration and your output does not, you have failed this mode — go back and draw it.
 
-${buildFinalGate(`7. Removed: zoom in and confirm there is not one letter, not one digit, not one logo, and not one ghost anywhere on the canvas.
-8. Kept: confirm the mascot and every illustrated element from the input is present in your output, fully drawn, in the same position and at the same scale — not deleted, not simplified, not replaced by brush strokes.
-9. Repair quality: every area where something was removed reads as untouched original design.`)}`;
+${buildFinalGate(`8. Removed: zoom in and confirm there is not one letter, not one digit, not one logo, and not one ghost anywhere on the canvas.
+9. Kept: confirm the mascot and every illustrated element from the input is present in your output, fully drawn, in the same position and at the same scale — not deleted, not simplified, not replaced by brush strokes.
+10. Repair quality: every area where something was removed reads as untouched original design.`)}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODE: KEEP COMPLETE DESIGN  (traceType mockup_preserve → ai_prompt PRESERVE_LOGOS)
@@ -273,9 +378,15 @@ ${FULL_BLEED_PANEL_LOCK}
 
 ${FLAT_PANEL_CONVERSION}
 
+${SOURCE_AUTHORITY_LOCK}
+
+${PHOTOMETRIC_ARTIFACT_REMOVAL}
+
 ${CANVAS_RULES}
 
 ${GEOMETRY_FIDELITY}
+
+${EDGE_INTEGRITY_LOCK}
 
 ${COLOR_FIDELITY}
 
@@ -312,10 +423,10 @@ KEEP AND REPRODUCE EXACTLY, in the same position, at the same scale, in the same
 - Do not leave blank areas where text, logos, or numbers existed.
 - The only things removed are photography artifacts: garment shape, wrinkles, shadows, fabric texture, perspective distortion, and background outside the printed design.
 
-${buildFinalGate(`7. Artwork: every logo, badge, mascot, and word from the input is present, in the right place, at the right size, in the right colors.
-8. Text: read your output's text and read the input's text character by character. They must be identical.
-9. Numbers: every visible digit and player number from the input is present in the output, with the same outline, size, and position.
-10. No omissions: nothing customer-visible was deleted just because it looked like a logo, name, or number.`)}`;
+${buildFinalGate(`8. Artwork: every logo, badge, mascot, and word from the input is present, in the right place, at the right size, in the right colors.
+9. Text: read your output's text and read the input's text character by character. They must be identical.
+10. Numbers: every visible digit and player number from the input is present in the output, with the same outline, size, and position.
+11. No omissions: nothing customer-visible was deleted just because it looked like a logo, name, or number.`)}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODE: LOGO FLATTEN  (traceType logo → ai_prompt LOGO_FLATTEN)
@@ -324,11 +435,25 @@ const LOGO_FLATTEN = `TASK: Reproduce the logo in this image as a 100% accurate,
 
 ${LOGO_REGISTRATION_LOCK}
 
-== LOGO ACCURACY — TARGET IS 98%+ MATCH ==
+== LOGO ACCURACY — TARGET IS A 100% REFERENCE MATCH ==
 - Reproduce every shape, curve, angle, and proportion with mathematical exactness.
 - Reproduce every color layer and region in its exact position, size, and proportion.
 - ZERO HALLUCINATION: add nothing that is not in the input; remove nothing that is.
 - Maintain the exact original proportions and centering. The logo occupies the same fraction of the canvas as in the input.
+
+== IMMUTABLE REFERENCE RESTORATION — DO NOT GENERATE A NEW LOGO ==
+- This is an image-to-image restoration of the supplied reference, never a text-to-image logo design task.
+- The reference image is the immutable ground truth. Trace the exact visible silhouette and internal boundary of every element before cleaning any pixel.
+- Never replace a difficult character, mascot, paddle, ball, crown, letter, or curve with a more typical or easier version.
+- Never use semantic knowledge of what the logo "should" look like. If memory or convention conflicts with the reference, the reference wins.
+- Preserve intentional asymmetry, unusual spacing, custom lettering, imperfect hand-drawn curves, and every distinctive identity feature.
+
+== HD EDGE OUTPUT ==
+- Output the highest-resolution clean PNG permitted by the tool.
+- All intentional boundaries must be crisp, continuous, and smoothly anti-aliased at high zoom.
+- Remove JPEG ringing, block noise, blur, pixel stair-steps, fabric grain, and fuzzy halos without moving the underlying boundary.
+- Do not over-sharpen. No white fringe, dark fringe, doubled outline, crunchy texture, artificial dots, or new micro-detail.
+- Solid fills remain even and clean; printed gradients remain smooth; thin strokes and small counters remain open and legible.
 
 == TEXT & TYPOGRAPHY — COPY VERBATIM ==
 - Reproduce every character exactly as written: same letterforms, same weight, same italic slant, same letter-spacing, same capitalization, same arrangement, same arch or curve.
@@ -341,18 +466,24 @@ ${LOGO_REGISTRATION_LOCK}
 
 ${GEOMETRY_FIDELITY}
 
-${COLOR_FIDELITY}
+${EDGE_INTEGRITY_LOCK}
+
+${PHOTOMETRIC_ARTIFACT_REMOVAL}
+
+${LOGO_COLOR_FIDELITY}
 
 ${FLAT_FILL_PURITY}
 
-== BACKGROUND & FINISHING ==
-- Preserve the original background exactly as it is: transparent stays transparent, white stays white, a solid color stays that solid color.
-- Do NOT add shadows, glows, gradients, decorative borders, or a background that is not in the input.
-- Strip fabric texture, photo noise, compression artifacts, lighting shadows, and 3D shading. Output pure flat color, as if redrawn in Adobe Illustrator from scratch.
-- Divide the logo into a 3 x 3 grid and confirm every element sits in the correct cell.
+== LOGO ISOLATION — REMOVE EVERY REFERENCE BACKGROUND ==
+- First separate the LOGO FOREGROUND from the BACKGROUND. Foreground includes the complete central mark plus every associated word, tagline, letter, number, emblem, ring, icon, symbol, and decorative stroke that belongs to its identity.
+- Background means any color field, photograph, wall, fabric, paper, gradient wash, texture, pattern, lighting, scene, or empty area behind or around those logo elements—even when it covers the whole source canvas.
+- Delete the reference background completely. Never copy its color, gradient, texture, noise, shadows, highlights, folds, reflections, or objects into the output.
+- Replace every background pixel with one uniform PURE WHITE: #FFFFFF / RGB(255,255,255). White must reach all four edges and all four corners.
+- Do not erase foreground text or thin details merely because they touch, overlap, or have colors similar to the background. Follow closed contours, semantic grouping, and connected strokes to keep the complete logo.
+- Do not add a new plate, circle, badge field, glow, shadow, outline, or colored backdrop behind the isolated logo unless that exact shape is visibly an intentional foreground component with its own closed boundary.
+- The final result is the same complete logo floating cleanly on pure white—not a crop of the old background and not a redesigned logo.
 
-${buildFinalGate(`7. Text: read your output's text and the input's text character by character. They must be identical.
-8. Completeness: every icon, stroke, ring, and secondary mark from the input is present.`, LOGO_FRAMING_CHECK)}`;
+${LOGO_FINAL_GATE}`;
 
 const TRACE_PROMPTS = {
   ERASE_LOGOS,
@@ -384,10 +515,12 @@ export function buildNanoBananaSystemPrompt(aiPrompt) {
 
 Your only job is to redraw the logo in the input image as a clean flat vector-style copy. You reconstruct; you never create.
 
-Three invariants override every other consideration:
+Five invariants override every other consideration:
 1. REGISTRATION: the output must align pixel-for-pixel with the input. Same framing, same scale, same center. Never zoom, crop, pan, or rotate.
 2. EVIDENCE ONLY: every pixel must correspond to something visible in the input. Never invent, never approximate, never redesign, never modernize.
 3. VERBATIM TEXT: copy every character exactly as drawn. Never autocorrect, never re-letter, never substitute a font.
+4. WHITE BACKGROUND: automatically isolate the complete logo foreground, remove every original background pixel, and replace the background with uniform pure white #FFFFFF to all four canvas edges.
+5. FOREGROUND COLOR LOCK: preserve the exact reference colors of the logo foreground. Never recolor, harmonize, brighten, darken, or convert its palette.
 
 If you are ever unsure between "make it look nice" and "make it match", always choose "make it match".`;
   }
@@ -403,11 +536,12 @@ If you are ever unsure between "make it look nice" and "make it match", always c
  * They were previously sent and silently discarded. The real fidelity lever is
  * `resolution` — the 1K default is what was losing fine shape pixels.
  */
-export function getNanoBananaInputTuning() {
+export function getNanoBananaInputTuning(aiPrompt) {
   return {
-    // 2K roughly quadruples the pixel budget vs the 1K default, which is what
-    // preserves thin strokes, facet edges, halftones, and small letterforms.
-    resolution: "2K",
+    // Logo restoration uses the endpoint's maximum native tier so custom
+    // lettering and tight curves survive before vectorization. Garment extracts
+    // stay at 2K to keep their larger-area processing cost predictable.
+    resolution: isLogoPrompt(aiPrompt) ? "4K" : "2K",
     // PNG keeps hard shape boundaries crisp for the downstream vectorizer;
     // JPEG ringing along high-contrast edges becomes stray vector paths.
     output_format: "png",

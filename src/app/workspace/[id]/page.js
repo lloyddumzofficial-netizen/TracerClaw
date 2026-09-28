@@ -520,8 +520,8 @@ export default function Workspace() {
               <Palette size={13} />
             </span>
             <div>
-              <strong>Palette ready</strong>
-              <span>Edit SVG colors and merges.</span>
+              <strong>SVG palette ready</strong>
+              <span>Review colors and merge paths.</span>
             </div>
           </div>
           <button
@@ -532,7 +532,7 @@ export default function Workspace() {
               setShowPalettePreview(true);
             }}
           >
-            Open
+            Review
           </button>
           <button
             type="button"

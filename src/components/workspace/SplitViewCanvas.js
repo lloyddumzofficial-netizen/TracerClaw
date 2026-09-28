@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Maximize, AlertCircle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { Maximize, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 // Each stage owns a slice of the bar. Progress eases toward the slice ceiling so
@@ -14,7 +14,7 @@ const STAGE_RANGE = {
   step3: [67, 96],
 };
 
-const STAGE_LABELS = ["Clean artwork", "Print detail", "Vector paths"];
+const STAGE_LABELS = ["Artwork cleanup", "Detail pass", "Vector output"];
 
 // How fast progress closes the remaining gap, per second. Higher = quicker climb.
 const STAGE_EASE_RATE = 0.3;
@@ -313,10 +313,10 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const renderStatus = () => {
     if (traceState !== "idle") {
       const stepMeta = traceState === "step1"
-        ? { label: "Flat Extract", detail: "Isolating garment artwork" }
+        ? { label: "Flat Extract", detail: "Separating the artwork from the source" }
         : traceState === "step2"
-          ? { label: "HD Upscale", detail: "Rebuilding print detail" }
-          : { label: "Vector SVG", detail: "Preparing Illustrator-ready paths" };
+          ? { label: "HD Upscale", detail: "Refining contours and print definition" }
+          : { label: "Vector SVG", detail: "Building clean, production-ready paths" };
       const layerState = traceState === "step1" ? 0 : traceState === "step2" ? 1 : 2;
       // Initial paint only — the rAF loop owns these values from the first frame.
       const stageStart = STAGE_RANGE[traceState]?.[0] ?? 0;
@@ -334,20 +334,11 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                   decoding="async"
                 />
               )}
-              <div className="processing-drafting-frame">
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
+              <div className="processing-canvas-shade" aria-hidden="true" />
               <div className="processing-logo-outline" aria-hidden="true">
                 <img src="/SVG/LOGO%20OUTLINE.svg" alt="" decoding="async" />
               </div>
               <div className="processing-reveal-sweep" />
-              <div className="processing-anchor a1" />
-              <div className="processing-anchor a2" />
-              <div className="processing-anchor a3" />
-              <div className="processing-anchor a4" />
             </div>
           </div>
 
@@ -382,7 +373,13 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                     {index < layerState
                       ? <CheckCircle2 size={13} />
                       : index === layerState
-                        ? <Loader2 size={13} className="processing-stage-spin" />
+                        ? (
+                          <span className="processing-stage-activity" aria-hidden="true">
+                            <i />
+                            <i />
+                            <i />
+                          </span>
+                        )
                         : <span className="processing-stage-pip" aria-hidden="true">{index + 1}</span>}
                     <span>{label}</span>
                   </div>

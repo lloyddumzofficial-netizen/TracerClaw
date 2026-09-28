@@ -188,7 +188,7 @@ export async function POST(request) {
     // STAGE 3: VECTORIZE TO SVG
     // Standard uses the base pipeline charge from Step 1. Precision adds one
     // extra Claw and calls Vectorizer.AI server-side with Basic auth.
-    // The image is already upscaled by ESRGAN in Step 2.
+    // The image is already restored/upscaled in Step 2.
     // Here we only convert to lossless PNG and apply optional Shadow Killer
     // color reduction before handing off to Recraft vectorize.
     // ==========================================
@@ -205,22 +205,21 @@ export async function POST(request) {
     if (!rasterImgRes.ok) throw new Error("Failed to fetch upscaled image from R2");
 
     // ─── Step 3 Pre-processing ────────────────────────────────────────────────
-    // Recraft crispUpscale (Step 2) already sharpened and enhanced the image.
-    // Here we only resize to 2048px max (Recraft vectorize has a 4096px hard limit,
-    // and smaller inputs process faster without sacrificing SVG path quality)
-    // and convert to lossless PNG for clean color data.
-    // NO aggressive contrast/normalize/sharpen — that caused the high-contrast SVG problem.
+    // Preserve up to Recraft's 4096px input limit. The previous 2048px cap
+    // discarded half of a typical restored logo's usable edge information
+    // immediately before vectorization, softening text and tight curves.
+    // NO second sharpen here: Logo Step 2 already restores edge acutance, and
+    // stacking another sharpen pass creates halos that become unwanted paths.
     // ─────────────────────────────────────────────────────────────────────────
     const sharp = (await import('sharp')).default;
-    let sharpInstance = sharp(rawBuffer)
-      .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true });
-
-    // Light sharpening for logos only: text and circular outlines benefit from
-    // slightly crisper pixel edges before tracing, but we keep it gentle.
-    if (project.trace_type === 'logo') {
-      sharpInstance = sharpInstance
-        .sharpen({ sigma: 1.0, m1: 0.5, m2: 1.5, x1: 2, y2: 8, y3: 15 });
-    }
+    const sharpInstance = sharp(rawBuffer)
+      .resize({
+        width: 4096,
+        height: 4096,
+        fit: 'inside',
+        withoutEnlargement: true,
+        kernel: 'lanczos3',
+      });
 
     let compressedBuffer;
     if (colors && colors !== "auto") {

@@ -187,20 +187,27 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       }
 
       const data2 = await safeJson(res2, "Trace step 2 failed");
-      logToConsole("[Step 2.5] Saving upscaled image...", "normal");
+      let persistedUpscaledUrl = data2.fileUrl;
 
-      const save2 = await fetch("/api/save-asset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({ projectId: project.id, step: 2, fileUrl: data2.fileUrl, mimeType: data2.mimeType }),
-      });
-      const saveData2 = await safeJson(save2, "Failed to save upscaled image");
-      if (!save2.ok) throw new Error(saveData2.error || "Failed to save upscaled image");
+      // New Step 2 responses are already persisted to project-owned R2 storage.
+      // Keep the fallback for an older deployment or an in-flight response that
+      // still returns a temporary provider URL during a rolling deploy.
+      if (!data2.persisted) {
+        logToConsole("[Step 2.5] Saving upscaled image...", "normal");
+        const save2 = await fetch("/api/save-asset", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({ projectId: project.id, step: 2, fileUrl: data2.fileUrl, mimeType: data2.mimeType }),
+        });
+        const saveData2 = await safeJson(save2, "Failed to save upscaled image");
+        if (!save2.ok) throw new Error(saveData2.error || "Failed to save upscaled image");
+        persistedUpscaledUrl = saveData2.url;
+      }
 
-      setProject(prev => ({ ...prev, upscaled_image_url: saveData2.url }));
+      setProject(prev => ({ ...prev, upscaled_image_url: persistedUpscaledUrl }));
       logToConsole("[Success] Upscale Complete!", "success");
 
       // ─── Step 3: Vectorize ───────────────────────────────────────────

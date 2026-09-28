@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
-import { DEFAULT_MAX_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
-import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning } from "@/lib/tracePrompts";
+import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
+import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning, NANO_BANANA_EDIT_MODEL } from "@/lib/tracePrompts";
 import { logger } from "@/lib/logger";
 import {
   claimGenerationAttempt,
@@ -10,6 +10,7 @@ import {
   isGenerationAttemptStale,
   refundGenerationAttempt,
 } from "@/server/billing";
+import { upscaleLogoDeterministically } from "@/server/logoProcessing";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -223,7 +224,7 @@ export async function POST(request) {
 
     if (step === 1) {
       // ==========================================
-      // STAGE 1: fal.ai ESRGAN → nano-banana-pro
+      // STAGE 1: Nano Banana Pro reference restoration / garment extraction
       // ==========================================
 
       // Read image metadata to calculate the closest allowed aspect ratio for fal.ai
@@ -231,7 +232,7 @@ export async function POST(request) {
       const metadata = await sharp(rawSourceBuffer).metadata();
 
       let targetAspectRatio = "auto";
-      if (metadata && metadata.width && metadata.height) {
+      if (project.trace_type !== "logo" && metadata && metadata.width && metadata.height) {
         const ratio = metadata.width / metadata.height;
         const allowedRatios = {
           "21:9": 21 / 9, "16:9": 16 / 9, "3:2": 3 / 2, "4:3": 4 / 3, "5:4": 5 / 4,
@@ -249,7 +250,7 @@ export async function POST(request) {
 
       const prompt = buildNanoBananaPrompt(project?.ai_prompt);
       const systemPrompt = buildNanoBananaSystemPrompt(project?.ai_prompt);
-      const nanoBananaTuning = getNanoBananaInputTuning();
+      const nanoBananaTuning = getNanoBananaInputTuning(project?.ai_prompt);
 
       let generatedImageBuffer;
       let generatedMimeType = "image/png";
@@ -269,7 +270,11 @@ export async function POST(request) {
         // ── Step 1: Extract flat design directly using nano-banana-pro/edit ──
         // Feed original source image directly — no pre-upscale step.
         // Flow: Extract → Upscale (step 2) → Vectorize (step 3)
-        logger.info("[API Step 1] Extracting flat design with fal.ai");
+        logger.info(`[API Step 1] Restoring source with ${NANO_BANANA_EDIT_MODEL}`, {
+          projectId,
+          traceType: project.trace_type,
+          resolution: nanoBananaTuning.resolution,
+        });
 
         // fal.subscribe polls the queue with no timeout of its own. Left
         // unbounded it can outlive maxDuration, and when the platform kills the
@@ -277,7 +282,7 @@ export async function POST(request) {
         // charged with no server-side refund. Bound it with headroom for the
         // download, resize and R2 upload that still have to happen after this.
         const FAL_BUDGET_MS = 85_000;
-        const result = await fal.subscribe("fal-ai/nano-banana-pro/edit", {
+        const result = await fal.subscribe(NANO_BANANA_EDIT_MODEL, {
             input: {
               image_urls: [finalImageUrl],
               prompt: prompt,
@@ -303,7 +308,9 @@ export async function POST(request) {
         const outputUrl = result.data.images[0].url;
         const { response: imgRes, buffer: generatedBuffer } = await fetchWithSSRFProtection(outputUrl, {
           allowedHosts: getAllowedProviderHosts(),
-          maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+          maxBytes: project.trace_type === "logo"
+            ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
+            : DEFAULT_MAX_IMAGE_BYTES,
           allowedContentTypes: ['image/'],
         });
         if (!imgRes.ok) throw new Error("Failed to download generated image from fal.ai URL");
@@ -404,10 +411,6 @@ export async function POST(request) {
       if (!project.generated_image_url || project.generated_image_url === 'REFUNDED') {
         return NextResponse.json({ error: "Step 1 (Auto-Trace) must be completed before upscaling." }, { status: 403 });
       }
-      if (!process.env.FAL_KEY) throw new Error("FAL_KEY is missing in environment variables.");
-
-      const { fal } = await import("@fal-ai/client");
-
       const upscaleInputUrl = normalizeUserImageUrl(project.generated_image_url, new URL(request.url).origin);
       if (!isOwnedStorageUrl(upscaleInputUrl, { userId: user.id, projectId }) || !(await validateUrlForSSRF(upscaleInputUrl, { allowedHosts: getAllowedStorageHosts() }))) {
         return NextResponse.json({ error: "Invalid or unauthorized generated image URL" }, { status: 400 });
@@ -420,13 +423,15 @@ export async function POST(request) {
       const UPSCALE_TARGET_PIXELS = 20e6;
       const UPSCALE_MAX_SCALE = 5;
       let upscaleScale = UPSCALE_MAX_SCALE;
+      let stepOneBuffer = null;
       try {
         const sharp = (await import('sharp')).default;
-        const { buffer: stepOneBuffer } = await fetchWithSSRFProtection(upscaleInputUrl, {
+        const fetchedStepOne = await fetchWithSSRFProtection(upscaleInputUrl, {
           allowedHosts: getAllowedStorageHosts(),
           maxBytes: DEFAULT_MAX_IMAGE_BYTES,
           allowedContentTypes: ['image/'],
         });
+        stepOneBuffer = fetchedStepOne.buffer;
         const stepOneMeta = await sharp(stepOneBuffer).metadata();
         const longestEdge = Math.max(stepOneMeta.width || 0, stepOneMeta.height || 0);
         const area = (stepOneMeta.width || 0) * (stepOneMeta.height || 0);
@@ -441,9 +446,61 @@ export async function POST(request) {
           upscaleScale,
         });
       } catch (sizeErr) {
+        if (project.trace_type === "logo") {
+          throw new Error(`Could not prepare the preserved logo for upscale: ${sizeErr.message}`);
+        }
         upscaleScale = 2;
         console.warn("[API Step 2] Could not measure step-1 image, defaulting to 2x:", sizeErr.message);
       }
+
+      // Keep Logo Workspace non-generative end to end. Lanczos resampling adds
+      // resolution for the vectorizer but cannot reinterpret text or artwork.
+      if (project.trace_type === "logo") {
+        const upscaledLogo = await upscaleLogoDeterministically(stepOneBuffer);
+        const { uploadToR2 } = await import("@/lib/cloudflare");
+        const persistedUpscaledUrl = await uploadToR2(
+          upscaledLogo.buffer,
+          `projects/${projectId}/upscaled_${Date.now()}.png`,
+          upscaledLogo.mimeType,
+        );
+
+        const { error: upscaleSaveError } = await adminSupabase
+          .from('projects')
+          .update({
+            upscaled_image_url: persistedUpscaledUrl,
+            zip_url: null,
+            zip_signature: null,
+            zip_generated_at: null,
+          })
+          .eq('id', projectId)
+          .eq('user_id', user.id);
+        if (upscaleSaveError) {
+          logger.error("[API Step 2] Failed to record deterministic logo upscale", {
+            projectId,
+            message: upscaleSaveError.message,
+          });
+          throw new Error("Failed to record persisted logo upscale");
+        }
+
+        logger.info("[API Step 2] Logo upscaled without generative reconstruction", {
+          projectId,
+          size: `${upscaledLogo.width}x${upscaledLogo.height}`,
+          scale: upscaledLogo.scale,
+          bytes: upscaledLogo.buffer.length,
+        });
+
+        return NextResponse.json({
+          success: true,
+          step: 2,
+          fileUrl: persistedUpscaledUrl,
+          mimeType: upscaledLogo.mimeType,
+          persisted: true,
+          processingMode: "deterministic-logo",
+        });
+      }
+
+      if (!process.env.FAL_KEY) throw new Error("FAL_KEY is missing in environment variables.");
+      const { fal } = await import("@fal-ai/client");
 
       logger.info("[API Step 2] Upscaling with fal-ai/esrgan", {
         model: UPSCALE_MODEL,
@@ -476,7 +533,76 @@ export async function POST(request) {
 
       const upscaledMimeType = upscalerResult?.data?.image?.content_type || "image/jpeg";
 
-      return NextResponse.json({ success: true, step: 2, fileUrl: upscaledUrl, mimeType: upscaledMimeType });
+      // Persist the provider result before returning. The previous flow sent the
+      // temporary fal URL back to the browser, which then called /api/save-asset
+      // to download the same large PNG in a separate 60s request. That second
+      // request had only a 15s provider fetch window and regularly failed after
+      // the expensive upscale had already completed.
+      logger.info("[API Step 2] Persisting upscale to R2", { projectId });
+      const { response: upscaledResponse, buffer: upscaledBuffer } = await fetchWithSSRFProtection(upscaledUrl, {
+        allowedHosts: getAllowedProviderHosts(),
+        maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
+        timeoutMs: 30_000,
+        allowedContentTypes: [
+          'image/',
+          'application/octet-stream',
+          'binary/octet-stream',
+          'application/binary',
+        ],
+      });
+      if (!upscaledResponse.ok) {
+        throw new Error(`Upscale provider download failed with ${upscaledResponse.status}`);
+      }
+
+      const responseMimeType = upscaledResponse.headers.get('content-type')?.split(';')[0] || '';
+      const persistedMimeType = responseMimeType.startsWith('image/')
+        ? responseMimeType
+        : String(upscaledMimeType || '').startsWith('image/')
+          ? upscaledMimeType
+          : 'image/png';
+      const upscaledExt = persistedMimeType === 'image/jpeg'
+        ? 'jpg'
+        : persistedMimeType === 'image/webp'
+          ? 'webp'
+          : 'png';
+      const { uploadToR2 } = await import("@/lib/cloudflare");
+      const persistedUpscaledUrl = await uploadToR2(
+        upscaledBuffer,
+        `projects/${projectId}/upscaled_${Date.now()}.${upscaledExt}`,
+        persistedMimeType,
+      );
+
+      const { error: upscaleSaveError } = await adminSupabase
+        .from('projects')
+        .update({
+          upscaled_image_url: persistedUpscaledUrl,
+          zip_url: null,
+          zip_signature: null,
+          zip_generated_at: null,
+        })
+        .eq('id', projectId)
+        .eq('user_id', user.id);
+      if (upscaleSaveError) {
+        logger.error("[API Step 2] Failed to record persisted upscale", {
+          projectId,
+          message: upscaleSaveError.message,
+        });
+        throw new Error("Failed to record persisted upscale");
+      }
+
+      logger.info("[API Step 2] Upscale persisted", {
+        projectId,
+        bytes: upscaledBuffer.length,
+        mimeType: persistedMimeType,
+      });
+
+      return NextResponse.json({
+        success: true,
+        step: 2,
+        fileUrl: persistedUpscaledUrl,
+        mimeType: persistedMimeType,
+        persisted: true,
+      });
 
     }
 
