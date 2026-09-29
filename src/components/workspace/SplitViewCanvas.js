@@ -19,6 +19,37 @@ const STAGE_LABELS = ["Artwork cleanup", "Detail pass", "Vector output"];
 // How fast progress closes the remaining gap, per second. Higher = quicker climb.
 const STAGE_EASE_RATE = 0.3;
 
+function OutputRaster({ proxyUrl, directUrl }) {
+  const [attempt, setAttempt] = useState(0);
+  const [retry, setRetry] = useState(0);
+
+  if (attempt === 2) {
+    return (
+      <div role="alert" style={{ color: "#aaa", textAlign: "center", fontSize: 12, lineHeight: 1.5 }}>
+        <div>Saved image preview could not be loaded.</div>
+        <button type="button" onClick={() => { setRetry(value => value + 1); setAttempt(0); }} style={{ marginTop: 10, padding: "7px 12px", background: "#222", border: "1px solid #444", borderRadius: 4, color: "#ddd", cursor: "pointer" }}>
+          Retry preview
+        </button>
+      </div>
+    );
+  }
+
+  const src = attempt === 0
+    ? `${proxyUrl}${retry ? `&previewRetry=${retry}` : ""}`
+    : directUrl;
+
+  return (
+    <img
+      src={src}
+      draggable={false}
+      alt="Output"
+      referrerPolicy="no-referrer"
+      onError={() => setAttempt(current => current === 0 && directUrl ? 1 : 2)}
+      style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain" }}
+    />
+  );
+}
+
 /**
  * Drives the progress bar at display refresh rate, writing straight to the DOM.
  *
@@ -281,8 +312,8 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     else if (traceState === "step2") setActiveTab("upscaled");
     else if (traceState === "step3") setActiveTab("svg");
     else if (traceState === "idle") {
-      if (project?.upscaled_image_url) setActiveTab("upscaled");
-      else if (project?.svg_url) setActiveTab("svg");
+      if (project?.svg_url) setActiveTab("svg");
+      else if (project?.upscaled_image_url) setActiveTab("upscaled");
       else if (project?.generated_image_url) setActiveTab("generated");
     }
   }, [traceState, project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
@@ -390,11 +421,14 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
         </div>
       );
     }
-    if (nodeErrors?.step2 || nodeErrors?.step3 || nodeErrors?.step4) {
+    const failure = nodeErrors?.step3 || nodeErrors?.step2 || nodeErrors?.step1 || nodeErrors?.step4;
+    if (failure) {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ff4444' }}>
+        <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#db7777', padding: 24, textAlign: 'center', lineHeight: 1.5 }}>
           <AlertCircle size={32} style={{ marginBottom: '15px' }} />
-          Trace Failed
+          <strong>Processing stopped</strong>
+          <span style={{ color: '#aaa', fontSize: 12, maxWidth: 340, marginTop: 6 }}>{failure}</span>
+          <span style={{ color: '#777', fontSize: 11, marginTop: 12 }}>Your saved work remains available. Use the action on the right to resume.</span>
         </div>
       );
     }
@@ -541,7 +575,11 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                       loadingFallback={<div style={{ width: "100%", height: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 12 }}>Loading SVG...</div>}
                     />
                   ) : (
-                    <img src={activeUrl} draggable={false} alt="Output" style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain" }} />
+                    <OutputRaster
+                      key={activeUrl}
+                      proxyUrl={activeUrl}
+                      directUrl={activeTab === "generated" ? project?.generated_image_url : project?.upscaled_image_url}
+                    />
                   )}
                 </div>
               </div>

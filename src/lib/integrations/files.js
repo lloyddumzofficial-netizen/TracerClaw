@@ -8,6 +8,7 @@ import {
   isOwnedStorageUrl,
 } from "@/lib/ssrf";
 import { logger } from "@/lib/logger";
+import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
 
 export function safeExportName(name) {
   return String(name || "Untitled_Design")
@@ -30,7 +31,7 @@ export function buildProjectExportAssets(project) {
     project?.generated_image_url && project.generated_image_url !== "REFUNDED" && {
       url: project.generated_image_url,
       name: `DesaynClaw_${baseName}_FlatExtract.png`,
-      maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+      maxBytes: getFlatExtractMaxBytes(project.trace_type),
       contentType: "image/png",
     },
     project?.upscaled_image_url && {

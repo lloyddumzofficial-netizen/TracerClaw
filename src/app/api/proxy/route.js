@@ -86,12 +86,13 @@ export async function GET(request) {
 
     const lowerPath = parsedUrl.pathname.toLowerCase();
     const isProviderMedia = matchesAllowedHost(parsedUrl.hostname, PROVIDER_HOSTS);
+    const isLargeGeneratedImage = !isProviderMedia && /\/projects\/[^/]+\/generated_flat_[^/]+\.(png|jpe?g|webp|avif)$/i.test(parsedUrl.pathname);
     const isUpscaledDownload = isProviderMedia || lowerPath.includes('/upscaled_') || downloadName?.toLowerCase().includes('upscaled');
     const maxBytes = lowerPath.endsWith('.svg')
       ? DEFAULT_MAX_SVG_BYTES
       : lowerPath.endsWith('.zip')
         ? DEFAULT_MAX_ZIP_BYTES
-      : isUpscaledDownload
+      : isUpscaledDownload || isLargeGeneratedImage
         ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
         : DEFAULT_MAX_IMAGE_BYTES;
     const isSvg = parsedUrl.pathname.toLowerCase().endsWith('.svg');

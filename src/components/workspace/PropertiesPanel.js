@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import GoogleDriveMark from "./integrations/GoogleDriveMark";
 import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integrations/clientApi";
+import { getTraceResumePlan } from "@/lib/traceResume";
 
 const GOOGLE_DRIVE_RECONNECT_REQUIRED = "GOOGLE_DRIVE_RECONNECT_REQUIRED";
 
@@ -122,9 +123,13 @@ const PropertiesPanel = memo(function PropertiesPanel({
   ];
   const fmtTime = (s) => s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
 
-  const retrySvgOnly = Boolean(project?.upscaled_image_url && !project?.svg_url);
-  const standardCreditCost = retrySvgOnly ? 0 : 1;
-  const precisionCreditCost = retrySvgOnly ? 1 : 2;
+  const standardPlan = getTraceResumePlan(project, "standard");
+  const precisionPlan = getTraceResumePlan(project, "precision");
+  const retrySvgOnly = standardPlan.resumeVectorization;
+  const resumeFromExtract = standardPlan.resumeUpscale;
+  const resumeSavedOutput = retrySvgOnly || resumeFromExtract;
+  const standardCreditCost = standardPlan.creditCost;
+  const precisionCreditCost = precisionPlan.creditCost;
   const creditCost = svgEngine === "precision" ? precisionCreditCost : standardCreditCost;
   const noCredits = userCredits !== null && userCredits < creditCost;
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url || project?.upscaled_image_url;
@@ -250,6 +255,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
             ? "Crop Image First"
               : retrySvgOnly
                 ? creditCost === 0 ? "Retry SVG — No Claws" : "Retry Precision SVG  (−1 Claw)"
+                : resumeFromExtract
+                  ? creditCost === 0 ? "Resume HD + SVG — No Claws" : "Resume HD + Precision SVG  (−1 Claw)"
                 : `Run Auto-Trace  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
   const exportDetails = [
@@ -257,7 +264,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
     { label: "Max Vectors", value: "Unlimited", gold: false },
     { label: "Color Mode", value: "Full Color", gold: false },
     { label: "Max Size", value: "50 MP", gold: false },
-      { label: "Claws Required", value: creditCost === 0 ? "None for SVG retry" : `${creditCost} Claw${creditCost > 1 ? "s" : ""}`, gold: true },
+      { label: "Claws Required", value: creditCost === 0 ? "None to resume" : `${creditCost} Claw${creditCost > 1 ? "s" : ""}`, gold: true },
   ];
 
   return (
@@ -430,7 +437,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 Standard SVG
               </div>
               <div style={{ fontSize: "9px", color: "#71717a" }}>
-                {retrySvgOnly ? "No extra Claws • Retry SVG" : "1 Claw • Includes Palette Studio"}
+                {resumeSavedOutput ? "No extra Claws • Resume saved output" : "1 Claw • Includes Palette Studio"}
               </div>
             </div>
             <div style={{

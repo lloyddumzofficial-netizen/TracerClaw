@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { analytics } from "@/lib/analytics";
 import { safeJson } from "@/lib/safeJson";
 import { clearGenerationRequestKey, getOrCreateGenerationRequestKey } from "@/lib/generationRequestKey";
+import { getTraceResumePlan } from "@/lib/traceResume";
 
 function isTraceTimeoutError(error) {
   return /504|failed to fetch|timed?\s*out|too long to respond/i.test(error?.message || "");
@@ -68,9 +69,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
   const handleExecuteTrace = useCallback(async (vectorColors = "auto", svgEngine = "standard") => {
     if (isRunningRef.current || !project || traceState !== "idle") return;
     const isPrecisionSvg = svgEngine === "precision";
-    const resumeVectorization = Boolean(project.upscaled_image_url && !project.svg_url);
-    const creditCost = resumeVectorization ? (isPrecisionSvg ? 1 : 0) : (isPrecisionSvg ? 2 : 1);
+    const { resumeVectorization, resumeUpscale, creditCost } = getTraceResumePlan(project, svgEngine);
     let reachedStep3 = resumeVectorization;
+    let hasSavedExtract = Boolean(project.generated_image_url && project.generated_image_url !== "REFUNDED");
 
     if (userCredits !== null && userCredits < creditCost) {
       onNoCredits?.();
@@ -83,7 +84,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
     // leaving a window where the button was still live and a second click
     // started a second pipeline — a real double charge, not just a dead click.
     isRunningRef.current = true;
-    setTraceState(resumeVectorization ? "step3" : "step1");
+    setTraceState(resumeVectorization ? "step3" : resumeUpscale ? "step2" : "step1");
 
     // Reset per-node errors
     setNodeErrors({ step1: null, step2: null, step3: null });
@@ -113,6 +114,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       if (creditCost > 0 && userCredits !== null) setUserCredits(prev => Math.max(0, prev - creditCost));
 
       if (!resumeVectorization) {
+      if (!resumeUpscale) {
       // ─── Step 1: Gemini ───────────────────────────────────────────────
       clearConsole("[Step 1] Analyzing Image with DesaynVision™...");
       const requestKey = getOrCreateGenerationRequestKey("trace", project.id);
@@ -167,7 +169,11 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       clearGenerationRequestKey("trace", project.id);
 
       setProject(prev => ({ ...prev, generated_image_url: saveData1.url }));
+      hasSavedExtract = true;
       logToConsole("[Success] Image Extracted by DesaynVision™!", "success");
+      } else {
+        clearConsole("[Step 2] Resuming from your saved Flat Extract — no new extraction charge.");
+      }
 
       // ─── Step 2: Upscale ─────────────────────────────────────────────
       setTraceState("step2");
@@ -275,7 +281,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          if (!reachedStep3) {
+          if (!reachedStep3 && !hasSavedExtract) {
             if (!error.serverRefunded && !error.skipRefund) {
               const refundRes = await fetch("/api/refund", {
                 method: "POST",

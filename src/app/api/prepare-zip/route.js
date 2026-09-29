@@ -5,6 +5,7 @@ import { adminSupabase } from "@/lib/supabase";
 import { deleteFromR2, uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
+import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
 import {
   DEFAULT_MAX_IMAGE_BYTES,
   DEFAULT_MAX_SVG_BYTES,
@@ -23,7 +24,7 @@ function safeFileName(name) {
 
 function assetSignature(assets) {
   return createHash("sha256")
-    .update(JSON.stringify(assets.map(({ url, name }) => ({ url, name }))))
+    .update(JSON.stringify({ version: 2, assets: assets.map(({ url, name }) => ({ url, name })) }))
     .digest("hex");
 }
 
@@ -56,7 +57,7 @@ export async function POST(request) {
 
     const { data: project, error: projectError } = await adminSupabase
       .from("projects")
-      .select("id, user_id, name, original_image_url, generated_image_url, upscaled_image_url, svg_url, zip_url, zip_signature")
+      .select("id, user_id, name, trace_type, original_image_url, generated_image_url, upscaled_image_url, svg_url, zip_url, zip_signature")
       .eq("id", projectId)
       .eq("user_id", user.id)
       .single();
@@ -71,7 +72,7 @@ export async function POST(request) {
       project.generated_image_url && project.generated_image_url !== "REFUNDED" && {
         url: project.generated_image_url,
         name: `DesaynClaw_${baseName}_DesaynVision.png`,
-        maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+        maxBytes: getFlatExtractMaxBytes(project.trace_type),
       },
       project.upscaled_image_url && {
         url: project.upscaled_image_url,
@@ -125,8 +126,8 @@ export async function POST(request) {
       }
     }
 
-    if (addedFiles === 0) {
-      return NextResponse.json({ error: "No files could be added to ZIP" }, { status: 500 });
+    if (addedFiles !== assets.length) {
+      return NextResponse.json({ error: "Could not retrieve every saved file. Please retry the ZIP download." }, { status: 502 });
     }
 
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer", compression: "STORE" });

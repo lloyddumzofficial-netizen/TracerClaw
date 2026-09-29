@@ -11,6 +11,7 @@ import {
   refundGenerationAttempt,
 } from "@/server/billing";
 import { upscaleLogoDeterministically } from "@/server/logoProcessing";
+import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -311,9 +312,7 @@ export async function POST(request) {
         const outputUrl = result.data.images[0].url;
         const { response: imgRes, buffer: generatedBuffer } = await fetchWithSSRFProtection(outputUrl, {
           allowedHosts: getAllowedProviderHosts(),
-          maxBytes: project.trace_type === "logo"
-            ? DEFAULT_MAX_UPSCALED_IMAGE_BYTES
-            : DEFAULT_MAX_IMAGE_BYTES,
+          maxBytes: getFlatExtractMaxBytes(project.trace_type),
           allowedContentTypes: ['image/'],
         });
         if (!imgRes.ok) throw new Error("Failed to download generated image from fal.ai URL");
@@ -431,7 +430,9 @@ export async function POST(request) {
         const sharp = (await import('sharp')).default;
         const fetchedStepOne = await fetchWithSSRFProtection(upscaleInputUrl, {
           allowedHosts: getAllowedStorageHosts(),
-          maxBytes: DEFAULT_MAX_IMAGE_BYTES,
+          // Step 1 accepts logo PNGs up to this limit. Reading that same saved
+          // file with the smaller upload limit made Step 2 fail permanently.
+          maxBytes: getFlatExtractMaxBytes(project.trace_type),
           allowedContentTypes: ['image/'],
         });
         stepOneBuffer = fetchedStepOne.buffer;

@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const PROJECT_BASE_SELECT = "id, user_id, name, original_image_url, generated_image_url, upscaled_image_url, svg_url, zip_url";
+const PROJECT_BASE_SELECT = "id, user_id, name, trace_type, original_image_url, generated_image_url, upscaled_image_url, svg_url, zip_url";
 const PROJECT_DRIVE_SELECT = `${PROJECT_BASE_SELECT}, google_drive_folder_id, google_drive_folder_url, google_drive_exported_at, google_drive_export_signature`;
 
 function isMissingDriveColumnError(error) {
