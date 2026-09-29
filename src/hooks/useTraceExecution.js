@@ -68,7 +68,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
   const handleExecuteTrace = useCallback(async (vectorColors = "auto", svgEngine = "standard") => {
     if (isRunningRef.current || !project || traceState !== "idle") return;
     const isPrecisionSvg = svgEngine === "precision";
-    const creditCost = isPrecisionSvg ? 2 : 1;
+    const resumeVectorization = Boolean(project.upscaled_image_url && !project.svg_url);
+    const creditCost = resumeVectorization ? (isPrecisionSvg ? 1 : 0) : (isPrecisionSvg ? 2 : 1);
+    let reachedStep3 = resumeVectorization;
 
     if (userCredits !== null && userCredits < creditCost) {
       onNoCredits?.();
@@ -81,7 +83,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
     // leaving a window where the button was still live and a second click
     // started a second pipeline — a real double charge, not just a dead click.
     isRunningRef.current = true;
-    setTraceState("step1");
+    setTraceState(resumeVectorization ? "step3" : "step1");
 
     // Reset per-node errors
     setNodeErrors({ step1: null, step2: null, step3: null });
@@ -108,8 +110,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       // Deduct locally in UI for immediate feedback only after we know the
       // secure trace request can include a session token. The server remains
       // the source of truth for the actual atomic charge/refund.
-      if (userCredits > 0) setUserCredits(prev => Math.max(0, prev - creditCost));
+      if (creditCost > 0 && userCredits !== null) setUserCredits(prev => Math.max(0, prev - creditCost));
 
+      if (!resumeVectorization) {
       // ─── Step 1: Gemini ───────────────────────────────────────────────
       clearConsole("[Step 1] Analyzing Image with DesaynVision™...");
       const requestKey = getOrCreateGenerationRequestKey("trace", project.id);
@@ -209,8 +212,12 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
 
       setProject(prev => ({ ...prev, upscaled_image_url: persistedUpscaledUrl }));
       logToConsole("[Success] Upscale Complete!", "success");
+      } else {
+        clearConsole("[Step 3] Retrying SVG from your saved HD image...");
+      }
 
       // ─── Step 3: Vectorize ───────────────────────────────────────────
+      reachedStep3 = true;
       setTraceState("step3");
       logToConsole(
         isPrecisionSvg
@@ -232,7 +239,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         const errData = await safeJson(res3, res3.status === 504 ? "504 Timeout" : `Server Error ${res3.status}`);
         const msg = getTraceErrorMessage(res3, errData);
         setNodeErrors(prev => ({ ...prev, step3: msg }));
-        throw new Error(msg);
+        const stepError = new Error(msg);
+        stepError.step3Retryable = Boolean(errData?.retryable);
+        throw stepError;
       }
 
       const data3 = await safeJson(res3, "Trace step 3 failed");
@@ -266,21 +275,23 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          if (!error.serverRefunded && !error.skipRefund) {
-            const refundRes = await fetch("/api/refund", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ projectId: project.id }),
-            });
-            const refundData = await safeJson(refundRes, "Refund request failed");
-            if (refundData.success) {
+          if (!reachedStep3) {
+            if (!error.serverRefunded && !error.skipRefund) {
+              const refundRes = await fetch("/api/refund", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ projectId: project.id }),
+              });
+              const refundData = await safeJson(refundRes, "Refund request failed");
+              if (refundData.success) {
+                logToConsole("[System] Generation failed. Charged claws were restored.", "success");
+              }
+            } else if (error.serverRefunded) {
               logToConsole("[System] Generation failed. Charged claws were restored.", "success");
             }
-          } else {
-            logToConsole("[System] Generation failed. Charged claws were restored.", "success");
           }
 
           const { data: profile } = await supabase
@@ -294,11 +305,13 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         // Refund request failed silently — backend auto-refund should cover it
       }
 
-      const displayMsg = isTimeout
+      const displayMsg = reachedStep3
+        ? error.message
+        : isTimeout
         ? "The AI engine timed out before finishing. Try a tighter crop or simpler image; any claw charged for a fully failed run is restored automatically."
         : error.message;
 
-      if (!isTimeout && !isExpectedTraceError(error)) {
+      if (!isTimeout && !isExpectedTraceError(error) && !error.step3Retryable) {
         // Only surface unexpected errors to the dev overlay, not known
         // operational states like provider downtime, rate limits, or sessions.
         console.error("[Trace Error]", error);

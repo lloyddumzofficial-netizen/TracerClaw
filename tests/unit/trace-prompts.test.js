@@ -4,6 +4,7 @@ import {
   buildNanoBananaSystemPrompt,
   getNanoBananaInputTuning,
   NANO_BANANA_EDIT_MODEL,
+  resolveTracePromptMode,
 } from "@/lib/tracePrompts";
 
 describe("trace prompt source fidelity", () => {
@@ -11,6 +12,9 @@ describe("trace prompt source fidelity", () => {
     expect(NANO_BANANA_EDIT_MODEL).toBe("fal-ai/nano-banana-pro/edit");
     expect(getNanoBananaInputTuning("LOGO_FLATTEN").resolution).toBe("4K");
     expect(getNanoBananaInputTuning("PRESERVE_LOGOS").resolution).toBe("2K");
+    expect(resolveTracePromptMode("logo", null)).toBe("LOGO_FLATTEN");
+    expect(resolveTracePromptMode("logo", "PRESERVE_LOGOS")).toBe("LOGO_FLATTEN");
+    expect(resolveTracePromptMode("mockup", "ERASE_LOGOS")).toBe("ERASE_LOGOS");
   });
 
   it.each(["ERASE_LOGOS", "PRESERVE_LOGOS"])(
@@ -33,24 +37,20 @@ describe("trace prompt source fidelity", () => {
     },
   );
 
-  it("uses the same edge-quality contract for logo flattening", () => {
+  it("keeps logo editing source-bound instead of requesting a redraw", () => {
     const prompt = buildNanoBananaPrompt("LOGO_FLATTEN");
     const systemPrompt = buildNanoBananaSystemPrompt("LOGO_FLATTEN");
 
-    expect(prompt).toContain("EDGE INTEGRITY — CLEAN WITHOUT REDESIGN");
-    expect(prompt).toContain("PHOTOGRAPHIC LIGHT REMOVAL — ZERO SHADOWS OR REFLECTIONS");
-    expect(prompt).toContain("Thin strokes, small counters inside letters");
-    expect(prompt).toContain("IMMUTABLE REFERENCE RESTORATION — DO NOT GENERATE A NEW LOGO");
-    expect(prompt).toContain("The reference image is the immutable ground truth");
-    expect(prompt).toContain("HD EDGE OUTPUT");
-    expect(prompt).toContain("No white fringe, dark fringe, doubled outline");
-    expect(prompt).toContain("LOGO ISOLATION — REMOVE EVERY REFERENCE BACKGROUND");
-    expect(prompt).toContain("PURE WHITE: #FFFFFF / RGB(255,255,255)");
-    expect(prompt).toContain("FOREGROUND COLOR LOCK — EXACT LOGO COLORS");
-    expect(prompt).toContain("FINAL LOGO VALIDATION — MANDATORY BEFORE OUTPUT");
-    expect(prompt).not.toContain("Preserve the original background exactly");
-    expect(systemPrompt).toContain("WHITE BACKGROUND");
-    expect(systemPrompt).toContain("FOREGROUND COLOR LOCK");
+    expect(prompt).toContain("The visible logo is the source of truth");
+    expect(prompt).toContain("do not typeset, autocorrect, complete an unreadable word");
+    expect(prompt).toContain("retain its visible form instead of guessing");
+    expect(prompt).toContain("Keep enclosed colored fields, badges, plates");
+    expect(prompt).toContain("white #FFFFFF through all four canvas edges");
+    expect(systemPrompt).toContain("Do not redraw, redesign, typeset");
+    expect(systemPrompt).toContain("preserve its visible pixels instead of guessing");
+    expect(prompt).not.toContain("vector-style copy");
+    expect(prompt).not.toContain("Mentally overlay a 10 x 10 grid");
+    expect(prompt.length).toBeLessThan(2500);
   });
 
   it("keeps Clean Pattern Only torso reconstruction conservative", () => {

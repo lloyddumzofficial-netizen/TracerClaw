@@ -101,14 +101,7 @@ Then map that same 10 x 10 grid onto your output rectangle and reconstruct it ce
 // SHARED BLOCK — logo mode keeps the input's framing (unlike garment modes,
 // which unwrap the torso into a full-bleed rectangle).
 // ─────────────────────────────────────────────────────────────────────────────
-const LOGO_REGISTRATION_LOCK = `== FRAMING LOCK ==
-- Keep the LOGO FOREGROUND's exact framing: same field of view, same center point, same scale, same rotation (0°).
-- DO NOT zoom in, zoom out, crop the logo, pan, rotate, tilt, or re-center. The isolated logo occupies the same fraction of the canvas as it does in the input.
-- NORMALIZED COORDINATE RULE: every element lands at the same normalized (x, y) position it occupies in the input. If a star sits at 22% width / 71% height, it sits at 22% / 71% in your output.
-- Background pixels are excluded from registration and must be replaced by pure white according to the LOGO ISOLATION rule.
-
-== STEP 0: COORDINATE MAPPING (DO THIS BEFORE DRAWING ANYTHING) ==
-Mentally overlay a 10 x 10 grid on the input. For each cell, record the dominant color, every edge that crosses it, and which shape that edge belongs to. Reconstruct cell by cell, then walk the grid again before output and confirm each cell matches.`;
+const LOGO_REGISTRATION_LOCK = `Keep the original canvas and the foreground logo at its original position, size, orientation, and aspect ratio. Do not crop, move, center, stretch, or enlarge any foreground element. Change background pixels only where they are clearly outside the logo.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — flat-panel conversion (de-perspective, de-3D).
@@ -236,14 +229,6 @@ const COLOR_FIDELITY = `== COLOR FIDELITY — FULL COLOR, EXACT MATCH ==
 - GLOWS AND SHEENS: printed glows, inner highlights, edge sheens, and metallic gold ramps are design elements — reproduce them. Only photographic lighting is removed.
 - COLOR ZONE MAP: before outputting, verify the dominant color at the top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, and bottom-right of your output matches the input at those same nine positions.`;
 
-const LOGO_COLOR_FIDELITY = `== FOREGROUND COLOR LOCK — EXACT LOGO COLORS ==
-- Apply color matching only to the isolated logo foreground. Ignore every color belonging to the removed background.
-- Sample the exact visible color of every foreground region and reproduce it without hue shift, recoloring, palette replacement, saturation boost, brightness lift, contrast grading, or stylistic harmonization.
-- A burgundy foreground remains that exact burgundy; pink remains that exact pink; gold remains that exact gold. Do not make the whole logo monochrome and do not force foreground colors to match the removed background.
-- Preserve every intentional foreground gradient, highlight, shadow shape, blend, and color separation when it is drawn artwork inside the logo.
-- Remove only photographic color casts and lighting contamination. Recover the foreground region's own ink color from nearby pixels of that same region.
-- Audit every foreground element side by side against the reference. Its hue, saturation, relative brightness, and gradient direction must match the reference exactly.`;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — flat fill purity. Stops photographed fabric texture, creases and
 // grey mottling from surviving into what should be clean solid-color regions.
@@ -289,18 +274,6 @@ const CANVAS_RULES = `== CANVAS RULES ==
 // SHARED BLOCK — final self-check.
 // ─────────────────────────────────────────────────────────────────────────────
 const GARMENT_FRAMING_CHECK = `1. FRAMING — CHECK THIS FIRST AND HARDEST: is your output a full-bleed rectangle of pure artwork? Trace all four edges and all four corners. If you can see a neckline, a collar, a shoulder slope, an armhole, a sleeve, a hem curve, a shirt outline, or ANY background around the artwork, you have failed. Delete the garment shape and extend the design outward until it fills the frame completely.`;
-
-const LOGO_FINAL_GATE = `== FINAL LOGO VALIDATION — MANDATORY BEFORE OUTPUT ==
-Inspect the result at maximum zoom and compare it side by side against the reference:
-1. Isolation: every pixel outside the logo foreground is pure white #FFFFFF. No source background color, texture, photograph, pattern, border, shadow, or reflection remains.
-2. Completeness: every foreground word, character, mascot detail, icon, ring, stroke, symbol, and decorative element is present. Nothing belonging to the logo was mistaken for background.
-3. Geometry: foreground shape count, contours, vertex positions, proportions, spacing, edge angles, overlap order, and micro details match exactly.
-4. Text: read the output and reference character by character. Letterforms, wording, capitalization, curvature, spacing, and placement are identical.
-5. Color: compare each foreground region only. Exact hue, saturation, brightness, gradients, and separations; no recoloring or palette drift.
-6. Edges: crisp natural anti-aliasing with no blur, jaggies, halos, ringing, color fringing, gaps, swelling, erosion, or doubled contours.
-7. Canvas: one isolated logo on a uniform pure white #FFFFFF background. No mockup, scene, fabric, garment, or extra object.
-
-Reject and repair the result if any check fails. Output only when the foreground logo is visually indistinguishable from the reference and only the background has changed to white.`;
 
 const buildFinalGate = (modeChecks, framingCheck = GARMENT_FRAMING_CHECK) => `== FINAL VALIDATION — MANDATORY BEFORE OUTPUT ==
 Inspect your reconstruction at maximum zoom and compare it against the input, region by region. Verify every item:
@@ -456,59 +429,17 @@ ${buildFinalGate(`8. Artwork: every logo, badge, mascot, and word from the input
 // ─────────────────────────────────────────────────────────────────────────────
 // MODE: LOGO FLATTEN  (traceType logo → ai_prompt LOGO_FLATTEN)
 // ─────────────────────────────────────────────────────────────────────────────
-const LOGO_FLATTEN = `TASK: Reproduce the logo in this image as a 100% accurate, flat, vector-ready copy. You are a forensic reproduction artist. Do not simplify, stylize, redesign, or interpret. Copy it exactly.
+const LOGO_FLATTEN = `Edit the supplied image conservatively. The visible logo is the source of truth, including its text, illustration, internal colors, and intentional background shapes inside the mark. Preserve it as the same artwork; do not generate a new interpretation.
 
 ${LOGO_REGISTRATION_LOCK}
 
-== LOGO ACCURACY — TARGET IS A 100% REFERENCE MATCH ==
-- Reproduce every shape, curve, angle, and proportion with mathematical exactness.
-- Reproduce every color layer and region in its exact position, size, and proportion.
-- ZERO HALLUCINATION: add nothing that is not in the input; remove nothing that is.
-- Maintain the exact original proportions and centering. The logo occupies the same fraction of the canvas as in the input.
+Keep every visible letter, numeral, accent, icon, mascot, outline, overlap, gap, and small stroke. Match each visible letterform and its position; do not typeset, autocorrect, complete an unreadable word, or replace custom lettering with a font. If a tiny or blurry detail cannot be resolved from the image, retain its visible form instead of guessing a cleaner one. Do not add missing symbols, objects, or decorative shapes.
 
-== IMMUTABLE REFERENCE RESTORATION — DO NOT GENERATE A NEW LOGO ==
-- This is an image-to-image restoration of the supplied reference, never a text-to-image logo design task.
-- The reference image is the immutable ground truth. Trace the exact visible silhouette and internal boundary of every element before cleaning any pixel.
-- Never replace a difficult character, mascot, paddle, ball, crown, letter, or curve with a more typical or easier version.
-- Never use semantic knowledge of what the logo "should" look like. If memory or convention conflicts with the reference, the reference wins.
-- Preserve intentional asymmetry, unusual spacing, custom lettering, imperfect hand-drawn curves, and every distinctive identity feature.
+Preserve the foreground palette and all intentional gradients and shading drawn within the logo. Clean only photographic shadows, glare, JPEG noise, and blur when the underlying foreground boundary is clearly visible. Keep the boundary in place with natural anti-aliasing; avoid halos, jagged edges, doubled outlines, and artificial sharpness. Output a clean PNG at the requested resolution.
 
-== HD EDGE OUTPUT ==
-- Output the highest-resolution clean PNG permitted by the tool.
-- All intentional boundaries must be crisp, continuous, and smoothly anti-aliased at high zoom.
-- Remove JPEG ringing, block noise, blur, pixel stair-steps, fabric grain, and fuzzy halos without moving the underlying boundary.
-- Do not over-sharpen. No white fringe, dark fringe, doubled outline, crunchy texture, artificial dots, or new micro-detail.
-- Solid fills remain even and clean; printed gradients remain smooth; thin strokes and small counters remain open and legible.
+Identify the outer background separately from the complete foreground mark. Replace only that outer background with uniform white #FFFFFF through all four canvas edges. Keep enclosed colored fields, badges, plates, and shapes that are visibly part of the logo. Never erase a pale letter or thin stroke because it resembles the background.
 
-== TEXT & TYPOGRAPHY — COPY VERBATIM ==
-- Reproduce every character exactly as written: same letterforms, same weight, same italic slant, same letter-spacing, same capitalization, same arrangement, same arch or curve.
-- Do NOT autocorrect spelling. Do NOT rewrite any word. Do NOT substitute a standard font for a custom letterform.
-- Reproduce all secondary text: taglines, year numbers, location text, sub-brand text, registered and trademark symbols.
-
-== ELEMENTS TO PRESERVE — ALL OF THEM ==
-- Every icon, symbol, mascot, crest, shield, crown, star, swoosh, and decorative element.
-- Every border, outline, ring, frame, and inner detail stroke, at its original stroke weight.
-
-${GEOMETRY_FIDELITY}
-
-${EDGE_INTEGRITY_LOCK}
-
-${PHOTOMETRIC_ARTIFACT_REMOVAL}
-
-${LOGO_COLOR_FIDELITY}
-
-${FLAT_FILL_PURITY}
-
-== LOGO ISOLATION — REMOVE EVERY REFERENCE BACKGROUND ==
-- First separate the LOGO FOREGROUND from the BACKGROUND. Foreground includes the complete central mark plus every associated word, tagline, letter, number, emblem, ring, icon, symbol, and decorative stroke that belongs to its identity.
-- Background means any color field, photograph, wall, fabric, paper, gradient wash, texture, pattern, lighting, scene, or empty area behind or around those logo elements—even when it covers the whole source canvas.
-- Delete the reference background completely. Never copy its color, gradient, texture, noise, shadows, highlights, folds, reflections, or objects into the output.
-- Replace every background pixel with one uniform PURE WHITE: #FFFFFF / RGB(255,255,255). White must reach all four edges and all four corners.
-- Do not erase foreground text or thin details merely because they touch, overlap, or have colors similar to the background. Follow closed contours, semantic grouping, and connected strokes to keep the complete logo.
-- Do not add a new plate, circle, badge field, glow, shadow, outline, or colored backdrop behind the isolated logo unless that exact shape is visibly an intentional foreground component with its own closed boundary.
-- The final result is the same complete logo floating cleanly on pure white—not a crop of the old background and not a redesigned logo.
-
-${LOGO_FINAL_GATE}`;
+Before output, compare the edited image to the input: same element count, text shapes, color regions, proportions, spacing, and foreground placement. When any proposed cleanup changes identity or an uncertain detail, leave that foreground detail as it appears in the input. Output one image only.`;
 
 const TRACE_PROMPTS = {
   ERASE_LOGOS,
@@ -527,6 +458,10 @@ export function isLogoPrompt(aiPrompt) {
   return aiPrompt === "LOGO_FLATTEN";
 }
 
+export function resolveTracePromptMode(traceType, aiPrompt) {
+  return traceType === "logo" ? "LOGO_FLATTEN" : aiPrompt;
+}
+
 export function buildNanoBananaPrompt(aiPrompt) {
   // Own-property check only — never resolve inherited keys like "constructor".
   return Object.hasOwn(TRACE_PROMPTS, aiPrompt ?? "")
@@ -536,18 +471,7 @@ export function buildNanoBananaPrompt(aiPrompt) {
 
 export function buildNanoBananaSystemPrompt(aiPrompt) {
   if (isLogoPrompt(aiPrompt)) {
-    return `You are a forensic logo reproduction engine, not an illustrator and not a designer.
-
-Your only job is to redraw the logo in the input image as a clean flat vector-style copy. You reconstruct; you never create.
-
-Five invariants override every other consideration:
-1. REGISTRATION: the output must align pixel-for-pixel with the input. Same framing, same scale, same center. Never zoom, crop, pan, or rotate.
-2. EVIDENCE ONLY: every pixel must correspond to something visible in the input. Never invent, never approximate, never redesign, never modernize.
-3. VERBATIM TEXT: copy every character exactly as drawn. Never autocorrect, never re-letter, never substitute a font.
-4. WHITE BACKGROUND: automatically isolate the complete logo foreground, remove every original background pixel, and replace the background with uniform pure white #FFFFFF to all four canvas edges.
-5. FOREGROUND COLOR LOCK: preserve the exact reference colors of the logo foreground. Never recolor, harmonize, brighten, darken, or convert its palette.
-
-If you are ever unsure between "make it look nice" and "make it match", always choose "make it match".`;
+    return `You are editing an existing logo image. Preserve the visible foreground artwork and its identity. Do not redraw, redesign, typeset, infer hidden details, or substitute a plausible logo. The only permitted changes are isolating the outer background to white #FFFFFF and cleaning clearly identifiable photographic or compression artifacts without shifting foreground edges, colors, text, or layout. If a foreground detail is ambiguous, preserve its visible pixels instead of guessing.`;
   }
 
   if (isPatternOnlyPrompt(aiPrompt)) {

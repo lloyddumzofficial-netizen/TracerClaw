@@ -110,17 +110,20 @@ function HomepageWorkflowPreview() {
   return (
     <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
       <div className="workflow-preview-copy">
-        <div className="section-kicker">Production Preview</div>
+        <div className="workflow-kicker-row">
+          <span className="section-kicker">Production Preview</span>
+          <span className="workflow-status-pill">Live handoff</span>
+        </div>
         <h2>Clean production files from rough client artwork.</h2>
         <p>
           See the full handoff after upload: cropped artwork, vector controls,
           transparent assets, and export-ready files built for real print shop work.
         </p>
         <div className="workflow-output-grid">
-          <div><CheckCircle2 size={15} /> Editable SVG</div>
-          <div><CheckCircle2 size={15} /> 4K PNG</div>
-          <div><CheckCircle2 size={15} /> Transparent BG</div>
-          <div><CheckCircle2 size={15} /> ZIP Package</div>
+          <div className="workflow-output-card"><CheckCircle2 size={15} /> Editable SVG</div>
+          <div className="workflow-output-card"><CheckCircle2 size={15} /> 4K PNG</div>
+          <div className="workflow-output-card"><CheckCircle2 size={15} /> Transparent BG</div>
+          <div className="workflow-output-card"><CheckCircle2 size={15} /> ZIP Package</div>
         </div>
         <div className="workflow-trust-row" aria-label="Workflow trust notes">
           <span><ShieldCheck size={14} /> Files auto-expire after 3 days</span>
@@ -130,13 +133,39 @@ function HomepageWorkflowPreview() {
       </div>
 
       <div className="workflow-mockup" aria-hidden="true">
-        <figure className="workflow-preview-figure">
-          <img src="/samples/production-preview/Hue_Saturation.webp" alt="" loading="lazy" />
-          <figcaption className="workflow-preview-caption">
-            <span>Output preview</span>
-            <strong>SVG + PNG + Palette</strong>
-          </figcaption>
-        </figure>
+        <div className="workflow-window">
+          <div className="workflow-window-bar">
+            <span className="workflow-window-dot" />
+            <span className="workflow-window-dot" />
+            <span className="workflow-window-dot" />
+            <span className="workflow-window-title">desaynclaw.com/workspace</span>
+          </div>
+          <figure className="workflow-preview-figure">
+            <Image
+              src="/banner-webapp-2.jpg"
+              alt=""
+              width={1920}
+              height={960}
+              sizes="(max-width: 980px) 100vw, 720px"
+              loading="lazy"
+            />
+            <span className="workflow-zoom-ring" />
+            <figcaption className="workflow-preview-caption">
+              <span>Output preview</span>
+              <strong>SVG + PNG + Palette</strong>
+            </figcaption>
+          </figure>
+        </div>
+        <div className="workflow-mini-panel">
+          <span>Export details</span>
+          <strong>Production-ready</strong>
+          <small>Clean vectors, transparent files, ZIP delivery</small>
+        </div>
+        <div className="workflow-scale-rail">
+          <span>Crop</span>
+          <span>Trace</span>
+          <span>Export</span>
+        </div>
       </div>
     </section>
   );

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_IMAGE_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, normalizeUserImageUrl, validateUrlForSSRF } from "@/lib/ssrf";
-import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning, NANO_BANANA_EDIT_MODEL } from "@/lib/tracePrompts";
+import { buildNanoBananaPrompt, buildNanoBananaSystemPrompt, getNanoBananaInputTuning, NANO_BANANA_EDIT_MODEL, resolveTracePromptMode } from "@/lib/tracePrompts";
 import { logger } from "@/lib/logger";
 import {
   claimGenerationAttempt,
@@ -248,9 +248,12 @@ export async function POST(request) {
         }
       }
 
-      const prompt = buildNanoBananaPrompt(project?.ai_prompt);
-      const systemPrompt = buildNanoBananaSystemPrompt(project?.ai_prompt);
-      const nanoBananaTuning = getNanoBananaInputTuning(project?.ai_prompt);
+      // The stored mode can be missing on older projects. The workspace type
+      // still determines the correct restoration contract for logo requests.
+      const promptMode = resolveTracePromptMode(project.trace_type, project.ai_prompt);
+      const prompt = buildNanoBananaPrompt(promptMode);
+      const systemPrompt = buildNanoBananaSystemPrompt(promptMode);
+      const nanoBananaTuning = getNanoBananaInputTuning(promptMode);
 
       let generatedImageBuffer;
       let generatedMimeType = "image/png";

@@ -23,6 +23,7 @@ const sharpInstance = {
   toBuffer: vi.fn(async () => Buffer.from("png")),
 };
 const sharpMock = vi.fn(() => sharpInstance);
+const notifyProjectCompleted = vi.fn();
 
 vi.mock("@/lib/supabase", () => ({ adminSupabase }));
 vi.mock("@/lib/rateLimit", () => ({
@@ -63,6 +64,7 @@ vi.mock("@fal-ai/client", () => ({
   },
 }));
 vi.mock("@/lib/fetchWithRetry", () => ({ fetchWithRetry: vi.fn() }));
+vi.mock("@/lib/integrations/webhook", () => ({ notifyProjectCompleted }));
 vi.mock("sharp", () => ({ default: sharpMock }));
 
 beforeEach(() => {
@@ -178,6 +180,82 @@ describe("download proxy", () => {
 });
 
 describe("paid AI operation charge boundaries", () => {
+  it("finishes a standard SVG with the backup engine after the primary times out", async () => {
+    const previousId = process.env.VECTORIZER_API_ID;
+    const previousSecret = process.env.VECTORIZER_API_SECRET;
+    process.env.VECTORIZER_API_ID = "test-id";
+    process.env.VECTORIZER_API_SECRET = "test-secret";
+    try {
+      adminSupabase.from = vi.fn(() => mockQuery({
+        data: {
+          id: "project-1",
+          user_id: "user-1",
+          trace_type: "logo",
+          upscaled_image_url: "https://storage.example/projects/project-1/upscaled.png",
+        },
+        error: null,
+      }));
+      uploadToR2.mockResolvedValue("https://storage.example/projects/project-1/vector.svg");
+      const { fetchWithRetry } = await import("@/lib/fetchWithRetry");
+      fetchWithRetry
+        .mockRejectedValueOnce(Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }))
+        .mockResolvedValueOnce(new Response('<svg xmlns="http://www.w3.org/2000/svg"></svg>', { status: 200 }));
+
+      const { POST } = await import("@/app/api/trace-step3/route.js");
+      const response = await POST(jsonRequest({ projectId: "project-1", svgEngine: "standard" }));
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.svg_url).toBe("https://storage.example/projects/project-1/vector.svg");
+      expect(body.engineUsed).toBe("precision");
+      expect(body.warning).toMatch(/no extra Claws/);
+      expect(fetchWithRetry).toHaveBeenCalledTimes(2);
+      expect(adminSupabase.rpc).not.toHaveBeenCalled();
+    } finally {
+      if (previousId === undefined) delete process.env.VECTORIZER_API_ID;
+      else process.env.VECTORIZER_API_ID = previousId;
+      if (previousSecret === undefined) delete process.env.VECTORIZER_API_SECRET;
+      else process.env.VECTORIZER_API_SECRET = previousSecret;
+    }
+  });
+
+  it("returns a recoverable SVG timeout without charging or discarding the saved raster", async () => {
+    const previousId = process.env.VECTORIZER_API_ID;
+    const previousSecret = process.env.VECTORIZER_API_SECRET;
+    delete process.env.VECTORIZER_API_ID;
+    delete process.env.VECTORIZER_API_SECRET;
+    try {
+      const projectQuery = mockQuery({
+        data: {
+          id: "project-1",
+          user_id: "user-1",
+          trace_type: "logo",
+          upscaled_image_url: "https://storage.example/projects/project-1/upscaled.png",
+        },
+        error: null,
+      });
+      adminSupabase.from = vi.fn(() => projectQuery);
+      const { fetchWithRetry } = await import("@/lib/fetchWithRetry");
+      fetchWithRetry.mockRejectedValueOnce(Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }));
+
+      const { POST } = await import("@/app/api/trace-step3/route.js");
+      const response = await POST(jsonRequest({ projectId: "project-1", svgEngine: "standard" }));
+      const body = await response.json();
+
+      expect(response.status).toBe(504);
+      expect(body.code).toBe("VECTOR_PROVIDER_UNAVAILABLE");
+      expect(body.retryable).toBe(true);
+      expect(body.error).toMatch(/extracted image is saved/);
+      expect(adminSupabase.rpc).not.toHaveBeenCalled();
+      expect(projectQuery.update).toHaveBeenCalledWith(expect.objectContaining({ failed_step: "step3" }));
+    } finally {
+      if (previousId === undefined) delete process.env.VECTORIZER_API_ID;
+      else process.env.VECTORIZER_API_ID = previousId;
+      if (previousSecret === undefined) delete process.env.VECTORIZER_API_SECRET;
+      else process.env.VECTORIZER_API_SECRET = previousSecret;
+    }
+  });
+
   it("Auto Trace returns INSUFFICIENT_CREDITS before calling the provider", async () => {
     adminSupabase.from = vi.fn(() => mockQuery({
       data: {

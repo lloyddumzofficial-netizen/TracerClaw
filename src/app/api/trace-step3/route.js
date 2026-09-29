@@ -60,7 +60,7 @@ async function refundPrecisionCredit({ userId }) {
   return true;
 }
 
-async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 70_000 }) {
+async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 50_000 }) {
   const vectorizeFormData = new FormData();
   vectorizeFormData.append('image', imageBlob, 'image.png');
 
@@ -205,17 +205,18 @@ export async function POST(request) {
     if (!rasterImgRes.ok) throw new Error("Failed to fetch upscaled image from R2");
 
     // ─── Step 3 Pre-processing ────────────────────────────────────────────────
-    // Preserve up to Recraft's 4096px input limit. The previous 2048px cap
-    // discarded half of a typical restored logo's usable edge information
-    // immediately before vectorization, softening text and tight curves.
+    // The standard provider timed out on dense 4096px inputs. A 3072px raster
+    // retains fine logo contours while cutting its pixel workload by 44%.
+    // Precision keeps the full 4096px input for its finer path engine.
     // NO second sharpen here: Logo Step 2 already restores edge acutance, and
     // stacking another sharpen pass creates halos that become unwanted paths.
     // ─────────────────────────────────────────────────────────────────────────
     const sharp = (await import('sharp')).default;
+    const vectorInputEdge = svgEngine === "standard" ? 3072 : 4096;
     const sharpInstance = sharp(rawBuffer)
       .resize({
-        width: 4096,
-        height: 4096,
+        width: vectorInputEdge,
+        height: vectorInputEdge,
         fit: 'inside',
         withoutEnlargement: true,
         kernel: 'lanczos3',
@@ -292,7 +293,37 @@ export async function POST(request) {
         svgText = await vectorizeWithStandardEngine({ imageBlob: blob });
       }
     } else {
-      svgText = await vectorizeWithStandardEngine({ imageBlob: blob });
+      try {
+        svgText = await vectorizeWithStandardEngine({ imageBlob: blob });
+      } catch (standardError) {
+        logger.warn("[Step 3] Standard SVG failed; trying backup vectorizer", {
+          projectId,
+          error: standardError?.message,
+        });
+        const vectorizerApiId = process.env.VECTORIZER_API_ID;
+        const vectorizerApiSecret = process.env.VECTORIZER_API_SECRET;
+        if (!vectorizerApiId || !vectorizerApiSecret) throw standardError;
+
+        try {
+          svgText = await vectorizeWithPrecisionEngine({
+            imageBlob: blob,
+            colors,
+            vectorizerApiId,
+            vectorizerApiSecret,
+            timeoutMs: 45_000,
+          });
+          engineUsed = "precision";
+          precisionFallback = true;
+          precisionWarning = "Standard SVG was unavailable, so the backup vectorizer completed your file at no extra Claws.";
+        } catch (backupError) {
+          logger.error("[Step 3] Both SVG providers failed", {
+            projectId,
+            standardError: standardError?.message,
+            backupError: backupError?.message,
+          });
+          throw new Error("Both SVG providers failed", { cause: backupError });
+        }
+      }
     }
 
     // ─── Semantic Layer Grouping — REMOVED ────────────────────────────────────
@@ -386,6 +417,15 @@ export async function POST(request) {
       console.error(`[Billing] Refund failed:`, refundErr.message);
     }
 
-    return NextResponse.json({ error: "Failed to process trace step." }, { status: 500 });
+    const isTimeout = /timed?\s*out|timeout|aborted/i.test(String(error?.message || "")) ||
+      error?.name === "AbortError" || error?.name === "TimeoutError";
+    const isProviderFailure = isTimeout || /vectoriz|SVG providers/i.test(String(error?.message || ""));
+    return NextResponse.json({
+      error: isProviderFailure
+        ? "SVG conversion is temporarily unavailable. Your extracted image is saved; retry SVG only without paying for extraction again."
+        : "Could not save the SVG. Your extracted image is saved; retry SVG only.",
+      code: isProviderFailure ? "VECTOR_PROVIDER_UNAVAILABLE" : "VECTOR_SAVE_FAILED",
+      retryable: true,
+    }, { status: isTimeout ? 504 : isProviderFailure ? 503 : 500 });
   }
 }

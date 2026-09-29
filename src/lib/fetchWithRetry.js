@@ -23,6 +23,11 @@ export async function fetchWithRetry(url, options = {}, maxRetries = 3) {
       return response; // Return the successful response (or 400/401 which shouldn't be retried)
     } catch (error) {
       attempt++;
+      // A timed-out request has already aborted this shared signal. Retrying
+      // with it only produces immediate failures and spends the route budget.
+      if (options.signal?.aborted || error?.name === "AbortError" || error?.name === "TimeoutError") {
+        throw error;
+      }
       if (attempt >= maxRetries) {
         console.error(`[fetchWithRetry] Max retries (${maxRetries}) reached for ${url}`);
         throw error;
