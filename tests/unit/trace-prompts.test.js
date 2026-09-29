@@ -53,6 +53,24 @@ describe("trace prompt source fidelity", () => {
     expect(systemPrompt).toContain("FOREGROUND COLOR LOCK");
   });
 
+  it("keeps Clean Pattern Only torso reconstruction conservative", () => {
+    const prompt = buildNanoBananaPrompt("ERASE_LOGOS");
+    const systemPrompt = buildNanoBananaSystemPrompt("ERASE_LOGOS");
+
+    expect(prompt).toContain("Detect the torso/body-panel boundary");
+    expect(prompt).toContain("Do not pull artwork from the collar or sleeves");
+    expect(prompt).toContain("One visible endpoint is not enough evidence");
+    expect(prompt).toContain("all visible sides of the removed element are the same plain color");
+    expect(prompt).toContain("pattern-edge inventory must equal the visible source inventory");
+    expect(prompt).toContain("Upper-chest audit");
+    expect(prompt).toContain("a source area that is otherwise plain must remain plain");
+    expect(prompt).not.toContain("carry the edge across at the same angle until it meets the next shape");
+    expect(systemPrompt).toContain("CLEAN PATTERN ONLY");
+    expect(systemPrompt).toContain("TORSO ONLY");
+    expect(systemPrompt).toContain("ZERO NEW GEOMETRY");
+    expect(systemPrompt).toContain("One endpoint is never permission");
+  });
+
   it("makes literal source fidelity the system-level priority", () => {
     const prompt = buildNanoBananaSystemPrompt("PRESERVE_LOGOS");
 
