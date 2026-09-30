@@ -4,6 +4,7 @@ import { adminSupabase } from "@/lib/supabase";
 import { getCreditPlan } from "@/lib/paymentPlans";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
+import { verifyPaidAmount } from "@/server/payments/verifyPaidAmount";
 
 export const runtime = "nodejs";
 
@@ -139,6 +140,7 @@ async function handlePaymentPaid(eventData) {
   }
 
   const providerPayment = getProviderPayment(eventData);
+  verifyPaidAmount(localPayment, providerPayment.amount, providerPayment.currency);
   const { data: grantRows, error: grantErr } = await adminSupabase
     .rpc("grant_paymongo_payment_credits", {
       payment_row_id: localPayment.id,
@@ -146,8 +148,8 @@ async function handlePaymentPaid(eventData) {
       provider_checkout_session_id: eventData?.id && String(eventData.id).startsWith("cs_")
         ? eventData.id
         : localPayment.paymongo_checkout_session_id || null,
-      paid_amount: providerPayment.amount || localPayment.amount,
-      paid_currency: providerPayment.currency || localPayment.currency,
+      paid_amount: providerPayment.amount,
+      paid_currency: providerPayment.currency,
     });
 
   if (grantErr) {

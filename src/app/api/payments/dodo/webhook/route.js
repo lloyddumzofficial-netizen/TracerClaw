@@ -4,6 +4,7 @@ import { getDodoClient } from "@/lib/dodo";
 import { getCreditPlan } from "@/lib/paymentPlans";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
+import { verifyPaidAmount } from "@/server/payments/verifyPaidAmount";
 
 export const runtime = "nodejs";
 
@@ -53,8 +54,6 @@ async function markPaymentStatus(payment, status) {
   const update = {
     status,
     dodo_payment_id: payment?.payment_id || null,
-    amount: Number.isFinite(payment?.total_amount) ? payment.total_amount : undefined,
-    currency: payment?.currency || undefined,
   };
 
   await adminSupabase
@@ -84,14 +83,15 @@ async function handlePaymentSucceeded(payment) {
   if (!plan || plan.credits !== localPayment.credits) {
     throw new Error("Local Dodo payment plan is invalid");
   }
+  verifyPaidAmount(localPayment, payment.total_amount, payment.currency);
 
   const { data: grantRows, error: grantErr } = await adminSupabase
     .rpc("grant_dodo_payment_credits", {
       payment_row_id: localPayment.id,
       provider_payment_id: payment.payment_id || null,
       provider_checkout_session_id: payment.checkout_session_id || localPayment.dodo_checkout_session_id || null,
-      paid_amount: Number.isFinite(payment.total_amount) ? payment.total_amount : localPayment.amount,
-      paid_currency: payment.currency || localPayment.currency,
+      paid_amount: payment.total_amount,
+      paid_currency: payment.currency,
     });
 
   if (grantErr) {

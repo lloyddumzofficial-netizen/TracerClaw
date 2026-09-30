@@ -316,16 +316,36 @@ describe("paid AI operation charge boundaries", () => {
     adminSupabase.rpc.mockResolvedValue({ data: [{ status: "insufficient_credits", credits_remaining: 0 }], error: null });
 
     const { POST } = await import("@/app/api/trace-step3/route.js");
-    const res = await POST(jsonRequest({ projectId: "project-1", svgEngine: "precision" }));
+    const res = await POST(jsonRequest({ projectId: "project-1", svgEngine: "precision", requestKey: "precision-request-0001" }));
     const body = await res.json();
 
     expect(res.status).toBe(403);
     expect(body.error).toBe("INSUFFICIENT_CREDITS");
-    expect(adminSupabase.rpc).toHaveBeenCalledWith("adjust_user_credit_with_log", {
+    expect(adminSupabase.rpc).toHaveBeenCalledWith("claim_generation_attempt", {
       target_user_id: "user-1",
-      credit_delta: -1,
-      log_action: "Precision SVG Engine",
+      target_project_id: "project-1",
+      attempt_operation: "precision_svg",
+      attempt_request_key: "precision-request-0001",
+      charge_action: "Precision SVG Engine",
+      charge_amount: 1,
     });
+  });
+
+  it("does not charge or call the provider again while Precision SVG is processing", async () => {
+    process.env.VECTORIZER_API_ID = "vectorizer-id";
+    process.env.VECTORIZER_API_SECRET = "vectorizer-secret";
+    adminSupabase.from = vi.fn(() => mockQuery({
+      data: { id: "project-1", user_id: "user-1", upscaled_image_url: "https://storage.example/projects/project-1/upscaled.png" },
+      error: null,
+    }));
+    adminSupabase.rpc.mockResolvedValue({ data: [{ status: "already_claimed", attempt_id: "attempt-1", attempt_status: "processing", attempt_created_at: new Date().toISOString() }], error: null });
+    const { fetchWithRetry } = await import("@/lib/fetchWithRetry");
+    const { POST } = await import("@/app/api/trace-step3/route.js");
+    const response = await POST(jsonRequest({ projectId: "project-1", svgEngine: "precision", requestKey: "precision-request-0002" }));
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe("GENERATION_IN_PROGRESS");
+    expect(adminSupabase.rpc).toHaveBeenCalledTimes(1);
+    expect(fetchWithRetry).not.toHaveBeenCalled();
   });
 
   it("Upscale returns INSUFFICIENT_CREDITS without queueing a provider job", async () => {

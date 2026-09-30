@@ -34,6 +34,7 @@ changes; the root-level SQL files are historical references.
 24. `024_mockup_studio.sql`
 25. `025_repair_mockup_billing_rpc.sql`
 26. `026_expand_mockup_garment_catalog.sql`
+27. `027_guard_paid_credits_and_precision_refunds.sql`
 
 ## Historical Root Scripts
 

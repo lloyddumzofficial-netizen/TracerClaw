@@ -154,21 +154,24 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       }
 
       const data1 = await safeJson(res1, "Trace step 1 failed");
-      logToConsole("[Step 1.5] Saving extracted image...", "normal");
-
-      const save1 = await fetch("/api/save-asset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({ projectId: project.id, step: 1, fileUrl: data1.fileUrl, mimeType: data1.mimeType }),
-      });
-      const saveData1 = await safeJson(save1, "Failed to save image");
-      if (!save1.ok) throw new Error(saveData1.error || "Failed to save image");
+      let savedExtractUrl = data1.fileUrl;
+      if (!data1.persisted) {
+        logToConsole("[Step 1.5] Saving extracted image...", "normal");
+        const save1 = await fetch("/api/save-asset", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({ projectId: project.id, step: 1, fileUrl: data1.fileUrl, mimeType: data1.mimeType }),
+        });
+        const saveData1 = await safeJson(save1, "Failed to save image");
+        if (!save1.ok) throw new Error(saveData1.error || "Failed to save image");
+        savedExtractUrl = saveData1.url;
+      }
       clearGenerationRequestKey("trace", project.id);
 
-      setProject(prev => ({ ...prev, generated_image_url: saveData1.url }));
+      setProject(prev => ({ ...prev, generated_image_url: savedExtractUrl }));
       hasSavedExtract = true;
       logToConsole("[Success] Image Extracted by DesaynVision™!", "success");
       } else {
@@ -232,18 +235,20 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         "normal"
       );
 
+      const precisionRequestKey = isPrecisionSvg ? getOrCreateGenerationRequestKey("precision-svg", project.id) : undefined;
       const res3 = await fetch("/api/trace-step3", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ projectId: project.id, colors: vectorColors, svgEngine }),
+        body: JSON.stringify({ projectId: project.id, colors: vectorColors, svgEngine, requestKey: precisionRequestKey }),
       });
 
       if (!res3.ok) {
         const errData = await safeJson(res3, res3.status === 504 ? "504 Timeout" : `Server Error ${res3.status}`);
         const msg = getTraceErrorMessage(res3, errData);
+        if (errData?.code === "GENERATION_ATTEMPT_CLOSED" || errData?.refunded) clearGenerationRequestKey("precision-svg", project.id);
         setNodeErrors(prev => ({ ...prev, step3: msg }));
         const stepError = new Error(msg);
         stepError.step3Retryable = Boolean(errData?.retryable);
@@ -251,6 +256,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       }
 
       const data3 = await safeJson(res3, "Trace step 3 failed");
+      if (isPrecisionSvg) clearGenerationRequestKey("precision-svg", project.id);
       setProject(prev => ({
         ...prev,
         svg_url: data3.svg_url,

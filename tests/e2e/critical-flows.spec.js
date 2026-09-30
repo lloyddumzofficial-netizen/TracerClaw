@@ -16,28 +16,34 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+async function acceptPrivacyNotice(page) {
+  const consentButton = page.getByRole("button", { name: "I UNDERSTAND & AGREE" });
+  if (await consentButton.isVisible()) await consentButton.click();
+}
+
 test("home page exposes sign-in and protected project entry points", async ({ page }) => {
   await page.goto("/");
+  await acceptPrivacyNotice(page);
 
-  await expect(page.getByAltText("DesaynClaw Logo")).toBeVisible();
-  await expect(page.getByRole("button", { name: /login/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /upload/i }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /4k/i }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /remove bg/i }).first()).toBeVisible();
+  await expect(page.getByAltText("DesaynClaw Logo").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log In" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Upload Images" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Image Upscale", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "BG Remover" })).toBeVisible();
 });
 
 test("sign-in modal remains reachable from protected actions", async ({ page }) => {
   await page.goto("/");
+  await acceptPrivacyNotice(page);
 
-  await page.getByRole("button", { name: /login/i }).click();
-  await expect(page.getByText(/sign in/i).first()).toBeVisible();
+  await page.getByRole("button", { name: "Log In" }).click();
+  await expect(page.getByRole("heading", { name: "Secure Login" })).toBeVisible();
   await expect(page.locator('input[type="email"]').first()).toBeVisible();
 });
 
-test("upscale tool renders without authentication and protects paid action", async ({ page }) => {
+test("upscale tool redirects signed-out users before exposing paid actions", async ({ page }) => {
   await page.goto("/upscale");
 
-  await expect(page.getByText(/4K Upscale/i).first()).toBeVisible();
-  await expect(page.getByText(/Upload/i).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /4K Upscale/i }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("button", { name: "Log In" })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { deleteFromR2, s3Client, bucketName, uploadToR2 } from '@/lib/cloudflare';
+import { deleteFromR2, deleteR2Prefix, s3Client, bucketName, uploadToR2 } from '@/lib/cloudflare';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
 import {
   DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
@@ -8,14 +8,15 @@ import {
   getAllowedProviderHosts,
 } from '@/lib/ssrf';
 import { logger } from '@/lib/logger';
+import { getRecoverableAttemptOutput } from '@/server/billing/recoverAttemptOutput';
 
 // Ensure this route doesn't run at the Edge since it uses AWS SDK heavily
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const PROJECT_BATCH_LIMIT = 10;
-const MOBILE_SCAN_LIMIT = 250;
-const MOBILE_DELETE_LIMIT = 25;
+const PROJECT_BATCH_LIMIT = 25;
+const MOBILE_SCAN_LIMIT = 500;
+const MOBILE_DELETE_LIMIT = 50;
 const ZIP_BATCH_LIMIT = 25;
 const UPSCALE_RECONCILE_LIMIT = 20;
 const GENERATION_RECONCILE_LIMIT = 20;
@@ -144,7 +145,7 @@ async function reconcileGenerationAttempts(results) {
   const staleBefore = new Date(Date.now() - GENERATION_STALE_MINUTES * 60_000).toISOString();
   const { data: attempts, error: attemptsError } = await adminSupabase
     .from('generation_attempts')
-    .select('id, user_id, project_id, operation')
+    .select('id, user_id, project_id, operation, created_at')
     .eq('status', 'processing')
     .lt('created_at', staleBefore)
     .order('created_at', { ascending: true })
@@ -157,6 +158,23 @@ async function reconcileGenerationAttempts(results) {
 
   for (const attempt of attempts) {
     try {
+      const { data: project, error: projectError } = await adminSupabase
+        .from('projects')
+        .select('generated_image_url, svg_url')
+        .eq('id', attempt.project_id)
+        .eq('user_id', attempt.user_id)
+        .single();
+      if (projectError) throw projectError;
+      const savedOutput = getRecoverableAttemptOutput(attempt, project);
+      if (savedOutput) {
+        const { error: completeError } = await adminSupabase
+          .from('generation_attempts')
+          .update({ status: 'completed', result_url: savedOutput, updated_at: new Date().toISOString(), completed_at: new Date().toISOString() })
+          .eq('id', attempt.id)
+          .eq('status', 'processing');
+        if (completeError) throw completeError;
+        continue;
+      }
       const { data: refundRows, error: refundError } = await adminSupabase
         .rpc('refund_generation_attempt', {
           target_user_id: attempt.user_id,
@@ -270,8 +288,11 @@ export async function GET(request) {
             }
           }
 
-          // Then delete the DB record
-          await adminSupabase.from('projects').delete().eq('id', project.id);
+          // Remove all project outputs, including older generated versions no
+          // longer referenced by the row. A failed delete keeps the row for retry.
+          await deleteR2Prefix(`projects/${project.id}/`, { allowedPrefixes: [`projects/${project.id}/`] });
+          const { error: deleteError } = await adminSupabase.from('projects').delete().eq('id', project.id);
+          if (deleteError) throw deleteError;
           results.projectsDeleted++;
           logger.info("[Cron] Deleted project and files", { projectId: project.id });
         } catch (err) {
@@ -287,13 +308,21 @@ export async function GET(request) {
     // These are temporary files uploaded from mobile that may never get attached to a project.
     try {
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: cursorRow, error: cursorError } = await adminSupabase
+        .from('cleanup_scan_cursors')
+        .select('last_key')
+        .eq('scan_name', 'mobile_sync')
+        .maybeSingle();
+      if (cursorError) throw cursorError;
       const listCmd = new ListObjectsV2Command({
         Bucket: bucketName,
         Prefix: 'users/',
         MaxKeys: MOBILE_SCAN_LIMIT,
+        ...(cursorRow?.last_key ? { StartAfter: cursorRow.last_key } : {}),
       });
       const listResult = await s3Client.send(listCmd);
       results.hasMoreMobileSync = Boolean(listResult.IsTruncated);
+      let lastScannedKey = cursorRow?.last_key || null;
 
       if (listResult.Contents) {
         for (const obj of listResult.Contents) {
@@ -306,8 +335,13 @@ export async function GET(request) {
             results.mobileSyncDeleted++;
             logger.info("[Cron] Purged orphaned mobile sync file", { key: obj.Key });
           }
+          if (obj.Key) lastScannedKey = obj.Key;
         }
       }
+      const { error: saveCursorError } = await adminSupabase
+        .from('cleanup_scan_cursors')
+        .upsert({ scan_name: 'mobile_sync', last_key: results.hasMoreMobileSync ? lastScannedKey : null, updated_at: new Date().toISOString() });
+      if (saveCursorError) throw saveCursorError;
     } catch (mobileErr) {
       // Non-fatal: log but don't fail the whole cron job
       console.warn('[Cron] Mobile sync cleanup failed (non-fatal):', mobileErr.message);

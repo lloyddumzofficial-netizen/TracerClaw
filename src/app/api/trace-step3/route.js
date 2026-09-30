@@ -6,6 +6,8 @@ import { enforceRateLimit } from "@/lib/rateLimit";
 import { DEFAULT_MAX_SVG_BYTES, DEFAULT_MAX_UPSCALED_IMAGE_BYTES, fetchWithSSRFProtection, getAllowedProviderHosts, getAllowedStorageHosts, isOwnedStorageUrl, validateUrlForSSRF } from "@/lib/ssrf";
 import { logger } from "@/lib/logger";
 import { notifyProjectCompleted } from "@/lib/integrations/webhook";
+import { claimGenerationAttempt, completeGenerationAttempt, refundGenerationAttempt, isGenerationAttemptStale, isValidGenerationRequestKey } from "@/server/billing/generationAttempts";
+import { getRecoverableAttemptOutput } from "@/server/billing/recoverAttemptOutput";
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 120s needed: ESRGAN output is large, Recraft vectorize takes time
@@ -43,21 +45,6 @@ async function readProviderError(response, fallbackMessage) {
   }
   const text = await response.text().catch(() => "");
   return text || fallbackMessage;
-}
-
-async function refundPrecisionCredit({ userId }) {
-  const { data: refundRows, error: refundErr } = await adminSupabase
-    .rpc('adjust_user_credit_with_log', {
-      target_user_id: userId,
-      credit_delta: 1,
-      log_action: 'Refund Precision SVG Engine',
-    });
-  const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
-  if (refundErr || refund?.status !== 'adjusted') {
-    logger.error(`[Billing] Precision refund FAILED for user ${userId} — left unrefunded for retry.`, refundErr || refund);
-    return false;
-  }
-  return true;
 }
 
 async function vectorizeWithStandardEngine({ imageBlob, timeoutMs = 50_000 }) {
@@ -128,6 +115,7 @@ async function vectorizeWithPrecisionEngine({ imageBlob, colors, vectorizerApiId
 export async function POST(request) {
   let projectId;
   let userId;
+  let precisionAttemptId = null;
   let precisionCreditDeducted = false;
   try {
     // ─── Auth: verify the caller owns the project ─────────────────────────────
@@ -156,6 +144,9 @@ export async function POST(request) {
     projectId = body.projectId;
     const colors = body.colors || "auto";
     const svgEngine = body.svgEngine === "precision" ? "precision" : "standard";
+    if (svgEngine === "precision" && !isValidGenerationRequestKey(body.requestKey)) {
+      return NextResponse.json({ error: "Refresh the workspace before using Precision SVG.", code: "REQUEST_KEY_REQUIRED" }, { status: 400 });
+    }
 
     if (colors !== "auto") {
       const colorLimit = parseInt(colors, 10);
@@ -182,6 +173,9 @@ export async function POST(request) {
     // Verify caller owns this project
     if (project.user_id !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+    if (project.svg_url) {
+      return NextResponse.json({ success: true, step: 3, svg_url: project.svg_url, replayed: true });
     }
 
     // ==========================================
@@ -241,22 +235,34 @@ export async function POST(request) {
       const vectorizerApiSecret = process.env.VECTORIZER_API_SECRET;
 
       if (vectorizerApiId && vectorizerApiSecret) {
-        const { data: chargeRows, error: chargeErr } = await adminSupabase
-          .rpc('adjust_user_credit_with_log', {
-            target_user_id: user.id,
-            credit_delta: -1,
-            log_action: 'Precision SVG Engine',
-          });
-        if (chargeErr) {
-          console.error("[Step 3] Precision charge RPC failed:", chargeErr);
-          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        const charge = await claimGenerationAttempt({
+          userId: user.id, projectId, operation: 'precision_svg',
+          requestKey: body.requestKey, chargeAction: 'Precision SVG Engine',
+        });
+        if (charge.mode !== 'idempotent') {
+          return NextResponse.json({ error: "Billing verification is unavailable. Please try again.", code: "BILLING_VERIFICATION_FAILED" }, { status: 503 });
         }
-        const charge = Array.isArray(chargeRows) ? chargeRows[0] : chargeRows;
-        if (charge?.status === 'insufficient_credits') {
+        precisionAttemptId = charge.attempt_id;
+        if (charge.status === 'insufficient_credits') {
           return NextResponse.json({ error: "INSUFFICIENT_CREDITS" }, { status: 403 });
         }
-        if (charge?.status !== 'adjusted') {
-          return NextResponse.json({ error: "Billing error. Please try again." }, { status: 500 });
+        if (charge.status === 'already_claimed') {
+          if (charge.attempt_status === 'completed' && charge.result_url) {
+            return NextResponse.json({ success: true, step: 3, svg_url: charge.result_url, replayed: true });
+          }
+          const recoveredUrl = getRecoverableAttemptOutput({ operation: 'precision_svg', attempt_created_at: charge.attempt_created_at }, project);
+          if (charge.attempt_status === 'processing' && recoveredUrl) {
+            await completeGenerationAttempt(precisionAttemptId, recoveredUrl, 'image/svg+xml');
+            return NextResponse.json({ success: true, step: 3, svg_url: recoveredUrl, replayed: true });
+          }
+          if (charge.attempt_status === 'processing' && isGenerationAttemptStale(charge.attempt_created_at)) {
+            const refund = await refundGenerationAttempt({ userId, attemptId: precisionAttemptId, action: 'Refund Precision SVG Engine', errorCode: 'INTERRUPTED_GENERATION' });
+            return NextResponse.json({ error: 'Interrupted Precision SVG was closed. Try again.', code: 'GENERATION_ATTEMPT_CLOSED', refunded: refund?.status === 'refunded' }, { status: 409 });
+          }
+          return NextResponse.json({ error: 'Precision SVG is still processing.', code: 'GENERATION_IN_PROGRESS' }, { status: 409 });
+        }
+        if (charge.status !== 'charged') {
+          return NextResponse.json({ error: 'Billing verification failed.', code: 'BILLING_VERIFICATION_FAILED' }, { status: 503 });
         }
         precisionCreditDeducted = true;
 
@@ -274,9 +280,9 @@ export async function POST(request) {
             userId: user.id,
             error: precisionError?.message,
           });
-          if (precisionCreditDeducted && await refundPrecisionCredit({ userId: user.id })) {
-            precisionCreditDeducted = false;
-          }
+          const refund = await refundGenerationAttempt({ userId, attemptId: precisionAttemptId, action: 'Refund Precision SVG Engine', errorCode: 'PRECISION_PROVIDER_FAILED' });
+          if (refund?.status !== 'refunded' && refund?.status !== 'already_refunded') throw new Error('Precision refund could not be verified');
+          precisionCreditDeducted = false;
           precisionFallback = true;
           precisionWarning = "Precision SVG was temporarily unavailable, so Standard SVG was generated and the extra Precision claw was restored.";
           engineUsed = "standard";
@@ -349,7 +355,7 @@ export async function POST(request) {
     const cfSvgFileName = `projects/${projectId}/vector_${Date.now()}.svg`;
     const finalSvgUrl = await uploadToR2(svgBuffer, cfSvgFileName, "image/svg+xml");
 
-    await adminSupabase
+    const { data: savedProject, error: saveError } = await adminSupabase
       .from('projects')
       .update({
         svg_url: finalSvgUrl,
@@ -358,7 +364,20 @@ export async function POST(request) {
         zip_generated_at: null
       })
       .eq('id', projectId)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .select('id')
+      .single();
+    if (saveError || !savedProject) throw new Error('Failed to save SVG to project');
+    // The output is durable now. If attempt settlement fails, cron will recover
+    // it from the project rather than returning the extra claw.
+    precisionCreditDeducted = false;
+    if (precisionAttemptId) {
+      try {
+        await completeGenerationAttempt(precisionAttemptId, finalSvgUrl, 'image/svg+xml');
+      } catch (settlementError) {
+        logger.error('[Billing] SVG saved; attempt settlement deferred to cleanup', { projectId, message: settlementError?.message });
+      }
+    }
 
     try {
       await notifyProjectCompleted(user.id, {
@@ -389,10 +408,9 @@ export async function POST(request) {
     try {
       // Refund the EXTRA precision claw — that service genuinely was not
       // delivered. Check the result rather than assuming it moved.
-      if (precisionCreditDeducted && userId) {
-        if (await refundPrecisionCredit({ userId })) {
-          precisionCreditDeducted = false;
-        }
+      if (precisionCreditDeducted && userId && precisionAttemptId) {
+        const refund = await refundGenerationAttempt({ userId, attemptId: precisionAttemptId, action: 'Refund Precision SVG Engine', errorCode: 'VECTOR_SAVE_FAILED' });
+        if (refund?.status === 'refunded' || refund?.status === 'already_refunded') precisionCreditDeducted = false;
       }
 
       // Record the failure so /api/refund can distinguish it from a completed run.

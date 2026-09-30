@@ -12,6 +12,7 @@ import {
 } from "@/server/billing";
 import { upscaleLogoDeterministically } from "@/server/logoProcessing";
 import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
+import { getRecoverableAttemptOutput } from "@/server/billing/recoverAttemptOutput";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -169,9 +170,17 @@ export async function POST(request) {
               fileUrl: idempotentClaim.result_url,
               mimeType: idempotentClaim.result_mime_type || "image/png",
               replayed: true,
+              persisted: Boolean(project.generated_image_url === idempotentClaim.result_url),
             });
           }
           if (idempotentClaim.attempt_status === "processing") {
+            const recoveredUrl = getRecoverableAttemptOutput({
+              operation: 'trace', attempt_created_at: idempotentClaim.attempt_created_at,
+            }, project);
+            if (recoveredUrl) {
+              await completeGenerationAttempt(generationAttemptId, recoveredUrl, 'image/png');
+              return NextResponse.json({ success: true, step: 1, fileUrl: recoveredUrl, mimeType: 'image/png', replayed: true, persisted: true });
+            }
             if (isGenerationAttemptStale(idempotentClaim.attempt_created_at)) {
               const refund = await refundGenerationAttempt({
                 userId,
@@ -391,12 +400,28 @@ export async function POST(request) {
         `projects/${projectId}/generated_flat_${Date.now()}.${extractExt}`,
         generatedMimeType
       );
+      const { data: savedProject, error: saveError } = await adminSupabase
+        .from('projects')
+        .update({
+          generated_image_url: extractedUrl,
+          upscaled_image_url: null,
+          svg_url: null,
+          zip_url: null,
+          zip_signature: null,
+          zip_generated_at: null,
+        })
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+        .select('id')
+        .single();
+      if (saveError || !savedProject) throw new Error('Failed to save extracted image to project');
       await completeGenerationAttempt(generationAttemptId, extractedUrl, generatedMimeType);
 
       return NextResponse.json({
         success: true,
         step: 1,
         fileUrl: extractedUrl,
+        persisted: true,
         mimeType: generatedMimeType,
         thinking: geminiThinking,
       });
@@ -644,7 +669,7 @@ export async function POST(request) {
           (current?.generated_image_url && current.generated_image_url !== 'REFUNDED')
         );
 
-        if (usedIdempotentBilling && generationAttemptId) {
+        if (usedIdempotentBilling && generationAttemptId && !hasUsableOutput) {
           const refund = await refundGenerationAttempt({
             userId,
             attemptId: generationAttemptId,
