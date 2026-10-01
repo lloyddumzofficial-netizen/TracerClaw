@@ -223,8 +223,21 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
                       siteKey={turnstileSiteKey}
                       onSuccess={(token) => setTurnstileToken(token)}
                       onError={() => { toast.error("Security check failed."); setTurnstileToken(null); }}
-                      onExpire={() => { setTurnstileToken(null); try { turnstileRef.current?.reset(); } catch {} }}
-                      options={{ theme: "dark" }}
+                      onExpire={() => setTurnstileToken(null)}
+                      onTimeout={() => setTurnstileToken(null)}
+                      onUnsupported={() => {
+                        setTurnstileToken(null);
+                        toast.error("This browser cannot load the security check.");
+                      }}
+                      options={{
+                        theme: "dark",
+                        size: "normal",
+                        appearance: "always",
+                        retry: "auto",
+                        retryInterval: 2000,
+                        refreshExpired: "auto",
+                        refreshTimeout: "auto",
+                      }}
                     />
                   </div>
 

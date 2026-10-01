@@ -5026,14 +5026,19 @@ body {
 .login-form-body { position: relative; z-index: 1; }
 
 .login-form-header {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 360px;
   min-height: 82px;
-  padding: 24px 44px 10px;
+  margin: 0 auto;
+  padding: 24px 0 10px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
 }
 
 .login-form-header img {
+  display: block;
   width: 154px;
   height: auto;
   object-fit: contain;
@@ -5226,7 +5231,7 @@ body {
   .login-split-container { display: block; }
   .login-image-side { display: none; }
   .login-form-side { height: 100%; min-height: 0; }
-  .login-form-header { min-height: 78px; padding: 22px 28px 8px; }
+  .login-form-header { min-height: 78px; padding: 22px 0 8px; }
   .login-form-body { padding: 4px 28px 24px; }
 }
 
@@ -5244,7 +5249,7 @@ body {
   .login-modal-overlay { padding: 10px; }
   .login-modal-panel { width: calc(100vw - 20px); height: min(610px, calc(100dvh - 20px)); max-height: none; border-radius: 12px; }
   .login-form-side { height: 100%; min-height: 0; }
-  .login-form-header { padding-inline: 22px; }
+  .login-form-header { width: calc(100% - 44px); padding-inline: 0; }
   .login-form-body { padding: 8px 22px 28px; }
   .login-close-button { top: 13px; right: 13px; }
   .login-auth-heading h2 { font-size: 29px; }
