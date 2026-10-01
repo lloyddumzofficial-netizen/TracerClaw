@@ -26,18 +26,16 @@ test("home page exposes sign-in and protected project entry points", async ({ pa
   await acceptPrivacyNotice(page);
 
   await expect(page.getByAltText("DesaynClaw Logo").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Log In" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Upload Images" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Image Upscale", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "BG Remover" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start designing" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "See a real example" })).toBeVisible();
 });
 
 test("sign-in modal remains reachable from protected actions", async ({ page }) => {
   await page.goto("/");
   await acceptPrivacyNotice(page);
 
-  await page.getByRole("button", { name: "Log In" }).click();
-  await expect(page.getByRole("heading", { name: "Secure Login" })).toBeVisible();
+  await page.getByRole("button", { name: "Start designing" }).first().click();
+  await expect(page.getByRole("heading", { name: "Welcome back." })).toBeVisible();
   await expect(page.locator('input[type="email"]').first()).toBeVisible();
 });
 
@@ -45,5 +43,5 @@ test("upscale tool redirects signed-out users before exposing paid actions", asy
   await page.goto("/upscale");
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("button", { name: "Log In" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start designing" }).first()).toBeVisible();
 });

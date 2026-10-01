@@ -16,9 +16,13 @@ export default function BeforeAfterSlider({
   rightLabel = "Original Photo",
   description = "Slide to compare the original photo vs. the extracted vector SVG.",
   showCheckerboard = false,
-  pixelateRaster = false
+  pixelateRaster = false,
+  rasterAlt = "Original artwork",
+  vectorAlt = "Extracted artwork",
+  imageLoading = "lazy",
 }) {
   const [sliderPosition, setSliderPosition] = useState(50);
+  const vectorIsRaster = /\.(?:png|jpe?g|webp|gif|avif)(?:[?#]|$)/i.test(vectorUrl || "");
 
   const isHorizontal = layout === 'horizontal' || layout === 'horizontal-reverse';
   const flexDirection = layout === 'horizontal-reverse' ? 'row-reverse' : (layout === 'horizontal' ? 'row' : 'column');
@@ -45,7 +49,10 @@ export default function BeforeAfterSlider({
           {/* Original Image (Background / Right Side) */}
           <img 
             src={rasterUrl} 
-            alt="Original Photo" 
+            alt={rasterAlt}
+            loading={imageLoading}
+            decoding="async"
+            draggable="false"
             style={{ 
               position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit,
               objectPosition: objectPosition,
@@ -62,11 +69,24 @@ export default function BeforeAfterSlider({
             {showCheckerboard && (
               <div className="ba-slider-checkerboard"></div>
             )}
-            <SafeInlineSVG
-              url={vectorUrl} 
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition }} 
-              fallbackToImage
-            />
+            {vectorIsRaster ? (
+              <img
+                src={vectorUrl}
+                alt={vectorAlt}
+                loading={imageLoading}
+                decoding="async"
+                draggable="false"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition }}
+              />
+            ) : (
+              <SafeInlineSVG
+                url={vectorUrl}
+                imageAlt={vectorAlt}
+                imageLoading={imageLoading}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition }}
+                fallbackToImage
+              />
+            )}
           </div>
           <span className="ba-slider-label ba-slider-label-left" style={{ opacity: sliderPosition > 10 ? 1 : 0 }}>{leftLabel}</span>
 
@@ -87,6 +107,7 @@ export default function BeforeAfterSlider({
             min="0" max="100" 
             value={sliderPosition} 
             onChange={e => setSliderPosition(e.target.value)} 
+            aria-label={`Compare ${vectorAlt} with ${rasterAlt}`}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'ew-resize', zIndex: 4, margin: 0 }} 
           />
           

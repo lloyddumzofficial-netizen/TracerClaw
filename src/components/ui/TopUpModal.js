@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Shirt, CheckCircle, Package, Check, ArrowRight, History, Clock } from "lucide-react";
+import { X, Shirt, Package, Check, ArrowRight, History, Clock } from "lucide-react";
 import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
@@ -14,10 +14,10 @@ import "./TopUpModal.css";
 // Derived from CREDIT_PLANS — single source of truth.
 // To change prices, edit src/lib/paymentPlans.js only.
 const PLANS_META = {
-  tingi:   { icon: '/Claws/6f530a46-652b-4f20-8d6c-2a7c9f587698.webp', desc: 'Small package for quick tests.',                          features: ['2 HD Vector Traces', 'Standard Processing'] },
-  basic:   { icon: '/Claws/a15960f4-04ea-43bf-b226-20b9923767a4.webp', desc: 'Great for hobbyists printing occasionally.',               features: ['5 HD Vector Traces', 'Standard Processing'] },
-  starter: { icon: '/Claws/f05da7d4-2019-4c80-9c92-cfc2ba752ef5.webp', desc: 'Ideal for small businesses taking their first steps.',     features: ['10 HD Vector Traces', 'Priority Processing', 'Email support'] },
-  pro:     { icon: '/Claws/e21d7ba5-f8c9-4e19-8653-f9d7db6eeedb.webp', desc: 'Perfect for print shops & growing design studios.',        best: true, features: ['35 HD Vector Traces', 'Highest Priority Queue', 'Unlimited storage', 'Priority support'] },
+  tingi:   { eyebrow: 'Quick test', desc: 'For a small file or a fast production check.', features: ['2 standard traces', '1 precision trace', 'QR Ph checkout'] },
+  basic:   { eyebrow: 'Occasional work', desc: 'A practical pack for one-off client jobs.', features: ['Up to 5 standard traces', 'Up to 2 precision traces', 'QR Ph or card'] },
+  starter: { eyebrow: 'Regular production', desc: 'Built for a steady flow of artwork each week.', features: ['Up to 10 standard traces', 'Up to 5 precision traces', 'QR Ph or card'] },
+  pro:     { eyebrow: 'Best value', desc: 'The lowest cost per Claw for active production teams.', best: true, features: ['Up to 35 standard traces', 'Up to 17 precision traces', 'QR Ph or card'] },
 };
 
 const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
@@ -25,10 +25,11 @@ const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
   label:    plan.label,
   traces:   plan.credits,
   price:    plan.price,
+  eyebrow: PLANS_META[plan.key]?.eyebrow || '',
   desc:     PLANS_META[plan.key]?.desc || '',
   best:     PLANS_META[plan.key]?.best || false,
-  icon:     PLANS_META[plan.key]?.icon || null,
   features: PLANS_META[plan.key]?.features || [],
+  pricePerClaw: Math.round(plan.amount / 100 / plan.credits),
 }));
 
 const PLAN_PRICES = Object.fromEntries(
@@ -286,40 +287,39 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         
         {/* Modal Header */}
         <div className="top-up-modal-header" style={{ background: 'linear-gradient(180deg, #171717, #121212)', borderBottom: '1px solid rgba(255,255,255,0.09)', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+          <div className="top-up-modal-brand" style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
             <Shirt size={17} color="#d8d8d8" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span style={{ fontWeight: '650', fontSize: '14px', color: '#f3f3f3' }}>Get More Traces</span>
               <span style={{ fontWeight: '500', fontSize: '11px', color: '#7d7d7d' }}>Top up claws for production work</span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#777', fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            <span style={{ color: activeTab === 'plans' ? '#d8d8d8' : '#777' }}>Plans</span>
-            <span style={{ width: '18px', height: '1px', background: 'rgba(255,255,255,0.16)' }} />
-            <span style={{ color: step === 2 || step === "qrph" ? '#d8d8d8' : '#777' }}>QR Ph</span>
+          <div className="top-up-modal-tabs" role="tablist" aria-label="Claw account navigation" style={{ display: 'flex', background: '#141414', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '0 24px', flexShrink: 0 }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'plans'}
+              onClick={() => { setActiveTab('plans'); setStep(1); setQrphPayment(null); }}
+              className="top-up-tab-button"
+              style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'plans' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'plans' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Package size={15} /> Plans
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'history'}
+              onClick={() => { setActiveTab('history'); setStep(1); setQrphPayment(null); }}
+              className="top-up-tab-button"
+              style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'history' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'history' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <History size={15} /> Activity
+            </button>
           </div>
-          <button onClick={handleClose} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}><X size={16} /></button>
+          <button className="top-up-modal-close" aria-label="Close top-up plans" onClick={handleClose} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}><X size={16} /></button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="top-up-modal-tabs" style={{ display: 'flex', background: '#141414', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '0 24px', flexShrink: 0 }}>
-          <button 
-            onClick={() => { setActiveTab('plans'); setStep(1); setQrphPayment(null); }} 
-            className="top-up-tab-button"
-            style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'plans' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'plans' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <Package size={16} /> Top-Up Plans
-          </button>
-          <button 
-            onClick={() => { setActiveTab('history'); setStep(1); setQrphPayment(null); }} 
-            className="top-up-tab-button"
-            style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'history' ? '2px solid #FFD700' : '2px solid transparent', color: activeTab === 'history' ? '#FFD700' : '#888', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <History size={16} /> Claw Logs
-          </button>
-        </div>
-
-        <div className="top-up-modal-body" style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
+        <div className={`top-up-modal-body${activeTab === 'plans' && step === 1 ? ' top-up-modal-body-plans' : ''}`} style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
           {activeTab === 'history' ? (
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>
@@ -354,38 +354,50 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
             </div>
           ) : step === 1 ? (
             <>
-              <div className="top-up-pricing-hero" style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div className="top-up-pricing-hero">
                 {!user && (
-                  <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid #FFD700', color: '#FFD700', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
+                  <div className="top-up-login-note">
                     Welcome. You need claws to trace images. Please select a plan and log in.
                   </div>
                 )}
-                <div className="top-up-pricing-kicker" style={{ fontSize: '11px', fontWeight: '650', color: '#8f8f8f', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px' }}>Simple, scalable pricing</div>
+                <div className="top-up-pricing-kicker">Pay as you go</div>
                 <div className="top-up-pricing-title-row">
-                  <h2 style={{ margin: '0 0 8px', fontSize: '28px', fontWeight: '700', color: '#fff' }}>
-                    Plans that fit your <span>production needs</span>
-                  </h2>
-                  <p style={{ margin: 0, color: '#aaa', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>Simple claw packages for vector tracing, background removal, image upscale, and print-ready handoff.</p>
+                  <h2>Production pricing.<br /><span>No subscription.</span></h2>
+                  <p>Buy only the Claws you need. Use them across DesaynClaw production tools without a monthly commitment.</p>
                 </div>
               </div>
 
-              <div className="top-up-plans-grid top-up-pricing-table" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                {PLANS.map(p => (
-                  <div key={p.key} className={`top-up-plan-card${p.best ? ' top-up-plan-card-featured' : ''}`} style={{ background: p.best ? '#333' : '#2a2a2a', border: `1px solid ${p.best ? '#FFD700' : '#444'}`, padding: '32px 24px', display: 'flex', flexDirection: 'column', position: 'relative', borderRadius: '6px' }}>
-                    <div className="top-up-plan-head" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {p.icon && <Image src={p.icon} alt={p.label} width={32} height={32} style={{ objectFit: 'contain' }} />}
-                        <div style={{ fontSize: '16px', fontWeight: '500', color: '#fff' }}>{p.label}</div>
-                      </div>
-                      {p.best && <div className="top-up-plan-badge" style={{ background: '#FFD700', color: '#000', fontSize: '11px', fontWeight: '800', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '4px', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> Most popular</div>}
+              <div className="top-up-plans-grid top-up-pricing-table">
+                {PLANS.map((p, index) => (
+                  <article key={p.key} className={`top-up-plan-card${p.best ? ' top-up-plan-card-featured' : ''}`}>
+                    <div className="top-up-plan-topline">
+                      <span>{String(index + 1).padStart(2, '0')}</span>
+                      <small>{p.eyebrow}</small>
                     </div>
 
-                    <div className="top-up-plan-price" style={{ marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                      <span style={{ fontSize: '36px', fontWeight: '700', color: '#fff', letterSpacing: '-1px' }}>{p.price}</span>
-                      <span style={{ fontSize: '12px', color: '#888' }}>/ {p.traces} claws</span>
+                    <div className="top-up-plan-name">
+                      <h3>{p.label}</h3>
+                      {p.best && <span>Most efficient</span>}
                     </div>
-                    
-                    <p className="top-up-plan-desc" style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.5', margin: '0 0 24px', minHeight: '40px' }}>{p.desc}</p>
+
+                    <div className="top-up-plan-price">
+                      <strong>{p.price}</strong>
+                      <span>one-time</span>
+                    </div>
+
+                    <div className="top-up-plan-claws">
+                      <strong>{p.traces}</strong>
+                      <span>Claws</span>
+                      <small>₱{p.pricePerClaw} each</small>
+                    </div>
+
+                    <p className="top-up-plan-desc">{p.desc}</p>
+
+                    <ul className="top-up-plan-features">
+                      {p.features.map((feat) => (
+                        <li className="top-up-plan-feature" key={feat}><Check size={14} aria-hidden="true" /> {feat}</li>
+                      ))}
+                    </ul>
 
                     <button 
                       onClick={() => { 
@@ -397,40 +409,25 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                         setStep(2); 
                       }}
                       className={`top-up-plan-button${p.best ? ' top-up-plan-button-featured' : ''}`}
-                      style={{ width: '100%', padding: '12px 8px', background: p.best ? '#FFD700' : 'transparent', color: p.best ? '#000' : '#d5d5d5', border: p.best ? 'none' : '1px solid #555', fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginBottom: '32px', borderRadius: '4px', whiteSpace: 'nowrap' }} 
-                      onMouseOver={e => { e.target.style.opacity = '0.9'; if (!p.best) { e.target.style.background = '#3a3a3a'; e.target.style.borderColor = '#777'; } }} 
-                      onMouseOut={e => { e.target.style.opacity = '1'; if (!p.best) { e.target.style.background = 'transparent'; e.target.style.borderColor = '#555'; } }}
                     >
                       {user ? 'Select Plan' : 'Log in to Purchase'} <ArrowRight size={14} />
                     </button>
-
-                    <div className="top-up-plan-divider" style={{ borderTop: '1px solid #444', margin: '0 -24px 24px' }}></div>
-
-                    <div className="top-up-plan-included-title" style={{ fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '16px' }}>What's Included:</div>
-                    <div className="top-up-plan-features" style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-                      {p.features.map((feat, i) => (
-                        <div className="top-up-plan-feature" key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#d5d5d5', fontSize: '13px' }}>
-                          <Check size={14} color={p.best ? "#FFD700" : "#888"} strokeWidth={3} />
-                          {feat}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             </>
           ) : step === 2 ? (
             <>
               <div className="top-up-payment-hero" style={{ textAlign: 'center', marginBottom: '28px' }}>
-                <div className="top-up-payment-eyebrow">Secure checkout</div>
-                <h2>Choose a payment method</h2>
+                <div className="top-up-payment-eyebrow">Checkout · Step 2 of 2</div>
+                <h2>How would you like to pay?</h2>
                 <p>Pay once and your Claws are credited automatically after confirmation.</p>
                 <div className="top-up-payment-plan-summary">
-                  <span className="top-up-payment-plan-name">{CREDIT_PLANS[form.plan]?.label} package</span>
+                  <span className="top-up-payment-plan-name">Selected · {CREDIT_PLANS[form.plan]?.label}</span>
                   <span className="top-up-payment-plan-values">
                     <strong className="top-up-payment-plan-value">{CREDIT_PLANS[form.plan]?.credits} Claws</strong>
                     <span className="top-up-payment-plan-dot" aria-hidden="true">·</span>
-                    <strong className="top-up-payment-plan-value">{PLAN_PRICES[form.plan]}</strong>
+                    <strong className="top-up-payment-plan-value">{PLAN_PRICES[form.plan]} total</strong>
                   </span>
                 </div>
               </div>
@@ -445,10 +442,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 >
                   <span className="top-up-payment-option-head">
                     <PaymentBrandStrip />
-                    <span className="top-up-payment-option-tag">Local e-wallet</span>
+                    <span className="top-up-payment-option-tag">Recommended</span>
                   </span>
                   <span className="top-up-payment-copy">
-                    <span className="top-up-payment-title">QR Ph</span>
+                    <span className="top-up-payment-option-index">01 · Local e-wallet</span>
+                    <span className="top-up-payment-title">Pay with QR Ph</span>
                     <span className="top-up-payment-desc">
                       Generate a secure QR code, then scan it using GCash, Maya, or any QR Ph-enabled app.
                     </span>
@@ -473,7 +471,8 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     <span className="top-up-payment-option-tag">Cards worldwide</span>
                   </span>
                   <span className="top-up-payment-copy">
-                    <span className="top-up-payment-title">Dodo Payments</span>
+                    <span className="top-up-payment-option-index">02 · Card checkout</span>
+                    <span className="top-up-payment-title">Pay by card</span>
                     <span className="top-up-payment-desc">
                       {form.plan === 'tingi'
                         ? 'Card checkout starts at Basic. Use QR Ph for the Mini package.'
@@ -489,7 +488,9 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 </button>
               </div>
 
-              <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingPayMongo || isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: (isStartingPayMongo || isStartingDodo) ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>Back</button>
+              <div className="top-up-payment-nav">
+                <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingPayMongo || isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: (isStartingPayMongo || isStartingDodo) ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>← Back to plans</button>
+              </div>
             </>
           ) : step === "qrph" ? (
             <div className="top-up-qrph-screen">

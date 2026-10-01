@@ -1,165 +1,293 @@
 /* Shared Top-Up presentation. Keep this with the component so the homepage and
    workspace entry points render the same dark production UI. */
 .modal-overlay .top-up-modal {
-  width: min(960px, calc(100vw - 48px)) !important;
-  max-width: min(1120px, calc(100vw - 48px)) !important;
-  background: #101010 !important;
+  --top-up-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.32'/%3E%3C/svg%3E");
+  width: min(1200px, calc(100vw - 48px)) !important;
+  max-width: min(1200px, calc(100vw - 48px)) !important;
+  background: #08090a !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
-  border-radius: 10px !important;
+  border-radius: 14px !important;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.86), inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
 }
 
 .top-up-modal-header,
-.top-up-modal-tabs,
 .top-up-modal-body { background: #101010 !important; }
-.top-up-modal-header,
-.top-up-modal-tabs { border-color: rgba(255, 255, 255, 0.11) !important; }
-.top-up-modal-header { min-height: 54px !important; padding: 12px 24px !important; }
-.top-up-modal-header button { border-radius: 8px !important; }
-.top-up-modal-header > div:first-child { gap: 8px !important; }
-.top-up-modal-header > div:first-child span { font-size: 14px !important; }
-.top-up-modal-header > div:nth-child(2) > div { width: 22px !important; height: 22px !important; font-size: 10px !important; }
-.top-up-modal-tabs { padding: 0 24px !important; }
-.top-up-tab-button { min-height: 50px !important; padding: 0 20px !important; }
-.top-up-modal-body { padding: 24px !important; }
+.top-up-modal-header {
+  min-height: 68px !important;
+  padding: 10px 16px 10px 20px !important;
+  display: grid !important;
+  grid-template-columns: minmax(190px, 1fr) auto minmax(190px, 1fr) !important;
+  align-items: center !important;
+  gap: 18px !important;
+  border-color: rgba(255, 255, 255, .1) !important;
+  background-color: #0d0e0f !important;
+  background-image: var(--top-up-grain), radial-gradient(circle at 12% -80%, rgba(255, 213, 0, .065), transparent 42%) !important;
+  background-size: 180px 180px, auto !important;
+  background-blend-mode: soft-light, normal !important;
+}
+.top-up-modal-brand { gap: 10px !important; min-width: 0 !important; }
+.top-up-modal-brand > svg { color: #d4d4cf !important; }
+.top-up-modal-brand > div > span:first-child { font-size: 13px !important; letter-spacing: -.01em !important; }
+.top-up-modal-brand > div > span:last-child { color: #71726f !important; font-size: 10px !important; }
+.top-up-modal-tabs {
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  border: 1px solid rgba(255, 255, 255, .105) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, .035) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025) !important;
+}
+.top-up-tab-button {
+  min-height: 34px !important;
+  padding: 0 15px !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  color: #7d7e7a !important;
+  font-size: 11px !important;
+  font-weight: 680 !important;
+  white-space: nowrap !important;
+}
+.top-up-tab-button[aria-selected="true"] {
+  background: #232425 !important;
+  color: #eeeDE8 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 4px 14px rgba(0, 0, 0, .24) !important;
+}
+.top-up-tab-button[aria-selected="true"] svg { color: #dfc532 !important; }
+.top-up-tab-button:hover { color: #e6e5e0 !important; }
+.top-up-modal-close {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  justify-self: end !important;
+  border: 1px solid rgba(255, 255, 255, .09) !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, .025) !important;
+  transition: color .18s ease, border-color .18s ease, background-color .18s ease !important;
+}
+.top-up-modal-close:hover { color: #f0efe9 !important; border-color: rgba(255, 255, 255, .2) !important; background: rgba(255, 255, 255, .07) !important; }
+.top-up-modal-body {
+  padding: 24px !important;
+  background-color: #08090a !important;
+  background-image:
+    var(--top-up-grain),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px) !important;
+  background-size: 180px 180px, 64px 64px, 64px 64px !important;
+  background-blend-mode: soft-light, normal, normal !important;
+}
+.top-up-modal-body-plans { overflow-y: hidden !important; }
 
 .top-up-pricing-hero {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr) !important;
-  align-items: end !important;
-  gap: 22px 42px !important;
-  text-align: left !important;
-  padding: 24px 40px 34px !important;
+  position: relative !important;
+  padding: 20px 24px 22px !important;
   margin: -24px -24px 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
-  background: radial-gradient(circle at 20% 0%, rgba(255, 215, 0, 0.07), transparent 24%), linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)), #070707 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  background: radial-gradient(ellipse at 50% 115%, rgba(255, 213, 0, .105), transparent 58%) !important;
 }
-.top-up-pricing-hero > div:first-child:not(.top-up-pricing-title-row) { grid-column: 1 / -1 !important; }
+.top-up-login-note {
+  width: min(100%, 680px) !important;
+  margin: 0 auto 22px !important;
+  padding: 10px 14px !important;
+  border: 1px solid rgba(255, 215, 0, .25) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 215, 0, .045) !important;
+  color: #d9c34d !important;
+  font-size: 12px !important;
+}
 .top-up-pricing-kicker {
-  width: fit-content !important;
-  border-color: rgba(255, 215, 0, 0.36) !important;
-  background: rgba(255, 215, 0, 0.045) !important;
-  color: #ffd700 !important;
-  border-radius: 999px !important;
-  padding: 5px 11px !important;
-  font-size: 10px !important;
-  font-weight: 650 !important;
-  letter-spacing: 0.07em !important;
   margin: 0 0 8px !important;
+  color: #d7c04b !important;
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  letter-spacing: .16em !important;
+  text-transform: uppercase !important;
 }
-.top-up-pricing-title-row { display: contents !important; }
 .top-up-pricing-title-row h2 {
-  max-width: 610px !important;
   margin: 0 !important;
-  color: #f7f7f7 !important;
-  font-size: clamp(42px, 5vw, 64px) !important;
-  line-height: 0.98 !important;
-  font-weight: 500 !important;
-  letter-spacing: -0.035em !important;
+  color: #f4f3ef !important;
+  font-size: clamp(32px, 3.5vw, 46px) !important;
+  line-height: .98 !important;
+  font-weight: 560 !important;
+  letter-spacing: -.05em !important;
 }
-.top-up-pricing-title-row h2 span { color: rgba(255, 255, 255, 0.46) !important; font-weight: 400 !important; }
-.top-up-pricing-title-row p {
-  max-width: 330px !important;
-  margin: 0 !important;
-  color: rgba(255, 255, 255, 0.66) !important;
-  font-size: 15px !important;
-  line-height: 1.55 !important;
+.top-up-pricing-title-row h2 span {
+  color: #f4f3ef !important;
+  font-family: var(--font-display-serif, Georgia, 'Times New Roman', serif) !important;
+  font-style: italic !important;
   font-weight: 400 !important;
+  letter-spacing: -.045em !important;
+}
+.top-up-pricing-title-row p {
+  max-width: 540px !important;
+  margin: 10px auto 0 !important;
+  color: rgba(255, 255, 255, .57) !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
 }
 
 .top-up-pricing-table {
+  display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 0 !important;
-  margin: 0 -24px -24px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+  gap: 12px !important;
+  margin: 8px 0 0 !important;
 }
 .top-up-pricing-table .top-up-plan-card {
-  min-height: 500px !important;
-  padding: 0 !important;
-  border-width: 0 1px 0 0 !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  border-radius: 0 !important;
-  background: #080808 !important;
+  min-height: 366px !important;
+  padding: 14px 16px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, .105) !important;
+  border-radius: 10px !important;
+  background: rgba(12, 13, 14, .9) !important;
   box-shadow: none !important;
 }
-.top-up-pricing-table .top-up-plan-card:last-child { border-right: 0 !important; }
 .top-up-pricing-table .top-up-plan-card-featured {
-  background: linear-gradient(180deg, rgba(255, 215, 0, 0.075), rgba(255, 215, 0, 0.018)), #141414 !important;
-  border-left: 1px solid rgba(255, 215, 0, 0.7) !important;
-  border-right: 1px solid rgba(255, 215, 0, 0.7) !important;
-  outline: 1px solid rgba(255, 215, 0, 0.7) !important;
-  outline-offset: -1px !important;
+  border-color: rgba(222, 196, 63, .56) !important;
+  background: linear-gradient(180deg, rgba(218, 191, 56, .055), transparent 38%), rgba(13, 14, 15, .96) !important;
+  box-shadow: inset 0 2px 0 rgba(223, 196, 57, .82) !important;
 }
-.top-up-pricing-table .top-up-plan-head {
-  min-height: 104px !important;
-  align-content: flex-start !important;
-  padding: 28px 24px 22px !important;
-  margin: 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+.top-up-plan-topline {
+  padding-bottom: 11px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .075) !important;
+  color: #777a78 !important;
+  font: 650 8px/1 var(--font-geist-mono, monospace) !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
 }
-.top-up-pricing-table .top-up-plan-head img { width: 24px !important; height: 24px !important; opacity: 0.92 !important; }
-.top-up-pricing-table .top-up-plan-head div[style*="font-size: 16px"] { font-size: 18px !important; line-height: 1.2 !important; font-weight: 650 !important; letter-spacing: 0 !important; text-transform: uppercase !important; }
-.top-up-pricing-table .top-up-plan-badge { position: static !important; min-height: 20px !important; border-radius: 3px !important; background: rgba(255, 215, 0, 0.94) !important; color: #050505 !important; font-size: 9px !important; letter-spacing: 0.02em !important; box-shadow: none !important; }
-.top-up-pricing-table .top-up-plan-price,
-.top-up-pricing-table .top-up-plan-desc,
-.top-up-pricing-table .top-up-plan-button,
-.top-up-pricing-table .top-up-plan-included-title,
-.top-up-pricing-table .top-up-plan-features { margin-left: 24px !important; margin-right: 24px !important; }
-.top-up-pricing-table .top-up-plan-price { margin-top: 28px !important; margin-bottom: 18px !important; }
-.top-up-pricing-table .top-up-plan-price span:first-child { font-size: clamp(34px, 3.4vw, 44px) !important; line-height: 1 !important; font-weight: 600 !important; letter-spacing: -0.035em !important; }
-.top-up-pricing-table .top-up-plan-price span:last-child { color: rgba(255, 255, 255, 0.58) !important; font-size: 13px !important; }
-.top-up-pricing-table .top-up-plan-desc { min-height: 44px !important; color: rgba(255, 255, 255, 0.68) !important; font-size: 13.5px !important; line-height: 1.5 !important; margin-bottom: 28px !important; }
+.top-up-plan-topline small { color: #94958f !important; font: inherit !important; }
+.top-up-plan-card-featured .top-up-plan-topline small { color: #d9c34d !important; }
+.top-up-plan-name {
+  min-height: 32px !important;
+  margin-top: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+.top-up-plan-name h3 { margin: 0 !important; color: #efeeea !important; font-size: 14px !important; font-weight: 680 !important; }
+.top-up-plan-name span {
+  padding: 5px 8px !important;
+  border: 1px solid rgba(218, 192, 57, .22) !important;
+  border-radius: 999px !important;
+  color: #d6c04a !important;
+  font-size: 7px !important;
+  font-weight: 750 !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+.top-up-plan-price { margin-top: 10px !important; display: flex !important; align-items: baseline !important; gap: 7px !important; }
+.top-up-plan-price strong { color: #f1f0ec !important; font-size: clamp(30px, 2.75vw, 38px) !important; line-height: 1 !important; font-weight: 580 !important; letter-spacing: -.05em !important; }
+.top-up-plan-price span { color: #70716e !important; font-size: 8px !important; }
+.top-up-plan-claws {
+  margin-top: 12px !important;
+  padding: 9px 0 !important;
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  border-top: 1px solid rgba(255, 255, 255, .07) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .07) !important;
+}
+.top-up-plan-claws strong { color: #deddd8 !important; font-size: 16px !important; }
+.top-up-plan-claws span { color: #a5a5a2 !important; font-size: 10px !important; font-weight: 650 !important; }
+.top-up-plan-claws small { color: #696a68 !important; font-size: 8px !important; }
+.top-up-pricing-table .top-up-plan-desc { min-height: 42px !important; margin: 11px 0 8px !important; color: #969793 !important; font-size: 10px !important; line-height: 1.45 !important; }
+.top-up-pricing-table .top-up-plan-features {
+  min-height: 58px !important;
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  list-style: none !important;
+}
+.top-up-pricing-table .top-up-plan-feature { display: flex !important; align-items: center !important; gap: 7px !important; color: #b5b5b1 !important; font-size: 9px !important; line-height: 1.35 !important; }
+.top-up-pricing-table .top-up-plan-feature svg { flex: 0 0 auto !important; color: #8f908d !important; }
+.top-up-pricing-table .top-up-plan-card-featured .top-up-plan-feature svg { color: #cbb65f !important; }
 .top-up-pricing-table .top-up-plan-button {
-  width: calc(100% - 48px) !important;
-  min-height: 36px !important;
-  margin-bottom: 26px !important;
-  border-radius: 4px !important;
-  background: #f4f4f4 !important;
-  border: 1px solid rgba(255, 255, 255, 0.9) !important;
-  color: #050505 !important;
-  font-size: 12px !important;
+  width: 100% !important;
+  min-height: 40px !important;
+  margin: auto 0 0 !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+  border-radius: 10px !important;
+  background: #18191a !important;
+  color: #e8e7e3 !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: transform .18s ease, border-color .18s ease, background-color .18s ease !important;
 }
-.top-up-pricing-table .top-up-plan-button:hover { background: #fff !important; border-color: #fff !important; color: #050505 !important; }
-.top-up-pricing-table .top-up-plan-button-featured { background: #ffd700 !important; border-color: #ffd700 !important; color: #050505 !important; }
-.top-up-pricing-table .top-up-plan-button-featured:hover { background: #ffdf2a !important; border-color: #ffdf2a !important; }
-.top-up-pricing-table .top-up-plan-divider { margin: 0 0 24px !important; border-color: rgba(255, 255, 255, 0.14) !important; }
-.top-up-pricing-table .top-up-plan-included-title { color: rgba(255, 255, 255, 0.82) !important; font-size: 11px !important; line-height: 1.2 !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.055em !important; }
-.top-up-pricing-table .top-up-plan-features { gap: 14px !important; padding-bottom: 28px !important; }
-.top-up-pricing-table .top-up-plan-feature { align-items: flex-start !important; gap: 11px !important; color: rgba(255, 255, 255, 0.86) !important; font-size: 13px !important; line-height: 1.35 !important; }
-.top-up-pricing-table .top-up-plan-feature svg { flex: 0 0 auto !important; margin-top: 2px !important; color: rgba(255, 255, 255, 0.64) !important; stroke: currentColor !important; }
-.top-up-pricing-table .top-up-plan-card-featured .top-up-plan-feature svg { color: #ffd700 !important; }
+.top-up-pricing-table .top-up-plan-button:hover { transform: translateY(-1px) !important; border-color: rgba(255, 255, 255, .34) !important; background: #202122 !important; }
+.top-up-pricing-table .top-up-plan-button-featured { border-color: #e2e0d9 !important; background: #e2e0d9 !important; color: #111 !important; }
+.top-up-pricing-table .top-up-plan-button-featured:hover { background: #fff !important; }
 
 /* Payment and checkout steps use the same quiet black/yellow system. */
 .top-up-payment-hero {
   padding: 32px 24px 28px !important;
   margin: -24px -24px 0 !important;
+  margin-bottom: 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
-  background: #080808 !important;
+  background-color: #08090a !important;
+  background-image:
+    var(--top-up-grain),
+    linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 118%, rgba(255, 213, 0, .12), transparent 58%) !important;
+  background-size: 180px 180px, 64px 64px, 64px 64px, auto !important;
+  background-blend-mode: soft-light, normal, normal, normal !important;
 }
 .top-up-payment-eyebrow {
   margin-bottom: 10px !important;
-  color: rgba(255, 255, 255, 0.46) !important;
+  color: #d6bf43 !important;
   font-size: 10px !important;
   line-height: 1 !important;
   font-weight: 750 !important;
   letter-spacing: 0.13em !important;
   text-transform: uppercase !important;
 }
-.top-up-payment-hero h2 { margin: 0 0 9px !important; color: #f2f2f2 !important; font-size: clamp(30px, 3.3vw, 40px) !important; line-height: 1.02 !important; font-weight: 560 !important; letter-spacing: -0.034em !important; }
+.top-up-payment-hero h2 { margin: 0 0 9px !important; color: #f2f2ee !important; font-size: clamp(32px, 3.5vw, 42px) !important; line-height: 1.02 !important; font-weight: 590 !important; letter-spacing: -0.042em !important; }
 .top-up-payment-hero p { max-width: 520px !important; margin: 0 auto !important; color: rgba(255, 255, 255, 0.58) !important; font-size: 13px !important; line-height: 1.5 !important; }
 .top-up-payment-plan-summary {
+  width: fit-content !important;
   margin: 20px auto 0 !important;
+  padding: 8px 10px !important;
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
+  border: 1px solid rgba(255, 255, 255, .11) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, .035) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025) !important;
   line-height: 1 !important;
 }
 .top-up-payment-plan-name {
-  color: rgba(255, 255, 255, 0.46) !important;
-  font-size: 10px !important;
+  padding-right: 10px !important;
+  border-right: 1px solid rgba(255, 255, 255, .11) !important;
+  color: #cfb942 !important;
+  font-size: 9px !important;
   font-weight: 750 !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
@@ -168,16 +296,16 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 12px !important;
+  gap: 8px !important;
 }
 .top-up-payment-plan-value {
-  color: #fff !important;
-  font-size: 24px !important;
+  color: #e7e6e1 !important;
+  font-size: 13px !important;
   line-height: 1 !important;
   font-weight: 650 !important;
   letter-spacing: -0.025em !important;
 }
-.top-up-payment-plan-dot { color: rgba(255, 255, 255, 0.25) !important; font-size: 20px !important; }
+.top-up-payment-plan-dot { color: rgba(255, 255, 255, 0.25) !important; font-size: 13px !important; }
 .top-up-payment-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -186,11 +314,14 @@
   margin: 18px auto 22px !important;
 }
 .top-up-payment-option {
-  min-height: 292px !important;
-  padding: 24px !important;
+  min-height: 260px !important;
+  padding: 22px !important;
   border: 1px solid rgba(255, 255, 255, 0.13) !important;
-  border-radius: 4px !important;
-  background: #0a0a0a !important;
+  border-radius: 10px !important;
+  background-color: rgba(10, 11, 12, .94) !important;
+  background-image: var(--top-up-grain), linear-gradient(145deg, rgba(255, 255, 255, .018), transparent 45%) !important;
+  background-size: 180px 180px, auto !important;
+  background-blend-mode: soft-light, normal !important;
   box-shadow: none !important;
   display: flex !important;
   flex-direction: column !important;
@@ -199,21 +330,28 @@
   text-align: left !important;
   overflow: hidden !important;
 }
-.top-up-payment-option:hover { border-color: rgba(255, 255, 255, 0.28) !important; background: #0e0e0e !important; transform: translateY(-1px) !important; }
+.top-up-payment-option:hover { border-color: rgba(255, 255, 255, 0.3) !important; background-color: #0e0f10 !important; transform: translateY(-2px) !important; box-shadow: 0 14px 34px rgba(0, 0, 0, .22) !important; }
 .top-up-payment-option-featured {
   border-color: rgba(255, 215, 0, 0.48) !important;
-  background: linear-gradient(180deg, rgba(255, 215, 0, 0.035), transparent 54%), #0a0a0a !important;
+  background-color: #0a0b0c !important;
+  background-image: var(--top-up-grain), linear-gradient(180deg, rgba(255, 215, 0, .065), transparent 58%) !important;
+  background-size: 180px 180px, auto !important;
   box-shadow: inset 0 2px 0 rgba(255, 215, 0, 0.88) !important;
 }
-.top-up-payment-option-head { min-height: 52px !important; padding-bottom: 18px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 16px !important; border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important; }
+.top-up-payment-option-head { min-height: 46px !important; padding-bottom: 14px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 16px !important; border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important; }
 .top-up-payment-option-head > .top-up-payment-logo-tile { width: 172px !important; height: 42px !important; }
 .top-up-payment-option-tag { color: rgba(255, 255, 255, 0.42) !important; font-size: 9px !important; line-height: 1 !important; font-weight: 750 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; white-space: nowrap !important; }
-.top-up-payment-copy { padding: 23px 0 22px !important; display: flex !important; flex: 1 !important; flex-direction: column !important; gap: 9px !important; }
+.top-up-payment-option-featured .top-up-payment-option-tag { padding: 5px 8px !important; border: 1px solid rgba(218, 192, 57, .28) !important; border-radius: 999px !important; color: #d5bf47 !important; background: rgba(218, 192, 57, .055) !important; }
+.top-up-payment-copy { padding: 18px 0 !important; display: flex !important; flex: 1 !important; flex-direction: column !important; gap: 8px !important; }
+.top-up-payment-option-index { color: rgba(255, 255, 255, .38) !important; font-size: 8px !important; font-weight: 720 !important; letter-spacing: .12em !important; text-transform: uppercase !important; }
 .top-up-payment-option .top-up-payment-title { font-size: 22px !important; line-height: 1.1 !important; font-weight: 620 !important; letter-spacing: -0.025em !important; color: rgba(255, 255, 255, 0.94) !important; }
 .top-up-payment-option .top-up-payment-desc { max-width: 340px !important; color: rgba(255, 255, 255, 0.58) !important; font-size: 13px !important; line-height: 1.55 !important; font-weight: 440 !important; }
 .top-up-payment-option-foot { min-height: 40px !important; padding-top: 16px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important; border-top: 1px solid rgba(255, 255, 255, 0.09) !important; color: rgba(255, 255, 255, 0.42) !important; font-size: 10px !important; line-height: 1.35 !important; }
 .top-up-payment-option .top-up-payment-status { color: rgba(255, 255, 255, 0.9) !important; background: transparent !important; min-height: 0 !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 7px !important; font-size: 10px !important; font-weight: 750 !important; line-height: 1 !important; letter-spacing: 0.07em !important; text-transform: uppercase !important; white-space: nowrap !important; }
+.top-up-payment-option-featured .top-up-payment-status { padding: 8px 11px !important; border-radius: 999px !important; background: #dfddd5 !important; color: #111 !important; }
 .top-up-payment-option .top-up-payment-status svg { width: 13px !important; height: 13px !important; color: currentColor !important; stroke: currentColor !important; }
+.top-up-payment-nav { width: min(100%, 900px) !important; margin: 0 auto !important; display: flex !important; justify-content: flex-start !important; }
+.top-up-payment-nav .top-up-secondary-button { min-height: 40px !important; padding: 0 16px !important; border-radius: 999px !important; font-size: 11px !important; }
 .top-up-payment-brand-strip {
   display: flex !important;
   align-items: center !important;
@@ -236,7 +374,8 @@
 .top-up-qrph-screen {
   max-width: 840px !important;
   margin: 0 auto !important;
-  padding: 0 0 8px !important;
+  padding: 4px 0 12px !important;
+  background: radial-gradient(ellipse at 50% 45%, rgba(255, 213, 0, .075), transparent 64%) !important;
 }
 .top-up-qrph-header {
   margin: 0 auto 20px !important;
@@ -289,9 +428,12 @@
   gap: 0 !important;
   align-items: stretch !important;
   overflow: hidden !important;
-  background: #0b0b0b !important;
+  background-color: #0b0c0d !important;
+  background-image: var(--top-up-grain), linear-gradient(145deg, rgba(255, 255, 255, .018), transparent 48%) !important;
+  background-size: 180px 180px, auto !important;
+  background-blend-mode: soft-light, normal !important;
   border: 1px solid rgba(255, 255, 255, 0.13) !important;
-  border-radius: 4px !important;
+  border-radius: 10px !important;
 }
 .top-up-qrph-code-card {
   min-height: 356px !important;
@@ -324,7 +466,10 @@
   flex-direction: column !important;
   justify-content: space-between !important;
   gap: 22px !important;
-  background: #0d0d0d !important;
+  background-color: rgba(13, 14, 15, .94) !important;
+  background-image: var(--top-up-grain), radial-gradient(circle at 100% 0%, rgba(255, 213, 0, .045), transparent 44%) !important;
+  background-size: 180px 180px, auto !important;
+  background-blend-mode: soft-light, normal !important;
   border-left: 1px solid rgba(255, 255, 255, 0.13) !important;
 }
 .top-up-qrph-details-head {
@@ -451,17 +596,19 @@
 .top-up-secondary-button:hover { background: rgba(255, 255, 255, 0.055) !important; border-color: rgba(255, 255, 255, 0.28) !important; color: #fff !important; }
 
 @media (max-width: 980px) {
+  .top-up-modal-body-plans { overflow-y: auto !important; }
   .top-up-pricing-hero { grid-template-columns: 1fr !important; gap: 18px !important; padding: 30px 24px !important; }
   .top-up-pricing-table { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  .top-up-pricing-table .top-up-plan-card:nth-child(2n) { border-right: 0 !important; }
-  .top-up-pricing-table .top-up-plan-card:nth-child(n + 3) { border-top: 1px solid rgba(255, 255, 255, 0.16) !important; }
+  .top-up-pricing-table .top-up-plan-card:nth-child(2n),
+  .top-up-pricing-table .top-up-plan-card:nth-child(n + 3) { border: 1px solid rgba(255, 255, 255, 0.105) !important; }
+  .top-up-pricing-table .top-up-plan-card-featured { border-color: rgba(255, 213, 0, 0.48) !important; }
 }
 
 @media (max-width: 760px) {
   .modal-overlay .top-up-modal { width: calc(100vw - 28px) !important; max-height: calc(100vh - 28px) !important; }
-  .top-up-modal-header, .top-up-modal-body { padding: 16px 18px !important; }
-  .top-up-modal-header { min-height: 50px !important; }
-  .top-up-modal-tabs { padding: 0 18px !important; }
+  .top-up-modal-body { padding: 16px 18px !important; }
+  .top-up-modal-header { min-height: 58px !important; padding: 9px 12px 9px 16px !important; grid-template-columns: minmax(150px, 1fr) auto auto !important; gap: 10px !important; }
+  .top-up-modal-tabs { padding: 4px !important; }
   .top-up-payment-hero { margin: -16px -18px 0 !important; padding: 26px 18px 22px !important; }
   .top-up-payment-grid { grid-template-columns: 1fr !important; margin: 14px 0 22px !important; }
   .top-up-payment-option { min-height: 270px !important; padding: 22px !important; }
@@ -471,11 +618,43 @@
 }
 
 @media (max-width: 620px) {
+  .modal-overlay { padding: 10px !important; }
+  .modal-overlay .top-up-modal {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100vh - 20px) !important;
+  }
+  .top-up-modal-header {
+    min-height: 0 !important;
+    padding: 11px 12px !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 9px !important;
+  }
+  .top-up-modal-brand > svg { display: none !important; }
+  .top-up-modal-brand > div > span:first-child { font-size: 13px !important; }
+  .top-up-modal-brand > div > span:last-child { display: none !important; }
+  .top-up-modal-close { grid-column: 2 !important; grid-row: 1 !important; margin: 0 !important; }
+  .top-up-modal-tabs { width: 100% !important; grid-column: 1 / -1 !important; grid-row: 2 !important; padding: 4px !important; box-sizing: border-box !important; }
+  .top-up-tab-button {
+    flex: 1 1 50% !important;
+    min-height: 36px !important;
+    padding: 0 8px !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
   .top-up-pricing-hero { margin: -16px -18px 0 !important; padding: 24px 18px !important; }
   .top-up-pricing-title-row h2 { font-size: 36px !important; }
-  .top-up-pricing-table { grid-template-columns: 1fr !important; margin: 0 -18px -16px !important; }
-  .top-up-pricing-table .top-up-plan-card { min-height: 0 !important; border-right: 0 !important; border-top: 1px solid rgba(255, 255, 255, 0.16) !important; }
+  .top-up-pricing-table { grid-template-columns: 1fr !important; margin: 12px 0 0 !important; }
+  .top-up-pricing-table .top-up-plan-card { min-height: 0 !important; border: 1px solid rgba(255, 255, 255, 0.105) !important; }
+  .top-up-pricing-table .top-up-plan-card-featured { border-color: rgba(255, 213, 0, 0.48) !important; }
   .top-up-payment-option-head { align-items: flex-start !important; flex-direction: column !important; gap: 10px !important; }
+  .top-up-payment-brand-strip { width: 100% !important; gap: 5px !important; }
+  .top-up-payment-brand-logo { height: 28px !important; }
+  .top-up-payment-brand-logo-qrph { width: 64px !important; }
+  .top-up-payment-brand-logo-gcash { width: 68px !important; }
+  .top-up-payment-brand-logo-maya { width: 58px !important; }
+  .top-up-payment-brand-divider { height: 22px !important; }
   .top-up-payment-option-tag { white-space: normal !important; }
   .top-up-payment-option-foot { align-items: flex-start !important; flex-direction: column !important; }
   .top-up-payment-plan-summary { gap: 8px !important; }

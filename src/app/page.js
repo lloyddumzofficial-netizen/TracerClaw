@@ -15,7 +15,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Code2, Star, Play, Search, Layers, Zap } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./globals.css";
@@ -32,6 +32,8 @@ import FAQSection from "@/components/marketing/FAQSection";
 import LogoLoader from "@/components/ui/LogoLoader";
 import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
+import GuestHomepageHero, { GuestHomepageConversionSections } from "@/components/marketing/GuestHomepageHero";
+import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
@@ -142,10 +144,10 @@ function HomepageWorkflowPreview() {
           </div>
           <figure className="workflow-preview-figure">
             <Image
-              src="/banner-webapp-2.jpg"
+              src="/banner-2.png"
               alt=""
-              width={1920}
-              height={960}
+              width={1916}
+              height={962}
               sizes="(max-width: 980px) 100vw, 720px"
               loading="lazy"
             />
@@ -258,7 +260,7 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section className="how-it-works-section" aria-label="How DesaynClaw works">
+    <section id="process" className="how-it-works-section" aria-label="How DesaynClaw works">
       <div className="how-it-works-heading">
         <h2>How it works</h2>
         <p>Turn messy raster artwork into clean, scalable production files in a focused three-step workflow.</p>
@@ -297,7 +299,7 @@ function ProductFeaturesSection({ publicStats, onNewProject, onUpscale, onBgRemo
     : "--";
 
   return (
-    <section className="product-features-section" aria-label="DesaynClaw product features">
+    <section id="tools" className="product-features-section" aria-label="DesaynClaw product features">
       <div className="product-features-heading">
         <h2>Product Features</h2>
         <p>Clean production tools for converting mockups, logos, and photos into usable print-ready files.</p>
@@ -495,7 +497,6 @@ export default function StartScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   // ─── Modal Specific State ───────────────────────────────────────────────────
@@ -572,12 +573,8 @@ export default function StartScreen() {
     };
     window.addEventListener("dragover", handleGlobalDragOver);
 
-    const handleScroll = () => setScrolled(window.scrollY > 100);
-    window.addEventListener("scroll", handleScroll);
-
     return () => {
       window.removeEventListener("dragover", handleGlobalDragOver);
-      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -903,10 +900,10 @@ export default function StartScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div id="start" className="start-screen-container" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
-      <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
+    <div id="start" className={`start-screen-container${user ? "" : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
+      {user && <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
         DesaynClaw AI Vector Tracer and Sublimation Design Extractor
-      </h1>
+      </h1>}
       {/* Global Drag & Drop Overlay */}
       {isDraggingGlobal && (
         <div
@@ -928,35 +925,34 @@ export default function StartScreen() {
       )}
 
       {/* Top Navigation Bar */}
-      <header className="home-topbar" style={{ boxSizing: "border-box", position: "fixed", top: 0, left: 0, width: "100%", height: "64px", background: "rgba(17, 17, 17, 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.05)", zIndex: 50, display: "flex", justifyContent: "center", padding: "0 20px" }}>
+      {user && <header className="home-topbar">
 
-        <div style={{ display: "flex", width: "100%", maxWidth: "1200px", alignItems: "center", justifyContent: "space-between" }}>
-          {/* Left: Brand/Logo Mini (Hidden at top to avoid redundancy) */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", opacity: scrolled ? 1 : 0, pointerEvents: scrolled ? "auto" : "none", transition: "opacity 0.3s ease" }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src="/nav bar logo.png" alt="DesaynClaw Navbar Logo" style={{ height: "32px", width: "auto" }} />
-          </div>
+        <div className="home-topbar-inner">
+          <button className="home-topbar-brand" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Return to the top of your workspace">
+            <img src="/nav bar logo.png" alt="DesaynClaw" />
+          </button>
 
           {/* Right: Auth & Credits */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto" }}>
+          <div className="home-account-actions">
             {user ? (
               <>
                 {/* Premium Credits Badge */}
-                <div onClick={() => setShowTopUpModal(true)} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#2a2a2a", padding: "6px 12px", borderRadius: "0", cursor: "pointer", border: "1px solid #444", transition: "border-color 0.2s" }} onMouseOver={e => e.currentTarget.style.borderColor = "#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor = "#444"}>
+                <button className="home-credit-pill" type="button" onClick={() => setShowTopUpModal(true)} aria-label={`${credits} Claws available. Add more Claws`}>
                   <img src="/Claws/Claws.webp" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
                   <span style={{ color: "#FFD700", fontWeight: "600", fontSize: "14px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>{credits}</span>
                   <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CLAWS</span>
-                </div>
+                </button>
 
                 {/* Profile Pill */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.05)", padding: "4px 12px 4px 4px", borderRadius: "0", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <div className="home-profile-pill">
                   {user.user_metadata?.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} referrerPolicy="no-referrer" style={{ width: 24, height: 24, borderRadius: "0" }} alt="Avatar" />
-                  ) : <div style={{ width: 24, height: 24, borderRadius: "0", background: "#333", display: "flex", alignItems: "center", justifyContent: "center" }}><User size={14} color="#aaa" /></div>}
-                  <span style={{ fontSize: "13px", color: "#ddd", fontWeight: "500", textTransform: "uppercase", letterSpacing: "1px" }}>{user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0]}</span>
+                    <img src={user.user_metadata.avatar_url} referrerPolicy="no-referrer" alt="" />
+                  ) : <div className="home-profile-placeholder"><User size={14} aria-hidden="true" /></div>}
+                  <span>{user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0]}</span>
                 </div>
 
                 {/* Logout Icon Button */}
-                <button onClick={handleLogout} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", padding: "8px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", transition: "all 0.2s" }} onMouseOver={e => { e.currentTarget.style.color = "#ff4444"; e.currentTarget.style.background = "rgba(255,68,68,0.1)"; }} onMouseOut={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "transparent"; }} title="Logout">
+                <button className="home-logout-button" type="button" onClick={handleLogout} title="Log out" aria-label="Log out">
                   <LogOut size={18} />
                 </button>
               </>
@@ -967,7 +963,7 @@ export default function StartScreen() {
             )}
           </div>
         </div>
-      </header>
+      </header>}
 
       {showDriveAnnouncement && (
         <section className="home-announcement-banner" aria-label="Google Drive integration announcement">
@@ -992,7 +988,13 @@ export default function StartScreen() {
       )}
 
       {/* FULL WIDTH HERO SECTION */}
-      <div className="home-hero-shell" style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
+      {!user && (
+        <GuestHomepageHero
+          onStart={handleLogin}
+          publicStats={publicStats}
+        />
+      )}
+      {user && <div className="home-hero-shell" style={{ position: "relative", width: "calc(100% + 40px)", marginLeft: "-20px", marginRight: "-20px", background: "#1a1a1a", paddingTop: "100px", paddingBottom: "40px", color: "#fff" }}>
         <div className="home-hero-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 2 }}>
 
           <div className="hero-section" style={{ justifyContent: "flex-start", margin: 0 }}>
@@ -1168,7 +1170,7 @@ export default function StartScreen() {
             <path fill="#262626" fillOpacity="1" d="M0,160L48,170.7C96,181,192,203,288,197.3C384,192,480,160,576,149.3C672,139,768,149,864,170.7C960,192,1056,224,1152,213.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
           </svg>
         </div>
-      </div>
+      </div>}
 
       {/* Main Content Wrapper (For the rest of the page) */}
       <div
@@ -1176,59 +1178,13 @@ export default function StartScreen() {
         style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}
       >
 
-        {/* SCROLLING TRUST MARQUEE (MINIMAL & ALIGNED) */}
-        <div className="marquee-container" style={{
-          padding: "10px 0",
-          background: "transparent",
-          borderTop: "1px solid #2a2a2a",
-          borderBottom: "1px solid #2a2a2a",
-          width: "100%",
-          marginBottom: "0px"
-        }}>
-          <div className="marquee-content">
-            {/* 1st Set */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <ShieldCheck size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>100% Private & Secure</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <Trash2 size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Auto-deletes after 3 days</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <Code2 size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Built by Real Developers</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <Monitor size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Highly Scalable Infrastructure</span>
-            </div>
+        {user && <HomeTrustMarquee />}
 
-            {/* 2nd Set (Duplicate for seamless loop) */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <ShieldCheck size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>100% Private & Secure</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <Trash2 size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Auto-deletes after 3 days</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <Code2 size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Built by Real Developers</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 50px", color: "#777" }}>
-              <Monitor size={16} color="#777" />
-              <span style={{ fontSize: "13px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase" }}>Highly Scalable Infrastructure</span>
-            </div>
-          </div>
-        </div>
-
-        <DesktopWorkspaceBanner />
+        {user && <DesktopWorkspaceBanner />}
 
         <HomepageWorkflowPreview />
 
-        <MarketingVideoPreview />
+        {user && <MarketingVideoPreview />}
 
         <EduSection />
 
@@ -1373,11 +1329,15 @@ export default function StartScreen() {
           </div>
 
         </section>
+
         {/* Animated Counter Section */}
         <TestimonialSection />
 
         <AnimatedCounter value={publicStats.completedExtractions} />
 
+        {!user && <GuestHomepageConversionSections onStart={handleLogin} />}
+
+        <div className="site-closing-surface">
         <FAQSection />
 
         {/* ────────────────────────────────────────────────────────────────────── */}
@@ -1524,7 +1484,7 @@ export default function StartScreen() {
         )}
 
         {/* Lightweight footer brand banner */}
-        <div style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
+        <div className="site-footer-banner" style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
           <Image
             src="/cover-photo-banner.jpg"
             alt="DesaynClaw AI-powered design tools"
@@ -1572,6 +1532,7 @@ export default function StartScreen() {
             <span>© DesaynClaw. All rights reserved 2024-2026</span>
           </div>
         </footer>
+        </div>
 
       </div>
 

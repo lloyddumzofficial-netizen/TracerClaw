@@ -56,48 +56,36 @@ const RecentProjects = memo(function RecentProjects({
 
     return (
       <div className="recent-projects">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <h3 style={{ margin: 0, marginBottom: "4px" }}>Recent Projects</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div className="recent-projects-head">
+          <div className="recent-projects-title">
+            <h3>Recent Projects</h3>
+            <div className="recent-projects-retention">
               <Clock size={10} /> Auto-deleted after 3 days
             </div>
           </div>
-          <div style={{ position: "relative", width: "240px" }}>
-            <Search size={14} color="#888" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+          <div className="recent-projects-search">
+            <Search size={14} aria-hidden="true" />
             <input 
-              type="text" 
+              type="search"
+              aria-label="Search recent projects"
               placeholder="Search projects..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%",
-                background: "#1a1a1a",
-                border: "1px solid #333",
-                color: "#e0e0e0",
-                padding: "8px 12px 8px 34px",
-                borderRadius: "0",
-                fontSize: "13px",
-                outline: "none",
-                transition: "border-color 0.2s"
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#FFD700"}
-              onBlur={(e) => e.target.style.borderColor = "#333"}
             />
           </div>
         </div>
 
         {/* Privacy Notice for main projects */}
-        <div style={{ background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: "8px", padding: "12px", marginBottom: "20px", display: "flex", gap: "10px", alignItems: "flex-start" }}>
-          <ShieldAlert size={14} color="#FFD700" style={{ flexShrink: 0, marginTop: "2px" }} />
+        <div className="recent-privacy-note">
+          <ShieldAlert size={14} aria-hidden="true" />
           <div>
-            <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: "700", color: "#FFD700" }}>Privacy First</p>
-            <p style={{ margin: 0, fontSize: "10px", color: "#aaa", lineHeight: 1.4 }}>All uploaded and generated projects are permanently deleted after 3 days to protect your privacy.</p>
+            <strong>Privacy first</strong>
+            <p>Uploaded and generated projects are permanently deleted after 3 days.</p>
           </div>
         </div>
 
         {filteredProjects.length === 0 ? (
-          <div style={{ padding: "40px 0", textAlign: "center", color: "#666", fontSize: "14px", background: "#1a1a1a", border: "1px dashed #333", borderRadius: "0" }}>
+          <div className="recent-projects-empty">
             No projects found matching "{searchQuery}"
           </div>
         ) : (

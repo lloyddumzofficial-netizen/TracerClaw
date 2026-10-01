@@ -28,7 +28,14 @@ function scaleSvgToContainer(svgText) {
   });
 }
 
-export default function SafeInlineSVG({ url, style, fallbackToImage = false, loadingFallback = null }) {
+export default function SafeInlineSVG({
+  url,
+  style,
+  fallbackToImage = false,
+  loadingFallback = null,
+  imageAlt = "",
+  imageLoading = "lazy",
+}) {
   const [svgHtml, setSvgHtml] = useState(null);
   const [loading, setLoading] = useState(false);
   const [useImageFallback, setUseImageFallback] = useState(false);
@@ -90,7 +97,7 @@ export default function SafeInlineSVG({ url, style, fallbackToImage = false, loa
   }, [fallbackToImage, url]);
 
   if (useImageFallback) {
-    return <img src={url} alt="" style={style} />;
+    return <img src={url} alt={imageAlt} loading={imageLoading} decoding="async" draggable="false" style={style} />;
   }
 
   if (loading && loadingFallback) return loadingFallback;

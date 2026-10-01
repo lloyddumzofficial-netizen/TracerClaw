@@ -34,7 +34,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section style={{
+    <section className="faq-section" style={{
       maxWidth: "800px",
       margin: "120px auto 60px",
       padding: "0 20px"
