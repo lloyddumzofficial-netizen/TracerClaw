@@ -478,6 +478,7 @@ export default function StartScreen() {
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
+  const dodoReturnHandledRef = useRef(false);
 
   const [syncSessionId, setSyncSessionId] = useState("");
   const [showQrModal, setShowQrModal] = useState(false);
@@ -577,6 +578,122 @@ export default function StartScreen() {
       window.removeEventListener("dragover", handleGlobalDragOver);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || dodoReturnHandledRef.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const topUpResult = params.get("topup");
+    if (topUpResult !== "dodo-return" && topUpResult !== "dodo-cancelled") return;
+
+    dodoReturnHandledRef.current = true;
+    let cancelled = false;
+
+    const clearReturnParams = () => {
+      params.delete("topup");
+      params.delete("paymentId");
+      const query = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+      );
+    };
+
+    if (topUpResult === "dodo-cancelled") {
+      toast.info("Dodo checkout was cancelled. No Claws were charged.");
+      clearReturnParams();
+      return;
+    }
+
+    const paymentId = params.get("paymentId");
+    if (!paymentId) {
+      toast.info("Payment confirmation is still processing. Your Claws will appear automatically.");
+      clearReturnParams();
+      return;
+    }
+
+    const reconcilePayment = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Your session expired. Please sign in again.");
+
+        for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
+          const response = await fetch(
+            `/api/payments/dodo/status?paymentId=${encodeURIComponent(paymentId)}`,
+            { headers: { Authorization: `Bearer ${session.access_token}` } },
+          );
+          const result = await safeJson(response, "Failed to confirm Dodo payment");
+
+          if (response.ok && result.status === "paid") {
+            if (Number.isFinite(result.balance)) setCredits(result.balance);
+            else fetchCredits(user.id);
+            toast.success(`${result.credits} Claws added successfully.`);
+            clearReturnParams();
+            return;
+          }
+          if (response.ok && result.status === "failed") {
+            toast.error("Dodo payment was not completed. No Claws were charged.");
+            clearReturnParams();
+            return;
+          }
+          if (!response.ok && response.status < 500) {
+            throw new Error(result.error || "Failed to confirm Dodo payment");
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        if (!cancelled) {
+          toast.info("Payment is still confirming. Your Claws will be added automatically once Dodo completes it.");
+          clearReturnParams();
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Dodo return reconciliation failed:", error);
+          toast.error(error.message || "Could not confirm the Dodo payment yet. Please refresh shortly.");
+          clearReturnParams();
+        }
+      }
+    };
+
+    reconcilePayment();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("topup")?.startsWith("dodo-")) return;
+
+    const recoveryKey = `dodo-payment-recovery:${user.id}`;
+    if (sessionStorage.getItem(recoveryKey) === "1") return;
+    sessionStorage.setItem(recoveryKey, "1");
+    let cancelled = false;
+
+    const recoverPendingPayments = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const response = await fetch("/api/payments/dodo/status", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const result = await safeJson(response, "Failed to recover Dodo payments");
+        if (!response.ok) throw new Error(result.error || "Failed to recover Dodo payments");
+        if (!cancelled && result.status === "paid" && result.credits > 0) {
+          if (Number.isFinite(result.balance)) setCredits(result.balance);
+          else fetchCredits(user.id);
+          toast.success(`Recovered ${result.credits} Claws from your completed Dodo payment.`);
+        }
+      } catch (error) {
+        sessionStorage.removeItem(recoveryKey);
+        console.error("Dodo pending-payment recovery failed:", error);
+      }
+    };
+
+    recoverPendingPayments();
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Handle QR Sync Session Generation
   useEffect(() => {

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminSupabase } from "@/lib/supabase";
 import { getDodoClient } from "@/lib/dodo";
-import { getCreditPlan } from "@/lib/paymentPlans";
 import { logger } from "@/lib/logger";
-import { sendEmail } from "@/lib/email";
-import { verifyPaidAmount } from "@/server/payments/verifyPaidAmount";
+import { fulfillDodoPayment, markDodoPaymentStatus } from "@/server/payments/dodoFulfillment";
 
 export const runtime = "nodejs";
 
@@ -14,104 +11,6 @@ function getWebhookHeaders(request) {
     "webhook-signature": request.headers.get("webhook-signature") || "",
     "webhook-timestamp": request.headers.get("webhook-timestamp") || "",
   };
-}
-
-function resolveLocalPaymentQuery(payment) {
-  const metadataId = payment?.metadata?.local_payment_id;
-  if (metadataId) {
-    return { column: "id", value: metadataId };
-  }
-  if (payment?.checkout_session_id) {
-    return { column: "dodo_checkout_session_id", value: payment.checkout_session_id };
-  }
-  return null;
-}
-
-async function sendDodoPaymentEmail({ email, plan, credits, paymentId }) {
-  if (!email) return;
-
-  const result = await sendEmail({
-    to: email,
-    subject: "Payment Successful - Credits Added",
-    template: "purchaseReceipt",
-    data: {
-      plan,
-      credits,
-      receipt: paymentId || "N/A",
-      paymentId: paymentId || "N/A",
-    },
-  });
-
-  if (!result.success) {
-    logger.warn("[Dodo Webhook] Failed to send payment email", { email, error: result.error });
-  }
-}
-
-async function markPaymentStatus(payment, status) {
-  const query = resolveLocalPaymentQuery(payment);
-  if (!query) return;
-
-  const update = {
-    status,
-    dodo_payment_id: payment?.payment_id || null,
-  };
-
-  await adminSupabase
-    .from("dodo_payments")
-    .update(update)
-    .eq(query.column, query.value)
-    .neq("status", "paid");
-}
-
-async function handlePaymentSucceeded(payment) {
-  const query = resolveLocalPaymentQuery(payment);
-  if (!query) {
-    throw new Error("Missing local payment reference in Dodo payment metadata");
-  }
-
-  const { data: localPayment, error: fetchErr } = await adminSupabase
-    .from("dodo_payments")
-    .select("*")
-    .eq(query.column, query.value)
-    .single();
-
-  if (fetchErr || !localPayment) {
-    throw new Error("Local Dodo payment record not found");
-  }
-
-  const plan = getCreditPlan(localPayment.plan);
-  if (!plan || plan.credits !== localPayment.credits) {
-    throw new Error("Local Dodo payment plan is invalid");
-  }
-  verifyPaidAmount(localPayment, payment.total_amount, payment.currency);
-
-  const { data: grantRows, error: grantErr } = await adminSupabase
-    .rpc("grant_dodo_payment_credits", {
-      payment_row_id: localPayment.id,
-      provider_payment_id: payment.payment_id || null,
-      provider_checkout_session_id: payment.checkout_session_id || localPayment.dodo_checkout_session_id || null,
-      paid_amount: payment.total_amount,
-      paid_currency: payment.currency,
-    });
-
-  if (grantErr) {
-    console.error("[Dodo Webhook] Failed to grant credits:", grantErr);
-    throw new Error("Failed to add credits");
-  }
-
-  const grant = Array.isArray(grantRows) ? grantRows[0] : grantRows;
-  if (!grant?.granted) {
-    return { alreadyProcessed: true };
-  }
-
-  await sendDodoPaymentEmail({
-    email: localPayment.email,
-    plan: localPayment.plan,
-    credits: grant.granted_credits,
-    paymentId: payment.payment_id || null,
-  });
-
-  return { credited: true, credits: grant.granted_credits };
 }
 
 export async function POST(request) {
@@ -129,14 +28,14 @@ export async function POST(request) {
     });
 
     if (event.type === "payment.succeeded") {
-      await handlePaymentSucceeded(event.data);
+      await fulfillDodoPayment({ payment: event.data, source: "webhook" });
     } else if (event.type === "payment.failed" || event.type === "payment.cancelled") {
-      await markPaymentStatus(event.data, "failed");
+      await markDodoPaymentStatus(event.data, "failed");
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("[Dodo Webhook] Error:", error);
+    logger.error("[Dodo Webhook] Processing failed", error);
     return NextResponse.json({ error: "Invalid or failed webhook" }, { status: 400 });
   }
 }

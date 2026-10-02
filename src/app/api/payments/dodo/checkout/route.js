@@ -77,8 +77,8 @@ export async function POST(request) {
         plan: plan.key,
         credits: String(plan.credits),
       },
-      return_url: `${siteUrl}/?topup=dodo-return`,
-      cancel_url: `${siteUrl}/?topup=dodo-cancelled`,
+      return_url: `${siteUrl}/?topup=dodo-return&paymentId=${encodeURIComponent(localPayment.id)}`,
+      cancel_url: `${siteUrl}/?topup=dodo-cancelled&paymentId=${encodeURIComponent(localPayment.id)}`,
     });
 
     const checkoutUrl = session.checkout_url;
