@@ -129,7 +129,14 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
             <div className="guest-landing-community-copy">
               <strong>{totalUsers > 0 ? `Trusted by ${totalUsers.toLocaleString()} creatives` : "Real DesaynClaw creatives"}</strong>
               {reviewCount > 0 && (
-                <span><Star size={12} fill="currentColor" aria-hidden="true" /> {reviewCount.toLocaleString()} project reviews</span>
+                <span className="guest-landing-review-summary">
+                  <span className="guest-landing-review-stars" aria-label="5 out of 5 stars">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star key={index} size={11} fill="currentColor" aria-hidden="true" />
+                    ))}
+                  </span>
+                  <span>{reviewCount.toLocaleString()} project reviews</span>
+                </span>
               )}
             </div>
           </div>

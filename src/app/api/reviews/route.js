@@ -19,14 +19,28 @@ export async function GET(request) {
     if (!rateLimit.success) return rateLimit.response;
 
     // Fetch recent 5-star or 4-star reviews to display as testimonials
-    const { data: reviews, error } = await adminSupabase
-      .from('projects')
+    let { data: reviews, error } = await adminSupabase
+      .from('project_reviews')
       .select('rating, feedback_text, reviewer_name, reviewer_avatar, created_at')
       .not('feedback_text', 'is', null)
       .not('feedback_text', 'eq', '')
       .gte('rating', 4)
       .order('created_at', { ascending: false })
       .limit(10);
+
+    // Compatibility during rollout of the permanent review table.
+    if (error) {
+      const legacy = await adminSupabase
+        .from('projects')
+        .select('rating, feedback_text, reviewer_name, reviewer_avatar, created_at')
+        .not('feedback_text', 'is', null)
+        .not('feedback_text', 'eq', '')
+        .gte('rating', 4)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      reviews = legacy.data;
+      error = legacy.error;
+    }
 
     if (error) {
       throw error;

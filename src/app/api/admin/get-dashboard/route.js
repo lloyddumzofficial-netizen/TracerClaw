@@ -206,13 +206,29 @@ export async function GET(request) {
 
     const metrics = await fetchDashboardMetrics();
 
-    // Fetch recent reviews (projects with a rating)
-    const { data: reviews, error: reviewError } = await adminSupabase
-      .from('projects')
-      .select('id, name, rating, feedback_text, created_at')
+    // Reviews are stored independently because project rows expire after 3 days.
+    let { data: reviews, error: reviewError } = await adminSupabase
+      .from('project_reviews')
+      .select('id, project_name, rating, feedback_text, created_at')
       .not('rating', 'is', null)
       .order('created_at', { ascending: false })
       .limit(20);
+
+    if (!reviewError) {
+      reviews = (reviews || []).map((review) => ({
+        ...review,
+        name: review.project_name || "Deleted project",
+      }));
+    } else {
+      const legacyReviews = await adminSupabase
+        .from('projects')
+        .select('id, name, rating, feedback_text, created_at')
+        .not('rating', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      reviews = legacyReviews.data;
+      reviewError = legacyReviews.error;
+    }
 
     if (reviewError) {
       console.error("Failed to fetch reviews:", reviewError);

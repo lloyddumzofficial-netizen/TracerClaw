@@ -150,7 +150,7 @@ const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'; // Em
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* JSON-LD Structured Data */}
         <script

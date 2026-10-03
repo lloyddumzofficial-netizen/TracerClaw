@@ -4,9 +4,10 @@ import { enforceRateLimit, getClientIp, getRedisClient } from "@/lib/rateLimit";
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_KEY = "public-stats:v2";
+const CACHE_KEY = "public-stats:v3";
 const CACHE_TTL_SECONDS = 60;
 const CACHE_TTL_MS = CACHE_TTL_SECONDS * 1000;
+const HISTORICAL_REVIEW_COUNT = 11;
 let cachedStats = null;
 
 async function getProfileCount() {
@@ -38,16 +39,25 @@ async function getCompletedExtractionCount() {
 
 async function getReviewCount() {
   const { count, error } = await adminSupabase
+    .from('project_reviews')
+    .select('id', { count: 'exact', head: true })
+    .not('rating', 'is', null);
+
+  if (!error) return HISTORICAL_REVIEW_COUNT + (count || 0);
+
+  // Compatibility while migration 029 is being applied. The historical count
+  // is retained because those reviews were removed by project retention.
+  const { count: legacyCount, error: legacyError } = await adminSupabase
     .from('projects')
     .select('id', { count: 'exact', head: true })
     .not('rating', 'is', null);
 
-  if (error) {
-    console.error("Failed to fetch review stats", error);
+  if (legacyError) {
+    console.error("Failed to fetch review stats", legacyError);
     throw new Error("Failed to fetch review stats");
   }
 
-  return count || 0;
+  return Math.max(HISTORICAL_REVIEW_COUNT, legacyCount || 0);
 }
 
 async function getLatestProfileAvatars() {
@@ -96,7 +106,7 @@ async function getStatsFromRpc() {
     success: true,
     totalUsers: Number(row?.total_users || 0),
     completedExtractions: Number(row?.completed_extractions || 0),
-    reviewCount: Number(row?.review_count || 0),
+    reviewCount: Math.max(HISTORICAL_REVIEW_COUNT, Number(row?.review_count || 0)),
     avatars: [...new Set(avatars.filter(Boolean))].slice(0, 5),
   };
 }

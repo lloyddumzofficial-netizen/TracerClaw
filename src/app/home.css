@@ -4054,6 +4054,9 @@
 .guest-landing-community-copy strong { color: #e7e6e2; font-size: 12px; font-weight: 650; letter-spacing: -.01em; }
 .guest-landing-community-copy span { display: inline-flex; align-items: center; gap: 5px; color: #9b9b98; font-size: 10px; }
 .guest-landing-community-copy svg { color: #ffd500; }
+.guest-landing-community-copy .guest-landing-review-summary { gap: 6px; }
+.guest-landing-community-copy .guest-landing-review-stars { gap: 1px; color: #ffd500; }
+.guest-landing-community-copy .guest-landing-review-stars svg { flex: 0 0 auto; }
 
 /* A deliberately quiet trust rail between the hero and product monitor. */
 .guest-trust-marquee {

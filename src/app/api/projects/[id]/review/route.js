@@ -59,7 +59,7 @@ export async function POST(request, { params }) {
     // Verify ownership
     const { data: project, error: projError } = await adminSupabase
       .from("projects")
-      .select("id, user_id")
+      .select("id, user_id, name")
       .eq("id", projectId)
       .single();
 
@@ -92,6 +92,26 @@ export async function POST(request, { params }) {
     if (updateError) {
       console.error("[Review API] Error updating rating:", updateError);
       return NextResponse.json({ error: "Failed to save rating" }, { status: 500 });
+    }
+
+    // Store the review outside `projects`: project rows and files are deleted
+    // after three days, but public feedback and aggregate ratings are permanent.
+    const { error: reviewStoreError } = await adminSupabase
+      .from("project_reviews")
+      .upsert({
+        project_id: project.id,
+        user_id: user.id,
+        project_name: project.name,
+        rating: parsedRating,
+        feedback_text: safeFeedback || null,
+        reviewer_name,
+        reviewer_avatar,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "project_id" });
+
+    if (reviewStoreError) {
+      console.error("[Review API] Permanent review storage failed:", reviewStoreError);
+      return NextResponse.json({ error: "Failed to preserve review" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

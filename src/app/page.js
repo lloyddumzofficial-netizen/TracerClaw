@@ -37,7 +37,7 @@ import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
-const PUBLIC_STATS_CACHE_KEY = "desaynclaw-public-stats";
+const PUBLIC_STATS_CACHE_KEY = "desaynclaw-public-stats-v2";
 const DRIVE_ANNOUNCEMENT_DISMISS_KEY = "desaynclaw-drive-announcement-v1";
 
 async function uploadFileToPresignedUrl(uploadUrl, file) {
