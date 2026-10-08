@@ -88,7 +88,14 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
     <div className="guest-landing">
       <header className="guest-landing-nav" aria-label="Main navigation">
         <a className="guest-landing-brand" href="#start" aria-label="DesaynClaw home">
-          <Image src="/nav bar logo.png" alt="DesaynClaw" width={188} height={40} priority />
+          <Image
+            src="/nav bar logo.png"
+            alt="DesaynClaw"
+            width={188}
+            height={40}
+            priority
+            unoptimized
+          />
         </a>
 
         <nav className="guest-landing-links" aria-label="Explore DesaynClaw">

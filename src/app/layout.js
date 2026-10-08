@@ -143,10 +143,7 @@ export const metadata = {
   },
 };
 
-import MaintenanceScreen from "@/components/shared/MaintenanceScreen";
 import GlobalMobileSync from "@/components/shared/GlobalMobileSync";
-
-const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'; // Emergency maintenance mode
 
 export default function RootLayout({ children }) {
   return (
@@ -162,15 +159,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <AnalyticsProvider />
-        {isMaintenance ? (
-          <MaintenanceScreen />
-        ) : (
-          <>
-            <MobileWarning />
-            <GlobalMobileSync />
-            {children}
-          </>
-        )}
+        <MobileWarning />
+        <GlobalMobileSync />
+        {children}
         <CookieConsent />
         <ToastContainer />
       </body>
