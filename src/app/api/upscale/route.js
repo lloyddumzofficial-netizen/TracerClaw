@@ -32,6 +32,10 @@ const UPSCALE_SETTINGS = {
 };
 const MAX_ESRGAN_INPUT_LONG_EDGE = 1280;
 
+function isAiGenerationConfigured() {
+  return Boolean(process.env.FAL_KEY);
+}
+
 /** Job marker stored in ai_prompt: fal:<model-slug>:<requestId>. */
 function buildJobMarker(requestId) {
   return `fal:${UPSCALE_MODEL_SLUG}:${requestId}`;
@@ -175,6 +179,14 @@ export async function POST(request) {
 
     if (!sourceMeta?.width || !sourceMeta?.height) {
       return NextResponse.json({ error: "Could not read that image. Please try another file." }, { status: 400 });
+    }
+
+    if (!isAiGenerationConfigured()) {
+      logger.error("[API Upscale] AI provider is not configured; refusing to charge", { userId });
+      return NextResponse.json({
+        error: "AI processing is temporarily unavailable. Please try again shortly.",
+        code: "AI_PROVIDER_UNAVAILABLE",
+      }, { status: 503 });
     }
 
     logger.info("[API Upscale] Plan", {

@@ -21,6 +21,10 @@ export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is sa
 
 const AI_PROVIDER_UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE";
 
+function isAiGenerationConfigured() {
+  return Boolean(process.env.FAL_KEY);
+}
+
 function getProviderStatus(error) {
   return error?.status || error?.statusCode || error?.response?.status || null;
 }
@@ -115,6 +119,15 @@ export async function POST(request) {
     // HARD BLOCK: project must belong to a real user
     if (!project.user_id) {
       return NextResponse.json({ error: "Project has no owner. Please re-upload your image." }, { status: 403 });
+    }
+
+    if (step === 1 && !isAiGenerationConfigured()) {
+      logger.error("[Trace] AI provider is not configured; refusing to charge", { projectId, userId });
+      return NextResponse.json({
+        error: "AI engine is temporarily unavailable. Please try again shortly.",
+        code: AI_PROVIDER_UNAVAILABLE,
+        refunded: false,
+      }, { status: 503 });
     }
 
     let sourceUrl;

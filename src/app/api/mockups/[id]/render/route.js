@@ -12,6 +12,10 @@ import { getGarmentParts, getGarmentProfile, isGarmentPartAllowed } from "@/feat
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+function isAiGenerationConfigured() {
+  return Boolean(process.env.FAL_KEY);
+}
+
 async function refundFailedSubmission(userId, jobId, errorCode) {
   if (!jobId) return;
   await adminSupabase.rpc("refund_mockup_render", {
@@ -45,6 +49,18 @@ export async function POST(request, { params }) {
   const requestKey = String(body.requestKey || "");
   if (!isValidGenerationRequestKey(requestKey)) {
     return NextResponse.json({ error: "Invalid render request key." }, { status: 400 });
+  }
+
+  if (!isAiGenerationConfigured()) {
+    logger.error("[Mockup render] AI provider is not configured; refusing to charge", {
+      projectId: id,
+      userId: auth.user.id,
+    });
+    return NextResponse.json({
+      error: "The render engine is temporarily unavailable. No Claws were charged.",
+      code: "AI_PROVIDER_UNAVAILABLE",
+      refunded: false,
+    }, { status: 503 });
   }
 
   const { data: claimRows, error: claimError } = await adminSupabase.rpc("claim_mockup_render", {
