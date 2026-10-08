@@ -4,6 +4,7 @@ import {
   buildInfo,
   checkDatabase,
   checkCapabilities,
+  checkAiProvider,
   checkEnv,
   checkRlsEnforced,
   checkSchema,
@@ -52,15 +53,16 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [database, schema, rls] = await Promise.all([
+  const [database, schema, rls, aiProvider] = await Promise.all([
     checkDatabase(),
     checkSchema(),
     checkRlsEnforced(),
+    checkAiProvider(),
   ]);
   const env = checkEnv();
   const capabilities = checkCapabilities();
 
-  const checks = { env, database, schema, rls, capabilities };
+  const checks = { env, database, schema, rls, capabilities, aiProvider };
   const failed = Object.entries(checks)
     .filter(([, v]) => v && v.ok === false)
     .map(([k]) => k);

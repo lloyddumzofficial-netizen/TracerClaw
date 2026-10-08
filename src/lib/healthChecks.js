@@ -1,4 +1,5 @@
 import { adminSupabase } from "@/lib/supabase";
+import { NANO_BANANA_EDIT_MODEL } from "@/lib/tracePrompts";
 
 /**
  * Runtime assertions about the environment and database schema.
@@ -104,6 +105,59 @@ export function checkCapabilities() {
     dodoPayments: has("DODO_PAYMENTS_API_KEY") && has("DODO_PAYMENTS_WEBHOOK_SECRET"),
     paymongo: has("PAYMONGO_SECRET_KEY") && has("PAYMONGO_WEBHOOK_SECRET"),
   };
+}
+
+export async function checkAiProvider() {
+  if (!process.env.FAL_KEY) {
+    return { ok: false, provider: "fal.ai", model: NANO_BANANA_EDIT_MODEL, reason: "FAL_KEY missing" };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    const response = await fetch("https://rest.fal.ai/tokens/", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Key ${process.env.FAL_KEY}`,
+      },
+      body: JSON.stringify({
+        allowed_apps: [NANO_BANANA_EDIT_MODEL],
+        token_expiration: 120,
+      }),
+      signal: controller.signal,
+      cache: "no-store",
+    }).finally(() => clearTimeout(timeout));
+
+    if (response.ok) {
+      return { ok: true, provider: "fal.ai", model: NANO_BANANA_EDIT_MODEL };
+    }
+
+    let message = response.statusText || "Provider rejected readiness check";
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await response.json().catch(() => null);
+      message = data?.detail || data?.message || data?.error || message;
+    } else {
+      message = (await response.text().catch(() => "")) || message;
+    }
+
+    return {
+      ok: false,
+      provider: "fal.ai",
+      model: NANO_BANANA_EDIT_MODEL,
+      status: response.status,
+      reason: String(message).slice(0, 240),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      provider: "fal.ai",
+      model: NANO_BANANA_EDIT_MODEL,
+      reason: err?.name === "AbortError" ? "Provider readiness check timed out" : String(err?.message || err).slice(0, 240),
+    };
+  }
 }
 
 export function validateProductionEnv() {
