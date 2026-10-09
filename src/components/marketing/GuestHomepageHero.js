@@ -30,14 +30,14 @@ const HOMEPAGE_COMPARISONS = [
   },
 ];
 
-export function GuestHomepageConversionSections({ onStart }) {
+export function GuestHomepageSampleSection() {
   return (
-    <div className="guest-landing guest-landing-lower">
+    <div className="guest-landing guest-landing-lower guest-landing-sample">
       <section className="guest-landing-example" id="preview" aria-label="Original artwork and extracted output comparison">
         <div className="guest-landing-example-copy">
           <div className="guest-landing-example-kicker">
-            <span>THE WORK, SIDE BY SIDE</span>
-            <small>INTERACTIVE PRODUCTION PROOF</small>
+            <span>PRODUCTION PROOF</span>
+            <small>FRONT / BACK COMPARISON</small>
           </div>
           <h2>The difference is in <em>the details.</em></h2>
           <p>Compare the source garment with the clean extracted artwork. Drag either divider to inspect the result edge by edge.</p>
@@ -74,6 +74,13 @@ export function GuestHomepageConversionSections({ onStart }) {
         </div>
       </section>
 
+    </div>
+  );
+}
+
+export function GuestHomepageConversionSections({ onStart }) {
+  return (
+    <div className="guest-landing guest-landing-lower">
       <GuestPricingSection onStart={onStart} />
     </div>
   );
@@ -119,7 +126,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
       </header>
 
       <section className="guest-landing-hero" aria-labelledby="guest-landing-heading">
-        <h1 id="guest-landing-heading">AI-generated artwork?<br /><em>Turn it into editable flat design.</em></h1>
+        <h1 id="guest-landing-heading"><span className="guest-landing-title-mark">AI-generated<span className="guest-landing-title-handles" aria-hidden="true" /></span><span className="guest-landing-title-question"> artwork?</span><br /><em>Turn it into <span className="guest-landing-output-mark">editable flat design</span>.</em></h1>
         <p className="guest-landing-description">
           Extract artwork from garments and logos, refine the details, and deliver clean files your production team can actually use.
         </p>

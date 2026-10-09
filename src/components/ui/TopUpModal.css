@@ -1,7 +1,7 @@
 /* Shared Top-Up presentation. Keep this with the component so the homepage and
    workspace entry points render the same dark production UI. */
 .modal-overlay .top-up-modal {
-  --top-up-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.32'/%3E%3C/svg%3E");
+  --top-up-grain: var(--surface-grain-strong);
   width: min(1200px, calc(100vw - 48px)) !important;
   max-width: min(1200px, calc(100vw - 48px)) !important;
   background: #08090a !important;

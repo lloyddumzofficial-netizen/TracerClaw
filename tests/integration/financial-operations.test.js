@@ -250,3 +250,98 @@ describe("Credit refunds", () => {
     });
   });
 });
+
+describe("Provider and refund failure boundaries", () => {
+  it("returns 400 for malformed Dodo checkout JSON without creating a payment", async () => {
+    adminSupabase.from = vi.fn();
+    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
+    const response = await POST(new Request("http://localhost/api/payments/dodo/checkout", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: "{",
+    }));
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).code).toBe("INVALID_REQUEST");
+    expect(adminSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed provider payment identifiers before database access", async () => {
+    adminSupabase.from = vi.fn();
+    const { GET: getDodoStatus } = await import("@/app/api/payments/dodo/status/route.js");
+    const { GET: getPayMongoStatus } = await import("@/app/api/payments/paymongo/status/route.js");
+    const headers = { authorization: "Bearer test-token" };
+
+    const dodoResponse = await getDodoStatus(new Request(
+      "http://localhost/api/payments/dodo/status?paymentId=../../other-user",
+      { headers },
+    ));
+    const payMongoResponse = await getPayMongoStatus(new Request(
+      "http://localhost/api/payments/paymongo/status?paymentId=%3Cscript%3E",
+      { headers },
+    ));
+
+    expect(dodoResponse.status).toBe(400);
+    expect(payMongoResponse.status).toBe(400);
+    expect(adminSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when Dodo webhook verification throws", async () => {
+    getDodoClient.mockReturnValue({
+      webhooks: { unwrap: vi.fn(() => { throw new Error("invalid signature"); }) },
+    });
+    const { POST } = await import("@/app/api/payments/dodo/webhook/route.js");
+    const response = await POST(new Request("http://localhost/api/payments/dodo/webhook", {
+      method: "POST",
+      headers: {
+        "webhook-id": "evt-invalid",
+        "webhook-signature": "bad-signature",
+        "webhook-timestamp": "1700000000",
+      },
+      body: "{}",
+    }));
+
+    expect(response.status).toBe(400);
+    expect(fulfillDodoPayment).not.toHaveBeenCalled();
+    expect(markDodoPaymentStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns the same successful result for an already-refunded project", async () => {
+    adminSupabase.from = vi.fn(() => mockQuery({
+      data: {
+        user_id: "user-1",
+        credit_deducted: true,
+        refunded: true,
+        failed_at: "2026-01-01T00:00:00Z",
+        generated_image_url: null,
+        upscaled_image_url: null,
+        svg_url: null,
+      },
+      error: null,
+    }));
+
+    const { POST } = await import("@/app/api/refund/route.js");
+    const response = await POST(jsonRequest({ projectId: "project-1" }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      message: "Refund already processed",
+    });
+    expect(adminSupabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for malformed refund JSON without querying a project", async () => {
+    adminSupabase.from = vi.fn();
+    const { POST } = await import("@/app/api/refund/route.js");
+    const response = await POST(new Request("http://localhost/api/refund", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: "{",
+    }));
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).code).toBe("INVALID_REQUEST");
+    expect(adminSupabase.from).not.toHaveBeenCalled();
+  });
+});

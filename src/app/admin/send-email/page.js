@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { safeJson } from "@/lib/safeJson";
 
-import "../../globals.css";
 import "../../home.css";
 
 const DEFAULT_RECIPIENT = "lloyddumzofficial@gmail.com";

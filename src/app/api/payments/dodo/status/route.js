@@ -3,13 +3,17 @@ import { adminSupabase } from "@/lib/supabase";
 import { getDodoClient } from "@/lib/dodo";
 import { logger } from "@/lib/logger";
 import { fulfillDodoPayment } from "@/server/payments/dodoFulfillment";
+import { getBearerToken, opaqueIdField, parseSearchParams } from "@/lib/apiValidation";
+
+const statusQuerySchema = {
+  paymentId: opaqueIdField({ required: false, message: "Invalid payment id" }),
+};
 
 export const runtime = "nodejs";
 
 async function getAuthenticatedUser(request) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return null;
-  const token = authHeader.replace("Bearer ", "").trim();
+  const token = getBearerToken(request);
+  if (!token) return null;
   const { data: { user }, error } = await adminSupabase.auth.getUser(token);
   return error ? null : user;
 }
@@ -64,7 +68,9 @@ export async function GET(request) {
     const user = await getAuthenticatedUser(request);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const paymentId = new URL(request.url).searchParams.get("paymentId");
+    const parsed = parseSearchParams(request, statusQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const { paymentId } = parsed.data;
     if (paymentId) {
       const { data: localPayment, error } = await adminSupabase
         .from("dodo_payments")

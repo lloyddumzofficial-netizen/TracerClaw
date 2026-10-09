@@ -3,17 +3,25 @@ import { adminSupabase } from "@/lib/supabase";
 import { getCreditPlan, getDodoProductId } from "@/lib/paymentPlans";
 import { getDodoClient, getSiteUrl } from "@/lib/dodo";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { getBearerToken, parseJsonRequest, stringField } from "@/lib/apiValidation";
+
+const checkoutSchema = {
+  plan: stringField({
+    maxLength: 32,
+    pattern: /^[a-z]+$/,
+    normalize: (value) => value.trim().toLowerCase(),
+    message: "Invalid plan",
+  }),
+};
 
 export const runtime = "nodejs";
 
 export async function POST(request) {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const token = getBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const token = authHeader.replace("Bearer ", "").trim();
     const { data: { user }, error: authErr } = await adminSupabase.auth.getUser(token);
     if (authErr || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -30,8 +38,10 @@ export async function POST(request) {
       return NextResponse.json({ error: "Too many checkout attempts. Please try again later." }, { status: 429 });
     }
 
-    const { plan: planKey } = await request.json();
-    const plan = getCreditPlan(planKey);
+    const parsed = await parseJsonRequest(request, checkoutSchema, { allowUnknown: false });
+    if (!parsed.ok) return parsed.response;
+
+    const plan = getCreditPlan(parsed.data.plan);
     if (!plan) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }

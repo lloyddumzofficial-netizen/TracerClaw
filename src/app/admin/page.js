@@ -9,7 +9,6 @@ import { CREDIT_PLANS } from "@/lib/paymentPlans";
 import { safeJson } from "@/lib/safeJson";
 import { logger } from "@/lib/logger";
 
-import "../globals.css";
 import "../home.css";
 
 const ADMIN_PAYMENT_REFRESH_MS = 10_000;

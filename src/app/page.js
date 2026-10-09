@@ -18,7 +18,6 @@ import { safeJson } from "@/lib/safeJson";
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-import "./globals.css";
 import "./home.css";
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -32,7 +31,7 @@ import FAQSection from "@/components/marketing/FAQSection";
 import LogoLoader from "@/components/ui/LogoLoader";
 import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
-import GuestHomepageHero, { GuestHomepageConversionSections } from "@/components/marketing/GuestHomepageHero";
+import GuestHomepageHero, { GuestHomepageConversionSections, GuestHomepageSampleSection } from "@/components/marketing/GuestHomepageHero";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
@@ -1302,6 +1301,8 @@ export default function StartScreen() {
         {user && <HomeTrustMarquee />}
 
         {user && <DesktopWorkspaceBanner />}
+
+        {!user && <GuestHomepageSampleSection />}
 
         <HomepageWorkflowPreview />
 

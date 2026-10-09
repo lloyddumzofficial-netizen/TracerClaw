@@ -2,27 +2,28 @@ import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
+import { getBearerToken, opaqueIdField, parseJsonRequest } from "@/lib/apiValidation";
+
+const refundSchema = {
+  projectId: opaqueIdField({ message: "Missing or invalid projectId" }),
+};
 
 export async function POST(request) {
   try {
-    const { projectId } = await request.json();
-
-    if (!projectId) {
-      return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
-    }
-
-    // Verify who is making the request
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    // Verify who is making the request before reading attacker-controlled input.
+    const token = getBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const token = authHeader.replace("Bearer ", "").trim();
     const { data: { user }, error: authError } = await adminSupabase.auth.getUser(token);
     
     if (authError || !user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
+
+    const parsed = await parseJsonRequest(request, refundSchema, { allowUnknown: false });
+    if (!parsed.ok) return parsed.response;
+    const { projectId } = parsed.data;
 
     // This endpoint mints credits, so it must not be replayable at speed.
     const rateLimit = await enforceRateLimit({

@@ -1,41 +1,3 @@
-:root {
-  --bg-app: #262626;
-  /* Outer application background */
-  --bg-panel: #1a1a1a;
-  /* Tool panels */
-  --bg-canvas: #222222;
-  /* Workspace canvas */
-  --bg-hover: #333333;
-  /* Hover state for buttons/items */
-  --bg-active: #222222;
-  /* Active selected item */
-
-  --border: #444444;
-  /* Panel borders */
-  --border-light: #555555;
-  /* Input borders */
-
-  --accent: #FFD700;
-  /* DESAYNBRO Yellow */
-  --accent-text: #000000;
-
-  --text-primary: #cccccc;
-  /* Off-white for less eye strain */
-  --text-bright: #ffffff;
-  /* Pure white for headings/active */
-  --text-muted: #888888;
-  /* Disabled or secondary text */
-
-  --radius: 0px;
-  /* Sharp industrial corners */
-  --font-manrope: "Manrope", "Segoe UI", Arial, sans-serif;
-  /* Local-safe font stack. Avoids network font fetch during build. */
-  --font-space-grotesk: var(--font-manrope), "Segoe UI", Arial, sans-serif;
-  --font-inter: var(--font-manrope), "Segoe UI", Arial, sans-serif;
-  --font-outfit: var(--font-manrope), "Segoe UI", Arial, sans-serif;
-  --font-jetbrains-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
-}
-
 * {
   box-sizing: border-box;
   padding: 0;
@@ -53,6 +15,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
 .app-container {
   display: flex;
   flex-direction: column;
@@ -4855,7 +4826,7 @@ body {
 
 /* Login Modal Styles */
 .login-modal-overlay {
-  --login-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.18'/%3E%3C/svg%3E");
+  --login-grain: var(--surface-grain-subtle);
   position: fixed;
   inset: 0;
   z-index: 999999;

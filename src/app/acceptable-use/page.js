@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
-import "../globals.css";
 
 export default function AcceptableUsePolicy() {
   const router = useRouter();

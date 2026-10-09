@@ -1,0 +1,41 @@
+:root {
+  /* Core workspace palette */
+  --bg-app: #262626;
+  --bg-panel: #1a1a1a;
+  --bg-canvas: #222222;
+  --bg-hover: #333333;
+  --bg-active: #222222;
+  --border: #444444;
+  --border-light: #555555;
+  --accent: #ffd700;
+  --accent-text: #000000;
+  --text-primary: #cccccc;
+  --text-bright: #ffffff;
+  --text-muted: #888888;
+  --radius: 0px;
+
+  /* Shared marketing surfaces */
+  --marketing-bg: #070707;
+  --marketing-panel: #151515;
+  --marketing-panel-strong: #101010;
+  --marketing-border: rgba(255, 255, 255, 0.085);
+  --marketing-border-strong: rgba(255, 255, 255, 0.14);
+  --marketing-text: #f4f4f4;
+  --marketing-muted: #9a9a9a;
+  --marketing-soft: #686868;
+  --marketing-accent: #ffd700;
+
+  /* Shared grid and grain assets */
+  --surface-grid-size: 64px;
+  --surface-grid-line: rgba(255, 255, 255, 0.052);
+  --surface-grain-subtle: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.18'/%3E%3C/svg%3E");
+  --surface-grain-strong: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.32'/%3E%3C/svg%3E");
+  --surface-grain-faint: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23grain)' opacity='.075'/%3E%3C/svg%3E");
+
+  /* Local-safe font stacks */
+  --font-manrope: "Manrope", "Segoe UI", Arial, sans-serif;
+  --font-space-grotesk: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  --font-inter: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  --font-outfit: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  --font-jetbrains-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}

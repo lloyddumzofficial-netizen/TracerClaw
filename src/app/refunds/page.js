@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CreditCard, AlertCircle, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
-import "../globals.css";
 
 export default function RefundPolicy() {
   const router = useRouter();

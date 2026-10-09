@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield, FileText, CheckCircle2 } from "lucide-react";
-import "../globals.css";
 
 export default function PrivacyPolicy() {
   const router = useRouter();

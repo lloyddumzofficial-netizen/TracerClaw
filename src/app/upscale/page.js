@@ -13,7 +13,6 @@ import FeedbackWidget from "@/components/shared/FeedbackWidget";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
-import "../globals.css";
 import "../home.css";
 
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
