@@ -35,6 +35,13 @@ changes; the root-level SQL files are historical references.
 25. `025_repair_mockup_billing_rpc.sql`
 26. `026_expand_mockup_garment_catalog.sql`
 27. `027_guard_paid_credits_and_precision_refunds.sql`
+28. `028_log_dodo_credit_grants.sql`
+29. `029_persist_project_reviews.sql`
+
+Run `npm run migrations:check` before every deployment. It verifies that the
+ordered migration files are sequential and that this manifest contains every
+file. Production dependency readiness is verified separately by the
+authenticated deep-health endpoint.
 
 ## Historical Root Scripts
 

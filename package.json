@@ -14,6 +14,8 @@
     "test:integration": "vitest run tests/integration tests/api",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:release": "npm run lint && npm run test && npm run migrations:check && npm run build && npm run test:e2e",
+    "migrations:check": "node scripts/check-migrations.mjs",
     "r2:cors": "node scripts/configure-r2-cors.mjs",
     "test:smoke": "playwright test production-smoke.spec.js"
   },

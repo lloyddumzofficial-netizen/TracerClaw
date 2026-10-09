@@ -8,7 +8,7 @@ This report tracks automated protection for critical DesaynClaw production flows
 | --- | --- | --- |
 | User sign in | E2E smoke verifies sign-in modal opens and email field renders. | `tests/e2e/critical-flows.spec.js` |
 | Legacy manual GCash | API integration verifies the retired proof-submission endpoint always returns `410` and cannot create new approval-queue records. | `tests/integration/financial-operations.test.js` |
-| Dodo credit purchase | API integration verifies QR-Ph-only plans are rejected and Dodo checkout creates local pending payment before provider checkout. | `tests/integration/financial-operations.test.js` |
+| Dodo credit purchase | API integration verifies QR-Ph-only plans are rejected, checkout creates a local pending payment before provider checkout, and signed success/failure webhook events delegate to the idempotent fulfillment service. | `tests/integration/financial-operations.test.js` |
 | Manual payment approval | API integration verifies atomic approval RPC and post-grant email behavior. | `tests/integration/financial-operations.test.js` |
 | Credit refund | API integration verifies successful-output refunds are refused and eligible failures use the atomic refund RPC. | `tests/integration/financial-operations.test.js` |
 | Project creation | API integration verifies verified user id, trace type mapping, and project name sanitization. | `tests/api/core-endpoints.test.js` |

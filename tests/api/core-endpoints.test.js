@@ -69,6 +69,10 @@ vi.mock("sharp", () => ({ default: sharpMock }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Paid-generation routes intentionally verify provider readiness before
+  // claiming a claw. Unit tests use a mocked provider, so make that readiness
+  // contract explicit instead of depending on a developer's local env file.
+  process.env.FAL_KEY = "test-fal-key";
   adminSupabase.auth.getUser.mockResolvedValue({
     data: { user: { id: "user-1", email: "user@example.com" } },
     error: null,

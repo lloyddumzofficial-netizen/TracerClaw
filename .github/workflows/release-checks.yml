@@ -1,0 +1,44 @@
+name: Release checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      CLOUDFLARE_ACCOUNT_ID: test-account
+      CLOUDFLARE_ACCESS_KEY_ID: test-access-key
+      CLOUDFLARE_SECRET_ACCESS_KEY: test-secret-key
+      CLOUDFLARE_BUCKET_NAME: test-bucket
+      CLOUDFLARE_PUBLIC_URL: https://storage.example.com
+      FAL_KEY: test-fal-key
+      CRON_SECRET: test-cron-secret
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run migrations:check
+      - run: npm run build
+      - run: npm run test:e2e

@@ -34,9 +34,19 @@ test("sign-in modal remains reachable from protected actions", async ({ page }) 
   await page.goto("/");
   await acceptPrivacyNotice(page);
 
-  await page.getByRole("button", { name: "Start designing" }).first().click();
+  const trigger = page.getByRole("button", { name: "Start designing" }).first();
+  await trigger.click();
   await expect(page.getByRole("heading", { name: "Welcome back." })).toBeVisible();
-  await expect(page.locator('input[type="email"]').first()).toBeVisible();
+  const emailInput = page.locator('input[type="email"]').first();
+  await expect(emailInput).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    return Boolean(dialog && dialog.contains(document.activeElement));
+  })).toBe(true);
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("heading", { name: "Welcome back." })).toBeHidden();
+  await expect(trigger).toBeFocused();
 });
 
 test("upscale tool redirects signed-out users before exposing paid actions", async ({ page }) => {

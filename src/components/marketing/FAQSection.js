@@ -34,7 +34,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section className="faq-section" style={{
+    <section id="faq" className="faq-section" aria-labelledby="faq-title" style={{
       maxWidth: "800px",
       margin: "120px auto 60px",
       padding: "0 20px"
@@ -57,7 +57,7 @@ export default function FAQSection() {
         }}>
           Got Questions?
         </div>
-        <h2 style={{
+        <h2 id="faq-title" style={{
           fontSize: "36px",
           fontWeight: "850",
           color: "#fff",
@@ -77,14 +77,12 @@ export default function FAQSection() {
           return (
             <div 
               key={idx} 
-              onClick={() => setOpenIndex(isOpen ? -1 : idx)}
               style={{
                 background: isOpen ? "rgba(255,255,255,0.03)" : "rgba(20,20,20,0.4)",
                 border: "1px solid",
                 borderColor: isOpen ? "rgba(255, 215, 0, 0.3)" : "rgba(255,255,255,0.05)",
                 borderRadius: "12px",
                 padding: "24px",
-                cursor: "pointer",
                 transition: "all 0.3s ease",
                 position: "relative",
                 overflow: "hidden"
@@ -110,8 +108,14 @@ export default function FAQSection() {
                 }} />
               )}
               
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "20px" }}>
-                <h3 style={{ 
+              <button
+                type="button"
+                onClick={() => setOpenIndex(isOpen ? -1 : idx)}
+                aria-expanded={isOpen}
+                aria-controls={`faq-answer-${idx}`}
+                style={{ display: "flex", width: "100%", padding: 0, border: 0, background: "none", cursor: "pointer", textAlign: "left", justifyContent: "space-between", alignItems: "center", gap: "20px" }}
+              >
+                <h3 id={`faq-question-${idx}`} style={{
                   margin: 0, 
                   fontSize: "16px", 
                   fontWeight: isOpen ? "700" : "500", 
@@ -131,9 +135,14 @@ export default function FAQSection() {
                     flexShrink: 0
                   }} 
                 />
-              </div>
+              </button>
               
-              <div style={{
+              <div
+                id={`faq-answer-${idx}`}
+                role="region"
+                aria-labelledby={`faq-question-${idx}`}
+                hidden={!isOpen}
+                style={{
                 maxHeight: isOpen ? "200px" : "0",
                 opacity: isOpen ? 1 : 0,
                 overflow: "hidden",

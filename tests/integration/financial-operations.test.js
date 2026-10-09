@@ -11,6 +11,8 @@ const adminSupabase = {
 
 const sendEmail = vi.fn();
 const getDodoClient = vi.fn();
+const fulfillDodoPayment = vi.fn();
+const markDodoPaymentStatus = vi.fn();
 
 vi.mock("@/lib/supabase", () => ({ adminSupabase }));
 vi.mock("@/lib/rateLimit", () => ({
@@ -31,11 +33,16 @@ vi.mock("@/lib/dodo", () => ({
   getDodoClient,
   getSiteUrl: () => "https://desaynclaw.com",
 }));
+vi.mock("@/server/payments/dodoFulfillment", () => ({
+  fulfillDodoPayment,
+  markDodoPaymentStatus,
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ADMIN_EMAIL = "admin@desaynclaw.test";
   process.env.DODO_PRODUCT_BASIC = "prod_basic";
+  process.env.DODO_PAYMENTS_WEBHOOK_SECRET = "test-webhook-secret";
   adminSupabase.auth.getUser.mockResolvedValue({
     data: { user: { id: "user-1", email: "user@example.com", user_metadata: {} } },
     error: null,
@@ -55,6 +62,54 @@ describe("Legacy manual GCash submission", () => {
       error: expect.stringMatching(/QR Ph/i),
     }));
     expect(adminSupabase.from).not.toHaveBeenCalled();
+  });
+});
+
+describe("Dodo webhook fulfillment", () => {
+  it("verifies a successful event and delegates to the idempotent fulfillment service", async () => {
+    const payment = { payment_id: "pay-provider-1", metadata: { local_payment_id: "dodo-local-1" } };
+    const unwrap = vi.fn(() => ({ type: "payment.succeeded", data: payment }));
+    getDodoClient.mockReturnValue({ webhooks: { unwrap } });
+    fulfillDodoPayment.mockResolvedValue({ status: "paid", granted: true });
+
+    const { POST } = await import("@/app/api/payments/dodo/webhook/route.js");
+    const request = new Request("http://localhost/api/payments/dodo/webhook", {
+      method: "POST",
+      headers: {
+        "webhook-id": "evt-1",
+        "webhook-signature": "signature-1",
+        "webhook-timestamp": "1700000000",
+      },
+      body: JSON.stringify({ type: "payment.succeeded" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(unwrap).toHaveBeenCalledWith(expect.any(String), {
+      headers: {
+        "webhook-id": "evt-1",
+        "webhook-signature": "signature-1",
+        "webhook-timestamp": "1700000000",
+      },
+      key: "test-webhook-secret",
+    });
+    expect(fulfillDodoPayment).toHaveBeenCalledWith({ payment, source: "webhook" });
+  });
+
+  it.each(["payment.failed", "payment.cancelled"])("marks %s as failed without granting credits", async (type) => {
+    const payment = { payment_id: "pay-provider-failed" };
+    getDodoClient.mockReturnValue({ webhooks: { unwrap: vi.fn(() => ({ type, data: payment })) } });
+
+    const { POST } = await import("@/app/api/payments/dodo/webhook/route.js");
+    const response = await POST(new Request("http://localhost/api/payments/dodo/webhook", {
+      method: "POST",
+      body: "{}",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(markDodoPaymentStatus).toHaveBeenCalledWith(payment, "failed");
+    expect(fulfillDodoPayment).not.toHaveBeenCalled();
   });
 });
 

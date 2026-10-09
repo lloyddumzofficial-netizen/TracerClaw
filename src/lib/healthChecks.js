@@ -64,7 +64,6 @@ export const OPTIONAL_ENV = [
   "NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
   "NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE",
   "SENTRY_AUTH_TOKEN",
-  "NEXT_PUBLIC_MAINTENANCE_MODE",
   "LOG_LEVEL",
 ];
 
@@ -243,4 +242,27 @@ export function buildInfo() {
     builtAt: process.env.BUILD_TIME || "unknown",
     env: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
   };
+}
+
+/** Run the complete dependency-readiness suite used by deploy and cron checks. */
+export async function runDeepHealthChecks() {
+  const [database, schema, rls, aiProvider] = await Promise.all([
+    checkDatabase(),
+    checkSchema(),
+    checkRlsEnforced(),
+    checkAiProvider(),
+  ]);
+  const checks = {
+    env: checkEnv(),
+    database,
+    schema,
+    rls,
+    capabilities: checkCapabilities(),
+    aiProvider,
+  };
+  const failed = Object.entries(checks)
+    .filter(([, value]) => value && value.ok === false)
+    .map(([name]) => name);
+
+  return { ok: failed.length === 0, failed, checks };
 }

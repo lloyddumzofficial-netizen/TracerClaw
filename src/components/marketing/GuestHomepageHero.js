@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ArrowLeftRight, ArrowUpRight, Star } from "lucide-react";
 import BeforeAfterSlider from "@/components/marketing/BeforeAfterSlider";
@@ -79,10 +80,16 @@ export function GuestHomepageConversionSections({ onStart }) {
 }
 
 export default function GuestHomepageHero({ onStart, publicStats }) {
+  const [isInteractive, setIsInteractive] = useState(false);
   const totalUsers = Number.isFinite(publicStats?.totalUsers) ? publicStats.totalUsers : 0;
   const reviewCount = Number.isFinite(publicStats?.reviewCount) ? publicStats.reviewCount : 0;
   const avatars = Array.isArray(publicStats?.avatars) ? publicStats.avatars.slice(0, 5) : [];
   const hasCommunityProof = totalUsers > 0 || avatars.length > 0;
+
+  // Server-rendered buttons can become visible a moment before React attaches
+  // their click handlers. Keep protected entry points disabled until hydration
+  // so a fast click is never silently dropped.
+  useEffect(() => setIsInteractive(true), []);
 
   return (
     <div className="guest-landing">
@@ -106,7 +113,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
           <a href="#pricing">Pricing</a>
         </nav>
 
-        <button className="guest-landing-nav-cta" type="button" onClick={onStart}>
+        <button className="guest-landing-nav-cta" type="button" onClick={onStart} disabled={!isInteractive}>
           Start designing <ArrowUpRight size={17} aria-hidden="true" />
         </button>
       </header>
@@ -117,7 +124,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
           Extract artwork from garments and logos, refine the details, and deliver clean files your production team can actually use.
         </p>
         <div className="guest-landing-actions">
-          <button className="guest-landing-primary" type="button" onClick={onStart}>
+          <button className="guest-landing-primary" type="button" onClick={onStart} disabled={!isInteractive}>
             Start designing <span><ArrowUpRight size={18} aria-hidden="true" /></span>
           </button>
           <a className="guest-landing-secondary" href="#preview">See a real example <ArrowUpRight size={15} aria-hidden="true" /></a>

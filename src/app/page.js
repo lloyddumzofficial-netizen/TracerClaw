@@ -496,6 +496,7 @@ export default function StartScreen() {
   const [showModal, setShowModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
@@ -853,7 +854,10 @@ export default function StartScreen() {
   };
 
   // ─── Auth Handlers ──────────────────────────────────────────────────────────
-  const handleLogin = () => {
+  const handleLogin = (event) => {
+    if (event?.currentTarget instanceof HTMLElement) {
+      loginTriggerRef.current = event.currentTarget;
+    }
     setShowLoginModal(true);
   };
 
@@ -1290,7 +1294,7 @@ export default function StartScreen() {
       </div>}
 
       {/* Main Content Wrapper (For the rest of the page) */}
-      <div
+      <main
         className={`home-content-frame${showQrModal ? " has-qr-sync-modal" : ""}`}
         style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", width: "100%" }}
       >
@@ -1507,6 +1511,7 @@ export default function StartScreen() {
           show={showLoginModal}
           onClose={() => setShowLoginModal(false)}
           supabase={supabase}
+          returnFocusRef={loginTriggerRef}
         />
 
         {/* Delete Confirmation Modal */}
@@ -1632,7 +1637,7 @@ export default function StartScreen() {
                 <a href="/privacy">Privacy Policy</a>
                 <a href="/terms">Terms of Service</a>
                 <a href="/refunds">Refund Policy</a>
-                <a href="/privacy">FAQ</a>
+                <a href="/#faq">FAQ</a>
               </div>
               <div>
                 <h3>Company</h3>
@@ -1651,7 +1656,7 @@ export default function StartScreen() {
         </footer>
         </div>
 
-      </div>
+      </main>
 
 
 

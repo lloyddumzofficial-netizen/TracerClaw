@@ -36,12 +36,10 @@ If any are missing in production, startup fails before the app can serve partial
 - `DODO_PRODUCT_STARTER`: Dodo product ID for the Starter package.
 - `DODO_PRODUCT_PRO`: Dodo product ID for the Pro package.
 - `RESEND_API_KEY`: Resend API key for payment notification emails.
-- `OPENROUTER_API_KEY`: optional SVG semantic segmentation provider key.
 - `VECTORIZER_API_ID`: Vectorizer.AI API ID for precision SVG output.
 - `VECTORIZER_API_SECRET`: Vectorizer.AI API secret.
 - `RECRAFT_API_KEY`: Recraft fallback vectorization API key.
 - `LOG_LEVEL`: set to `debug` to emit debug logs; defaults to `info`.
-- `NEXT_PUBLIC_MAINTENANCE_MODE`: set to `true` for the emergency maintenance screen.
 
 ## Growth And Monitoring
 

@@ -1,51 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DesaynClaw
 
-## Getting Started
+DesaynClaw is a Next.js production workspace for AI artwork extraction, image
+upscaling, background removal, SVG vectorization, mockup rendering, and paid
+Claw credit fulfillment.
 
-First, run the development server:
+## Local development
+
+Use Node.js 22 LTS. Copy `.env.example` to `.env.local`, replace the placeholder
+values, then install and run the app:
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The main homepage is implemented in
+`src/app/page.js`; API routes live under `src/app/api`.
 
-## Provider Environment
+## Release verification
 
-The standard SVG pipeline uses `RECRAFT_API_KEY`.
-
-The optional premium Precision SVG mode uses Vectorizer.AI and requires these
-server-side environment variables in local `.env.local` and Vercel:
+Before deploying, run:
 
 ```bash
-VECTORIZER_API_ID=your-api-id
-VECTORIZER_API_SECRET=your-api-secret
+npm run test:release
 ```
 
-If those values are missing, Standard SVG continues to work and Precision SVG
-returns a clear setup message without charging the extra premium credit.
+This runs lint, the Vitest suite, ordered migration integrity checks, the
+production build, and Playwright critical-flow tests. Install the Playwright
+browser once on a new machine with:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```bash
+npx playwright install chromium
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+GitHub Actions runs the same release checks for pull requests and pushes to
+`main`.
 
-## Learn More
+## Database migrations
 
-To learn more about Next.js, take a look at the following resources:
+Ordered SQL migrations are in `database/migrations`. Apply them in numeric
+order and run `npm run migrations:check` to catch missing or misnumbered files.
+The authenticated deep-health endpoint validates the production schema, RLS,
+database connection, required environment, and AI provider readiness.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment and operations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Environment reference: `docs/environment.md`
+- Regression coverage: `docs/regression-coverage.md`
+- Public liveness: `GET /api/health`
+- Authenticated readiness: `GET /api/health?deep=1` with
+  `Authorization: Bearer $CRON_SECRET`
+- Scheduled readiness: `GET /api/cron/health` through Vercel Cron
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Never expose service-role, provider, payment, or webhook secrets through a
+`NEXT_PUBLIC_` variable.

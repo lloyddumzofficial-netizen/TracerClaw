@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { enforceRateLimit, getClientIp } from "@/lib/rateLimit";
 import {
   buildInfo,
-  checkDatabase,
-  checkCapabilities,
-  checkAiProvider,
-  checkEnv,
-  checkRlsEnforced,
-  checkSchema,
+  runDeepHealthChecks,
 } from "@/lib/healthChecks";
 
 export const runtime = "nodejs";
@@ -53,30 +48,18 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [database, schema, rls, aiProvider] = await Promise.all([
-    checkDatabase(),
-    checkSchema(),
-    checkRlsEnforced(),
-    checkAiProvider(),
-  ]);
-  const env = checkEnv();
-  const capabilities = checkCapabilities();
-
-  const checks = { env, database, schema, rls, capabilities, aiProvider };
-  const failed = Object.entries(checks)
-    .filter(([, v]) => v && v.ok === false)
-    .map(([k]) => k);
+  const { ok, failed, checks } = await runDeepHealthChecks();
 
   return NextResponse.json(
     {
-      ok: failed.length === 0,
-      status: failed.length === 0 ? "healthy" : "degraded",
+      ok,
+      status: ok ? "healthy" : "degraded",
       failed,
       build,
       checks,
     },
     {
-      status: failed.length === 0 ? 200 : 503,
+      status: ok ? 200 : 503,
       headers: { "Cache-Control": "no-store" },
     }
   );

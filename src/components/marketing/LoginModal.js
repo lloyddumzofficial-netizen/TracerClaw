@@ -8,13 +8,20 @@ import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
 import { analytics } from "@/lib/analytics";
 
-const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
+const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFocusRef }) {
   const [email, setEmail] = useState("");
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
   const turnstileRef = useRef(null);
+  const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Use the production key by default; localhost switches to Cloudflare's dummy testing key below.
   const [turnstileSiteKey, setTurnstileSiteKey] = useState('0x4AAAAAAD26TJ8T3jCD57hp');
@@ -45,6 +52,59 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
   useEffect(() => {
     if (show) consumeTurnstile();
   }, [show, consumeTurnstile]);
+
+  useEffect(() => {
+    if (!show) return undefined;
+
+    previousFocusRef.current = returnFocusRef?.current || document.activeElement;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusDialog = window.requestAnimationFrame(() => {
+      dialogRef.current?.querySelector("#login-email, button:not([disabled])")?.focus();
+    });
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(dialogRef.current?.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ) || []).filter((element) => !element.hasAttribute("hidden"));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusDialog);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+      const previousFocus = previousFocusRef.current;
+      window.requestAnimationFrame(() => {
+        if (!document.querySelector('[role="dialog"]') && previousFocus?.isConnected) {
+          previousFocus.focus();
+        }
+      });
+    };
+  }, [show, returnFocusRef]);
 
   if (!show || typeof document === "undefined") return null;
 
@@ -116,10 +176,13 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
   return createPortal(
     <div className="login-modal-overlay" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="login-modal-panel login-split-container"
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
+        aria-describedby="login-modal-description"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <button className="login-close-button" type="button" onClick={onClose} aria-label="Close login">
@@ -161,7 +224,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
               <div className="login-auth-heading">
                 <span className="login-auth-kicker"><ShieldCheck size={13} /> Secure workspace</span>
                 <h2 id="login-modal-title">Welcome back.</h2>
-                <p>Sign in to continue your production workflow.</p>
+                <p id="login-modal-description">Sign in to continue your production workflow.</p>
               </div>
 
               {emailSent ? (
@@ -185,6 +248,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase }) {
                         onChange={e => setEmail(e.target.value)}
                         disabled={isLoadingGoogle || isLoadingEmail}
                         autoComplete="email"
+                        autoFocus
                       />
                     </div>
                   </div>
