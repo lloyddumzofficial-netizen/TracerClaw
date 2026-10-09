@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUpRight, Check, CreditCard, QrCode } from "lucide-react";
+import Image from "next/image";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
 
 const PLAN_DETAILS = {
@@ -37,9 +38,9 @@ export default function GuestPricingSection({ onStart }) {
   return (
     <section className="guest-pricing" id="pricing" aria-labelledby="guest-pricing-heading">
       <div className="guest-pricing-heading">
-        <span>PAY AS YOU GO</span>
-        <h2 id="guest-pricing-heading">Production pricing.<br /><em>No subscription.</em></h2>
-        <p>Buy only the Claws you need. Use them across DesaynClaw production tools without a monthly commitment.</p>
+        <span>Pricing</span>
+        <h2 id="guest-pricing-heading">Choose the package that fits your workflow.</h2>
+        <p>One-time Claw packages. No subscription or monthly commitment.</p>
       </div>
 
       <div className="guest-pricing-grid">
@@ -62,7 +63,7 @@ export default function GuestPricingSection({ onStart }) {
 
             <div className="guest-pricing-claws">
               <strong>{plan.credits}</strong>
-              <span>Claws</span>
+              <span className="guest-pricing-claw-label"><Image src="/Claws/Claws.webp" alt="" width={14} height={14} aria-hidden="true" />Claws</span>
               <small>₱{plan.pricePerClaw} each</small>
             </div>
 

@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Shirt, Package, Check, ArrowRight, History, Clock } from "lucide-react";
+import { X, Package, Check, ArrowRight, History, Clock } from "lucide-react";
 import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
@@ -288,7 +288,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         {/* Modal Header */}
         <div className="top-up-modal-header" style={{ background: 'linear-gradient(180deg, #171717, #121212)', borderBottom: '1px solid rgba(255,255,255,0.09)', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div className="top-up-modal-brand" style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
-            <Shirt size={17} color="#d8d8d8" />
+            <Image className="top-up-modal-claw-icon" src="/Claws/Claws.webp" alt="" width={22} height={22} aria-hidden="true" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span style={{ fontWeight: '650', fontSize: '14px', color: '#f3f3f3' }}>Get More Traces</span>
               <span style={{ fontWeight: '500', fontSize: '11px', color: '#7d7d7d' }}>Top up claws for production work</span>
@@ -319,7 +319,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
           <button className="top-up-modal-close" aria-label="Close top-up plans" onClick={handleClose} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px' }}><X size={16} /></button>
         </div>
 
-        <div className={`top-up-modal-body${activeTab === 'plans' && step === 1 ? ' top-up-modal-body-plans' : ''}`} style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
+        <div className={`top-up-modal-body${activeTab === 'plans' && step === 1 ? ' top-up-modal-body-plans' : ''}${activeTab === 'plans' && step !== 1 ? ' top-up-modal-body-payment' : ''}`} style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
           {activeTab === 'history' ? (
             <div style={{ minHeight: '300px' }}>
               <div style={{ marginBottom: '24px' }}>
@@ -360,10 +360,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     Welcome. You need claws to trace images. Please select a plan and log in.
                   </div>
                 )}
-                <div className="top-up-pricing-kicker">Pay as you go</div>
+                <div className="top-up-pricing-kicker">Pricing</div>
                 <div className="top-up-pricing-title-row">
-                  <h2>Production pricing.<br /><span>No subscription.</span></h2>
-                  <p>Buy only the Claws you need. Use them across DesaynClaw production tools without a monthly commitment.</p>
+                  <h2>Choose the package that fits your workflow.</h2>
+                  <p>One-time Claw packages. No subscription or monthly commitment.</p>
                 </div>
               </div>
 
@@ -387,7 +387,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
 
                     <div className="top-up-plan-claws">
                       <strong>{p.traces}</strong>
-                      <span>Claws</span>
+                      <span className="top-up-plan-claw-label"><Image src="/Claws/Claws.webp" alt="" width={14} height={14} aria-hidden="true" />Claws</span>
                       <small>₱{p.pricePerClaw} each</small>
                     </div>
 
