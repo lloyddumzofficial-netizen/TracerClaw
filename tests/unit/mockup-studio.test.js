@@ -4,7 +4,7 @@ import {
   REQUIRED_MOCKUP_PARTS, normalizeMockupColors, validateMockupAsset,
 } from "@/features/mockup-studio/config";
 import { buildMockupPrompt } from "@/server/mockups/prompts";
-import { orderMockupReferences } from "@/server/mockups/provider";
+import { classifyMockupProviderError, orderMockupReferences } from "@/server/mockups/provider";
 import { getMockupRenderStage } from "@/features/mockup-studio/review/renderProgress";
 import { AVAILABLE_GARMENT_TYPES, GARMENT_CATALOG, getGarmentParts, getSafeGarmentType, isGarmentPartAllowed, isGarmentTypeAvailable } from "@/features/mockup-studio/garmentCatalog";
 import { getPanelPreparationSpec, matchesPanelPreparationSpec } from "@/features/mockup-studio/panelPreparation/panelSpecs";
@@ -152,6 +152,24 @@ describe("mockup studio configuration", () => {
     expect(orderMockupReferences({ imageUrls, assetRoles, shot: "sleeve" }).map(item => item.role)).toEqual([
       "left_sleeve", "front", "back", "right_sleeve", "style_reference",
     ]);
+  });
+
+  it("distinguishes invalid provider credentials from retryable outages", () => {
+    expect(classifyMockupProviderError({ status: 401 })).toEqual({
+      code: "AI_PROVIDER_AUTH_FAILED",
+      status: 401,
+      retryable: false,
+    });
+    expect(classifyMockupProviderError({ status: 429 })).toEqual({
+      code: "AI_PROVIDER_RATE_LIMITED",
+      status: 429,
+      retryable: true,
+    });
+    expect(classifyMockupProviderError(new Error("network unavailable"))).toEqual({
+      code: "AI_PROVIDER_UNAVAILABLE",
+      status: null,
+      retryable: true,
+    });
   });
 
   it("uses the production board before generated continuity references", () => {

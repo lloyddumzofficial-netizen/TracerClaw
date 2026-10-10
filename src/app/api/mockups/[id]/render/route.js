@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { requireUser } from "@/server/api/auth";
 import { isValidGenerationRequestKey } from "@/server/billing";
-import { createMockupWebhookUrl, createProductionReferenceBoard, loadMockupAssets, loadOwnedMockupProject, renderSourceLockedView, submitMockupViews } from "@/server/mockups";
+import { checkMockupProviderAvailability, classifyMockupProviderError, createMockupWebhookUrl, createProductionReferenceBoard, loadMockupAssets, loadOwnedMockupProject, renderSourceLockedView, submitMockupViews } from "@/server/mockups";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { MOCKUP_RENDER_COST, MOCKUP_SHOTS } from "@/features/mockup-studio/config";
 import { getGarmentParts, getGarmentProfile, isGarmentPartAllowed } from "@/features/mockup-studio/garmentCatalog";
@@ -63,6 +63,23 @@ export async function POST(request, { params }) {
     }, { status: 503 });
   }
 
+  const providerAvailability = await checkMockupProviderAvailability();
+  if (!providerAvailability.ok) {
+    logger.error("[Mockup render] AI provider credential check failed; refusing to charge", {
+      projectId: id,
+      userId: auth.user.id,
+      code: providerAvailability.code,
+      providerStatus: providerAvailability.status,
+    });
+    return NextResponse.json({
+      error: providerAvailability.code === "AI_PROVIDER_AUTH_FAILED"
+        ? "The render provider is not configured correctly. No Claws were charged."
+        : "The render provider is temporarily unavailable. No Claws were charged.",
+      code: providerAvailability.code,
+      refunded: false,
+    }, { status: 503 });
+  }
+
   const { data: claimRows, error: claimError } = await adminSupabase.rpc("claim_mockup_render", {
     target_user_id: auth.user.id,
     target_project_id: id,
@@ -90,6 +107,7 @@ export async function POST(request, { params }) {
   }
 
   const jobId = claim.job_id;
+  let submissionStage = "prepare_reference_images";
   try {
     const profile = getGarmentProfile(project.garment_type);
     const ordered = assets.filter(asset => isGarmentPartAllowed(project.garment_type, asset.role)).sort((a, b) => {
@@ -106,6 +124,7 @@ export async function POST(request, { params }) {
       uploadToR2(lockedFront, `users/${auth.user.id}/mockups/${id}/references/${jobId}-canonical-front.png`, "image/png"),
       uploadToR2(lockedBack, `users/${auth.user.id}/mockups/${id}/references/${jobId}-canonical-back.png`, "image/png"),
     ]);
+    submissionStage = "submit_provider_job";
     const providerRequests = await submitMockupViews({
       imageUrls: [lockedFrontUrl, lockedBackUrl, referenceBoardUrl, ...ordered.map(asset => asset.file_url)],
       assetRoles: ["canonical_front", "canonical_back", "production_board", ...ordered.map(asset => asset.role)],
@@ -119,6 +138,7 @@ export async function POST(request, { params }) {
     providerRequests._canonicalFront = lockedFrontUrl;
     providerRequests._canonicalBack = lockedBackUrl;
     providerRequests._phase = "hero";
+    submissionStage = "save_queued_job";
     const now = new Date().toISOString();
     const { error: updateError } = await adminSupabase.from("mockup_jobs").update({
       provider_requests: providerRequests,
@@ -129,8 +149,24 @@ export async function POST(request, { params }) {
     await adminSupabase.from("mockup_projects").update({ status: "rendering", updated_at: now })
       .eq("id", id).eq("user_id", auth.user.id);
     return NextResponse.json({ jobId, status: "queued", creditsRemaining: claim.credits_remaining }, { status: 202 });
-  } catch {
+  } catch (error) {
+    const providerFailure = classifyMockupProviderError(error);
+    logger.error("[Mockup render] Could not start render", {
+      projectId: id,
+      jobId,
+      userId: auth.user.id,
+      stage: submissionStage,
+      code: providerFailure.code,
+      providerStatus: providerFailure.status,
+      error,
+    });
     await refundFailedSubmission(auth.user.id, jobId, "PROVIDER_SUBMIT_FAILED").catch(() => null);
-    return NextResponse.json({ error: "The render engine could not start. Your 2 Claws were restored.", refunded: true }, { status: 503 });
+    return NextResponse.json({
+      error: providerFailure.code === "AI_PROVIDER_AUTH_FAILED"
+        ? "The render provider is not configured correctly. Your 2 Claws were restored."
+        : "The render engine could not start. Your 2 Claws were restored.",
+      code: providerFailure.code,
+      refunded: true,
+    }, { status: 503 });
   }
 }
