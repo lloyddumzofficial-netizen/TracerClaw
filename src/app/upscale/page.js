@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { CheckCircle2, Clock, Download, Loader2, Monitor, Scan, ShieldAlert, Wand2 } from "lucide-react";
+import { CheckCircle2, Clock, Columns2, Download, ImageIcon, Loader2, Monitor, Plus, RotateCcw, Scan, ShieldCheck, Wand2 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -77,14 +77,28 @@ export default function UpscalePage() {
   const [credits, setCredits] = useState(0);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [recentUpscales, setRecentUpscales] = useState([]);
+  const [viewMode, setViewMode] = useState("original");
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
+  const [activeProjectName, setActiveProjectName] = useState(null);
 
   const noCredits = credits < UPSCALE_CREDIT_COST;
 
   const getHistoryPreviewUrl = (item) => (
+    item.original_image_url
+      || (item.generated_image_url && item.generated_image_url !== "REFUNDED" ? item.generated_image_url : null)
+  );
+
+  const getHistoryResultUrl = (item) => (
     item.generated_image_url && item.generated_image_url !== "REFUNDED"
       ? item.generated_image_url
-      : item.original_image_url
+      : null
   );
+
+  const getHistoryStatus = (item) => {
+    if (getHistoryResultUrl(item)) return "Ready";
+    if (getPendingUpscaleRequestId(item)) return "Processing";
+    return "Unavailable";
+  };
 
   const [uploadMode, setUploadMode] = useState("file"); // "file" | "qr"
   const scrollContainerRef = useRef(null);
@@ -132,16 +146,17 @@ export default function UpscalePage() {
   };
 
   const fetchRecentUpscales = async (userId) => {
+    const retentionCutoff = new Date(Date.now() - (3 * 24 * 60 * 60 * 1000)).toISOString();
     const { data } = await supabase
       .from("projects")
-      .select("*")
+      .select("id, name, created_at, original_image_url, generated_image_url, ai_prompt")
       .eq("user_id", userId)
       .eq("trace_type", "upscale")
+      .gte("created_at", retentionCutoff)
       .order("created_at", { ascending: false })
       .limit(20);
     if (data) setRecentUpscales(data);
   };
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       let syncId = localStorage.getItem("globalSyncSessionId");
@@ -162,6 +177,10 @@ export default function UpscalePage() {
         setSelectedUrl(pendingUrl);
         setSelectedFile(null);
         setUpscaledImage(null);
+        setViewMode("original");
+        setActiveHistoryId(null);
+        setActiveProjectName("Mobile upload");
+        setZoom(1);
         upscaleRequestKeyRef.current = null;
       }
     };
@@ -184,14 +203,52 @@ export default function UpscalePage() {
       toast.error(`File is too large! Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
       return;
     }
+    if (previewImage?.startsWith("blob:")) URL.revokeObjectURL(previewImage);
     const objUrl = URL.createObjectURL(file);
     setPreviewImage(objUrl);
     setSelectedFile(file);
     setSelectedUrl(null);
     setUpscaledImage(null);
+    setViewMode("original");
+    setActiveHistoryId(null);
+    setActiveProjectName(file.name);
+    setZoom(1);
     upscaleRequestKeyRef.current = null;
   };
 
+  const resetWorkspace = () => {
+    if (previewImage?.startsWith("blob:")) URL.revokeObjectURL(previewImage);
+    setPreviewImage(null);
+    setSelectedFile(null);
+    setSelectedUrl(null);
+    setUpscaledImage(null);
+    setViewMode("original");
+    setActiveHistoryId(null);
+    setActiveProjectName(null);
+    setUploadMode("file");
+    setZoom(1);
+    upscaleRequestKeyRef.current = null;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const openRecentProject = (item) => {
+    const sourceUrl = item.original_image_url || null;
+    const resultUrl = getHistoryResultUrl(item);
+    if (!sourceUrl && !resultUrl) {
+      toast.error("This project no longer has an available image.");
+      return;
+    }
+    if (previewImage?.startsWith("blob:")) URL.revokeObjectURL(previewImage);
+    setPreviewImage(sourceUrl || resultUrl);
+    setSelectedFile(null);
+    setSelectedUrl(sourceUrl);
+    setUpscaledImage(resultUrl);
+    setViewMode(resultUrl ? "result" : "original");
+    setActiveHistoryId(item.id);
+    setActiveProjectName(item.name || "6X Upscale");
+    setZoom(1);
+    upscaleRequestKeyRef.current = null;
+  };
   const uploadToS3 = async (file) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -332,6 +389,7 @@ export default function UpscalePage() {
       }
 
       setUpscaledImage(upscaledUrl);
+      setViewMode("result");
       toast.success("Image upscaled successfully! (1 Claw deducted)");
       fetchCredits(user.id);
       fetchRecentUpscales(user.id);
@@ -385,7 +443,9 @@ export default function UpscalePage() {
     return <DesktopRequiredNotice />;
   }
 
-  const activeFileName = selectedFile?.name || (previewImage ? "Mobile upload" : null);
+  const activeFileName = selectedFile?.name || activeProjectName || (previewImage ? "Mobile upload" : null);
+  const hasProcessableSource = Boolean(selectedFile || selectedUrl);
+  const shownImage = viewMode === "result" && upscaledImage ? upscaledImage : previewImage;
 
   return (
     <>
@@ -424,7 +484,7 @@ export default function UpscalePage() {
               <button
                 className="workspace-command-btn is-primary"
                 onClick={handleUpscale}
-                disabled={isProcessing || (!previewImage && !upscaledImage)}
+                disabled={isProcessing || !hasProcessableSource}
                 title="Generate 6X upscale"
               >
                 {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
@@ -458,176 +518,290 @@ export default function UpscalePage() {
       >
 
 
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={(event) => {
+            handleFileSelected(event.target.files?.[0]);
+            event.target.value = "";
+          }}
+          accept="image/png,image/jpeg,image/webp"
+          className="upscale-file-input"
+        />
+
         <main className="main-workspace upscale-studio">
-
-          {/* Split View Workspace */}
-          <section className="canvas-area upscale-canvas">
-
-            <div className="upscale-stage-tabs">
-              <div className={`upscale-stage-tab ${!upscaledImage ? "is-active" : ""}`}>
-                <span>1</span>
-                Original Upload
+          <section className="canvas-area upscale-canvas" aria-label="Upscale workspace">
+            <div className="upscale-viewbar" aria-label="Preview mode">
+              <div className="upscale-view-tabs">
+                <button
+                  type="button"
+                  className={"upscale-view-tab " + (viewMode === "original" ? "is-active" : "")}
+                  onClick={() => setViewMode("original")}
+                  disabled={!previewImage}
+                >
+                  <ImageIcon size={13} />
+                  Original
+                </button>
+                <button
+                  type="button"
+                  className={"upscale-view-tab " + (viewMode === "result" ? "is-active" : "")}
+                  onClick={() => setViewMode("result")}
+                  disabled={!upscaledImage}
+                >
+                  <Wand2 size={13} />
+                  6× Result
+                </button>
+                <button
+                  type="button"
+                  className={"upscale-view-tab " + (viewMode === "compare" ? "is-active" : "")}
+                  onClick={() => setViewMode("compare")}
+                  disabled={!previewImage || !upscaledImage}
+                >
+                  <Columns2 size={13} />
+                  Compare
+                </button>
               </div>
-              <div className={`upscale-stage-tab ${upscaledImage ? "is-active" : ""}`}>
-                <span>2</span>
-                6X HD Upscale
+
+              <div className="upscale-view-meta">
+                {previewImage && (
+                  <>
+                    <span>{Math.round(zoom * 100)}%</span>
+                    <button type="button" onClick={() => setZoom(1)} title="Reset zoom">
+                      <RotateCcw size={12} />
+                      Reset view
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="upscale-canvas-body">
-              {(!previewImage && !upscaledImage) ? (
-                <div className="upscale-empty-panel"
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                >
-                  <div className="upscale-empty-kicker">REAL-ESRGAN X4PLUS / 6X SCALE</div>
-                  <h2>Upscale raster artwork before production.</h2>
-                  <p>Use this for low-resolution jersey graphics, customer photos, logos, and print references that need more pixel detail before handoff.</p>
+            <div
+              className={"upscale-canvas-body " + (previewImage ? "has-image" : "")}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              {!previewImage && !upscaledImage ? (
+                <div className="upscale-empty-panel">
+                  <div className="upscale-upload-mark" aria-hidden="true">
+                    <ImageIcon size={24} strokeWidth={1.5} />
+                  </div>
+                  <div className="upscale-empty-kicker">Image Upscale</div>
+                  <h2>Bring low-resolution artwork up to production size.</h2>
+                  <p>Upload a PNG, JPG, or WebP. DesaynClaw creates a cleaner 6× raster while preserving the original for comparison.</p>
 
                   <div className="upscale-empty-actions">
                     <button
-                      onClick={() => fileInputRef.current.click()}
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
                       className="upscale-empty-btn is-primary"
                     >
-                      <Monitor size={14} /> Open PC File
+                      <Monitor size={14} />
+                      Choose image
                     </button>
                     <button
-                      onClick={() => setUploadMode(prev => prev === "qr" ? "file" : "qr")}
-                      className={`upscale-empty-btn ${uploadMode === "qr" ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => setUploadMode((mode) => mode === "qr" ? "file" : "qr")}
+                      className={"upscale-empty-btn " + (uploadMode === "qr" ? "is-active" : "")}
                     >
-                      <Scan size={14} /> Scan Phone
+                      <Scan size={14} />
+                      Upload by phone
                     </button>
                   </div>
 
-                  <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelected(e.target.files[0])} accept="image/*" style={{ display: "none" }} />
-
                   {uploadMode === "qr" ? (
                     <div className="upscale-qr-panel">
-                      <div className="upscale-qr-code"><QRCode value={`https://desaynclaw.com/m/${syncSessionId}`} size={130} /></div>
-                      <p>Scan with your mobile camera to upload directly.</p>
+                      <div className="upscale-qr-code">
+                        <QRCode value={"https://desaynclaw.com/m/" + syncSessionId} size={118} />
+                      </div>
+                      <div>
+                        <strong>Scan to upload</strong>
+                        <p>The image will appear in this workspace automatically.</p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="upscale-drop-note">or drop an image anywhere on this panel</div>
+                    <div className="upscale-drop-note">
+                      <span>Drop an image anywhere in this workspace</span>
+                      <small>Maximum {formatUploadLimit(resolveImageUploadLimit())}</small>
+                    </div>
                   )}
                 </div>
               ) : (
                 <div className="upscale-preview-shell">
-                  <div
-                    ref={scrollContainerRef}
-                    className="upscale-preview-scroll"
-                  >
-                    <div className="upscale-preview-zoom" style={{ zoom }}>
-                      <img src={upscaledImage || previewImage} alt="Preview" />
+                  {viewMode === "compare" && previewImage && upscaledImage ? (
+                    <div ref={scrollContainerRef} className="upscale-preview-scroll upscale-compare-scroll">
+                      <div className="upscale-compare-grid" style={{ zoom }}>
+                        <figure>
+                          <figcaption>Original</figcaption>
+                          <img src={previewImage} alt="Original uploaded artwork" />
+                        </figure>
+                        <figure>
+                          <figcaption>6× Result</figcaption>
+                          <img src={upscaledImage} alt="Upscaled artwork result" />
+                        </figure>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div ref={scrollContainerRef} className="upscale-preview-scroll">
+                      <div className="upscale-preview-zoom" style={{ zoom }}>
+                        <div className="upscale-image-frame">
+                          <span>{viewMode === "result" && upscaledImage ? "6× Result" : "Original"}</span>
+                          <img
+                            src={shownImage}
+                            alt={viewMode === "result" ? "Upscaled artwork result" : "Original uploaded artwork"}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </section>
 
-          {/* Right Properties Panel */}
-          <aside className="upscale-side-panel">
+          <aside className="upscale-side-panel" aria-label="Upscale controls and recent projects">
+            <div className="upscale-panel-section upscale-job-panel">
+              <div className="upscale-panel-heading">
+                <div>
+                  <span className="upscale-panel-eyebrow">Production upscale</span>
+                  <h2>6× HD enhancement</h2>
+                </div>
+                <span className="upscale-cost">1 Claw</span>
+              </div>
 
-            <div className="upscale-panel-section">
-              <div className="upscale-panel-title">
-                <span>ACTIONS</span>
+              <div className="upscale-spec-list">
+                <div><span>Output</span><strong>PNG</strong></div>
+                <div><span>Scale</span><strong>6×</strong></div>
+                <div><span>Best for</span><strong>Raster artwork</strong></div>
               </div>
 
               <button
+                type="button"
                 onClick={handleUpscale}
-                disabled={isProcessing || (!previewImage && !upscaledImage)}
+                disabled={isProcessing || !hasProcessableSource}
                 className="upscale-action-btn is-process"
               >
                 {isProcessing
-                  ? <><Loader2 size={14} className="animate-spin" /> UPSCALING…</>
+                  ? <><Loader2 size={15} className="animate-spin" /> Enhancing artwork…</>
                   : noCredits
-                    ? <><Wand2 size={14} /> GET MORE CLAWS</>
-                    : <><Wand2 size={14} /> GENERATE 6X UPSCALE {`(−${UPSCALE_CREDIT_COST} CLAW)`}</>}
+                    ? <><Wand2 size={15} /> Get more Claws</>
+                    : <><Wand2 size={15} /> Generate 6× result</>}
               </button>
+
               {noCredits && (
                 <p className="upscale-credit-warning">
-                  You need {UPSCALE_CREDIT_COST} claw to upscale
+                  Add at least {UPSCALE_CREDIT_COST} Claw to continue.
                 </p>
               )}
 
-              <button
-                onClick={() => {
-                  if (upscaledImage) handleDownload(upscaledImage);
-                }}
-                disabled={!upscaledImage}
-                className="upscale-action-btn"
-              >
-                <Download size={14} /> DOWNLOAD RESULT
-              </button>
+              <div className="upscale-secondary-actions">
+                <button
+                  type="button"
+                  onClick={() => upscaledImage && handleDownload(upscaledImage)}
+                  disabled={!upscaledImage}
+                  className="upscale-action-btn"
+                >
+                  <Download size={14} />
+                  Download PNG
+                </button>
+                <button
+                  type="button"
+                  onClick={previewImage ? resetWorkspace : () => fileInputRef.current?.click()}
+                  className="upscale-action-btn"
+                  disabled={isProcessing}
+                >
+                  <Plus size={14} />
+                  New image
+                </button>
+              </div>
 
-              {upscaledImage && (
-                <FeedbackWidget
-                  projectId={syncSessionId}
-                />
-              )}
+              <div className="upscale-privacy-note">
+                <ShieldCheck size={14} />
+                <span>Private by default. Source and result files auto-delete after 3 days.</span>
+              </div>
+
+              {upscaledImage && <FeedbackWidget projectId={activeHistoryId || syncSessionId} />}
             </div>
 
             <div className="upscale-panel-section is-history">
-              <div className="upscale-panel-title">
-                <span>HISTORY</span>
-              </div>
-
-              {/* Privacy Notice */}
-              <div className="upscale-privacy-note">
-                <ShieldAlert size={14} />
+              <div className="upscale-panel-heading is-compact">
                 <div>
-                  <p>Privacy First</p>
-                  <small>All uploaded and generated images are permanently deleted after 3 days to protect your privacy.</small>
+                  <span className="upscale-panel-eyebrow">Your work</span>
+                  <h2>Recent projects</h2>
                 </div>
+                <span className="upscale-history-count">{recentUpscales.length}</span>
               </div>
 
               {recentUpscales.length === 0 ? (
                 <div className="upscale-empty-history">
-                  <Clock size={24} />
-                  <p>No recent upscales</p>
+                  <Clock size={20} />
+                  <strong>No recent projects</strong>
+                  <p>Your completed upscales will appear here.</p>
                 </div>
               ) : (
                 <div className="upscale-history-list">
-                  {recentUpscales.map(item => (
-                    <div key={item.id} className="upscale-history-card">
-                      <div className="upscale-history-thumb">
-                        <img src={getHistoryPreviewUrl(item)} alt="Upscaled design history preview" />
-                      </div>
-                      <div className="upscale-history-info">
-                        <p>
-                          {item.name || "6X Upscale"}
-                        </p>
-                        <span>
-                          <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          if (item.generated_image_url && item.generated_image_url !== "REFUNDED") {
-                            await handleDownload(item.generated_image_url);
-                            return;
-                          }
-                          try {
-                            const readyUrl = await resumePendingUpscale(item, { showToast: true, maxAttempts: 120 });
-                            if (readyUrl) await handleDownload(readyUrl);
-                            else toast.error("Upscale is still processing. Please try again in a moment.");
-                          } catch (error) {
-                            toast.error(error.message || "Failed to prepare download");
+                  {recentUpscales.slice(0, 8).map((item) => {
+                    const status = getHistoryStatus(item);
+                    const resultUrl = getHistoryResultUrl(item);
+                    return (
+                      <div
+                        key={item.id}
+                        className={"upscale-history-card " + (activeHistoryId === item.id ? "is-active" : "")}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openRecentProject(item)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openRecentProject(item);
                           }
                         }}
-                        title={item.generated_image_url ? "Download Image" : "Finish processing"}
-                        className="upscale-history-download"
                       >
-                        <Download size={12} strokeWidth={2.5} />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="upscale-history-thumb">
+                          {getHistoryPreviewUrl(item) ? (
+                            <img src={getHistoryPreviewUrl(item)} alt="" />
+                          ) : (
+                            <ImageIcon size={18} />
+                          )}
+                        </div>
+                        <div className="upscale-history-info">
+                          <p>{item.name || "6× Upscale"}</p>
+                          <span>
+                            {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            <i aria-hidden="true">·</i>
+                            <em className={"is-" + status.toLowerCase()}>{status}</em>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            if (resultUrl) {
+                              await handleDownload(resultUrl);
+                              return;
+                            }
+                            try {
+                              const readyUrl = await resumePendingUpscale(item, { showToast: true, maxAttempts: 120 });
+                              if (readyUrl) await handleDownload(readyUrl);
+                              else toast.error("Upscale is still processing. Please try again in a moment.");
+                            } catch (error) {
+                              toast.error(error.message || "Failed to prepare download");
+                            }
+                          }}
+                          disabled={status === "Unavailable"}
+                          title={resultUrl ? "Download result" : "Check processing status"}
+                          className="upscale-history-download"
+                        >
+                          {status === "Processing"
+                            ? <Loader2 size={13} className="animate-spin" />
+                            : <Download size={13} />}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-
           </aside>
-
         </main>
 
       </StudioShell>

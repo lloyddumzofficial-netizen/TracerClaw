@@ -7,6 +7,7 @@ import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
+import { SUPPORTED_BILLING_CURRENCIES } from "@/lib/localCurrency";
 import { safeJson } from "@/lib/safeJson";
 import { analytics } from "@/lib/analytics";
 import "./TopUpModal.css";
@@ -25,6 +26,7 @@ const PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
   label:    plan.label,
   traces:   plan.credits,
   price:    plan.price,
+  amount:   plan.amount,
   eyebrow: PLANS_META[plan.key]?.eyebrow || '',
   desc:     PLANS_META[plan.key]?.desc || '',
   best:     PLANS_META[plan.key]?.best || false,
@@ -97,11 +99,17 @@ function getPlanAnalytics(planKey) {
 
 function formatCurrencyFromMinor(amount, currency = "PHP") {
   const major = Number(amount || 0) / 100;
-  return new Intl.NumberFormat("en-PH", {
+  return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
     minimumFractionDigits: major % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(major);
+}
+
+function formatLocalizedPrice(amount, pricing) {
+  const rate = Number(pricing?.rate) || 1;
+  return formatCurrencyFromMinor(Math.round(Number(amount || 0) * rate), pricing?.currency || "PHP");
 }
 
 const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, onClose, onLoginRequired }) {
@@ -116,9 +124,67 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const [logs, setLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [localizedPricing, setLocalizedPricing] = useState({
+    country: "",
+    currency: "PHP",
+    rate: 1,
+    estimated: false,
+  });
+  const [isPricingLoading, setIsPricingLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!show) return;
+    const controller = new AbortController();
+    let savedCurrency = "";
+    try {
+      savedCurrency = window.localStorage.getItem("desaynclaw-pricing-currency") || "";
+    } catch {
+      // Local storage can be unavailable in privacy-restricted browsers.
+    }
+
+    const query = SUPPORTED_BILLING_CURRENCIES.includes(savedCurrency)
+      ? `?currency=${encodeURIComponent(savedCurrency)}`
+      : "";
+    setIsPricingLoading(true);
+    fetch(`/api/pricing/local${query}`, { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load local pricing");
+        setLocalizedPricing(data);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          setLocalizedPricing({ country: "", currency: "PHP", rate: 1, estimated: false });
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsPricingLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [show]);
+
+  const handleCurrencyChange = useCallback(async (event) => {
+    const currency = event.target.value;
+    if (!SUPPORTED_BILLING_CURRENCIES.includes(currency)) return;
+    setIsPricingLoading(true);
+    try {
+      window.localStorage.setItem("desaynclaw-pricing-currency", currency);
+      const response = await fetch(`/api/pricing/local?currency=${encodeURIComponent(currency)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not update currency");
+      setLocalizedPricing(data);
+      if (data.fallback) toast.error("Live conversion is unavailable. Prices are shown in PHP for now.");
+    } catch {
+      setLocalizedPricing((current) => ({ ...current, currency: "PHP", rate: 1, estimated: false }));
+      toast.error("Could not load that currency. Prices are shown in PHP.");
+    } finally {
+      setIsPricingLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -204,7 +270,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ plan: form.plan }),
+        body: JSON.stringify({
+          plan: form.plan,
+          billingCurrency: localizedPricing.currency,
+        }),
       });
 
       const data = await safeJson(response, "Failed to start Dodo checkout");
@@ -219,7 +288,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     } finally {
       setIsStartingDodo(false);
     }
-  }, [form.plan, onLoginRequired, supabase, user]);
+  }, [form.plan, localizedPricing.currency, onLoginRequired, supabase, user]);
 
   const handleStartPayMongoCheckout = useCallback(async () => {
     if (!user) {
@@ -264,6 +333,8 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     }
   }, [form.plan, onLoginRequired, supabase, user]);
 
+  const showQrPh = !localizedPricing.country || localizedPricing.country === "PH";
+  const usingLocalEstimate = localizedPricing.currency !== "PHP" && localizedPricing.estimated;
 
   if (!show || !mounted) return null;
 
@@ -365,11 +436,33 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   <h2>Choose the package that fits your workflow.</h2>
                   <p>One-time Claw packages. No subscription or monthly commitment.</p>
                 </div>
+                <div className="top-up-currency-row">
+                  <label htmlFor="top-up-currency">Display currency</label>
+                  <select
+                    id="top-up-currency"
+                    value={localizedPricing.currency}
+                    onChange={handleCurrencyChange}
+                    disabled={isPricingLoading}
+                  >
+                    {SUPPORTED_BILLING_CURRENCIES.map((currency) => (
+                      <option value={currency} key={currency}>{currency}</option>
+                    ))}
+                  </select>
+                  <span>
+                    {isPricingLoading
+                      ? "Updating…"
+                      : usingLocalEstimate
+                        ? "Estimated conversion · final amount shown at checkout"
+                        : "Base catalog price"}
+                  </span>
+                </div>
               </div>
 
               <div className="top-up-plans-grid top-up-pricing-table">
-                {PLANS.map((p, index) => (
-                  <article key={p.key} className={`top-up-plan-card${p.best ? ' top-up-plan-card-featured' : ''}`}>
+                {PLANS.map((p, index) => {
+                  const unavailable = p.key === "tingi" && !showQrPh;
+                  return (
+                  <article key={p.key} className={`top-up-plan-card${p.best ? ' top-up-plan-card-featured' : ''}${unavailable ? ' top-up-plan-card-unavailable' : ''}`}>
                     <div className="top-up-plan-topline">
                       <span>{String(index + 1).padStart(2, '0')}</span>
                       <small>{p.eyebrow}</small>
@@ -381,39 +474,43 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     </div>
 
                     <div className="top-up-plan-price">
-                      <strong>{p.price}</strong>
+                      <strong>{formatLocalizedPrice(p.amount, localizedPricing)}</strong>
                       <span>one-time</span>
                     </div>
+                    {usingLocalEstimate && <div className="top-up-plan-base-price">Base price {p.price}</div>}
 
                     <div className="top-up-plan-claws">
                       <strong>{p.traces}</strong>
                       <span className="top-up-plan-claw-label"><Image src="/Claws/Claws.webp" alt="" width={14} height={14} aria-hidden="true" />Claws</span>
-                      <small>₱{p.pricePerClaw} each</small>
+                      <small>{formatLocalizedPrice(p.amount / p.traces, localizedPricing)} each</small>
                     </div>
 
                     <p className="top-up-plan-desc">{p.desc}</p>
 
                     <ul className="top-up-plan-features">
                       {p.features.map((feat) => (
-                        <li className="top-up-plan-feature" key={feat}><Check size={14} aria-hidden="true" /> {feat}</li>
+                        <li className="top-up-plan-feature" key={feat}><Check size={14} aria-hidden="true" /> {feat === "QR Ph or card" && !showQrPh ? "Secure card checkout" : feat}</li>
                       ))}
                     </ul>
 
-                    <button 
-                      onClick={() => { 
+                    <button
+                      disabled={unavailable}
+                      onClick={() => {
+                        if (unavailable) return;
                         if (!user) {
                           onLoginRequired?.();
                           return;
                         }
-                        setForm(f => ({ ...f, plan: p.key })); 
-                        setStep(2); 
+                        setForm(f => ({ ...f, plan: p.key }));
+                        setStep(2);
                       }}
                       className={`top-up-plan-button${p.best ? ' top-up-plan-button-featured' : ''}`}
                     >
-                      {user ? 'Select Plan' : 'Log in to Purchase'} <ArrowRight size={14} />
+                      {unavailable ? 'Philippines only' : user ? 'Select Plan' : 'Log in to Purchase'} {!unavailable && <ArrowRight size={14} />}
                     </button>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </>
           ) : step === 2 ? (
@@ -427,12 +524,14 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   <span className="top-up-payment-plan-values">
                     <strong className="top-up-payment-plan-value">{CREDIT_PLANS[form.plan]?.credits} Claws</strong>
                     <span className="top-up-payment-plan-dot" aria-hidden="true">·</span>
-                    <strong className="top-up-payment-plan-value">{PLAN_PRICES[form.plan]} total</strong>
+                    <strong className="top-up-payment-plan-value">{formatLocalizedPrice(CREDIT_PLANS[form.plan]?.amount, localizedPricing)} total</strong>
+                    {usingLocalEstimate && <span className="top-up-payment-base-price">Base {PLAN_PRICES[form.plan]}</span>}
                   </span>
                 </div>
               </div>
 
-              <div className="top-up-payment-grid">
+              <div className={`top-up-payment-grid${showQrPh ? '' : ' top-up-payment-grid-single'}`}>
+                {showQrPh && (
                 <button
                   type="button"
                   className="top-up-payment-option top-up-payment-option-featured"
@@ -458,10 +557,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     </span>
                   </span>
                 </button>
+                )}
 
                 <button
                   type="button"
-                  className="top-up-payment-option"
+                  className={`top-up-payment-option${showQrPh ? '' : ' top-up-payment-option-featured'}`}
                   onClick={handleStartDodoCheckout}
                   disabled={isStartingDodo || isStartingPayMongo || form.plan === 'tingi'}
                   style={{ cursor: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', opacity: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 0.58 : 1 }}
@@ -471,7 +571,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     <span className="top-up-payment-option-tag">Cards worldwide</span>
                   </span>
                   <span className="top-up-payment-copy">
-                    <span className="top-up-payment-option-index">02 · Card checkout</span>
+                    <span className="top-up-payment-option-index">{showQrPh ? "02" : "01"} · Card checkout</span>
                     <span className="top-up-payment-title">Pay by card</span>
                     <span className="top-up-payment-desc">
                       {form.plan === 'tingi'

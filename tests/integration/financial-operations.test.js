@@ -162,6 +162,16 @@ describe("Dodo checkout", () => {
     expect(adminSupabase.from).not.toHaveBeenCalled();
   });
 
+  it("rejects unsupported billing currencies before creating a local payment", async () => {
+    adminSupabase.from = vi.fn();
+
+    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
+    const res = await POST(jsonRequest({ plan: "basic", billingCurrency: "ZZZ" }));
+
+    expect(res.status).toBe(400);
+    expect(adminSupabase.from).not.toHaveBeenCalled();
+  });
+
   it("creates a pending local payment before opening Dodo checkout", async () => {
     const updateEq = vi.fn(() => ({}));
     const update = vi.fn(() => ({ eq: vi.fn(() => ({ eq: updateEq })) }));
@@ -178,7 +188,7 @@ describe("Dodo checkout", () => {
     });
 
     const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
-    const res = await POST(jsonRequest({ plan: "basic" }));
+    const res = await POST(jsonRequest({ plan: "basic", billingCurrency: "USD" }));
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -190,6 +200,7 @@ describe("Dodo checkout", () => {
       status: "pending",
     }));
     expect(getDodoClient().checkoutSessions.create).toHaveBeenCalledWith(expect.objectContaining({
+      billing_currency: "USD",
       metadata: expect.objectContaining({ local_payment_id: "dodo-local-1", user_id: "user-1" }),
     }));
   });

@@ -23,6 +23,7 @@ import { getPanelPreparationSpec } from "./panelPreparation/panelSpecs";
 import MockupPreflightModal from "./preflight/MockupPreflightModal";
 
 const INITIAL_COLORS = { ...DEFAULT_MOCKUP_COLORS };
+const STUDIO_STEPS = ["Upload", "Style", "Generate", "Review"];
 
 function makeRequestKey() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}_mockup`;
@@ -31,6 +32,24 @@ function makeRequestKey() {
 function formatProjectDate(value) {
   if (!value) return "Recently updated";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function formatProjectStatus(value) {
+  const status = String(value || "draft").toLowerCase();
+  if (status === "completed") return "Ready";
+  if (["queueing", "queued", "processing", "rendering"].includes(status)) return "Rendering";
+  if (["failed", "refunded"].includes(status)) return "Needs attention";
+  return "Draft";
+}
+
+function formatProjectAvailability(value) {
+  if (!value) return "Available for 3 days";
+  const updatedAt = new Date(value).getTime();
+  if (!Number.isFinite(updatedAt)) return "Available for 3 days";
+  const expiresAt = updatedAt + (3 * 24 * 60 * 60 * 1000);
+  const daysLeft = Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
+  if (daysLeft <= 1) return "Expiring soon";
+  return `${Math.min(daysLeft, 3)} days left`;
 }
 
 async function putWithRetry(uploadUrl, file) {
@@ -161,6 +180,10 @@ export default function MockupStudioClient() {
   const fileInputRef = useRef(null);
   const activeRoleRef = useRef(null);
   const pollRef = useRef(null);
+  const leftPanelRef = useRef(null);
+  const canvasPanelRef = useRef(null);
+  const outputSectionRef = useRef(null);
+  const rightPanelRef = useRef(null);
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [credits, setCredits] = useState(null);
@@ -235,6 +258,15 @@ export default function MockupStudioClient() {
   const renderStage = getMockupRenderStage({ rendering, status: job?.status, completed: outputs.length, total: MOCKUP_SHOTS.length });
   const campaignComplete = outputs.length === MOCKUP_SHOTS.length && job?.status === "completed";
   const nextPendingViewIndex = MOCKUP_SHOTS.findIndex(shot => !outputs.some(item => item.view_type === shot.key));
+  const requiredPanelCount = garmentParts.required.filter(role => assets[role]).length;
+  const nextRequiredRole = garmentParts.required.find(role => !assets[role]);
+  const currentStudioStep = campaignComplete
+    ? 4
+    : rendering || renderReady
+      ? 3
+      : requiredReady
+        ? 2
+        : 1;
 
   const createProject = async () => {
     setCreating(true);
@@ -508,6 +540,25 @@ export default function MockupStudioClient() {
     }
   };
 
+  const focusWorkspaceStage = stage => {
+    if (stage === 4 && campaignComplete) {
+      setReviewOpen(true);
+      return;
+    }
+    const target = stage === 1
+      ? leftPanelRef.current
+      : stage === 2
+        ? rightPanelRef.current
+        : stage === 4
+          ? outputSectionRef.current
+          : canvasPanelRef.current;
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "nearest",
+    });
+  };
+
   if (!authReady) return <div className={`${styles.studio} ${styles.loadingScreen}`}>Loading Mockup Studio…</div>;
   if (!session) {
     return (
@@ -524,6 +575,19 @@ export default function MockupStudioClient() {
         {project ? <div className={styles.brand}><Image src="/logo.png" alt="DesaynClaw" width={134} height={26} priority /><div className={styles.productIdentity}><strong>Mockup Studio</strong><span>Garment visualization workspace</span></div></div> : null}
         <div className={styles.credit}><strong>{credits ?? "—"}</strong><span>Claws available</span></div>
       </header>
+
+      {project ? (
+        <nav className={styles.workflowStepper} aria-label="Mockup creation progress">
+          {STUDIO_STEPS.map((label, index) => {
+            const step = index + 1;
+            const state = step < currentStudioStep ? "complete" : step === currentStudioStep ? "active" : "upcoming";
+            return <button type="button" key={label} data-state={state} onClick={() => focusWorkspaceStage(step)} aria-current={state === "active" ? "step" : undefined}>
+              <span>{state === "complete" ? "✓" : String(step).padStart(2, "0")}</span>
+              <strong>{label}</strong>
+            </button>;
+          })}
+        </nav>
+      ) : null}
 
       {!project ? (
         <section className={styles.startScreen}>
@@ -548,16 +612,22 @@ export default function MockupStudioClient() {
                 const profile = getGarmentProfile(item.garment_type);
                 return <button type="button" key={item.id} className={styles.projectCard} onClick={() => openProject(item.id)} disabled={openingProjectId === item.id}>
                   <span className={styles.projectThumb}>{item.preview_url ? <img src={item.preview_url} alt="" /> : <span>DC</span>}</span>
-                  <span className={styles.projectCardBody}><strong>{item.name}</strong><small>{profile.label} · {formatProjectDate(item.updated_at)}</small><span>{openingProjectId === item.id ? "Opening…" : item.status}</span></span>
+                  <span className={styles.projectCardBody}>
+                    <strong>{item.name}</strong>
+                    <small>{profile.label} · {formatProjectDate(item.updated_at)}</small>
+                    <span className={styles.projectStatus}>{openingProjectId === item.id ? "Opening…" : formatProjectStatus(item.status)}</span>
+                    <em>{formatProjectAvailability(item.updated_at)}<b>Continue →</b></em>
+                  </span>
                 </button>;
               })}</div>
             ) : <div className={styles.recentEmpty}><strong>No saved mockup projects yet.</strong><span>Your first draft will appear here automatically.</span></div>}
           </section>
         </section>
       ) : (
-        <div className={styles.workspace}>
-          <aside className={styles.leftPanel}>
+        <div className={styles.workspace} data-step={currentStudioStep}>
+          <aside ref={leftPanelRef} tabIndex={-1} className={`${styles.leftPanel} ${currentStudioStep === 1 ? styles.guidedPanelActive : ""}`}>
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={event => prepareSelectedAsset(event.target.files?.[0])} />
+            <div className={styles.panelHeading}><span>01</span><div><h2>Upload artwork</h2><p>Add the production panels required for this garment.</p></div></div>
             <div className={styles.garmentLock}><span>GARMENT</span><div><strong>{garmentProfile.label}</strong><small>{garmentProfile.description} · locked for this project</small></div></div>
             <div className={styles.assetList}>{garmentParts.required.map(role => <AssetSlot key={role} role={role} asset={assets[role]} busy={uploadingRole === role} required spec={getPanelPreparationSpec(garmentType, role)} onChoose={chooseAsset} onRemove={removeAsset} />)}</div>
             <details className={styles.optionalAssets}>
@@ -572,19 +642,27 @@ export default function MockupStudioClient() {
             </section>
           </aside>
 
-          <section className={styles.canvasPanel}>
-            <div className={styles.canvasHeader}><h1>{projectName}</h1><div className={`${styles.previewStatus} ${renderReady ? styles.previewStatusReady : ""}`}>{!requiredReady ? `${garmentParts.required.filter(role => assets[role]).length}/${garmentParts.required.length} required panels` : !artDirectionReady ? "Art direction required" : "Ready to render"}</div></div>
+          <section ref={canvasPanelRef} tabIndex={-1} className={`${styles.canvasPanel} ${currentStudioStep >= 3 ? styles.guidedPanelActive : ""}`}>
+            <div className={styles.canvasHeader}><div><span>Live campaign preview</span><h1>{projectName}</h1></div><div className={`${styles.previewStatus} ${renderReady ? styles.previewStatusReady : ""}`}>{!requiredReady ? `${requiredPanelCount}/${garmentParts.required.length} required panels` : !artDirectionReady ? "Art direction required" : "Ready to render"}</div></div>
             <div className={styles.previewShell}>
               <GarmentPreview assets={assets} colors={colors} garmentType={garmentType} />
+              {!rendering && !campaignComplete ? (
+                <section className={styles.previewCoach} data-ready={renderReady ? "true" : undefined} aria-live="polite">
+                  <span>Next best action</span>
+                  <strong>{nextRequiredRole ? `Upload ${MOCKUP_PARTS[nextRequiredRole].label}` : !styleReviewed ? "Choose a campaign style" : !backdropReviewed ? "Choose a backdrop" : "Your campaign is ready"}</strong>
+                  <p>{nextRequiredRole ? `${requiredPanelCount} of ${garmentParts.required.length} required panels are ready.` : !artDirectionReady ? "Complete the art direction to unlock the final render." : "Review the setup before generating all five presentation views."}</p>
+                  <button type="button" onClick={nextRequiredRole ? () => chooseAsset(nextRequiredRole) : !artDirectionReady ? () => focusWorkspaceStage(2) : openPreflight}>{nextRequiredRole ? "Choose panel" : !artDirectionReady ? "Open art direction" : "Review and generate"}</button>
+                </section>
+              ) : null}
               {rendering ? <CampaignProcessingOverlay completed={outputs.length} stage={renderStage} /> : null}
             </div>
-            <section className={styles.outputSection}>
+            <section ref={outputSectionRef} tabIndex={-1} className={styles.outputSection}>
               <header><div><span>CAMPAIGN OUTPUTS</span><strong>Five-view presentation set</strong></div><div className={styles.outputHeaderActions}><small data-tone={renderStage.tone}>{renderStage.label}</small></div></header>
               <div className={styles.outputStrip}>
                 {MOCKUP_SHOTS.map((shot, index) => {
                   const output = outputs.find(item => item.view_type === shot.key);
                   const shotLabel = getGarmentShotLabel(garmentType, shot.key);
-                  return <article key={shot.key} className={output ? styles.outputReady : ""}>
+                  return <article key={shot.key} className={output ? styles.outputReady : ""} style={output ? { "--reveal-index": index } : undefined}>
                     <div className={`${styles.outputMedia} ${output ? "" : styles.outputPlaceholder}`}>{output ? <img src={output.file_url} alt={shotLabel} /> : rendering ? <RenderVisualizer active={index === nextPendingViewIndex} index={index} /> : null}</div>
                     <div className={styles.outputOverlay}>
                       <span className={styles.outputIndex}>{String(index + 1).padStart(2, "0")}</span>
@@ -597,7 +675,7 @@ export default function MockupStudioClient() {
             </section>
           </section>
 
-          <aside className={styles.rightPanel}>
+          <aside ref={rightPanelRef} tabIndex={-1} className={`${styles.rightPanel} ${currentStudioStep === 2 ? styles.guidedPanelActive : ""}`}>
             <div className={styles.rightPanelScroll}>
               <div className={styles.panelHeading}><span>02</span><div><h2>Art direction</h2><p>Controlled presets keep the set visually consistent.</p></div></div>
               <section className={styles.controlSection}><h3>Trim colors</h3>{Object.entries(colorLabels).map(([key, label]) => <label className={styles.colorControl} key={key}><span>{label}</span><input type="color" value={colors[key]} onChange={event => setColors(current => ({ ...current, [key]: event.target.value }))} /><code>{colors[key].toUpperCase()}</code></label>)}</section>
@@ -619,6 +697,12 @@ export default function MockupStudioClient() {
               </section>
             </div>
             <footer className={styles.renderActions}>
+              <div className={styles.readinessChecklist} aria-label="Campaign readiness">
+                <button type="button" data-ready={requiredReady ? "true" : undefined} onClick={() => focusWorkspaceStage(1)}><span>{requiredReady ? "✓" : "01"}</span><strong>Panels</strong></button>
+                <button type="button" data-ready={styleReviewed ? "true" : undefined} onClick={() => focusWorkspaceStage(2)}><span>{styleReviewed ? "✓" : "02"}</span><strong>Style</strong></button>
+                <button type="button" data-ready={backdropReviewed ? "true" : undefined} onClick={() => focusWorkspaceStage(2)}><span>{backdropReviewed ? "✓" : "03"}</span><strong>Backdrop</strong></button>
+                <div data-ready={Number(credits || 0) >= MOCKUP_RENDER_COST ? "true" : undefined}><span>{Number(credits || 0) >= MOCKUP_RENDER_COST ? "✓" : "04"}</span><strong>Claws</strong></div>
+              </div>
               <div className={styles.renderSummary}><div><span>Deliverables</span><strong>{campaignComplete ? "5 views ready · 1K PNG" : "5 views · 1K PNG"}</strong></div><div><span>{campaignComplete ? "Campaign status" : "Render cost"}</span><strong>{campaignComplete ? "Ready for review" : `${MOCKUP_RENDER_COST} Claws`}</strong></div></div>
               <button className={`${styles.generateButton} ${campaignComplete ? styles.reviewSetButton : ""}`} onClick={campaignComplete ? () => setReviewOpen(true) : openPreflight} disabled={campaignComplete ? false : !renderReady || rendering}>{campaignComplete ? <>Review campaign set <span>Open 5 views</span></> : rendering ? `Rendering ${outputs.length}/5…` : !requiredReady ? "Upload required panels" : !artDirectionReady ? "Complete art direction" : <>Review and generate <span>2 Claws</span></>}</button>
               {job && !rendering && job.status !== "completed" && <button className={styles.retryButton} onClick={() => pollJob(job.id)}>Check render status</button>}
