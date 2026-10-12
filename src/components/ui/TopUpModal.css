@@ -992,3 +992,223 @@
     flex-basis: 100% !important;
   }
 }
+
+/* Premium floating pricing modal — scoped override. */
+.modal-overlay .top-up-modal .top-up-modal-body-plans {
+  padding: 24px 30px 28px !important;
+  background: #090a0b !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-hero {
+  position: relative !important;
+  isolation: isolate !important;
+  margin: -24px -30px 0 !important;
+  padding: 42px 30px 32px !important;
+  overflow: hidden !important;
+  border-bottom: 0 !important;
+  background: #090a0b !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 7%;
+  pointer-events: none;
+  border-right: 1px solid rgba(255, 255, 255, .055);
+  border-left: 1px solid rgba(255, 255, 255, .055);
+  background:
+    linear-gradient(90deg, transparent calc(33.333% - .5px), rgba(255,255,255,.035) 33.333%, transparent calc(33.333% + .5px)),
+    linear-gradient(90deg, transparent calc(66.666% - .5px), rgba(255,255,255,.035) 66.666%, transparent calc(66.666% + .5px));
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-kicker {
+  margin: 0 0 16px !important;
+  color: rgba(255, 255, 255, .48) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-title-row h2 {
+  color: #f3f3f0 !important;
+  font-family: var(--font-manrope), Manrope, "Segoe UI", Arial, sans-serif !important;
+  font-size: clamp(40px, 5vw, 64px) !important;
+  font-weight: 720 !important;
+  line-height: .98 !important;
+  letter-spacing: -.06em !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-title-row p {
+  max-width: 610px !important;
+  margin-top: 14px !important;
+  color: rgba(255, 255, 255, .48) !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+}
+
+.modal-overlay .top-up-modal .top-up-purchase-mode {
+  width: fit-content;
+  margin: 20px auto 0;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .025);
+  color: rgba(255, 255, 255, .42);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.modal-overlay .top-up-modal .top-up-purchase-mode span {
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+
+.modal-overlay .top-up-modal .top-up-purchase-mode-active {
+  background: #e8e8e5;
+  color: #161718;
+}
+
+.modal-overlay .top-up-modal .top-up-currency-row {
+  margin-top: 14px !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table {
+  gap: 11px !important;
+  margin-top: 22px !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-card {
+  min-height: 410px !important;
+  padding: 22px 20px 18px !important;
+  border-radius: 10px !important;
+  background: rgba(15, 16, 17, .94) !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-card-featured {
+  border-color: rgba(255, 255, 255, .38) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.055), transparent 48%), #0e0f10 !important;
+  transform: none !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-topline {
+  padding: 0 0 9px !important;
+  display: flex !important;
+  border: 0 !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-topline > span {
+  display: none !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-topline small,
+.modal-overlay .top-up-modal .top-up-plan-card-featured .top-up-plan-topline small {
+  color: rgba(255, 255, 255, .42) !important;
+  font: 700 8px/1 var(--font-manrope), Manrope, sans-serif !important;
+  letter-spacing: .11em !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-name {
+  min-height: 28px !important;
+  margin: 0 !important;
+  justify-content: space-between !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-name h3 {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, .94) !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.025em !important;
+  text-transform: none !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-name span {
+  padding: 5px 7px !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+  border-radius: 999px !important;
+  background: #e8e8e5 !important;
+  color: #161718 !important;
+  font-size: 7px !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-price,
+.modal-overlay .top-up-modal .top-up-plan-claws {
+  justify-content: flex-start !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-price {
+  margin-top: 22px !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-price strong {
+  font-size: clamp(32px, 3vw, 42px) !important;
+  font-weight: 700 !important;
+}
+
+.modal-overlay .top-up-modal .top-up-plan-claws {
+  margin-top: 14px !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-desc {
+  min-height: 60px !important;
+  margin-top: 14px !important;
+  padding: 0 0 18px !important;
+  color: rgba(255, 255, 255, .51) !important;
+  font-size: 10px !important;
+  text-align: left !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-features {
+  min-height: 82px !important;
+  margin: 17px 0 18px !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-button {
+  min-height: 42px !important;
+  justify-content: center !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+}
+
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-button-featured {
+  border-color: #e8e8e5 !important;
+  background: #e8e8e5 !important;
+  color: #151617 !important;
+}
+
+@media (max-width: 980px) {
+  .modal-overlay .top-up-modal .top-up-modal-body-plans {
+    overflow-y: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .modal-overlay .top-up-modal .top-up-modal-body-plans {
+    padding: 16px 18px 22px !important;
+  }
+
+  .modal-overlay .top-up-modal .top-up-pricing-hero {
+    margin: -16px -18px 0 !important;
+    padding: 30px 18px 24px !important;
+  }
+
+  .modal-overlay .top-up-modal .top-up-pricing-hero::before {
+    inset-inline: 18px;
+    background: none;
+  }
+
+  .modal-overlay .top-up-modal .top-up-pricing-title-row h2 {
+    font-size: clamp(36px, 11vw, 48px) !important;
+  }
+
+  .modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-card {
+    min-height: 0 !important;
+  }
+}

@@ -3,6 +3,7 @@
 import { ArrowUpRight, Check, CreditCard, QrCode } from "lucide-react";
 import Image from "next/image";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
+import styles from "./GuestPricingSection.module.css";
 
 const PLAN_DETAILS = {
   tingi: {
@@ -34,55 +35,64 @@ const PRICING_PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
   pricePerClaw: Math.round(plan.amount / 100 / plan.credits),
 }));
 
+const DISPLAY_PLANS = [
+  ...PRICING_PLANS.filter((plan) => plan.featured),
+  ...PRICING_PLANS.filter((plan) => !plan.featured),
+];
+
 export default function GuestPricingSection({ onStart }) {
   return (
-    <section className="guest-pricing" id="pricing" aria-labelledby="guest-pricing-heading">
-      <div className="guest-pricing-heading">
-        <span>Pricing</span>
-        <h2 id="guest-pricing-heading">Choose the package that fits your workflow.</h2>
-        <p>One-time Claw packages. No subscription or monthly commitment.</p>
+    <section className={styles.section} id="pricing" aria-labelledby="guest-pricing-heading">
+      <div className={styles.heading}>
+        <span className={styles.eyebrow}>Flexible pricing</span>
+        <h2 id="guest-pricing-heading">Production capacity, without a subscription.</h2>
+        <p>Buy only the Claws you need. Every package is a one-time payment with no recurring commitment.</p>
       </div>
 
-      <div className="guest-pricing-grid">
-        {PRICING_PLANS.map((plan, index) => (
-          <article className={`guest-pricing-card${plan.featured ? " is-featured" : ""}`} key={plan.key}>
-            <div className="guest-pricing-card-topline">
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <small>{plan.eyebrow}</small>
+      <div className={styles.grid}>
+        {DISPLAY_PLANS.map((plan) => (
+          <article className={`${styles.card}${plan.featured ? ` ${styles.featured}` : ""}`} key={plan.key}>
+            <header className={styles.cardHeader}>
+              <div className={styles.planName}>
+                <h3>{plan.label}</h3>
+                {plan.featured && <span>Most recommended</span>}
+              </div>
+              <button type="button" onClick={onStart} aria-label={`Choose the ${plan.label} package`}>
+                Choose plan <ArrowUpRight size={15} aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className={styles.cardContent}>
+              <div className={styles.summary}>
+                <span className={styles.useCase}>{plan.eyebrow}</span>
+                <div className={styles.price}>
+                  <strong>{plan.price}</strong>
+                  <span>one-time</span>
+                </div>
+
+                <div className={styles.claws}>
+                  <strong>{plan.credits}</strong>
+                  <span>
+                    <Image src="/Claws/Claws.webp" alt="" width={15} height={15} aria-hidden="true" />
+                    Claws
+                  </span>
+                  <small>₱{plan.pricePerClaw} each</small>
+                </div>
+
+                <p>{plan.description}</p>
+              </div>
+
+              <ul className={styles.features}>
+                {plan.features.map((feature) => (
+                  <li key={feature}><Check size={16} aria-hidden="true" /> <span>{feature}</span></li>
+                ))}
+              </ul>
             </div>
-
-            <div className="guest-pricing-plan-name">
-              <h3>{plan.label}</h3>
-              {plan.featured && <span>Most efficient</span>}
-            </div>
-
-            <div className="guest-pricing-price">
-              <strong>{plan.price}</strong>
-              <span>one-time</span>
-            </div>
-
-            <div className="guest-pricing-claws">
-              <strong>{plan.credits}</strong>
-              <span className="guest-pricing-claw-label"><Image src="/Claws/Claws.webp" alt="" width={14} height={14} aria-hidden="true" />Claws</span>
-              <small>₱{plan.pricePerClaw} each</small>
-            </div>
-
-            <p>{plan.description}</p>
-
-            <ul>
-              {plan.features.map((feature) => (
-                <li key={feature}><Check size={14} aria-hidden="true" /> {feature}</li>
-              ))}
-            </ul>
-
-            <button type="button" onClick={onStart} aria-label={`Choose the ${plan.label} package`}>
-              Choose {plan.label} <ArrowUpRight size={16} aria-hidden="true" />
-            </button>
           </article>
         ))}
       </div>
 
-      <div className="guest-pricing-footnote">
+      <div className={styles.footnote}>
         <span><QrCode size={14} aria-hidden="true" /> QR Ph for every package</span>
         <span><CreditCard size={14} aria-hidden="true" /> Card checkout on Basic and above</span>
         <small>Standard SVG uses 1 Claw. Precision SVG uses 2 Claws.</small>

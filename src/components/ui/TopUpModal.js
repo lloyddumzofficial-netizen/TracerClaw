@@ -431,10 +431,14 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     Welcome. You need claws to trace images. Please select a plan and log in.
                   </div>
                 )}
-                <div className="top-up-pricing-kicker">Pricing</div>
+                <div className="top-up-pricing-kicker">Simple, flexible pricing</div>
                 <div className="top-up-pricing-title-row">
-                  <h2>Choose the package that fits your workflow.</h2>
-                  <p>One-time Claw packages. No subscription or monthly commitment.</p>
+                  <h2>Plans &amp; Pricing</h2>
+                  <p>Choose the production capacity that fits your workflow and pay only when you need more Claws.</p>
+                </div>
+                <div className="top-up-purchase-mode" aria-label="All packages are one-time purchases">
+                  <span className="top-up-purchase-mode-active">One-time packages</span>
+                  <span>No subscription</span>
                 </div>
                 <div className="top-up-currency-row">
                   <label htmlFor="top-up-currency">Display currency</label>

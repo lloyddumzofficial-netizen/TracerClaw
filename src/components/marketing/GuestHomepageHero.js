@@ -15,16 +15,16 @@ const HOMEPAGE_COMPARISONS = [
   {
     id: "front",
     number: "01",
-    title: "Front artwork",
-    meta: "Garment view",
+    title: "Front view",
+    meta: "Source / extracted",
     originalUrl: `${SAMPLE_ASSET_ROOT}/FRONT/ORIGINAL_FRONT.png`,
     extractedUrl: `${SAMPLE_ASSET_ROOT}/FRONT/EXTRACTED_FRONT.png`,
   },
   {
     id: "back",
     number: "02",
-    title: "Back artwork",
-    meta: "Garment view",
+    title: "Back view",
+    meta: "Source / extracted",
     originalUrl: `${SAMPLE_ASSET_ROOT}/BACK/BACK_ORIGINAL.png`,
     extractedUrl: `${SAMPLE_ASSET_ROOT}/BACK/BACK_EXTRACETED.png`,
   },
@@ -39,38 +39,44 @@ export function GuestHomepageSampleSection() {
             <span>PRODUCTION PROOF</span>
             <small>FRONT / BACK COMPARISON</small>
           </div>
-          <h2>The difference is in <em>the details.</em></h2>
-          <p>Compare the source garment with the clean extracted artwork. Drag either divider to inspect the result edge by edge.</p>
+          <h2>Inspect every edge <em>before export.</em></h2>
+          <p>Front and back views, paired with the isolated production artwork. Drag each divider to verify curves, fine print, and garment details before handoff.</p>
         </div>
-        <div className="guest-landing-example-grid">
-          {HOMEPAGE_COMPARISONS.map((comparison) => (
-            <article className="guest-landing-example-card" key={comparison.id}>
-              <div className="guest-landing-example-card-heading">
-                <div className="guest-landing-example-card-title">
-                  <span>{comparison.number}</span>
-                  <div>
-                    <strong>{comparison.title}</strong>
-                    <small>{comparison.meta}</small>
+        <div className="guest-landing-proof-board">
+          <div className="guest-landing-proof-toolbar">
+            <span className="guest-landing-proof-status"><i aria-hidden="true" /> Artwork review</span>
+            <span><ArrowLeftRight size={13} aria-hidden="true" /> Interactive comparison</span>
+          </div>
+          <div className="guest-landing-example-grid">
+            {HOMEPAGE_COMPARISONS.map((comparison) => (
+              <article className="guest-landing-example-card" key={comparison.id}>
+                <div className="guest-landing-example-card-heading">
+                  <div className="guest-landing-example-card-title">
+                    <span>{comparison.number}</span>
+                    <div>
+                      <strong>{comparison.title}</strong>
+                      <small>{comparison.meta}</small>
+                    </div>
                   </div>
+                  <span className="guest-landing-example-drag"><ArrowLeftRight size={13} aria-hidden="true" /> Drag to inspect</span>
                 </div>
-                <span className="guest-landing-example-drag"><ArrowLeftRight size={13} aria-hidden="true" /> Drag divider</span>
-              </div>
-              <div className="guest-landing-example-slider">
-                <BeforeAfterSlider
-                  rasterUrl={comparison.originalUrl}
-                  vectorUrl={comparison.extractedUrl}
-                  rasterAlt={`Original garment ${comparison.id} view`}
-                  vectorAlt={`Extracted artwork ${comparison.id} view`}
-                  height="540px"
-                  objectFit="contain"
-                  objectPosition="center"
-                  leftLabel="EXTRACTED"
-                  rightLabel="ORIGINAL"
-                  description=""
-                />
-              </div>
-            </article>
-          ))}
+                <div className="guest-landing-example-slider">
+                  <BeforeAfterSlider
+                    rasterUrl={comparison.originalUrl}
+                    vectorUrl={comparison.extractedUrl}
+                    rasterAlt={`Original garment ${comparison.id} view`}
+                    vectorAlt={`Extracted artwork ${comparison.id} view`}
+                    height="540px"
+                    objectFit="contain"
+                    objectPosition="center"
+                    leftLabel="EXTRACTED"
+                    rightLabel="ORIGINAL"
+                    description=""
+                  />
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 

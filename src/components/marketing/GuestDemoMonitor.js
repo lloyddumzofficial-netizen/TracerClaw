@@ -18,6 +18,15 @@ export default function GuestDemoMonitor() {
     <section className="guest-demo-stage" aria-label="DesaynClaw product demonstration">
       <div className="guest-demo-device">
         <div className="guest-demo-mac">
+          <div className="guest-demo-windowbar" aria-hidden="true">
+            <span className="guest-demo-window-controls">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="guest-demo-window-title">DesaynClaw Studio</span>
+            <span className="guest-demo-window-status"><i /> Live preview</span>
+          </div>
           <div className="guest-demo-screen">
             <video
               ref={videoRef}

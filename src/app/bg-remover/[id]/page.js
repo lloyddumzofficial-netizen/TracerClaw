@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
-import { CheckCircle2, Download, Image as ImageIcon, Loader2, Scissors, Settings2 } from "lucide-react";
+import { CheckCircle2, Columns2, Download, Image as ImageIcon, Loader2, RotateCcw, Scissors, ShieldCheck } from "lucide-react";
 import LogoLoader from "@/components/ui/LogoLoader";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
+import StudioWorkflow from "@/components/shared/StudioWorkflow";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { formatSavedAgo } from "@/lib/formatSavedAgo";
@@ -28,10 +29,12 @@ export default function BgRemoverPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [zoom, setZoom] = useState(1);
+  const [comparePosition, setComparePosition] = useState(50);
 
   const isDraggingCompare = useRef(false);
   const currentZoom = useRef(1);
   const scrollContainerRef = useRef(null);
+  const compareContainerRef = useRef(null);
 
   useEffect(() => {
     currentZoom.current = zoom;
@@ -174,16 +177,8 @@ export default function BgRemoverPage() {
 
   const isCompleted = !!project?.generated_image_url;
 
-  // Add the smooth animation when background removal finishes
   useEffect(() => {
-    if (isCompleted) {
-      setTimeout(() => {
-        const overlayImg = document.getElementById("compare-overlay-img");
-        const sliderLine = document.getElementById("compare-slider-line");
-        if (overlayImg) overlayImg.style.clipPath = `inset(0 50% 0 0)`;
-        if (sliderLine) sliderLine.style.left = `50%`;
-      }, 100);
-    }
+    if (isCompleted) setComparePosition(50);
   }, [isCompleted]);
 
   // Wheel to zoom logic
@@ -205,19 +200,29 @@ export default function BgRemoverPage() {
     return () => container.removeEventListener('wheel', handleWheel);
   }, [isCompleted]);
 
+  const updateCompareFromPointer = useCallback((clientX) => {
+    const container = compareContainerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const nextPosition = ((clientX - rect.left) / rect.width) * 100;
+    setComparePosition(Math.max(0, Math.min(100, nextPosition)));
+  }, []);
+
   if (isMobileDevice !== false) {
     return <DesktopRequiredNotice />;
   }
 
   if (!project) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0a" }}>
-        <LogoLoader size={72} color="#FFD700" />
+      <div className="bg-loading-screen">
+        <LogoLoader size={72} color="#d8bd48" />
       </div>
     );
   }
 
   const savedAgo = formatSavedAgo(project.updated_at);
+  const noCredits = userCredits !== null && userCredits <= 0;
+  const workflowStep = isCompleted ? 3 : isProcessing ? 2 : 1;
 
   return (
     <StudioShell
@@ -230,12 +235,7 @@ export default function BgRemoverPage() {
         <div className="workspace-command-bar">
           <div className="workspace-command-group">
             <span className="workspace-command-label">Process</span>
-            <button
-              className="workspace-command-btn is-primary"
-              onClick={handleRemoveBg}
-              disabled={isProcessing || isCompleted || (userCredits !== null && userCredits <= 0)}
-              title="Remove image background"
-            >
+            <button className="workspace-command-btn is-primary" onClick={handleRemoveBg} disabled={isProcessing || isCompleted || noCredits} title="Remove image background">
               {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
               Remove BG
             </button>
@@ -243,12 +243,7 @@ export default function BgRemoverPage() {
           <div className="workspace-command-spacer" />
           <div className="workspace-command-group">
             <span className="workspace-command-label">Export</span>
-            <button
-              className="workspace-command-btn is-primary"
-              onClick={handleDownload}
-              disabled={!isCompleted || isDownloading}
-              title="Download transparent PNG"
-            >
+            <button className="workspace-command-btn is-primary" onClick={handleDownload} disabled={!isCompleted || isDownloading} title="Download transparent PNG">
               {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               PNG
             </button>
@@ -257,251 +252,160 @@ export default function BgRemoverPage() {
       )}
       statusLeft={isCompleted ? (
         <>
-          <CheckCircle2 size={12} color="#4ade80" />
-          <span style={{ color: "#4ade80" }}>Background removed</span>
+          <CheckCircle2 size={12} className="studio-success-icon" />
+          <span className="studio-success-copy">Background removed</span>
           <small>Transparent PNG is ready for export.</small>
         </>
       ) : (
-        <span>{isProcessing ? "Removing background..." : "Ready"}</span>
+        <span>{isProcessing ? "Creating transparent cutout…" : "Source ready"}</span>
       )}
     >
+      <main className="main-workspace bg-studio">
+        <section className="canvas-area bg-canvas" aria-label="Background removal workspace">
+          <StudioWorkflow
+            currentStep={workflowStep}
+            label="Background removal workflow"
+            steps={[
+              { label: "Source", description: "Artwork loaded" },
+              { label: "Cutout", description: isProcessing ? "Processing" : isCompleted ? "Complete" : "Remove background" },
+              { label: "Export", description: isCompleted ? "PNG ready" : "Transparent PNG" },
+            ]}
+          />
 
-      {/* Main Content */}
-      <main className="main-workspace" style={{ padding: 0 }}>
-        {/* Canvas Area */}
-        <div
-          className="canvas-area"
-          style={{
-            padding: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#111",
-            position: "relative",
-            overflow: "hidden"
-          }}
-        >
-          <div
-            ref={scrollContainerRef}
-            style={{
-              width: "100%", height: "100%",
-              overflow: "auto",
-              display: "flex", alignItems: "center", justifyContent: "center"
-            }}
-          >
-            <div
-              style={{
-                zoom: zoom,
-                transition: "zoom 0.1s ease-out",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                position: "relative", minWidth: "100%", minHeight: "100%"
-              }}
-              onMouseMove={(e) => {
-                if (!isDraggingCompare.current || !isCompleted) return;
-                const container = document.getElementById("compare-container");
-                if (!container) return;
-                const rect = container.getBoundingClientRect();
-                let newPos = ((e.clientX - rect.left) / rect.width) * 100;
-                newPos = Math.max(0, Math.min(100, newPos));
+          <div className="bg-viewbar">
+            <div className="bg-view-title">
+              {isCompleted ? <Columns2 size={13} /> : <ImageIcon size={13} />}
+              <span>{isCompleted ? "Before / after comparison" : "Source preview"}</span>
+            </div>
+            <div className="bg-view-tools">
+              <span>{Math.round(zoom * 100)}%</span>
+              <button type="button" onClick={() => setZoom(1)} title="Reset zoom">
+                <RotateCcw size={12} />
+                Reset view
+              </button>
+            </div>
+          </div>
 
-                const overlayImg = document.getElementById("compare-overlay-img");
-                const sliderLine = document.getElementById("compare-slider-line");
-                if (overlayImg) {
-                  overlayImg.style.transition = "none";
-                  overlayImg.style.clipPath = `inset(0 ${100 - newPos}% 0 0)`;
-                }
-                if (sliderLine) {
-                  sliderLine.style.transition = "none";
-                  sliderLine.style.left = `${newPos}%`;
-                }
-              }}
-              onMouseUp={() => {
-                isDraggingCompare.current = false;
-                // Re-enable transition for smooth snaps later if needed
-                const overlayImg = document.getElementById("compare-overlay-img");
-                const sliderLine = document.getElementById("compare-slider-line");
-                if (overlayImg) overlayImg.style.transition = "clip-path 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)";
-                if (sliderLine) sliderLine.style.transition = "left 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)";
-              }}
-              onMouseLeave={() => { isDraggingCompare.current = false; }}
-            >
+          <div ref={scrollContainerRef} className="bg-canvas-scroll">
+            <div className="bg-stage-zoom" style={{ zoom }}>
               {!isCompleted ? (
-                // PRE-PROCESS VIEW
-                <img
-                  src={project.original_image_url}
-                  alt="Original"
-                  draggable={false}
-                  style={{ maxHeight: "80vh", maxWidth: "90%", boxShadow: "0 10px 30px rgba(0,0,0,0.5)", background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px" }}
-                />
+                <figure className="bg-image-frame is-source">
+                  <figcaption>Original source</figcaption>
+                  <img src={project.original_image_url} alt="Original artwork" draggable={false} />
+                </figure>
               ) : (
-                // BEFORE/AFTER SLIDER VIEW
                 <div
-                  id="compare-container"
-                  style={{
-                    position: "relative",
-                    overflow: "hidden", cursor: "ew-resize", userSelect: "none",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-                    maxWidth: "90%",
-                    background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px"
-                  }}
-                  onMouseDown={(e) => {
+                  ref={compareContainerRef}
+                  className="bg-compare-frame"
+                  onPointerDown={(event) => {
                     isDraggingCompare.current = true;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const pct = ((e.clientX - rect.left) / rect.width) * 100;
-                    const overlayImg = document.getElementById("compare-overlay-img");
-                    const sliderLine = document.getElementById("compare-slider-line");
-                    if (overlayImg) {
-                      overlayImg.style.transition = "none";
-                      overlayImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
-                    }
-                    if (sliderLine) {
-                      sliderLine.style.transition = "none";
-                      sliderLine.style.left = `${pct}%`;
-                    }
+                    event.currentTarget.setPointerCapture?.(event.pointerId);
+                    updateCompareFromPointer(event.clientX);
                   }}
-                >
-                  {/* INVISIBLE PLACEHOLDER to dictate the exact aspect ratio */}
-                  <img
-                    src={project.original_image_url}
-                    style={{ display: "block", maxHeight: "80vh", maxWidth: "100%", opacity: 0, pointerEvents: "none" }}
-                    alt=""
-                  />
-
-                  {/* AFTER layer (Transparent Image) — stretched to fill */}
-                  <img
-                    draggable={false}
-                    src={project.generated_image_url}
-                    alt="Transparent"
-                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
-                  />
-
-                  {/* BEFORE layer (Original Image) — stretched to fill, clipped */}
-                  <div
-                    id="compare-overlay-img"
-                    style={{
-                      position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
-                      clipPath: "inset(0 0% 0 0)", // Starts fully covering
-                      willChange: "clip-path",
-                      transform: "translateZ(0)",
-                      transition: "clip-path 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)"
-                    }}
-                  >
-                    <img
-                      draggable={false}
-                      src={project.original_image_url}
-                      alt="Original"
-                      style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none", background: "#000" }}
-                    />
-                  </div>
-
-                  {/* Slider Line */}
-                  <div
-                    id="compare-slider-line"
-                    style={{
-                      position: "absolute", top: 0, bottom: 0, left: "100%", // Starts at edge
-                      width: "2px", background: "#FFD700",
-                      transform: "translateX(-50%) translateZ(0)", pointerEvents: "none", willChange: "left",
-                      transition: "left 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)"
-                    }}
-                  >
-                    <div style={{
-                      position: "absolute", top: "50%", left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "36px", height: "36px", background: "#111", borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: "0 0 12px rgba(0,0,0,0.5)", border: "2px solid #FFD700", gap: "1px",
-                    }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-                    </div>
-                  </div>
-
-                  {/* Labels */}
-                  <div style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#FFD700", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px", fontWeight: "700" }}>ORIGINAL</div>
-                  <div style={{ position: "absolute", bottom: "14px", right: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#FFD700", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px", fontWeight: "700" }}>NO BACKGROUND</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Properties Panel */}
-        <aside className="properties-panel" style={{ width: "320px", display: "flex", flexDirection: "column", background: "#0a0a0a", borderLeft: "1px solid #1a1a1a", zIndex: 10 }}>
-          {/* PROPERTIES SECTION */}
-          <div className="panel-section">
-            <div className="section-header" style={{ background: "#222", borderBottom: "1px solid #444", padding: "12px 16px", fontSize: "11px", letterSpacing: "1px", color: "#888", textTransform: "uppercase" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><ImageIcon size={14} color="#888" /> IMAGE PROPERTIES</span>
-            </div>
-            <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div className="property-row">
-                <span className="property-label">Filename</span>
-                <span className="property-value" title={project.name} style={{ maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {project.name}
-                </span>
-              </div>
-              <div className="property-row">
-                <span className="property-label">Mode</span>
-                <span className="property-value">AI Background Removal</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ACTIONS SECTION */}
-          <div className="panel-section">
-            <div className="section-header" style={{ background: "#222", borderBottom: "1px solid #444", padding: "12px 16px", fontSize: "11px", letterSpacing: "1px", color: "#888", textTransform: "uppercase" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><Settings2 size={14} color="#888" /> ACTIONS</span>
-            </div>
-            <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {errorMsg && (
-                <div style={{ padding: "12px", background: "rgba(255,50,50,0.1)", border: "1px solid rgba(255,50,50,0.3)", color: "#ff6b6b", borderRadius: "6px", fontSize: "12px", marginBottom: "8px" }}>
-                  {errorMsg}
-                </div>
-              )}
-
-              {!isCompleted ? (
-                <button
-                  className="btn-primary"
-                  onClick={handleRemoveBg}
-                  disabled={isProcessing || (userCredits !== null && userCredits <= 0)}
-                  style={{
-                    width: "100%", padding: "14px 16px", borderRadius: "0", border: "1px solid #FFD700",
-                    background: (userCredits !== null && userCredits <= 0) ? "#1a1a1a" : "#1a1a1a",
-                    color: "#FFD700",
-                    fontWeight: "600", fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase",
-                    cursor: isProcessing || (userCredits !== null && userCredits <= 0) ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                    transition: "all 0.2s", opacity: isProcessing ? 0.7 : 1
+                  onPointerMove={(event) => {
+                    if (isDraggingCompare.current) updateCompareFromPointer(event.clientX);
                   }}
-                  onMouseOver={e => !isProcessing && (e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)")}
-                  onMouseOut={e => !isProcessing && (e.currentTarget.style.background = "#1a1a1a")}
+                  onPointerUp={(event) => {
+                    isDraggingCompare.current = false;
+                    event.currentTarget.releasePointerCapture?.(event.pointerId);
+                  }}
+                  onPointerCancel={() => { isDraggingCompare.current = false; }}
                 >
-                  {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
-                  {isProcessing ? "Processing..." : "Remove Background (-1 Credit)"}
-                </button>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <button
-                    className="btn-primary"
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    style={{
-                      width: "100%", padding: "10px 16px", borderRadius: "0", border: "1px solid #FFD700",
-                      background: "rgba(255, 215, 0, 0.1)", color: "#FFD700",
-                      fontWeight: "600", fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase",
-                      cursor: isDownloading ? "not-allowed" : "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                      transition: "all 0.2s", opacity: isDownloading ? 0.7 : 1
-                    }}
-                    onMouseOver={e => !isDownloading && (e.currentTarget.style.background = "rgba(255, 215, 0, 0.2)")}
-                    onMouseOut={e => !isDownloading && (e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)")}
-                  >
-                    {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                    Download Transparent PNG
-                  </button>
+                  <img className="bg-compare-placeholder" src={project.original_image_url} alt="" aria-hidden="true" />
+                  <img className="bg-compare-result" src={project.generated_image_url} alt="Artwork with transparent background" draggable={false} />
+                  <div className="bg-compare-original" style={{ clipPath: `inset(0 ${100 - comparePosition}% 0 0)` }}>
+                    <img src={project.original_image_url} alt="Original artwork" draggable={false} />
+                  </div>
+                  <div className="bg-compare-divider" style={{ left: `${comparePosition}%` }} aria-hidden="true">
+                    <span><Columns2 size={14} /></span>
+                  </div>
+                  <span className="bg-compare-label is-original">Original</span>
+                  <span className="bg-compare-label is-result">Transparent</span>
+                </div>
+              )}
+
+              {isProcessing && (
+                <div className="bg-processing-card" role="status" aria-live="polite">
+                  <Loader2 size={19} className="animate-spin" />
+                  <div>
+                    <strong>Building a clean cutout</strong>
+                    <span>Detecting the subject and refining transparent edges.</span>
+                  </div>
                 </div>
               )}
             </div>
           </div>
+        </section>
+
+        <aside className="bg-side-panel" aria-label="Background removal controls">
+          <section className="bg-panel-section bg-job-panel">
+            <div className="bg-panel-heading">
+              <div>
+                <span className="bg-panel-eyebrow">Production cutout</span>
+                <h2>AI background removal</h2>
+              </div>
+              <span className="bg-cost">1 Claw</span>
+            </div>
+
+            <div className="bg-spec-list">
+              <div><span>Output</span><strong>Transparent PNG</strong></div>
+              <div><span>Edge handling</span><strong>Automatic</strong></div>
+              <div><span>Best for</span><strong>Artwork & products</strong></div>
+            </div>
+
+            {errorMsg && <div className="bg-error" role="alert">{errorMsg}</div>}
+
+            {!isCompleted ? (
+              <button type="button" className="bg-action-btn is-primary" onClick={handleRemoveBg} disabled={isProcessing || noCredits}>
+                {isProcessing
+                  ? <><Loader2 size={15} className="animate-spin" /> Removing background…</>
+                  : <><Scissors size={15} /> Remove background</>}
+              </button>
+            ) : (
+              <button type="button" className="bg-action-btn is-primary" onClick={handleDownload} disabled={isDownloading}>
+                {isDownloading
+                  ? <><Loader2 size={15} className="animate-spin" /> Preparing download…</>
+                  : <><Download size={15} /> Download transparent PNG</>}
+              </button>
+            )}
+
+            {noCredits && !isCompleted && (
+              <p className="bg-credit-warning">You need 1 Claw to create the transparent cutout.</p>
+            )}
+
+            <div className="bg-privacy-note">
+              <ShieldCheck size={14} />
+              <span>Private by default. Source and result files auto-delete after 3 days.</span>
+            </div>
+          </section>
+
+          <section className="bg-panel-section bg-source-panel">
+            <div className="bg-panel-heading is-compact">
+              <div>
+                <span className="bg-panel-eyebrow">Current source</span>
+                <h2>Image details</h2>
+              </div>
+              <ImageIcon size={16} />
+            </div>
+            <div className="bg-source-card">
+              <div className="bg-source-thumb">
+                <img src={project.original_image_url} alt="Source artwork thumbnail" />
+              </div>
+              <div>
+                <strong title={project.name}>{project.name}</strong>
+                <span>{isCompleted ? "Cutout complete" : "Ready to process"}</span>
+              </div>
+            </div>
+
+            <div className="bg-delivery-list" aria-label="Output readiness">
+              <div className="is-complete"><CheckCircle2 size={13} /><span>Source received</span></div>
+              <div className={isCompleted ? "is-complete" : isProcessing ? "is-active" : ""}>
+                {isProcessing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                <span>Transparent cutout</span>
+              </div>
+              <div className={isCompleted ? "is-active" : ""}><Download size={13} /><span>PNG delivery</span></div>
+            </div>
+          </section>
         </aside>
       </main>
     </StudioShell>

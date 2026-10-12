@@ -15,7 +15,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap, ArrowUpRight } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./home.css";
@@ -1606,20 +1606,16 @@ export default function StartScreen() {
           </div>
         )}
 
-        {/* Lightweight footer brand banner */}
-        <div className="site-footer-banner" style={{ marginTop: "80px", marginBottom: "40px", width: "100%", display: "flex", justifyContent: "center" }}>
-          <Image
-            src="/cover-photo-banner.jpg"
-            alt="DesaynClaw AI-powered design tools"
-            width={2400}
-            height={898}
-            sizes="(max-width: 1248px) calc(100vw - 48px), 1200px"
-            quality={75}
-            loading="lazy"
-            style={{ width: "100%", maxWidth: "1200px", height: "auto" }}
-          />
-        </div>
-
+        <section className="prefooter-cta" aria-labelledby="prefooter-cta-heading">
+          <Image className="prefooter-cta-logo" src="/logo.png" alt="DesaynClaw" width={220} height={54} />
+          <span className="prefooter-cta-kicker">Production tools for real artwork</span>
+          <h2 id="prefooter-cta-heading">Turn rough artwork into production-ready files.</h2>
+          <p>Trace, clean up, remove backgrounds, and upscale client artwork in one focused workspace.</p>
+          <button type="button" onClick={() => { if (!user) { setShowLoginModal(true); return; } setShowModal(true); }}>
+            Start designing <span><ArrowUpRight size={18} aria-hidden="true" /></span>
+          </button>
+          <small>Private by default <i aria-hidden="true" /> No subscription required <i aria-hidden="true" /> Auto-deleted after 3 days</small>
+        </section>
         <footer className="site-footer">
           <div className="site-footer-main">
             <div className="site-footer-brand">
