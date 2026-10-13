@@ -33,6 +33,7 @@ import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
 import GuestHomepageHero, { GuestHomepageConversionSections, GuestHomepageSampleSection } from "@/components/marketing/GuestHomepageHero";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
+import HomepageTutorialSection from "@/components/marketing/HomepageTutorialSection";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
@@ -1056,6 +1057,14 @@ export default function StartScreen() {
           <div className="home-account-actions">
             {user ? (
               <>
+                <button
+                  className="home-tutorial-button"
+                  type="button"
+                  onClick={() => document.getElementById("how-desaynclaw-works")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  aria-label="Scroll to the DesaynClaw tutorial"
+                >
+                  <Play size={13} fill="currentColor" aria-hidden="true" /> Tutorial <span>5 min</span>
+                </button>
                 {/* Premium Credits Badge */}
                 <button className="home-credit-pill" type="button" onClick={() => setShowTopUpModal(true)} aria-label={`${credits} Claws available. Add more Claws`}>
                   <img src="/Claws/Claws.webp" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
@@ -1311,6 +1320,8 @@ export default function StartScreen() {
         <EduSection />
 
         <HowItWorksSection />
+
+        <HomepageTutorialSection />
 
         <ProductFeaturesSection
           publicStats={publicStats}

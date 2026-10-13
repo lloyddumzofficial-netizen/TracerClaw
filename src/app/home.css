@@ -4218,6 +4218,36 @@
 .home-topbar-brand img { display: block; width: 137px; height: auto; }
 
 .home-account-actions { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+.home-tutorial-button {
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .035);
+  color: rgba(255, 255, 255, .78);
+  font: 700 10px/1 var(--font-manrope), 'Segoe UI', Arial, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background .2s ease, transform .2s ease;
+}
+.home-tutorial-button svg { color: #e7cb45; }
+.home-tutorial-button span {
+  padding-left: 7px;
+  border-left: 1px solid rgba(255, 255, 255, .13);
+  color: rgba(255, 255, 255, .38);
+  font-size: 8px;
+}
+.home-tutorial-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 215, 0, .34);
+  background: rgba(255, 215, 0, .055);
+  color: #fff;
+}
+.home-tutorial-button:focus-visible { outline: 2px solid rgba(255, 224, 82, .8); outline-offset: 3px; }
 .home-credit-pill,
 .home-profile-pill {
   min-height: 34px;
@@ -7324,6 +7354,253 @@
 
   .guest-trust-marquee.software-compatibility-marquee .software-name {
     font-size: 11px !important;
+  }
+}
+
+/* Homepage tutorial: a quiet editorial section, not another floating UI. */
+html:has(.has-guest-home) {
+  scroll-behavior: smooth;
+}
+
+.homepage-tutorial-section {
+  width: 100%;
+  margin: clamp(92px, 11vw, 150px) auto;
+  padding-top: clamp(40px, 5vw, 66px);
+  scroll-margin-top: 92px;
+  border-top: 1px solid rgba(255, 255, 255, .11);
+  color: #efefec;
+}
+
+.homepage-tutorial-heading {
+  max-width: 930px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: clamp(34px, 5vw, 58px);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 22px;
+  text-align: center;
+}
+
+.homepage-tutorial-kicker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 17px;
+  color: rgba(255, 255, 255, .43);
+  font: 700 9px/1 var(--font-geist-mono, monospace);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.homepage-tutorial-kicker::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #d4c044;
+}
+
+.homepage-tutorial-heading h2 {
+  max-width: 900px;
+  margin: 0;
+  color: #f1f1ef;
+  font-size: clamp(2.35rem, 5vw, 4.65rem);
+  font-weight: 560;
+  line-height: 1.01;
+  letter-spacing: -.06em;
+  text-wrap: balance;
+}
+
+.homepage-tutorial-summary {
+  max-width: 660px;
+  padding-bottom: 0;
+}
+
+.homepage-tutorial-summary p {
+  margin: 0;
+  color: rgba(255, 255, 255, .5);
+  font-size: 13px;
+  line-height: 1.72;
+}
+
+.homepage-tutorial-summary span {
+  margin-top: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, .36);
+  font: 680 9px/1 var(--font-geist-mono, monospace);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.homepage-tutorial-player {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 13px;
+  background: #030404;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .34);
+}
+
+.homepage-tutorial-playerbar {
+  height: 41px;
+  padding: 0 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: #111213;
+  color: rgba(255, 255, 255, .37);
+  font: 680 8px/1 var(--font-geist-mono, monospace);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.homepage-tutorial-video-wrap {
+  position: relative;
+}
+
+.homepage-tutorial-player video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  object-fit: contain;
+}
+
+.homepage-tutorial-play {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: clamp(68px, 6vw, 84px);
+  height: clamp(68px, 6vw, 84px);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 50%;
+  background: rgba(7, 8, 9, .72);
+  color: #fff;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .38), inset 0 1px 0 rgba(255, 255, 255, .12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
+}
+
+.homepage-tutorial-play svg {
+  margin-left: 4px;
+}
+
+.homepage-tutorial-play:hover {
+  border-color: rgba(255, 255, 255, .5);
+  background: rgba(15, 16, 17, .84);
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.homepage-tutorial-play:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
+.homepage-tutorial-footer {
+  min-height: 112px;
+  padding: 25px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: column;
+  gap: 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+}
+
+.homepage-tutorial-footer ol {
+  width: min(760px, 100%);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(20px, 4vw, 46px);
+  list-style: none;
+}
+
+.homepage-tutorial-footer li {
+  min-width: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 9px;
+  color: rgba(255, 255, 255, .54);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.homepage-tutorial-footer li span {
+  color: rgba(255, 255, 255, .25);
+  font: 650 8px/1 var(--font-geist-mono, monospace);
+  letter-spacing: .08em;
+}
+
+@media (max-width: 760px) {
+  .homepage-tutorial-section {
+    margin: 78px auto;
+    padding-top: 38px;
+    scroll-margin-top: 76px;
+  }
+
+  .homepage-tutorial-heading {
+    margin-bottom: 28px;
+    gap: 22px;
+  }
+
+  .homepage-tutorial-heading h2 {
+    font-size: clamp(2.2rem, 11vw, 3.5rem);
+  }
+
+  .homepage-tutorial-summary p {
+    max-width: 560px;
+  }
+
+  .homepage-tutorial-player {
+    border-radius: 8px;
+  }
+
+  .homepage-tutorial-playerbar {
+    height: 33px;
+    padding: 0 10px;
+    font-size: 7px;
+  }
+
+  .homepage-tutorial-footer {
+    padding: 22px 0;
+  }
+
+  .homepage-tutorial-footer ol {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 20px;
+  }
+
+  .homepage-tutorial-footer li {
+    min-height: 54px;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.has-guest-home) {
+    scroll-behavior: auto;
   }
 }
 
