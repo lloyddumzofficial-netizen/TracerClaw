@@ -4004,33 +4004,6 @@
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, .9));
 }
 
-.guest-landing-title-handles::before,
-.guest-landing-title-handles::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  pointer-events: none;
-}
-
-.guest-landing-title-handles::before {
-  width: 13px;
-  height: 13px;
-  background:
-    linear-gradient(currentColor 0 0) center / 1px 13px no-repeat,
-    linear-gradient(currentColor 0 0) center / 13px 1px no-repeat;
-  filter: drop-shadow(0 0 1px #08090a);
-}
-
-.guest-landing-title-handles::after {
-  width: 4px;
-  height: 4px;
-  border: 1px solid currentColor;
-  background: #0a0b0c;
-  transform: rotate(45deg);
-}
-
 .guest-landing-title-mark::after {
   content: none;
 }

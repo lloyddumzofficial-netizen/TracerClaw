@@ -234,10 +234,6 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
         <div className="desktop-tools-heading-copy">
           <span className="desktop-tools-kicker">DesaynClaw workspaces</span>
           <h2 id="desktop-tools-title">Tools</h2>
-          <p>
-            Choose a focused workspace to extract artwork, recover image detail,
-            remove backgrounds, or build polished garment mockups.
-          </p>
         </div>
         <div className="desktop-tools-controls" aria-label="Browse tools">
           <button type="button" onClick={() => scrollTools(-1)} aria-label="Previous tools">
@@ -1421,12 +1417,6 @@ export default function StartScreen() {
 
         {!user && <GuestHomepageSampleSection />}
 
-        <HomepageWorkflowPreview />
-
-        <EduSection />
-
-        <HowItWorksSection />
-
         {!user && (
           <DesktopToolsShelf
             onExtract={(e) => {
@@ -1452,7 +1442,13 @@ export default function StartScreen() {
           />
         )}
 
-        {user && <HomepageTutorialSection />}
+        <HomepageWorkflowPreview />
+
+        <EduSection />
+
+        <HowItWorksSection />
+
+        <HomepageTutorialSection />
 
         <ProductFeaturesSection
           publicStats={publicStats}

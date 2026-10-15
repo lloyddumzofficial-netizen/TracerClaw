@@ -35,6 +35,7 @@ export function field(data: EmailData, key: string, fallback = "N/A"): string {
 export function renderEmailLayout(content: EmailTemplateRenderResult): string {
   const details = content.details?.filter((item) => item.value !== undefined && item.value !== null && item.value !== "");
   const headerUrl = content.headerImageUrl || HEADER_URL;
+  const video = content.videoPreview;
 
   return `
     <!doctype html>
@@ -44,7 +45,8 @@ export function renderEmailLayout(content: EmailTemplateRenderResult): string {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${escapeHtml(content.title)}</title>
       </head>
-      <body style="margin:0; padding:0; background-color:#e8e8e8; font-family: Arial, Helvetica, sans-serif; color:#111827;">
+      <body style="margin:0; padding:0; background-color:#eeeeee; font-family: Arial, Helvetica, sans-serif; color:#111827;">
+        ${content.preheader ? `<div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent; line-height:1px; font-size:1px; mso-hide:all;">${escapeHtml(content.preheader)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>` : ""}
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#e8e8e8; margin:0; padding:0;">
           <tr>
             <td align="center" style="padding:8px 8px 0;">
@@ -63,6 +65,35 @@ export function renderEmailLayout(content: EmailTemplateRenderResult): string {
                     <div style="color:#1f2937; font-size:14px; line-height:1.65; margin:0 0 22px;">
                       ${content.body}
                     </div>
+
+                    ${video ? `
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; margin:2px 0 26px; border:1px solid #e4e4e4; border-radius:10px; background-color:#ffffff; border-collapse:separate; overflow:hidden;">
+                      <tr>
+                        <td style="padding:0; background-color:#0b0c0d; border-radius:9px 9px 0 0;">
+                          <a href="${escapeHtml(video.url)}" target="_blank" style="display:block; color:#ffffff; text-decoration:none;">
+                            <img src="${escapeHtml(video.thumbnailUrl)}" width="550" alt="${escapeHtml(video.title)}" style="display:block; width:100%; max-width:550px; height:auto; border:0; border-radius:9px 9px 0 0; outline:none; text-decoration:none;">
+                          </a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:20px 20px 18px; background-color:#ffffff; border-radius:0 0 9px 9px;">
+                          ${video.eyebrow ? `<p style="margin:0 0 8px; color:#737373; font-size:10px; line-height:1.3; font-weight:700; letter-spacing:.11em; text-transform:uppercase;">${escapeHtml(video.eyebrow)}</p>` : ""}
+                          <h2 style="margin:0 0 7px; color:#111111; font-size:19px; line-height:1.3; font-weight:700; letter-spacing:-.02em;">${escapeHtml(video.title)}</h2>
+                          <p style="margin:0 0 16px; color:#606060; font-size:13px; line-height:1.55;">${escapeHtml(video.description)}</p>
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td bgcolor="#111111" style="border-radius:6px;">
+                                <a href="${escapeHtml(video.url)}" target="_blank" style="display:inline-block; padding:11px 16px; color:#ffffff; font-size:12px; line-height:1; font-weight:700; text-decoration:none;">
+                                  &#9654;&nbsp;&nbsp;${escapeHtml(video.actionLabel || "Watch video")}
+                                </a>
+                              </td>
+                              ${video.duration ? `<td style="padding-left:12px; color:#858585; font-size:11px; line-height:1.3; white-space:nowrap;">${escapeHtml(video.duration)}</td>` : ""}
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    ` : ""}
 
                     ${details?.length ? `
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb; background-color:#fafafa; margin:0 0 24px;">
@@ -87,8 +118,8 @@ export function renderEmailLayout(content: EmailTemplateRenderResult): string {
                     ${content.cta ? `
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:4px 0 26px;">
                       <tr>
-                        <td bgcolor="#FFD700" style="border-radius:4px;">
-                          <a href="${escapeHtml(content.cta.url)}" style="display:inline-block; padding:13px 22px; color:#111111; font-size:14px; line-height:1; font-weight:700; text-decoration:none;">
+                        <td bgcolor="#f2cf00" style="border-radius:6px;">
+                          <a href="${escapeHtml(content.cta.url)}" style="display:inline-block; padding:13px 22px; color:#111111; font-size:13px; line-height:1; font-weight:700; text-decoration:none;">
                             ${escapeHtml(content.cta.label)}
                           </a>
                         </td>

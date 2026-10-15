@@ -3,6 +3,8 @@ import type { EmailData, EmailTemplateRenderer } from "./types";
 
 const HOME_CTA = { label: "Open DesaynClaw", url: "https://desaynclaw.com" };
 const WELCOME_HEADER_URL = "https://desaynclaw.com/Welcome.jpg";
+const TUTORIAL_PREVIEW_URL = "https://desaynclaw.com/cover-photo-banner.jpg";
+const TUTORIAL_URL = "https://desaynclaw.com/#how-desaynclaw-works";
 
 const supportTemplate = (data: EmailData) => ({
   title: field(data, "title", "Support Reply"),
@@ -12,11 +14,21 @@ const supportTemplate = (data: EmailData) => ({
 export const emailTemplates = {
   welcome: (data: EmailData) => ({
     title: "Welcome to DesaynClaw",
+    preheader: "Your workspace is ready. Watch the five-minute guide and create your first production-ready file.",
     headerImageUrl: WELCOME_HEADER_URL,
     body: textToHtml(
-      "Hello {{name}},\n\nWelcome to DesaynClaw. Your account is ready, and your free starter claws are waiting.\n\nYou can now upload artwork, clean backgrounds, upscale images, and create trace-ready files from your workspace.",
+      "Hello {{name}},\n\nYour workspace is ready, and your free starter Claws are waiting. Upload artwork, recover image detail, remove backgrounds, and prepare clean production files—all in one focused workflow.",
       data
     ),
+    videoPreview: {
+      eyebrow: "Start here · 5-minute guide",
+      title: "See the complete workflow",
+      description: "Follow the real process from upload and artwork extraction to review, export, and Google Drive delivery.",
+      thumbnailUrl: TUTORIAL_PREVIEW_URL,
+      url: TUTORIAL_URL,
+      duration: "04:55",
+      actionLabel: "Watch the tutorial",
+    },
     cta: HOME_CTA,
   }),
 

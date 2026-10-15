@@ -1,156 +1,56 @@
-"use client";
+import { AlertCircle, ArrowLeft, ArrowUpRight, Check, CheckCircle2, Clock3, CreditCard, FileText, MessageCircle, RotateCcw, XCircle } from "lucide-react";
+import "../legal-policy.css";
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft, CreditCard, AlertCircle, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
+const SUMMARY = [
+  { icon: RotateCcw, title: "Failed jobs", text: "Eligible processing failures return Claws automatically." },
+  { icon: Clock3, title: "7-day window", text: "Unused purchases may qualify when requested promptly." },
+  { icon: CreditCard, title: "Used Claws", text: "Completed processing operations are non-refundable." },
+];
+
+const eligibility = [
+  ["Request within 7 days with no Claws used", "Full refund review", "is-yes", CheckCircle2],
+  ["Request within 7 days with some Claws used", "Unused portion only", "is-limited", AlertCircle],
+  ["Request submitted after 7 days", "Not eligible", "is-no", XCircle],
+  ["Claws consumed by completed projects", "Not eligible", "is-no", XCircle],
+  ["Account terminated for a Terms violation", "Not eligible", "is-no", XCircle],
+];
+
+function Section({ number, id, title, children }) {
+  return <section className="legal-section" id={id}><div className="legal-section-number">{number}</div><div><h2>{title}</h2>{children}</div></section>;
+}
 
 export default function RefundPolicy() {
-  const router = useRouter();
-
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#111", color: "#eee", padding: "40px 20px" }}>
-      {/* Header */}
-      <div style={{ maxWidth: "800px", margin: "0 auto", paddingBottom: "20px", borderBottom: "1px solid #333" }}>
-        <button
-          onClick={() => router.push("/")}
-          style={{ display: "flex", alignItems: "center", gap: "8px", background: "transparent", color: "#aaa", border: "none", cursor: "pointer", padding: "0", fontSize: "14px", marginBottom: "30px", transition: "color 0.2s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#FFD700")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}
-        >
-          <ArrowLeft size={16} /> Back to Home
-        </button>
-        <h1 style={{ fontSize: "36px", margin: "0 0 10px 0", color: "#fff", display: "flex", alignItems: "center", gap: "12px" }}>
-          <CreditCard color="#FFD700" size={36} /> Refund & Payment Policy
-        </h1>
-        <p style={{ color: "#888", fontSize: "14px", margin: "8px 0 0 0" }}>
-          Last updated: July 2026 &nbsp;|&nbsp; Applies to all credit purchases on DESAYNBRO Auto-Tracer.
-        </p>
-      </div>
-
-      {/* Body */}
-      <div style={{ maxWidth: "800px", margin: "40px auto 100px auto", display: "flex", flexDirection: "column", gap: "32px", fontSize: "15px", lineHeight: "1.8", color: "#ccc" }}>
-
-        {/* Summary Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-          <SummaryCard icon={<CheckCircle2 color="#22c55e" size={22} />} color="#22c55e" title="In-App Credit Refund" desc="Failed traces are automatically refunded back to your credit balance." />
-          <SummaryCard icon={<AlertCircle color="#FFD700" size={22} />} color="#FFD700" title="Unused Credits" desc="Contact us within 7 days of purchase if you have not used any credits." />
-          <SummaryCard icon={<XCircle color="#ef4444" size={22} />} color="#ef4444" title="Used Credits" desc="Credits that have been consumed for completed projects are non-refundable." />
-        </div>
-
-        {/* Section 1 */}
-        <Section num="1" title="About Credits">
-          Auto-Tracer operates on a prepaid <strong style={{ color: "#fff" }}>credit system</strong>. Each credit corresponds to one tracing or processing operation. Credits are purchased in advance and deducted from your balance when a project is successfully processed.
-          <br /><br />
-          Credits are <strong style={{ color: "#fff" }}>non-transferable</strong> between accounts and have <strong style={{ color: "#fff" }}>no expiry date</strong>.
-        </Section>
-
-        {/* Section 2 */}
-        <Section num="2" title="Automatic In-App Refunds (Failed Traces)">
-          If an AI tracing operation fails due to a server error, timeout, or any error on our end, <strong style={{ color: "#fff" }}>your credit is automatically returned</strong> to your balance. You do not need to contact us for this — it is handled automatically by our system.
-          <br /><br />
-          You may verify your credit balance at any time on the main dashboard.
-        </Section>
-
-        {/* Section 3 */}
-        <Section num="3" title="Monetary Refund Eligibility (Cash Back)">
-          <p style={{ margin: "0 0 16px 0" }}>Monetary refunds (back to your original payment method) are evaluated on a case-by-case basis, subject to these conditions:</p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #333" }}>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#fff", fontWeight: "600", width: "50%" }}>Situation</th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#fff", fontWeight: "600" }}>Refund Eligible?</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["Request within 7 days & 0 credits used", "✅ Yes — Full Refund"],
-                ["Request within 7 days & some credits used", "⚠️ Partial — unused credits only"],
-                ["Request after 7 days", "❌ No"],
-                ["Credits consumed on completed projects", "❌ No"],
-                ["Account terminated for ToS violation", "❌ No"],
-              ].map(([sit, elig], i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #222", background: i % 2 === 0 ? "transparent" : "#161616" }}>
-                  <td style={{ padding: "10px 12px", color: "#aaa" }}>{sit}</td>
-                  <td style={{ padding: "10px 12px", color: "#ddd", fontWeight: "500" }}>{elig}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
-
-        {/* Section 4 */}
-        <Section num="4" title="How to Request a Refund">
-          To request a monetary refund, please contact us through our official Facebook page within the eligibility window. Include the following in your message:
-          <ul style={{ paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px", color: "#aaa" }}>
-            <li>Your registered email address (Google account used to log in).</li>
-            <li>The date of purchase and the amount paid.</li>
-            <li>The reason for your refund request.</li>
-          </ul>
-          <p style={{ marginTop: "16px", marginBottom: 0 }}>
-            We aim to respond to all refund requests within <strong style={{ color: "#fff" }}>3–5 business days</strong>.
-          </p>
-        </Section>
-
-        {/* Section 5 */}
-        <Section num="5" title="Payment Processing">
-          Payments are processed automatically through approved providers such as QR Ph. You can scan a QR Ph code using GCash, Maya, or another compatible app. We do not store your payment credentials. All transactions are subject to the terms and fees of the respective payment provider.
-        </Section>
-
-        {/* Section 6 */}
-        <Section num="6" title="Chargebacks & Disputes">
-          Initiating an unauthorized chargeback with your bank or payment provider — before contacting us to resolve the issue — may result in the <strong style={{ color: "#fff" }}>permanent suspension</strong> of your account and forfeiture of all remaining credits, especially where the account is also linked to fraud, abuse, or intellectual property violations. We strongly encourage you to reach out to us first; we are happy to resolve any payment concerns.
-        </Section>
-
-        {/* Section 7 */}
-        <Section num="7" title="Governing Law">
-          This policy is governed by the laws of the <strong style={{ color: "#fff" }}>Republic of the Philippines</strong>. In the event of any dispute relating to payments or refunds, parties agree to first attempt resolution through good-faith negotiation before pursuing any legal remedy.
-        </Section>
-
-        {/* CTA */}
-        <div style={{ marginTop: "40px", background: "linear-gradient(145deg, #1f1f1f, #151515)", border: "1px solid #333", borderRadius: "16px", padding: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <div style={{ background: "rgba(255,215,0,0.1)", padding: "16px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <MessageCircle size={28} color="#FFD700" />
-            </div>
-            <div>
-              <h3 style={{ margin: "0 0 8px 0", color: "#fff", fontSize: "20px", fontWeight: "700" }}>Still have questions?</h3>
-              <p style={{ margin: 0, color: "#aaa", fontSize: "14px", maxWidth: "400px" }}>Whether it's about a payment, refund, or just how things work, our support team is ready to help you out.</p>
-            </div>
-          </div>
-          <a
-            href="https://m.me/105884602605306"
-            target="_blank"
-            rel="noreferrer"
-            style={{ display: "flex", alignItems: "center", gap: "10px", background: "#FFD700", color: "#000", padding: "14px 28px", borderRadius: "8px", fontWeight: "700", textDecoration: "none", fontSize: "15px", letterSpacing: "0.5px", transition: "transform 0.2s, box-shadow 0.2s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(255,215,0,0.3)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-          >
-            <MessageCircle size={18} /> Chat on Facebook
-          </a>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-function SummaryCard({ icon, color, title, desc }) {
-  return (
-    <div style={{ background: "#1a1a1a", border: `1px solid #2a2a2a`, borderTop: `3px solid ${color}`, borderRadius: "12px", padding: "20px" }}>
-      <div style={{ marginBottom: "10px" }}>{icon}</div>
-      <div style={{ color: "#fff", fontWeight: "600", fontSize: "14px", marginBottom: "6px" }}>{title}</div>
-      <div style={{ color: "#888", fontSize: "13px", lineHeight: "1.6" }}>{desc}</div>
-    </div>
-  );
-}
-
-function Section({ num, title, children }) {
-  return (
-    <div style={{ borderLeft: "3px solid #2a2a2a", paddingLeft: "24px" }}>
-      <div style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "2px", fontWeight: "700", marginBottom: "8px" }}>
-        Section {num}
-      </div>
-      <h2 style={{ color: "#fff", fontSize: "20px", margin: "0 0 16px 0", fontWeight: "600" }}>{title}</h2>
-      <div style={{ color: "#aaa", lineHeight: "1.8" }}>{children}</div>
+    <div className="legal-page">
+      <header className="legal-topbar">
+        <a className="legal-brand" href="/"><img src="/logo.png" alt="DesaynClaw" /></a>
+        <a className="legal-back" href="/"><ArrowLeft size={15}/> Back to home</a>
+      </header>
+      <main>
+        <section className="legal-hero">
+          <div className="legal-kicker"><CreditCard size={14}/> Refunds &amp; payments</div>
+          <h1>Straightforward refunds. No guesswork.</h1>
+          <p>How failed-job returns, unused Claws, payment reviews, and monetary refund requests are handled.</p>
+          <div className="legal-meta"><span>Last updated October 15, 2026</span><i/><span>Applies to all Claw purchases</span></div>
+        </section>
+        <section className="legal-summary" aria-label="Refund overview">
+          {SUMMARY.map(({icon:Icon,title,text})=><article key={title}><span className="legal-summary-icon"><Icon size={18}/></span><div><strong>{title}</strong><p>{text}</p></div></article>)}
+        </section>
+        <section className="legal-layout">
+          <article className="legal-document">
+            <header><span><FileText size={16}/> Official policy</span><h2>Refund &amp; Payment Policy</h2><p>This policy explains when Claws are returned automatically and when a monetary refund may be reviewed.</p></header>
+            <Section number="01" id="claws" title="About Claws"><p>DesaynClaw operates on a prepaid Claw system. Each eligible tool displays its processing cost before you continue. Claws are deducted when a processing request is accepted or completed under the applicable workflow.</p><ul><li><Check size={14}/>Claws are assigned to the account used for purchase.</li><li><Check size={14}/>Claws cannot be transferred between accounts.</li><li><Check size={14}/>Purchased Claws currently have no scheduled expiration date.</li></ul></Section>
+            <Section number="02" id="automatic" title="Automatic in-app returns for failed jobs"><p>If an eligible operation fails because of a server error, provider failure, or timeout recorded by our system, the charged Claw is returned automatically to your balance. No separate request is normally required. A visible output that completed successfully is not treated as a failed job solely because the creative result did not match personal preference.</p></Section>
+            <Section number="03" id="eligibility" title="Monetary refund eligibility"><p>Cash refunds to the original payment method are reviewed case by case. Provider fees, settlement status, fraud checks, and the number of Claws already consumed may affect the refundable amount.</p><div className="legal-eligibility">{eligibility.map(([situation,result,state,Icon])=><div className={`legal-eligibility-row ${state}`} key={situation}><span>{situation}</span><strong><Icon size={14}/>{result}</strong></div>)}</div></Section>
+            <Section number="04" id="request" title="How to request a monetary refund"><p>Contact official DesaynClaw support within the eligibility window. Include the email address used to sign in, purchase date, amount paid, payment reference when available, and a short reason for the request.</p><p>We aim to review complete requests within <strong>three to five business days</strong>. Your bank or payment provider may require additional time to post an approved refund.</p></Section>
+            <Section number="05" id="processing" title="Payment processing"><p>Payments may be handled by approved providers supporting QR Ph, cards, GCash, Maya, or other available methods. DesaynClaw does not store your full payment credentials. Provider processing times, fees, and verification requirements may apply.</p></Section>
+            <Section number="06" id="disputes" title="Chargebacks, fraud, and disputes"><p>Please contact us before opening a chargeback so we can investigate the transaction. Fraudulent or abusive disputes may lead to account restrictions, reversal of credited Claws, or suspension—particularly when connected to payment fraud, platform abuse, or violations of the Terms of Service.</p></Section>
+            <Section number="07" id="law" title="Governing law"><p>This policy is governed by the laws of the Republic of the Philippines. The parties should first attempt to resolve payment and refund concerns through good-faith communication before pursuing another remedy.</p></Section>
+            <div className="legal-contact"><div className="legal-contact-copy"><span className="legal-contact-icon"><MessageCircle size={18}/></span><div><h3>Need help with a payment?</h3><p>Send the transaction details to official support and we’ll review the issue with you.</p></div></div><a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Contact support <ArrowUpRight size={14}/></a></div>
+          </article>
+        </section>
+      </main>
+      <footer className="legal-footer"><img src="/logo.png" alt="DesaynClaw"/><p>Transparent rules for every Claw purchase.</p><nav><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/copyright">Copyright</a></nav></footer>
     </div>
   );
 }

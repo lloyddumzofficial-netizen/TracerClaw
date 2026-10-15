@@ -110,7 +110,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
 
         <nav className="guest-landing-links" aria-label="Explore DesaynClaw">
           <a className="is-current" href="#start">Home</a>
-          <a href="#process">How DesaynClaw works</a>
+          <a href="#how-desaynclaw-works">How DesaynClaw works</a>
           <a href="#workspace-tools">Tools</a>
           <a href="#preview">Samples</a>
           <a href="#pricing">Pricing</a>
