@@ -4,17 +4,20 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
-import { CheckCircle2, Columns2, Download, Image as ImageIcon, Loader2, RotateCcw, Scissors, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Columns2, Download, Image as ImageIcon, Loader2, Minus, Plus, RotateCcw, Scissors, ShieldCheck } from "lucide-react";
 import LogoLoader from "@/components/ui/LogoLoader";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
-import StudioWorkflow from "@/components/shared/StudioWorkflow";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
-import { formatSavedAgo } from "@/lib/formatSavedAgo";
 import { clearGenerationRequestKey, getOrCreateGenerationRequestKey } from "@/lib/generationRequestKey";
 
 const supabase = createClient();
+const PREVIEW_SURFACES = [
+  { id: "checker", label: "Transparent" },
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+];
 
 export default function BgRemoverPage() {
   const router = useRouter();
@@ -30,6 +33,8 @@ export default function BgRemoverPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [zoom, setZoom] = useState(1);
   const [comparePosition, setComparePosition] = useState(50);
+  const [viewMode, setViewMode] = useState("original");
+  const [previewSurface, setPreviewSurface] = useState("checker");
 
   const isDraggingCompare = useRef(false);
   const currentZoom = useRef(1);
@@ -178,7 +183,10 @@ export default function BgRemoverPage() {
   const isCompleted = !!project?.generated_image_url;
 
   useEffect(() => {
-    if (isCompleted) setComparePosition(50);
+    if (isCompleted) {
+      setComparePosition(50);
+      setViewMode("compare");
+    }
   }, [isCompleted]);
 
   // Wheel to zoom logic
@@ -220,36 +228,13 @@ export default function BgRemoverPage() {
     );
   }
 
-  const savedAgo = formatSavedAgo(project.updated_at);
   const noCredits = userCredits !== null && userCredits <= 0;
-  const workflowStep = isCompleted ? 3 : isProcessing ? 2 : 1;
 
   return (
     <StudioShell
       title="BG REMOVER"
-      projectName={project.name}
-      savedAgo={savedAgo}
       credits={userCredits}
       onHome={() => router.push("/")}
-      commandBar={(
-        <div className="workspace-command-bar">
-          <div className="workspace-command-group">
-            <span className="workspace-command-label">Process</span>
-            <button className="workspace-command-btn is-primary" onClick={handleRemoveBg} disabled={isProcessing || isCompleted || noCredits} title="Remove image background">
-              {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
-              Remove BG
-            </button>
-          </div>
-          <div className="workspace-command-spacer" />
-          <div className="workspace-command-group">
-            <span className="workspace-command-label">Export</span>
-            <button className="workspace-command-btn is-primary" onClick={handleDownload} disabled={!isCompleted || isDownloading} title="Download transparent PNG">
-              {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-              PNG
-            </button>
-          </div>
-        </div>
-      )}
       statusLeft={isCompleted ? (
         <>
           <CheckCircle2 size={12} className="studio-success-icon" />
@@ -261,24 +246,129 @@ export default function BgRemoverPage() {
       )}
     >
       <main className="main-workspace bg-studio">
-        <section className="canvas-area bg-canvas" aria-label="Background removal workspace">
-          <StudioWorkflow
-            currentStep={workflowStep}
-            label="Background removal workflow"
-            steps={[
-              { label: "Source", description: "Artwork loaded" },
-              { label: "Cutout", description: isProcessing ? "Processing" : isCompleted ? "Complete" : "Remove background" },
-              { label: "Export", description: isCompleted ? "PNG ready" : "Transparent PNG" },
-            ]}
-          />
+        <section className="bg-settings-panel bg-control-deck" aria-label="Background removal controls">
+          <div className="bg-inspector-preview">
+            <img src={isCompleted ? project.generated_image_url : project.original_image_url} alt="Current background removal preview" />
+            <span>{isCompleted ? "Transparent result" : "Source image"}</span>
+          </div>
+          <section className="bg-panel-section bg-job-panel">
+            <div className="bg-tool-heading">
+              <div>
+                <span className="bg-panel-eyebrow">Background removal</span>
+                <h2>Transparent cutout</h2>
+              </div>
+              <span className="bg-tool-rate">PNG output · 1 Claw</span>
+            </div>
 
+            <div className="bg-source-card bg-inline-source">
+              <div className="bg-source-thumb">
+                <img src={project.original_image_url} alt="Source artwork thumbnail" />
+              </div>
+              <div>
+                <strong title={project.name}>{project.name}</strong>
+                <span>{isCompleted ? "Cutout complete" : "Ready to process"}</span>
+              </div>
+            </div>
+
+            {errorMsg && <div className="bg-error" role="alert">{errorMsg}</div>}
+
+            <div className="bg-deck-actions">
+              {!isCompleted ? (
+                <button type="button" className="bg-action-btn is-primary" onClick={handleRemoveBg} disabled={isProcessing || noCredits}>
+                  {isProcessing
+                    ? <><Loader2 size={15} className="animate-spin" /> Extracting…</>
+                    : <><Scissors size={15} /> Remove background</>}
+                </button>
+              ) : (
+                <button type="button" className="bg-action-btn is-primary" onClick={handleDownload} disabled={isDownloading}>
+                  {isDownloading
+                    ? <><Loader2 size={15} className="animate-spin" /> Preparing…</>
+                    : <><Download size={15} /> Download PNG</>}
+                </button>
+              )}
+              {noCredits && !isCompleted && <p className="bg-credit-warning">You need 1 Claw to continue.</p>}
+              <div className="bg-privacy-note"><ShieldCheck size={13} /><span>Auto-deletes after 3 days</span></div>
+            </div>
+
+            {isCompleted && (
+              <div className="bg-inline-proof">
+                <div className="bg-panel-heading is-compact">
+                  <div>
+                    <span className="bg-panel-eyebrow">Result proofing</span>
+                    <h2>Preview background</h2>
+                  </div>
+                </div>
+                <p className="bg-proof-copy">Check fine edges against three surfaces before export.</p>
+                <div className="bg-surface-picker" role="group" aria-label="Preview background">
+                  {PREVIEW_SURFACES.map((surface) => (
+                    <button
+                      key={surface.id}
+                      type="button"
+                      className={previewSurface === surface.id ? "is-active" : ""}
+                      onClick={() => setPreviewSurface(surface.id)}
+                      aria-pressed={previewSurface === surface.id}
+                    >
+                      <span className={`bg-surface-swatch is-${surface.id}`} aria-hidden="true" />
+                      {surface.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-auto-pass" aria-label="Automatic cutout pass">
+              <span>Automatic pass</span>
+              <ul>
+                <li>Subject detection</li>
+                <li>Edge refinement</li>
+                <li>Transparent export</li>
+              </ul>
+            </div>
+          </section>
+        </section>
+
+        <section className="canvas-area bg-canvas" aria-label="Background removal workspace">
           <div className="bg-viewbar">
-            <div className="bg-view-title">
-              {isCompleted ? <Columns2 size={13} /> : <ImageIcon size={13} />}
-              <span>{isCompleted ? "Before / after comparison" : "Source preview"}</span>
+            <div className="bg-view-tabs" aria-label="Preview mode">
+              <button
+                type="button"
+                className={"bg-view-tab " + (viewMode === "original" ? "is-active" : "")}
+                onClick={() => setViewMode("original")}
+              >
+                <ImageIcon size={13} />
+                Original
+              </button>
+              <button
+                type="button"
+                className={"bg-view-tab " + (viewMode === "cutout" ? "is-active" : "")}
+                onClick={() => setViewMode("cutout")}
+                disabled={!isCompleted}
+              >
+                <Scissors size={13} />
+                Cutout
+              </button>
+              <button
+                type="button"
+                className={"bg-view-tab " + (viewMode === "compare" ? "is-active" : "")}
+                onClick={() => setViewMode("compare")}
+                disabled={!isCompleted}
+              >
+                <Columns2 size={13} />
+                Compare
+              </button>
             </div>
             <div className="bg-view-tools">
+              <span className={`bg-stage-state ${isProcessing ? "is-processing" : isCompleted ? "is-ready" : ""}`}>
+                <i aria-hidden="true" />
+                {isProcessing ? "Extracting" : isCompleted ? "Cutout ready" : "Source ready"}
+              </span>
               <span>{Math.round(zoom * 100)}%</span>
+              <button type="button" onClick={() => setZoom((value) => Math.max(0.25, value - 0.25))} title="Zoom out" aria-label="Zoom out">
+                <Minus size={12} />
+              </button>
+              <button type="button" onClick={() => setZoom((value) => Math.min(5, value + 0.25))} title="Zoom in" aria-label="Zoom in">
+                <Plus size={12} />
+              </button>
               <button type="button" onClick={() => setZoom(1)} title="Reset zoom">
                 <RotateCcw size={12} />
                 Reset view
@@ -288,15 +378,28 @@ export default function BgRemoverPage() {
 
           <div ref={scrollContainerRef} className="bg-canvas-scroll">
             <div className="bg-stage-zoom" style={{ zoom }}>
-              {!isCompleted ? (
+              {!isCompleted && !isProcessing && (
+                <div className="bg-start-overlay">
+                  <span>Ready for cutout</span>
+                  <button type="button" onClick={handleRemoveBg} disabled={noCredits}>
+                    <Scissors size={14} /> Remove background
+                  </button>
+                </div>
+              )}
+              {viewMode === "original" || !isCompleted ? (
                 <figure className="bg-image-frame is-source">
                   <figcaption>Original source</figcaption>
                   <img src={project.original_image_url} alt="Original artwork" draggable={false} />
                 </figure>
+              ) : viewMode === "cutout" ? (
+                <figure className={`bg-image-frame is-cutout is-${previewSurface}`}>
+                  <figcaption>Transparent cutout</figcaption>
+                  <img src={project.generated_image_url} alt="Artwork with transparent background" draggable={false} />
+                </figure>
               ) : (
                 <div
                   ref={compareContainerRef}
-                  className="bg-compare-frame"
+                  className={`bg-compare-frame is-${previewSurface}`}
                   onPointerDown={(event) => {
                     isDraggingCompare.current = true;
                     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -337,76 +440,6 @@ export default function BgRemoverPage() {
           </div>
         </section>
 
-        <aside className="bg-side-panel" aria-label="Background removal controls">
-          <section className="bg-panel-section bg-job-panel">
-            <div className="bg-panel-heading">
-              <div>
-                <span className="bg-panel-eyebrow">Production cutout</span>
-                <h2>AI background removal</h2>
-              </div>
-              <span className="bg-cost">1 Claw</span>
-            </div>
-
-            <div className="bg-spec-list">
-              <div><span>Output</span><strong>Transparent PNG</strong></div>
-              <div><span>Edge handling</span><strong>Automatic</strong></div>
-              <div><span>Best for</span><strong>Artwork & products</strong></div>
-            </div>
-
-            {errorMsg && <div className="bg-error" role="alert">{errorMsg}</div>}
-
-            {!isCompleted ? (
-              <button type="button" className="bg-action-btn is-primary" onClick={handleRemoveBg} disabled={isProcessing || noCredits}>
-                {isProcessing
-                  ? <><Loader2 size={15} className="animate-spin" /> Removing background…</>
-                  : <><Scissors size={15} /> Remove background</>}
-              </button>
-            ) : (
-              <button type="button" className="bg-action-btn is-primary" onClick={handleDownload} disabled={isDownloading}>
-                {isDownloading
-                  ? <><Loader2 size={15} className="animate-spin" /> Preparing download…</>
-                  : <><Download size={15} /> Download transparent PNG</>}
-              </button>
-            )}
-
-            {noCredits && !isCompleted && (
-              <p className="bg-credit-warning">You need 1 Claw to create the transparent cutout.</p>
-            )}
-
-            <div className="bg-privacy-note">
-              <ShieldCheck size={14} />
-              <span>Private by default. Source and result files auto-delete after 3 days.</span>
-            </div>
-          </section>
-
-          <section className="bg-panel-section bg-source-panel">
-            <div className="bg-panel-heading is-compact">
-              <div>
-                <span className="bg-panel-eyebrow">Current source</span>
-                <h2>Image details</h2>
-              </div>
-              <ImageIcon size={16} />
-            </div>
-            <div className="bg-source-card">
-              <div className="bg-source-thumb">
-                <img src={project.original_image_url} alt="Source artwork thumbnail" />
-              </div>
-              <div>
-                <strong title={project.name}>{project.name}</strong>
-                <span>{isCompleted ? "Cutout complete" : "Ready to process"}</span>
-              </div>
-            </div>
-
-            <div className="bg-delivery-list" aria-label="Output readiness">
-              <div className="is-complete"><CheckCircle2 size={13} /><span>Source received</span></div>
-              <div className={isCompleted ? "is-complete" : isProcessing ? "is-active" : ""}>
-                {isProcessing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                <span>Transparent cutout</span>
-              </div>
-              <div className={isCompleted ? "is-active" : ""}><Download size={13} /><span>PNG delivery</span></div>
-            </div>
-          </section>
-        </aside>
       </main>
     </StudioShell>
   );

@@ -2,31 +2,7 @@
 
 import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
-
-function scaleSvgToContainer(svgText) {
-  return svgText.replace(/<svg([^>]*?)>/i, (_, attrs) => {
-    let clean = attrs;
-    const wMatch = attrs.match(/\swidth=["']([^"']+)["']/i);
-    const hMatch = attrs.match(/\sheight=["']([^"']+)["']/i);
-    const vMatch = attrs.match(/\sviewBox=["']([^"']+)["']/i);
-
-    clean = clean
-      .replace(/\s+width=["'][^"']*["']/gi, "")
-      .replace(/\s+height=["'][^"']*["']/gi, "")
-      .replace(/\s+preserveAspectRatio=["'][^"']*["']/gi, "")
-      .replace(/\s+style=["'][^"']*["']/gi, "");
-
-    if (!vMatch && wMatch && hMatch) {
-      const w = parseFloat(wMatch[1].replace(/px/i, ""));
-      const h = parseFloat(hMatch[1].replace(/px/i, ""));
-      if (!Number.isNaN(w) && !Number.isNaN(h)) {
-        clean += ` viewBox="0 0 ${w} ${h}"`;
-      }
-    }
-
-    return `<svg${clean} style="width:100%;height:100%;display:block;" preserveAspectRatio="xMidYMid meet">`;
-  });
-}
+import { scaleSvgToContainer } from "@/lib/svgDisplay";
 
 export default function SafeInlineSVG({
   url,

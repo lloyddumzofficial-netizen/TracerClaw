@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { Shirt, X, Scissors, ChevronLeft, ArrowRight, Camera } from "lucide-react";
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
@@ -17,17 +18,18 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
   const active = current === value;
   return (
     <div
+      className={`new-project-trace-option${active ? " is-active" : ""}`}
       onClick={() => onChange(value)}
       style={{
         display: "flex", alignItems: "flex-start", gap: "13px",
         padding: "13px 16px",
-        border: active ? "1.5px solid #FFD700" : "1.5px solid #2e2e2e",
+        border: active ? "1.5px solid rgba(255,255,255,0.5)" : "1.5px solid #2e2e2e",
         borderRadius: "10px", cursor: "pointer",
         background: active
-          ? "linear-gradient(135deg, rgba(255,215,0,0.09), rgba(255,215,0,0.03))"
+          ? "linear-gradient(135deg, rgba(255,255,255,0.075), rgba(255,255,255,0.018))"
           : "rgba(255,255,255,0.02)",
         transition: "all 0.18s ease",
-        boxShadow: active ? "0 0 0 1px rgba(255,215,0,0.15) inset" : "none",
+        boxShadow: active ? "0 0 0 1px rgba(255,255,255,0.08) inset" : "none",
       }}
       onMouseEnter={(e) => {
         if (!active) {
@@ -43,13 +45,13 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
       }}
     >
       {/* Radio dot */}
-      <div style={{
+      <div className="new-project-trace-radio" style={{
         width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 2,
         border: active ? "5px solid #161616" : "1.5px solid #505050",
-        background: active ? "#FFD700" : "transparent",
-        outline: active ? "2px solid #FFD700" : "none",
+        background: active ? "#f0f0ed" : "transparent",
+        outline: active ? "2px solid rgba(255,255,255,0.72)" : "none",
         transition: "all 0.18s ease",
-        boxShadow: active ? "0 0 8px rgba(255,215,0,0.5)" : "none",
+        boxShadow: active ? "0 0 0 3px rgba(255,255,255,0.04)" : "none",
       }} />
       <div>
         <p style={{ margin: "0 0 3px 0", color: active ? "#fff" : "#bbb", fontSize: "13px", fontWeight: 600, transition: "color 0.18s" }}>{title}</p>
@@ -60,7 +62,7 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
 }
 
 /* ─── Category card (step 1) ────────────────────────────────── */
-function CategoryCard({ onClick, icon, title, description, badge }) {
+function CategoryCard({ onClick, icon, title, description, badge, thumbnail, thumbnailFit = "cover", thumbnailPosition = "center" }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -73,59 +75,71 @@ function CategoryCard({ onClick, icon, title, description, badge }) {
         display: "flex", flexDirection: "column", alignItems: "center",
         justifyContent: "center", gap: 16,
         padding: "28px 20px 28px",
-        border: hovered ? "1.5px solid #FFD700" : "1.5px solid #282828",
+        border: hovered ? "1.5px solid rgba(255,255,255,0.38)" : "1.5px solid #282828",
         borderRadius: 0, cursor: "pointer",
         background: hovered
-          ? "linear-gradient(160deg, rgba(255,215,0,0.07) 0%, rgba(255,215,0,0.02) 100%)"
+          ? "linear-gradient(160deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.018) 100%)"
           : "linear-gradient(160deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%)",
         transition: "all 0.22s ease",
         textAlign: "center",
-        aspectRatio: "1 / 1",
+        aspectRatio: "auto",
         boxShadow: hovered
-          ? "0 0 0 1px rgba(255,215,0,0.08) inset, 0 8px 32px rgba(0,0,0,0.4)"
+          ? "0 0 0 1px rgba(255,255,255,0.07) inset, 0 8px 32px rgba(0,0,0,0.4)"
           : "0 2px 12px rgba(0,0,0,0.2)",
         transform: hovered ? "translateY(-3px)" : "translateY(0)",
         overflow: "hidden",
       }}
     >
+      <div className={`new-project-category-thumbnail${thumbnailFit === "contain" ? " is-contain" : ""}`} aria-hidden="true">
+        <Image
+          src={thumbnail}
+          alt=""
+          fill
+          sizes="(max-width: 820px) 45vw, 245px"
+          style={{ objectPosition: thumbnailPosition }}
+        />
+      </div>
+      <div className="new-project-category-fade" aria-hidden="true" />
+
       {/* Radial glow blob on hover */}
-      <div style={{
+      <div className="new-project-category-glow" style={{
         position: "absolute", top: "38%", left: "50%",
         transform: "translate(-50%, -50%)",
         width: 120, height: 120,
-        background: "radial-gradient(circle, rgba(255,215,0,0.13) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(255,255,255,0.11) 0%, transparent 70%)",
         pointerEvents: "none", borderRadius: "50%",
         opacity: hovered ? 1 : 0,
         transition: "opacity 0.25s ease",
       }} />
 
       {badge && (
-        <div style={{
+        <div className="new-project-category-badge" style={{
           position: "absolute", top: 10, right: 10,
-          background: "linear-gradient(135deg, #FFD700, #e6b800)",
+          background: "linear-gradient(180deg, #fff 0%, #eceef1 52%, #c5c8cf 100%)",
           color: "#000", fontSize: "9px", fontWeight: 800,
           padding: "3px 7px", borderRadius: 5,
           letterSpacing: "0.8px",
-          boxShadow: "0 2px 6px rgba(255,215,0,0.35)",
+          boxShadow: "0 5px 14px rgba(0,0,0,0.34), inset 0 1px 0 #fff",
         }}>
+          <span className="new-project-category-badge-dot" aria-hidden="true" />
           {badge}
         </div>
       )}
 
       {/* Icon */}
-      <div style={{
-        color: "#FFD700",
+      <div className="new-project-category-icon" style={{
+        color: "rgba(242,242,238,0.82)",
         opacity: hovered ? 1 : 0.8,
         transition: "all 0.22s ease",
         transform: hovered ? "scale(1.1)" : "scale(1)",
-        filter: hovered ? "drop-shadow(0 0 10px rgba(255,215,0,0.55))" : "none",
+        filter: hovered ? "drop-shadow(0 5px 14px rgba(255,255,255,0.14))" : "none",
       }}>
         {icon}
       </div>
 
       {/* Text */}
-      <div>
-        <p style={{
+      <div className="new-project-category-copy">
+        <p className="new-project-category-title" style={{
           margin: "0 0 6px 0",
           color: hovered ? "#fff" : "#ddd",
           fontSize: "14px", fontWeight: 700,
@@ -134,7 +148,7 @@ function CategoryCard({ onClick, icon, title, description, badge }) {
         }}>
           {title}
         </p>
-        <p style={{
+        <p className="new-project-category-description" style={{
           margin: 0, fontSize: "11px",
           color: hovered ? "#888" : "#555",
           lineHeight: 1.65, transition: "color 0.22s",
@@ -145,13 +159,11 @@ function CategoryCard({ onClick, icon, title, description, badge }) {
       </div>
 
       {/* Arrow cue */}
-      <div style={{
-        position: "absolute", bottom: 13,
-        opacity: hovered ? 1 : 0,
-        transform: hovered ? "translateY(0)" : "translateY(5px)",
+      <div className="new-project-category-arrow" style={{
+        position: "absolute",
         transition: "all 0.22s ease",
-        color: "#FFD700",
       }}>
+        <span>Open workspace</span>
         <ArrowRight size={13} strokeWidth={2.2} />
       </div>
     </div>
@@ -286,12 +298,15 @@ const NewProjectModal = memo(function NewProjectModal({
                 icon={<Shirt size={38} strokeWidth={1.2} />}
                 title="Garment Workspace"
                 description="Jerseys, shirts, mockups — extract the flat pattern as SVG."
+                thumbnail="/samples/Reference.webp"
+                thumbnailPosition="center 20%"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("logo")}
                 icon={<LogoIcon size={38} />}
                 title="Logo Workspace"
                 description="Icons, emblems, wordmarks — vectorize with exact color and text."
+                thumbnail="/samples/esports-vector.webp"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("bg_remover")}
@@ -299,6 +314,8 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="BG Remover Studio"
                 description="Remove backgrounds instantly with AI — perfect for products & portraits."
                 badge="AI"
+                thumbnail="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
+                thumbnailPosition="center 22%"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("mockup_studio")}
@@ -306,12 +323,11 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="Mockup Studio"
                 description="Turn exact jersey panels into a premium five-view campaign set."
                 badge="NEW"
+                thumbnail="/MOCKUP_STUDIO_thumbnail.jpg"
+                thumbnailPosition="center 28%"
               />
             </div>
 
-            <p style={{ margin: "16px 0 0 0", textAlign: "center", fontSize: "10.5px", color: "#2e2e2e", letterSpacing: "0.2px" }}>
-              Click any workspace to continue →
-            </p>
           </>
         )}
 
@@ -335,11 +351,11 @@ const NewProjectModal = memo(function NewProjectModal({
             </button>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22 }}>
-              <div style={{
+              <div className="new-project-detail-icon" style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 34, height: 34, borderRadius: 9,
-                background: "rgba(255,215,0,0.09)",
-                color: "#FFD700", flexShrink: 0,
+                background: "rgba(255,255,255,0.06)",
+                color: "#ecece8", flexShrink: 0,
               }}>
                 {category === "logo"
                   ? <LogoIcon size={17} />
@@ -395,14 +411,14 @@ const NewProjectModal = memo(function NewProjectModal({
             )}
 
             {category === "logo" && (
-              <div style={{
-                background: "rgba(255,215,0,0.05)",
-                border: "1px solid rgba(255,215,0,0.14)",
+              <div className="new-project-logo-note" style={{
+                background: "rgba(255,255,255,0.035)",
+                border: "1px solid rgba(255,255,255,0.13)",
                 borderRadius: 10, padding: "11px 14px", marginBottom: 18,
               }}>
                 <p style={{ margin: 0, fontSize: "11.5px", color: "#777", lineHeight: 1.65 }}>
                   Works for{" "}
-                  <strong style={{ color: "#FFD700" }}>icons, emblems, combined logos, and text-only wordmarks.</strong>{" "}
+                  <strong>icons, emblems, combined logos, and text-only wordmarks.</strong>{" "}
                   All text and colors will be preserved exactly as in the reference.
                 </p>
               </div>

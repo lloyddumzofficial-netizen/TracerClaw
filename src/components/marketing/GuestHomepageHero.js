@@ -50,16 +50,6 @@ export function GuestHomepageSampleSection() {
           <div className="guest-landing-example-grid">
             {HOMEPAGE_COMPARISONS.map((comparison) => (
               <article className="guest-landing-example-card" key={comparison.id}>
-                <div className="guest-landing-example-card-heading">
-                  <div className="guest-landing-example-card-title">
-                    <span>{comparison.number}</span>
-                    <div>
-                      <strong>{comparison.title}</strong>
-                      <small>{comparison.meta}</small>
-                    </div>
-                  </div>
-                  <span className="guest-landing-example-drag"><ArrowLeftRight size={13} aria-hidden="true" /> Drag to inspect</span>
-                </div>
                 <div className="guest-landing-example-slider">
                   <BeforeAfterSlider
                     rasterUrl={comparison.originalUrl}
@@ -120,8 +110,8 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
 
         <nav className="guest-landing-links" aria-label="Explore DesaynClaw">
           <a className="is-current" href="#start">Home</a>
-          <a href="#how-desaynclaw-works">How DesaynClaw works</a>
-          <a href="#tools">Tools</a>
+          <a href="#process">How DesaynClaw works</a>
+          <a href="#workspace-tools">Tools</a>
           <a href="#preview">Samples</a>
           <a href="#pricing">Pricing</a>
         </nav>

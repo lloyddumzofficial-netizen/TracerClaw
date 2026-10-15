@@ -47,6 +47,25 @@ const PAYMENT_LOGOS = {
   dodo: "/Payments-logo/dodo-payments.png",
 };
 
+const CURRENCY_LABELS = {
+  PHP: "Philippine Peso",
+  USD: "US Dollar",
+  EUR: "Euro",
+  GBP: "British Pound",
+  AUD: "Australian Dollar",
+  CAD: "Canadian Dollar",
+  SGD: "Singapore Dollar",
+  MYR: "Malaysian Ringgit",
+  JPY: "Japanese Yen",
+  KRW: "South Korean Won",
+  INR: "Indian Rupee",
+  IDR: "Indonesian Rupiah",
+  THB: "Thai Baht",
+  AED: "UAE Dirham",
+  SAR: "Saudi Riyal",
+  NZD: "New Zealand Dollar",
+};
+
 function PaymentLogoTile({ src, alt, wide = false, large = false }) {
   const width = large ? 220 : wide ? 180 : 160;
   const height = large ? 80 : 70;
@@ -347,8 +366,8 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         inset: 0,
         zIndex: 2147483000,
         padding: '24px',
-        background: 'rgba(0, 0, 0, 0.94)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(5, 6, 7, 0.52)',
+        backdropFilter: 'blur(14px) saturate(0.9)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -449,7 +468,9 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     disabled={isPricingLoading}
                   >
                     {SUPPORTED_BILLING_CURRENCIES.map((currency) => (
-                      <option value={currency} key={currency}>{currency}</option>
+                      <option value={currency} key={currency}>
+                        {currency} — {CURRENCY_LABELS[currency]}
+                      </option>
                     ))}
                   </select>
                   <span>

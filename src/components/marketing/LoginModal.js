@@ -205,8 +205,6 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
           />
           <div className="login-visual-shade" aria-hidden="true" />
           <div className="login-visual-copy">
-            <span className="login-visual-kicker">DesaynClaw workspace</span>
-            <p>From rough artwork to clean, production-ready files.</p>
             <div className="login-visual-proof">
               <ShieldCheck size={15} />
               <span>Private by default · Auto-deleted after 3 days</span>

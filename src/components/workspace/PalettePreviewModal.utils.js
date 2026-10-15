@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { scaleSvgToContainer } from "@/lib/svgDisplay";
 
 export const MAX_SWATCHES = 512;
 export const MAX_CLUSTER_CHILDREN = 12;
@@ -259,18 +260,6 @@ export function getClusterChildPosition(index) {
     left: clamp(50 + Math.cos(angle) * radius, 18, 82),
     top: clamp(50 + Math.sin(angle) * radius, 18, 82),
   };
-}
-
-function scaleSvgToContainer(svgText) {
-  return svgText.replace(/<svg([^>]*?)>/i, (_, attrs) => {
-    const clean = attrs
-      .replace(/\s+width=["'][^"']*["']/gi, "")
-      .replace(/\s+height=["'][^"']*["']/gi, "")
-      .replace(/\s+preserveAspectRatio=["'][^"']*["']/gi, "")
-      .replace(/\s+style=["'][^"']*["']/gi, "");
-
-    return `<svg${clean} style="width:100%;height:100%;display:block;" preserveAspectRatio="xMidYMid meet">`;
-  });
 }
 
 export function sanitizeSvg(svgText) {

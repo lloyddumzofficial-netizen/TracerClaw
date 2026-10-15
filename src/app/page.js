@@ -15,7 +15,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap, ArrowUpRight } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./home.css";
@@ -173,53 +173,137 @@ function HomepageWorkflowPreview() {
   );
 }
 
-function DesktopWorkspaceBanner() {
-  return (
-    <section className="desktop-workspace-banner" aria-label="DesaynClaw desktop production workspace preview">
-      <Image
-        src="/cover-photo_png.png"
-        alt="DesaynClaw production workspace"
-        width={6000}
-        height={2571}
-        sizes="(max-width: 620px) 390px, (max-width: 980px) 100vw, 1180px"
-        loading="lazy"
-      />
-    </section>
-  );
-}
+function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }) {
+  const trackRef = useRef(null);
+  const tools = [
+    {
+      title: "Garment Extract",
+      description: "Turn jersey and garment mockups into clean, editable production artwork.",
+      action: "Start extracting",
+      badge: "Featured",
+      badgeFeatured: true,
+      image: "/samples/Reference.webp",
+      imageClassName: "is-cover",
+      onClick: onExtract,
+    },
+    {
+      title: "Image Upscaler",
+      description: "Recover cleaner edges and usable resolution while preserving the original.",
+      action: "Open upscaler",
+      badge: "4K detail",
+      comparison: {
+        leftImage: "/samples/upscale-hq.webp",
+        rightImage: "/samples/upscale-original.png",
+        className: "is-upscale-comparison",
+      },
+      onClick: onUpscale,
+    },
+    {
+      title: "Background Remover",
+      description: "Isolate subjects with transparent edges ready for design and production.",
+      action: "Remove background",
+      badge: "Clean cutout",
+      comparison: {
+        leftImage: "/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp",
+        rightImage: "/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp",
+        className: "is-cutout-comparison",
+      },
+      onClick: onBgRemover,
+    },
+    {
+      title: "Mockup Studio",
+      description: "Build polished garment previews from production panels and artwork.",
+      action: "Open studio",
+      badge: "New studio",
+      image: "/MOCKUP_STUDIO_thumbnail.jpg",
+      imageClassName: "is-cover is-mockup-photo",
+      onClick: onMockupStudio,
+    },
+  ];
 
-function MarketingVideoPreview() {
-  const videoRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const handlePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.play();
+  const scrollTools = (direction) => {
+    trackRef.current?.scrollBy({
+      left: direction * Math.min(trackRef.current.clientWidth * 0.82, 440),
+      behavior: "smooth",
+    });
   };
 
   return (
-    <section className="marketing-video-section" aria-label="DesaynClaw marketing video">
-      <div className="marketing-video-frame">
-        <video
-          ref={videoRef}
-          className="marketing-video"
-          controls
-          playsInline
-          preload="metadata"
-          poster="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/images-desaynclaw/THUMBNAIL-VIDEO-DEMO.jpg"
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onEnded={() => setIsPlaying(false)}
-        >
-          <source src="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/MARKETING%20VIDEO%202.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        {!isPlaying && (
-          <button className="marketing-play-button" type="button" onClick={handlePlay} aria-label="Play DesaynClaw marketing video">
-            <Play size={58} fill="currentColor" strokeWidth={1.8} />
+    <section id="workspace-tools" className="desktop-tools-shelf" aria-labelledby="desktop-tools-title">
+      <header className="desktop-tools-heading">
+        <div className="desktop-tools-heading-copy">
+          <span className="desktop-tools-kicker">DesaynClaw workspaces</span>
+          <h2 id="desktop-tools-title">Tools</h2>
+          <p>
+            Choose a focused workspace to extract artwork, recover image detail,
+            remove backgrounds, or build polished garment mockups.
+          </p>
+        </div>
+        <div className="desktop-tools-controls" aria-label="Browse tools">
+          <button type="button" onClick={() => scrollTools(-1)} aria-label="Previous tools">
+            <ChevronLeft size={19} strokeWidth={1.8} />
           </button>
-        )}
+          <button type="button" onClick={() => scrollTools(1)} aria-label="Next tools">
+            <ChevronRight size={19} strokeWidth={1.8} />
+          </button>
+        </div>
+      </header>
+
+      <div className="desktop-tools-track" ref={trackRef} role="list">
+        {tools.map((tool) => (
+          <article className="desktop-tool-card" key={tool.title} role="listitem">
+            {tool.comparison ? (
+              <div className={`desktop-tool-comparison ${tool.comparison.className}`} aria-hidden="true">
+                <div className="desktop-tool-comparison-right">
+                  <Image
+                    src={tool.comparison.rightImage}
+                    alt=""
+                    fill
+                    sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 360px"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="desktop-tool-comparison-left">
+                  <div className="desktop-tool-comparison-left-image">
+                    <Image
+                      src={tool.comparison.leftImage}
+                      alt=""
+                      fill
+                      sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 360px"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+                <span className="desktop-tool-comparison-line">
+                  <span>Ⅱ</span>
+                </span>
+              </div>
+            ) : (
+              <div className={`desktop-tool-visual ${tool.imageClassName}`}>
+                <Image
+                  src={tool.image}
+                  alt=""
+                  fill
+                  sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 360px"
+                  loading="lazy"
+                />
+              </div>
+            )}
+            <div className="desktop-tool-card-shade" />
+            <span className={`desktop-tool-badge${tool.badgeFeatured ? " is-featured" : ""}`}>
+              <span aria-hidden="true" />
+              {tool.badge}
+            </span>
+            <div className="desktop-tool-card-copy">
+              <h3>{tool.title}</h3>
+              <p>{tool.description}</p>
+              <button type="button" onClick={tool.onClick}>
+                {tool.action}
+                <ArrowUpRight size={15} strokeWidth={1.8} />
+              </button>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -423,48 +507,49 @@ function AnimatedCounter({ value }) {
   return (
     <div className="extraction-counter" style={{
       marginTop: "60px",
-      padding: "50px 40px",
-      background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(26,26,26,0.8) 100%)",
-      borderBottom: "1px solid #2a2a2a",
+      padding: "56px 40px",
+      background: "linear-gradient(180deg, rgba(14,14,14,0) 0%, rgba(18,18,18,0.85) 100%)",
+      borderTop: "1px solid rgba(255,255,255,0.07)",
+      borderBottom: "1px solid rgba(255,255,255,0.05)",
       textAlign: "center",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: "20px"
+      gap: "22px"
     }}>
-      {/* Premium Pill Badge */}
+      {/* Monochrome Glass Pill Badge */}
       <div style={{
-        color: "#FFD700",
-        fontSize: "11px",
-        fontWeight: "800",
-        letterSpacing: "3px",
+        color: "rgba(255,255,255,0.72)",
+        fontSize: "10.5px",
+        fontWeight: "700",
+        letterSpacing: "0.18em",
         textTransform: "uppercase",
-        background: "rgba(255, 215, 0, 0.08)",
-        border: "1px solid rgba(255, 215, 0, 0.2)",
-        padding: "6px 16px",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)",
+        border: "1px solid rgba(255,255,255,0.13)",
+        padding: "6px 18px",
         borderRadius: "100px",
-        boxShadow: "0 0 20px rgba(255, 215, 0, 0.1)"
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 14px rgba(0,0,0,0.35)"
       }}>
-        TRUSTED NATIONWIDE
+        Trusted Nationwide
       </div>
 
-      {/* Gradient Number */}
+      {/* White-to-dark-grey metallic gradient number */}
       <div style={{
         fontSize: "clamp(88px, 9vw, 118px)",
         fontWeight: "600",
         fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif",
-        background: "linear-gradient(135deg, #FFF 0%, #FFD700 100%)",
+        background: "linear-gradient(160deg, #ffffff 0%, #d4d4d8 38%, #71717a 80%)",
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
-        lineHeight: "1.1",
+        lineHeight: "1.05",
         letterSpacing: "-2px",
-        filter: "drop-shadow(0px 10px 20px rgba(255, 215, 0, 0.15))"
+        filter: "drop-shadow(0px 8px 22px rgba(0,0,0,0.45))"
       }}>
         {Number.isFinite(value) ? count.toLocaleString() : "--"}
       </div>
 
-      {/* Clean Description */}
-      <div style={{ color: "#aaa", fontSize: "16px", maxWidth: "420px", lineHeight: "1.6", fontWeight: "400" }}>
+      {/* Description */}
+      <div style={{ color: "rgba(255,255,255,0.42)", fontSize: "15px", maxWidth: "400px", lineHeight: "1.65", fontWeight: "400" }}>
         Real completed SVG extractions from DesaynClaw projects.
       </div>
     </div>
@@ -1309,19 +1394,65 @@ export default function StartScreen() {
 
         {user && <HomeTrustMarquee />}
 
-        {user && <DesktopWorkspaceBanner />}
+        {user && (
+          <DesktopToolsShelf
+            onExtract={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowModal(true);
+            }}
+            onUpscale={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              router.push('/upscale');
+            }}
+            onBgRemover={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              bgRemoveInputRef.current.click();
+            }}
+            onMockupStudio={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              router.push('/mockup-studio');
+            }}
+          />
+        )}
 
         {!user && <GuestHomepageSampleSection />}
 
         <HomepageWorkflowPreview />
 
-        {user && <MarketingVideoPreview />}
-
         <EduSection />
 
         <HowItWorksSection />
 
-        <HomepageTutorialSection />
+        {!user && (
+          <DesktopToolsShelf
+            onExtract={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowLoginModal(true);
+            }}
+            onUpscale={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowLoginModal(true);
+            }}
+            onBgRemover={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowLoginModal(true);
+            }}
+            onMockupStudio={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowLoginModal(true);
+            }}
+          />
+        )}
+
+        {user && <HomepageTutorialSection />}
 
         <ProductFeaturesSection
           publicStats={publicStats}
@@ -1408,8 +1539,14 @@ export default function StartScreen() {
 
           {/* Section Header */}
           <div className="great-for-heading">
-            <span className="section-kicker">Great For</span>
-            <h2>Built for everyday production work</h2>
+            <span className="section-kicker">
+              <span className="great-for-kicker-dot" />
+              Great For
+            </span>
+            <h2>Built for <em>everyday production</em> work</h2>
+            <p className="great-for-subtitle">
+              From sublimation print shops to freelance designers — DesaynClaw handles the heavy lifting so you can focus on delivering clean, production-ready files faster.
+            </p>
           </div>
 
           {/* Cards Grid */}
@@ -1417,10 +1554,13 @@ export default function StartScreen() {
 
             {/* Card 1 — Sublimation Print Shops */}
             <article className="great-for-card">
-              <div className="great-for-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+              <div className="great-for-card-top">
+                <div className="great-for-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+                </div>
+                <span className="great-for-tag">Print Ready</span>
               </div>
-              <div>
+              <div className="great-for-card-body">
                 <h3>Sublimation Print Shops</h3>
                 <p>Extract flat sublimation-ready files from jersey mockups. Save hours of manual Photoshop work. Output clean, print-ready rectangles straight to your RIP software.</p>
               </div>
@@ -1428,10 +1568,13 @@ export default function StartScreen() {
 
             {/* Card 2 — Logos & Branding */}
             <article className="great-for-card">
-              <div className="great-for-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+              <div className="great-for-card-top">
+                <div className="great-for-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                </div>
+                <span className="great-for-tag">SVG Export</span>
               </div>
-              <div>
+              <div className="great-for-card-body">
                 <h3>Logos &amp; Branding</h3>
                 <p>Vectorize low-resolution logos into crisp, scalable SVGs. Enhance old or blurry brand marks into professional vector files ready for Illustrator, CorelDRAW, or embroidery.</p>
               </div>
@@ -1439,10 +1582,13 @@ export default function StartScreen() {
 
             {/* Card 3 — School & Sports Uniforms */}
             <article className="great-for-card">
-              <div className="great-for-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              <div className="great-for-card-top">
+                <div className="great-for-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                </div>
+                <span className="great-for-tag">Team Orders</span>
               </div>
-              <div>
+              <div className="great-for-card-body">
                 <h3>School &amp; Sports Uniforms</h3>
                 <p>Reproduce barangay, basketball, volleyball, and school uniform designs from mockup photos. Get editable flat files for any sport without touching the original artwork.</p>
               </div>
@@ -1450,10 +1596,13 @@ export default function StartScreen() {
 
             {/* Card 4 — Freelance Designers */}
             <article className="great-for-card">
-              <div className="great-for-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h.01" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" /></svg>
+              <div className="great-for-card-top">
+                <div className="great-for-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h.01" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" /></svg>
+                </div>
+                <span className="great-for-tag">Freelance</span>
               </div>
-              <div>
+              <div className="great-for-card-body">
                 <h3>Freelance Designers</h3>
                 <p>Remove backgrounds, upscale to 4K, and vectorize client artwork in minutes. Take on more orders and deliver faster without sacrificing quality.</p>
               </div>

@@ -6,12 +6,6 @@ import { Clock3, Play } from "lucide-react";
 const TUTORIAL_VIDEO_URL =
   "https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/desaynclaw_video-tutorial/DESAYNCLAW-TUTORIAL.compressed.mp4";
 
-const WORKFLOW_STEPS = [
-  ["01", "Upload"],
-  ["02", "Extract"],
-  ["03", "Review"],
-  ["04", "Export"],
-];
 
 export default function HomepageTutorialSection() {
   const videoRef = useRef(null);
@@ -29,7 +23,6 @@ export default function HomepageTutorialSection() {
     >
       <header className="homepage-tutorial-heading">
         <div>
-          <span className="homepage-tutorial-kicker">How DesaynClaw works</span>
           <h2 id="homepage-tutorial-title">Watch the complete workflow, from upload to export.</h2>
         </div>
         <div className="homepage-tutorial-summary">
@@ -65,14 +58,6 @@ export default function HomepageTutorialSection() {
           )}
         </div>
       </div>
-
-      <footer className="homepage-tutorial-footer">
-        <ol aria-label="Tutorial workflow chapters">
-          {WORKFLOW_STEPS.map(([number, label]) => (
-            <li key={number}><span>{number}</span>{label}</li>
-          ))}
-        </ol>
-      </footer>
     </section>
   );
 }

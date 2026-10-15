@@ -381,7 +381,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               </span>
               <strong>
                 <span ref={progressTextRef}>{Math.round(stageStart)}%</span>
-                <em>step {layerState + 1}/3</em>
+                <em>Stage {layerState + 1} of 3</em>
               </strong>
             </div>
             <div

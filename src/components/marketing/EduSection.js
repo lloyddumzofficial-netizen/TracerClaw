@@ -23,17 +23,15 @@ const EduSection = memo(function EduSection() {
       {/* HOW TO USE / DEMO VIDEO SECTION */}
       <div className="edu-demo-section">
         <div className="edu-demo-video">
-          <video
-            src="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/VIDEO-SHOWREEL-v2.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="edu-demo-video-el"
-          />
-          <div className="edu-demo-video-caption">
-            <span>Live workspace preview</span>
-            <strong>Crop, trace, upscale, export</strong>
+          <div className="edu-demo-viewport">
+            <video
+              src="https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/VIDEO-SHOWREEL-v2.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="edu-demo-video-el"
+            />
           </div>
         </div>
 
@@ -48,7 +46,7 @@ const EduSection = memo(function EduSection() {
           <ol className="edu-demo-steps">
             {workflowSteps.map((step, i) => (
               <li key={i} className="edu-demo-step">
-                <span className="edu-step-num">{i + 1}</span>
+                <span className="edu-step-num">{String(i + 1).padStart(2, "0")}</span>
                 <span className="edu-step-content">
                   <strong>{step.title}</strong>
                   <span>{step.copy}</span>
