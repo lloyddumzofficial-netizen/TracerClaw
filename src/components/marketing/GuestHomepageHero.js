@@ -40,16 +40,31 @@ export function GuestHomepageSampleSection() {
             <small>FRONT / BACK COMPARISON</small>
           </div>
           <h2>Inspect every edge <em>before export.</em></h2>
-          <p>Front and back views, paired with the isolated production artwork. Drag each divider to verify curves, fine print, and garment details before handoff.</p>
+          <div className="guest-landing-example-summary">
+            <p>Compare each extracted panel against the source garment. Verify curves, fine print, alignment, and edge quality before the production handoff.</p>
+            <span><ArrowLeftRight size={13} aria-hidden="true" /> Drag either divider to inspect</span>
+          </div>
         </div>
         <div className="guest-landing-proof-board">
           <div className="guest-landing-proof-toolbar">
             <span className="guest-landing-proof-status"><i aria-hidden="true" /> Artwork review</span>
-            <span><ArrowLeftRight size={13} aria-hidden="true" /> Interactive comparison</span>
+            <span><b>2</b> production panels ready</span>
           </div>
           <div className="guest-landing-example-grid">
             {HOMEPAGE_COMPARISONS.map((comparison) => (
               <article className="guest-landing-example-card" key={comparison.id}>
+                <header className="guest-landing-example-card-heading">
+                  <div className="guest-landing-example-card-title">
+                    <span>{comparison.number}</span>
+                    <div>
+                      <strong>{comparison.title}</strong>
+                      <small>{comparison.meta}</small>
+                    </div>
+                  </div>
+                  <span className="guest-landing-example-drag">
+                    <ArrowLeftRight size={13} aria-hidden="true" /> Drag
+                  </span>
+                </header>
                 <div className="guest-landing-example-slider">
                   <BeforeAfterSlider
                     rasterUrl={comparison.originalUrl}

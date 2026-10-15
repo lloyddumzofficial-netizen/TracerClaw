@@ -8303,29 +8303,59 @@ html:has(.has-guest-home) {
 
 .guest-landing-example-copy p {
   max-width: 390px;
-  margin: 0 0 5px;
+  margin: 0;
   color: rgba(255, 255, 255, .52);
   font-size: 13px;
   line-height: 1.75;
+}
+
+.guest-landing-example-summary {
+  max-width: 400px;
+  margin: 0 0 3px;
+  display: grid;
+  gap: 17px;
+}
+
+.guest-landing-example-summary > span {
+  width: fit-content;
+  min-height: 30px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, .105);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .025);
+  color: rgba(255, 255, 255, .56);
+  font: 650 8px/1 var(--font-geist-mono, monospace);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.guest-landing-example-summary > span svg {
+  color: rgba(255, 255, 255, .72);
 }
 
 .guest-landing-proof-board {
   max-width: 1120px;
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: 9px;
-  background: #0a0b0c;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .025);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(25, 26, 28, .92), #090a0b 28%);
+  box-shadow:
+    0 36px 100px rgba(0, 0, 0, .42),
+    inset 0 1px 0 rgba(255, 255, 255, .055);
 }
 
 .guest-landing-proof-toolbar {
-  height: 45px;
-  padding: 0 18px;
+  height: 48px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, .085);
+  border-bottom: 1px solid rgba(255, 255, 255, .09);
+  background: rgba(255, 255, 255, .018);
   color: rgba(255, 255, 255, .38);
   font: 650 8px/1 var(--font-geist-mono, monospace);
   letter-spacing: .12em;
@@ -8338,6 +8368,18 @@ html:has(.has-guest-home) {
   gap: 8px;
 }
 
+.guest-landing-proof-toolbar b {
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .045);
+  color: rgba(255, 255, 255, .82);
+  font: inherit;
+}
+
 .guest-landing-proof-status {
   color: rgba(255, 255, 255, .7);
 }
@@ -8346,8 +8388,8 @@ html:has(.has-guest-home) {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, .65);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, .045);
+  background: #73c394;
+  box-shadow: 0 0 0 4px rgba(115, 195, 148, .07), 0 0 10px rgba(115, 195, 148, .2);
 }
 
 .guest-landing-example-grid {
@@ -8373,10 +8415,10 @@ html:has(.has-guest-home) {
 }
 
 .guest-landing-example-card-heading {
-  height: 66px;
-  padding: 0 18px;
+  height: 62px;
+  padding: 0 17px;
   border-bottom-color: rgba(255, 255, 255, .075);
-  background: transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .026), rgba(255, 255, 255, .008));
 }
 
 .guest-landing-example-card-title {
@@ -8384,7 +8426,14 @@ html:has(.has-guest-home) {
 }
 
 .guest-landing-example-card-title > span {
-  min-width: 28px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .025);
   color: rgba(255, 255, 255, .36);
 }
 
@@ -8399,7 +8448,34 @@ html:has(.has-guest-home) {
 }
 
 .guest-landing-example-drag {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .022);
   color: rgba(255, 255, 255, .38);
+}
+
+.guest-landing-example-card:hover .guest-landing-example-drag {
+  border-color: rgba(255, 255, 255, .16);
+  color: rgba(255, 255, 255, .68);
+}
+
+.guest-landing-example-slider .ba-slider-label {
+  top: 14px !important;
+}
+
+.guest-landing-example-slider .ba-slider-handle {
+  width: 34px !important;
+  height: 34px !important;
+  background: rgba(12, 13, 14, .9) !important;
+  border: 1px solid rgba(255, 255, 255, .52) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .42), 0 0 0 5px rgba(255, 255, 255, .09) !important;
+  backdrop-filter: blur(10px);
+}
+
+.guest-landing-example-slider .ba-slider-handle span {
+  background: rgba(255, 255, 255, .82) !important;
 }
 
 .guest-landing-example-slider .ba-slider-stage {
@@ -8430,9 +8506,13 @@ html:has(.has-guest-home) {
   }
 
   .guest-landing-example-copy p {
-    margin-top: 22px;
     font-size: 12px;
     line-height: 1.7;
+  }
+
+  .guest-landing-example-summary {
+    margin-top: 22px;
+    gap: 14px;
   }
 
   .guest-landing-proof-board {

@@ -5,7 +5,7 @@
  * Uses SVG stroke-dasharray draw-on animation instead of a spinner.
  * Drop-in replacement for <Loader2 className="animate-spin" /> in full-screen contexts.
  */
-export default function LogoLoader({ size = 64, color = "#FFD700" }) {
+export default function LogoLoader({ size = 64, color = "#FFD700", decorative = false }) {
   const style = `
     @keyframes logo-draw {
       0%   { stroke-dashoffset: 3000; opacity: 0.3; }
@@ -31,8 +31,9 @@ export default function LogoLoader({ size = 64, color = "#FFD700" }) {
         height={size * (419.48 / 478.95)}
         viewBox="0 0 478.95 419.48"
         xmlns="http://www.w3.org/2000/svg"
-        aria-label="Loading…"
-        role="img"
+        aria-hidden={decorative || undefined}
+        aria-label={decorative ? undefined : "Loading…"}
+        role={decorative ? undefined : "img"}
       >
         <g>
           <path

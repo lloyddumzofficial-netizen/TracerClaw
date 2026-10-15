@@ -19,8 +19,6 @@ import { useTraceExecution } from "@/hooks/useTraceExecution";
 import SplitViewCanvas from "@/components/workspace/SplitViewCanvas";
 import PropertiesPanel from "@/components/workspace/PropertiesPanel";
 import CropModal from "@/components/workspace/CropModal";
-import EraseModal from "@/components/workspace/EraseModal";
-import RemoveBgModal from "@/components/workspace/RemoveBgModal";
 import CompareModal from "@/components/workspace/CompareModal";
 import PalettePreviewModal from "@/components/workspace/PalettePreviewModal";
 import NoCreditsModal from "@/components/workspace/NoCreditsModal";
@@ -33,6 +31,7 @@ import { safeJson } from "@/lib/safeJson";
 import { saveProjectToGoogleDrive } from "@/lib/integrations/clientApi";
 import { getWorkspaceTitle } from "@/lib/workspaceLabels";
 import { computeNudgePlacement } from "@/lib/anchoredNudge";
+import "./garment-workspace.css";
 
 // ─── Supabase client — created ONCE at module level, not inside the component ─
 const supabase = createClient();
@@ -71,8 +70,6 @@ export default function Workspace() {
 
   // ─── Modal State ──────────────────────────────────────────────────────────
   const [showCropModal, setShowCropModal] = useState(false);
-  const [showEraseModal, setShowEraseModal] = useState(false);
-  const [showRemoveBgModal, setShowRemoveBgModal] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [showPalettePreview, setShowPalettePreview] = useState(false);
   const [showPaletteNudge, setShowPaletteNudge] = useState(false);
@@ -379,46 +376,6 @@ export default function Workspace() {
     setActiveTool("pointer");
   }, [logToConsole]);
 
-  const handleEraseApplied = useCallback((publicUrl, errorMsg) => {
-    if (errorMsg) {
-      analytics.error(new Error(errorMsg), { area: "erase_save", project_id: project?.id });
-      logToConsole(`[Error] Failed to save erased image: ${errorMsg}`, "error");
-    } else {
-      setProject(prev => ({
-        ...clearDriveExportStatus(prev),
-        original_image_url: publicUrl,
-        generated_image_url: null,
-        upscaled_image_url: null,
-        svg_url: null,
-      }));
-      logToConsole("[Success] Erased noise saved! You can now re-trace.", "success");
-    }
-    setActiveTool("pointer");
-  }, [logToConsole]);
-
-  const handleRemoveBgApplied = useCallback((publicUrl, errorMsg, meta = {}) => {
-    if (errorMsg) {
-      if (meta.code === "INSUFFICIENT_CREDITS") {
-        setShowTopUpModal(true);
-        logToConsole("[System] You need more claws to remove the background.", "error");
-        return;
-      }
-      analytics.error(new Error(errorMsg), { area: "remove_bg_modal", project_id: project?.id });
-      logToConsole(`[Error] Failed to remove background: ${errorMsg}`, "error");
-    } else if (publicUrl) {
-      setProject(prev => ({
-        ...clearDriveExportStatus(prev),
-        original_image_url: publicUrl,
-        generated_image_url: null,
-        upscaled_image_url: null,
-        svg_url: null,
-      }));
-      setUserCredits(prev => (prev > 0 ? prev - 1 : 0));
-      logToConsole("[Success] Background removed! You can now re-trace.", "success");
-    }
-    setActiveTool("pointer");
-  }, [logToConsole]);
-
   const handleLogin = useCallback(async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -439,8 +396,6 @@ export default function Workspace() {
       hasSvg={hasSvg}
       onSelectTool={setActiveTool}
       onOpenCrop={() => setShowCropModal(true)}
-      onOpenErase={() => setShowEraseModal(true)}
-      onOpenRemoveBg={() => setShowRemoveBgModal(true)}
       onOpenCompare={() => setShowCompare(true)}
       onOpenPalettePreview={() => setShowPalettePreview(true)}
     />
@@ -453,6 +408,7 @@ export default function Workspace() {
   return (
     <>
       <StudioShell
+        className="garment-workspace-ui"
         title={workspaceTitle}
         credits={userCredits}
         onHome={() => router.push("/")}
@@ -508,7 +464,6 @@ export default function Workspace() {
           onOpenCompare={() => setShowCompare(true)}
           onOpenPalettePreview={() => setShowPalettePreview(true)}
           onOpenCrop={() => setShowCropModal(true)}
-          onOpenRemoveBg={() => setShowRemoveBgModal(true)}
           onOpenTopUp={() => setShowTopUpModal(true)}
         />
       </main>
@@ -555,23 +510,6 @@ export default function Workspace() {
         onClose={() => { setShowCropModal(false); setActiveTool("pointer"); }}
         onCropApplied={handleCropApplied}
         onLoginRequired={handleLogin}
-      />
-
-      <EraseModal
-        show={showEraseModal}
-        project={project}
-        supabase={supabase}
-        onClose={() => { setShowEraseModal(false); setActiveTool("pointer"); }}
-        onEraseApplied={handleEraseApplied}
-        onLoginRequired={handleLogin}
-      />
-
-      <RemoveBgModal
-        show={showRemoveBgModal}
-        project={project}
-        supabase={supabase}
-        onClose={() => { setShowRemoveBgModal(false); setActiveTool("pointer"); }}
-        onRemoveBgApplied={handleRemoveBgApplied}
       />
 
       <CompareModal

@@ -1,0 +1,620 @@
+/* Garment Workspace — isolated premium UI skin.
+   Layout and behavior stay unchanged; only this workspace receives these rules. */
+.garment-workspace-ui {
+  --gw-bg: #090a0b;
+  --gw-panel: #0d0e0f;
+  --gw-panel-raised: #111214;
+  --gw-line: rgba(255, 255, 255, 0.09);
+  --gw-line-strong: rgba(255, 255, 255, 0.15);
+  --gw-text: rgba(255, 255, 255, 0.9);
+  --gw-muted: rgba(255, 255, 255, 0.46);
+  --gw-faint: rgba(255, 255, 255, 0.28);
+  background: var(--gw-bg) !important;
+  color: var(--gw-text);
+}
+
+.garment-workspace-ui,
+.garment-workspace-ui :where(button, select, option, span, strong, small, p, h1, h2, h3, div) {
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+}
+
+/* Top navigation */
+.garment-workspace-ui .studio-topbar {
+  height: 48px !important;
+  padding: 0 14px 0 18px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent),
+    #0b0c0d !important;
+  border-bottom: 1px solid var(--gw-line) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+.garment-workspace-ui .studio-logo-btn {
+  margin-right: 8px !important;
+  padding-right: 14px !important;
+  border-right: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .studio-logo-img {
+  height: 31px !important;
+}
+
+.garment-workspace-ui .studio-nav-btn {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  color: var(--gw-muted) !important;
+  font-size: 10px !important;
+  font-weight: 620 !important;
+  letter-spacing: 0.06em !important;
+  border-radius: 8px !important;
+}
+
+.garment-workspace-ui .studio-nav-btn:hover {
+  color: var(--gw-text) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+}
+
+.garment-workspace-ui .studio-title-wrap h1 {
+  color: rgba(255, 255, 255, 0.88) !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.28em !important;
+}
+
+.garment-workspace-ui .studio-top-actions {
+  gap: 8px !important;
+}
+
+.garment-workspace-ui .studio-ghost-btn,
+.garment-workspace-ui .studio-credit-pill {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 9px !important;
+}
+
+.garment-workspace-ui .studio-ghost-btn {
+  color: var(--gw-muted) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  border: 1px solid var(--gw-line) !important;
+  font-size: 9.5px !important;
+  font-weight: 620 !important;
+  letter-spacing: 0.08em !important;
+}
+
+.garment-workspace-ui .studio-ghost-btn:hover {
+  color: var(--gw-text) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: var(--gw-line-strong) !important;
+}
+
+.garment-workspace-ui .studio-credit-pill {
+  gap: 7px !important;
+  color: var(--gw-text) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.025)) !important;
+  border: 1px solid var(--gw-line-strong) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+.garment-workspace-ui .studio-credit-pill:hover {
+  background: rgba(255, 255, 255, 0.085) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+.garment-workspace-ui .studio-credit-pill span {
+  color: rgba(255, 255, 255, 0.94) !important;
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 680 !important;
+}
+
+.garment-workspace-ui .studio-credit-pill small {
+  color: rgba(255, 255, 255, 0.42) !important;
+  font-size: 8.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Command bar */
+.garment-workspace-ui .studio-commandbar-shell {
+  min-height: 44px !important;
+  background: #0d0e0f !important;
+  border-bottom: 1px solid var(--gw-line) !important;
+  box-shadow: none !important;
+}
+
+.garment-workspace-ui .workspace-command-bar {
+  padding: 0 10px !important;
+}
+
+.garment-workspace-ui .workspace-command-label {
+  padding: 0 7px !important;
+  color: var(--gw-faint) !important;
+  font-size: 8.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.12em !important;
+}
+
+.garment-workspace-ui .workspace-command-btns {
+  gap: 3px !important;
+}
+
+.garment-workspace-ui .workspace-command-btn {
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  font-size: 9.5px !important;
+  font-weight: 620 !important;
+  letter-spacing: 0.055em !important;
+}
+
+.garment-workspace-ui .workspace-command-btn::after {
+  display: none !important;
+}
+
+.garment-workspace-ui .workspace-command-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.82) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.garment-workspace-ui .workspace-command-btn.is-active:not(:disabled),
+.garment-workspace-ui .workspace-command-btn.is-accent {
+  color: rgba(255, 255, 255, 0.92) !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Canvas toolbar and stage navigation */
+.garment-workspace-ui .main-workspace,
+.garment-workspace-ui .canvas-area,
+.garment-workspace-ui .garment-split-view {
+  background: var(--gw-bg) !important;
+}
+
+.garment-workspace-ui .garment-stage-toolbar {
+  height: 42px !important;
+  background: #0d0e0f !important;
+  border-bottom: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .garment-stage-tools {
+  padding: 0 10px !important;
+  border-right: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .workspace-zoom {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  color: rgba(255, 255, 255, 0.58);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018));
+  border: 1px solid var(--gw-line);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.garment-workspace-ui .workspace-zoom-button,
+.garment-workspace-ui .workspace-zoom-fit {
+  display: inline-flex;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.garment-workspace-ui .workspace-zoom-button {
+  width: 28px;
+  padding: 0;
+}
+
+.garment-workspace-ui .workspace-zoom-button:hover:not(:disabled),
+.garment-workspace-ui .workspace-zoom-fit:hover {
+  color: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+}
+
+.garment-workspace-ui .workspace-zoom-button:focus-visible,
+.garment-workspace-ui .workspace-zoom-fit:focus-visible {
+  color: #fff;
+  outline: 1px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 1px;
+}
+
+.garment-workspace-ui .workspace-zoom-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.25;
+}
+
+.garment-workspace-ui .workspace-zoom-value {
+  min-width: 48px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.garment-workspace-ui .workspace-zoom-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--gw-line-strong);
+}
+
+.garment-workspace-ui .workspace-zoom-fit {
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 9.5px;
+  font-weight: 620;
+  letter-spacing: 0.02em;
+}
+
+.garment-workspace-ui .garment-stage-tabs {
+  background: #0d0e0f !important;
+}
+
+.garment-workspace-ui .garment-stage-tab {
+  color: rgba(255, 255, 255, 0.26) !important;
+  background: transparent !important;
+  border-color: var(--gw-line) !important;
+  font-size: 9.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.07em !important;
+}
+
+.garment-workspace-ui .garment-stage-tab.has-content {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.garment-workspace-ui .garment-stage-tab:hover {
+  color: rgba(255, 255, 255, 0.78) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+.garment-workspace-ui .garment-stage-tab.is-active {
+  color: rgba(255, 255, 255, 0.94) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+}
+
+.garment-workspace-ui .garment-stage-indicator {
+  height: 1px !important;
+  left: 16px !important;
+  right: 16px !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent) !important;
+}
+
+.garment-workspace-ui .garment-canvas-pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  min-width: 0;
+  background: #0e0f10 !important;
+}
+
+.garment-workspace-ui .garment-canvas-pane {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.garment-workspace-ui .garment-canvas-pane.is-original {
+  border-right: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .workspace-canvas-surface {
+  width: 100%;
+  min-width: 0;
+  background-color: #0e0f10 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.045) 0 0.75px, transparent 0.9px) !important;
+  background-size: 24px 24px !important;
+}
+
+.garment-workspace-ui .workspace-canvas-zoom-space {
+  contain: layout paint;
+}
+
+.garment-workspace-ui .workspace-canvas-artwork {
+  backface-visibility: hidden;
+}
+
+.garment-workspace-ui .garment-canvas-label {
+  top: 16px !important;
+  left: 16px !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-size: 8.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.14em !important;
+}
+
+.garment-workspace-ui .workspace-canvas-surface img {
+  filter: drop-shadow(0 26px 60px rgba(0, 0, 0, 0.5));
+}
+
+/* Settings panel */
+.garment-workspace-ui .workspace-properties-panel {
+  width: 280px !important;
+  background: #0c0d0e !important;
+  border-left: 1px solid var(--gw-line) !important;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.018) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-header {
+  min-height: 46px !important;
+  padding: 0 14px !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent) !important;
+  border-bottom: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-header > div span {
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.08em !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-header svg {
+  color: rgba(255, 255, 255, 0.48) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-section {
+  padding: 12px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-lbl {
+  margin-bottom: 7px !important;
+  color: rgba(255, 255, 255, 0.34) !important;
+  font-size: 8.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.1em !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-sel {
+  min-height: 38px !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  border: 1px solid var(--gw-line) !important;
+  border-radius: 9px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-sel:focus {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.035) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-desc {
+  margin-top: 7px !important;
+  color: rgba(255, 255, 255, 0.42) !important;
+  font-size: 10.5px !important;
+  line-height: 1.48 !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-card {
+  min-height: 50px !important;
+  padding: 9px 10px !important;
+  color: rgba(255, 255, 255, 0.48) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  border: 1px solid var(--gw-line) !important;
+  border-radius: 10px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-card.on {
+  color: rgba(255, 255, 255, 0.92) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.025)) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-card:not(.on):hover {
+  background: rgba(255, 255, 255, 0.045) !important;
+  border-color: var(--gw-line-strong) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-plan-icon,
+.garment-workspace-ui .workspace-properties-panel .pp-card.on .pp-plan-icon {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-plan-title {
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-plan-meta {
+  color: rgba(255, 255, 255, 0.38) !important;
+  font-size: 9px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-plan-cost {
+  width: 24px !important;
+  height: 24px !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  border-color: var(--gw-line) !important;
+  border-radius: 7px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-card.on .pp-plan-cost {
+  color: #0a0b0c !important;
+  background: linear-gradient(180deg, #fff, #dfe0e1) !important;
+  border-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-trace-btn,
+.garment-workspace-ui .workspace-properties-panel .pp-svg-btn {
+  min-height: 39px !important;
+  color: #090a0b !important;
+  background: linear-gradient(180deg, #ffffff, #e2e3e4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 9px !important;
+  box-shadow: inset 0 1px 0 #fff, 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.055em !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-trace-btn:hover:not(:disabled),
+.garment-workspace-ui .workspace-properties-panel .pp-svg-btn:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.04);
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-trace-btn:disabled,
+.garment-workspace-ui .workspace-properties-panel .pp-svg-btn:disabled {
+  color: rgba(255, 255, 255, 0.28) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(255, 255, 255, 0.075) !important;
+  box-shadow: none !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-warn {
+  padding: 9px 10px !important;
+  background: rgba(239, 68, 68, 0.055) !important;
+  border: 1px solid rgba(239, 68, 68, 0.18) !important;
+  border-radius: 9px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-warn span {
+  color: rgba(248, 150, 150, 0.78) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-sec {
+  min-height: 48px !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  border: 1px solid var(--gw-line) !important;
+  border-radius: 9px !important;
+  font-size: 9px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-sec:not(:disabled):hover {
+  color: rgba(255, 255, 255, 0.86) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--gw-line-strong) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-row svg {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-row-lbl {
+  color: rgba(255, 255, 255, 0.42) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-row-val {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-row-dot {
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-help-footer {
+  min-height: 54px !important;
+  padding: 8px 14px !important;
+  background: #0b0c0d !important;
+  border-top: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-help-footer svg {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-help-footer button {
+  min-height: 29px;
+  color: rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid var(--gw-line) !important;
+  border-radius: 8px !important;
+}
+
+/* Processing and bottom status */
+.garment-workspace-ui .processing-layer-panel {
+  background: rgba(13, 14, 15, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  border-radius: 12px !important;
+}
+
+.garment-workspace-ui .processing-progress-track i,
+.garment-workspace-ui .processing-stage-dot {
+  background: rgba(255, 255, 255, 0.88) !important;
+}
+
+.garment-workspace-ui .studio-statusbar {
+  height: 30px !important;
+  padding: 0 16px !important;
+  background: #0b0c0d !important;
+  border-top: 1px solid var(--gw-line) !important;
+}
+
+.garment-workspace-ui .studio-status-left span,
+.garment-workspace-ui .studio-status-left small,
+.garment-workspace-ui .studio-status-right button {
+  font-size: 9.5px !important;
+  font-weight: 500 !important;
+}
+
+.garment-workspace-ui .studio-status-left small,
+.garment-workspace-ui .studio-status-right button {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.garment-workspace-ui .studio-status-right button:hover {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+@media (max-width: 1180px) {
+  .garment-workspace-ui .studio-title-wrap h1 { letter-spacing: 0.18em !important; }
+  .garment-workspace-ui .workspace-properties-panel { width: 270px !important; }
+  .garment-workspace-ui .workspace-command-btn { padding: 0 8px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garment-workspace-ui *,
+  .garment-workspace-ui *::before,
+  .garment-workspace-ui *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Loading motion is functional feedback. Keep only this compact indicator
+     alive when the operating system reduces decorative workspace motion. */
+  .garment-workspace-ui .workspace-output-mark::before {
+    animation-duration: 1.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .garment-workspace-ui .workspace-output-mark::after,
+  .garment-workspace-ui .workspace-output-mark > svg {
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .garment-workspace-ui .workspace-output-mark .logo-loader-path {
+    animation-duration: 2s, 2s !important;
+    animation-delay: 0s, 2s !important;
+    animation-iteration-count: 1, infinite !important;
+  }
+
+  .garment-workspace-ui .workspace-output-transition > span::after,
+  .garment-workspace-ui .workspace-output-loader > span::after {
+    animation-duration: 1.3s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

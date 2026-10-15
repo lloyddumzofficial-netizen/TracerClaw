@@ -72,7 +72,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
   onOpenCompare,
   onOpenPalettePreview,
   onOpenCrop,
-  onOpenRemoveBg,
   onOpenTopUp,
 }) {
   const [vectorColors, setVectorColors] = useState("auto");
@@ -387,7 +386,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────── */}
-      <div style={{
+      <div className="pp-header" style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "8px 14px", borderBottom: "1px solid #222", flexShrink: 0,
       }}>
@@ -405,7 +404,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── COLOR DETAIL ─────────────────────────────────── */}
-      <div style={{ padding: "8px 14px", flexShrink: 0 }}>
+      <div className="pp-section pp-color-section" style={{ padding: "8px 14px", flexShrink: 0 }}>
         <span className="pp-lbl">Color Detail</span>
         <div className="pp-sel-wrap">
           <span className="pp-sel-ico"><IconColorRings /></span>
@@ -422,25 +421,25 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── SVG MODE ─────────────────────────────────────── */}
-      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
+      <div className="pp-section pp-mode-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">SVG Mode</span>
         <div style={{ display: "grid", gap: "6px" }}>
 
           {/* Standard */}
           <button type="button" className={`pp-card${svgEngine === "standard" ? " on" : ""}`}
             onClick={() => setSvgEngine("standard")}>
-            <div style={{ color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
+            <div className="pp-plan-icon" style={{ color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
               <IconBezier />
             </div>
             <div style={{ flex: 1, textAlign: "left" }}>
-              <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "standard" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
+              <div className="pp-plan-title" style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "standard" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
                 Standard SVG
               </div>
-              <div style={{ fontSize: "9px", color: "#71717a" }}>
+              <div className="pp-plan-meta" style={{ fontSize: "9px", color: "#71717a" }}>
                 {resumeSavedOutput ? "No extra Claws • Resume saved output" : "1 Claw • Includes Palette Studio"}
               </div>
             </div>
-            <div style={{
+            <div className="pp-plan-cost" style={{
               width: "22px", height: "22px", border: "1px solid", borderColor: svgEngine === "standard" ? "#FFD700" : "#333",
               background: "transparent", color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa",
               fontSize: "11px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center",
@@ -451,18 +450,18 @@ const PropertiesPanel = memo(function PropertiesPanel({
           {/* Precision */}
           <button type="button" className={`pp-card${svgEngine === "precision" ? " on" : ""}`}
             onClick={() => setSvgEngine("precision")}>
-            <div style={{ color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
+            <div className="pp-plan-icon" style={{ color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
               <Sparkles size={16} />
             </div>
             <div style={{ flex: 1, textAlign: "left" }}>
-              <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "precision" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
+              <div className="pp-plan-title" style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "precision" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
                 Precision SVG
               </div>
-              <div style={{ fontSize: "9px", color: "#71717a" }}>
+              <div className="pp-plan-meta" style={{ fontSize: "9px", color: "#71717a" }}>
                 {precisionCreditCost} Claw{precisionCreditCost > 1 ? "s" : ""} • Cleaner paths + smoother Palette Studio
               </div>
             </div>
-            <div style={{
+            <div className="pp-plan-cost" style={{
               width: "22px", height: "22px", border: "1px solid", borderColor: svgEngine === "precision" ? "#FFD700" : "#333",
               background: "transparent", color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa",
               fontSize: "11px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center",
@@ -479,7 +478,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── ACTIONS ──────────────────────────────────────── */}
-      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
+      <div className="pp-section pp-actions-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">Actions</span>
 
         {/* ── RUN AUTO-TRACE — always visible ── */}
@@ -555,7 +554,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── EXPORT DETAILS ───────────────────────────────── */}
-      <div style={{ padding: "0 14px 8px", flexShrink: 0 }}>
+      <div className="pp-section pp-export-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">Export Details</span>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           {exportDetails.map(({ label, value, gold }) => (
@@ -631,7 +630,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── HELP FOOTER ──────────────────────────────────── */}
-      <div style={{
+      <div className="pp-help-footer" style={{
         padding: "8px 14px",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
         background: "transparent", borderTop: "1px solid #222", flexShrink: 0,

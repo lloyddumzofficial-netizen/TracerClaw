@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CheckCircle2, Home, Keyboard, Pencil } from "lucide-react";
 
 const StudioShell = memo(function StudioShell({
+  className,
   title,
   projectName,
   savedAgo,
@@ -19,7 +20,7 @@ const StudioShell = memo(function StudioShell({
   children,
 }) {
   return (
-    <div className="app-container studio-shell">
+    <div className={`app-container studio-shell${className ? ` ${className}` : ""}`}>
       <header className="studio-topbar">
         <button className="studio-logo-btn" onClick={onHome} aria-label="Go to Home">
           <Image

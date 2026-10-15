@@ -1390,6 +1390,8 @@ export default function StartScreen() {
 
         {user && <HomeTrustMarquee />}
 
+        {user && <HomepageWorkflowPreview />}
+
         {user && (
           <DesktopToolsShelf
             onExtract={(e) => {
@@ -1442,7 +1444,7 @@ export default function StartScreen() {
           />
         )}
 
-        <HomepageWorkflowPreview />
+        {!user && <HomepageWorkflowPreview />}
 
         <EduSection />
 

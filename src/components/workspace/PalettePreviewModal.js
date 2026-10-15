@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import PaletteCanvas from "./PaletteCanvas";
 import PaletteColorMapPanel from "./PaletteColorMapPanel";
 import PaletteFooter from "./PaletteFooter";
+import "./PalettePreviewModal.premium.css";
 import {
   DEFAULT_BUBBLE_LAYOUT,
   MAX_SWATCHES,
@@ -686,8 +687,8 @@ const PalettePreviewModal = memo(function PalettePreviewModal({
   actionsRef.current = { undo: undoLastEdit, redo: redoLastEdit, close: onClose };
 
   return (
-    <div className="modal-overlay">
-      <div className="palette-modal">
+    <div className="modal-overlay palette-premium-overlay">
+      <div className="palette-modal palette-premium-ui">
         <header className="palette-header">
           <div className="palette-brand">
             <img src="/logo.png" alt="DesaynClaw" />

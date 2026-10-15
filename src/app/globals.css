@@ -1868,28 +1868,6 @@ html {
 }
 
 /* Professional production blueprint loading */
-@keyframes blueprintSweep {
-  0% {
-    transform: translateX(-145%) skewX(-10deg);
-    opacity: 0;
-  }
-
-  12% {
-    opacity: 0.64;
-  }
-
-  78% {
-    transform: translateX(245%) skewX(-10deg);
-    opacity: 0.52;
-  }
-
-  92%,
-  100% {
-    transform: translateX(245%) skewX(-10deg);
-    opacity: 0;
-  }
-}
-
 @keyframes blueprintOutline {
   0% {
     clip-path: inset(0 100% 0 0);
@@ -2059,25 +2037,6 @@ html {
   display: block;
   opacity: 1;
   filter: none;
-}
-
-.processing-reveal-sweep {
-  position: absolute;
-  z-index: 4;
-  top: -10%;
-  bottom: -10%;
-  left: 0;
-  width: 26%;
-  opacity: 0;
-  background:
-    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 215, 0, 0.12) 36%, transparent 72%);
-  animation: blueprintSweep 2.8s cubic-bezier(0.42, 0, 0.2, 1) 0.16s infinite both;
-  pointer-events: none;
-  will-change: transform, opacity;
-  transform: translateX(-145%) skewX(-10deg);
-  filter: blur(10px);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 42%, #000 58%, transparent 100%);
-  mix-blend-mode: screen;
 }
 
 .processing-anchor {
@@ -2825,74 +2784,153 @@ html {
   color: rgba(255, 255, 255, .32);
 }
 
-@keyframes outputRevealIn {
-  0% {
-    opacity: 0;
-    filter: blur(10px) saturate(0.8) brightness(0.78);
-    transform: translateY(10px) scale(0.985);
-  }
-
-  42% {
-    opacity: 1;
-    filter: blur(0) saturate(1.08) brightness(1.08);
-  }
-
-  100% {
-    opacity: 1;
-    filter: none;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes outputRevealSweep {
-  0% {
-    transform: translateX(-118%) skewX(-16deg);
-    opacity: 0;
-  }
-
-  16% {
-    opacity: 0.9;
-  }
-
-  72% {
-    opacity: 0.62;
-  }
-
-  100% {
-    transform: translateX(118%) skewX(-16deg);
-    opacity: 0;
-  }
-}
-
 .output-completion-reveal {
-  animation: outputRevealIn 0.78s cubic-bezier(0.2, 0.8, 0.2, 1);
-  will-change: transform, opacity;
+  isolation: isolate;
 }
 
-.output-completion-reveal::before {
-  content: "";
-  position: absolute;
-  inset: 24px;
-  z-index: 2;
-  pointer-events: none;
-  border: 1px solid rgba(255, 215, 0, 0.38);
-  box-shadow: inset 0 0 28px rgba(255, 215, 0, 0.08), 0 0 28px rgba(255, 215, 0, 0.1);
+.garment-canvas-pane.is-output .workspace-canvas-artwork {
+  transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.garment-canvas-pane.is-output .workspace-canvas-artwork.is-preview-preparing {
   opacity: 0;
-  animation: outputRevealIn 0.82s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.output-completion-reveal::after {
+.workspace-output-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.34);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.045), transparent 24%),
+    rgba(10, 11, 12, 0.96);
+  opacity: 1;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.workspace-output-transition.is-revealing {
+  opacity: 0;
+}
+
+.workspace-output-transition > span,
+.workspace-output-loader > span {
+  font-size: 8.5px;
+  font-weight: 680;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-output-transition > span::after,
+.workspace-output-loader > span::after {
+  content: "";
+  display: inline-block;
+  width: 1.8em;
+  text-align: left;
+  animation: workspaceOutputEllipsis 1.3s steps(4, end) infinite;
+}
+
+.workspace-output-raster {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-output-raster > img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  transition: opacity 0.18s ease-out;
+}
+
+.workspace-output-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.workspace-output-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+}
+
+.workspace-output-mark::before,
+.workspace-output-mark::after {
   content: "";
   position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 0;
-  width: 34%;
-  z-index: 3;
+  border-radius: 50%;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.08), rgba(255, 255, 255, 0.28), transparent);
-  animation: outputRevealSweep 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.workspace-output-mark::before {
+  inset: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.5);
+  border-right-color: rgba(255, 255, 255, 0.2);
+  animation: workspaceOutputOrbit 1.4s linear infinite;
+  will-change: transform;
+}
+
+.workspace-output-mark::after {
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.045);
+  animation: workspaceOutputHalo 1.8s ease-in-out infinite;
+}
+
+.workspace-output-mark > svg {
+  position: relative;
+  z-index: 1;
+  width: 54px;
+  height: auto;
+  overflow: visible;
+  opacity: 0.9;
+  filter: grayscale(1) brightness(1.7) drop-shadow(0 7px 20px rgba(0, 0, 0, 0.55));
+  animation: workspaceOutputLoaderPulse 1.8s ease-in-out infinite;
   will-change: transform, opacity;
+}
+
+@keyframes workspaceOutputLoaderPulse {
+  0%, 100% { opacity: 0.56; transform: scale(0.985); }
+  50% { opacity: 0.82; transform: scale(1.015); }
+}
+
+@keyframes workspaceOutputOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes workspaceOutputHalo {
+  0%, 100% { opacity: 0.36; transform: scale(0.96); }
+  50% { opacity: 0.8; transform: scale(1.04); }
+}
+
+@keyframes workspaceOutputEllipsis {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75%, 100% { content: "..."; }
 }
 
 /* Empty State / Dropzone */

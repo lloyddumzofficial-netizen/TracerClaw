@@ -11,6 +11,7 @@ export default function SafeInlineSVG({
   loadingFallback = null,
   imageAlt = "",
   imageLoading = "lazy",
+  onReady,
 }) {
   const [svgHtml, setSvgHtml] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,8 +73,14 @@ export default function SafeInlineSVG({
     };
   }, [fallbackToImage, url]);
 
+  useEffect(() => {
+    if (!svgHtml || !onReady) return undefined;
+    const frame = requestAnimationFrame(() => onReady());
+    return () => cancelAnimationFrame(frame);
+  }, [onReady, svgHtml]);
+
   if (useImageFallback) {
-    return <img src={url} alt={imageAlt} loading={imageLoading} decoding="async" draggable="false" style={style} />;
+    return <img src={url} alt={imageAlt} loading={imageLoading} decoding="async" draggable="false" style={style} onLoad={onReady} />;
   }
 
   if (loading && loadingFallback) return loadingFallback;

@@ -1,8 +1,15 @@
 "use client";
 
-import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Maximize, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
+import LogoLoader from "@/components/ui/LogoLoader";
+import {
+  calculateFittedArtworkLayout,
+  calculateSynchronizedPan,
+  calculateZoomLayerSize,
+} from "@/lib/workspaceCanvasNavigation";
+import WorkspaceZoomControls from "./WorkspaceZoomControls";
 
 // Each stage owns a slice of the bar. Progress eases toward the slice ceiling so
 // it keeps moving for as long as the stage runs, then the next stage picks up
@@ -18,10 +25,70 @@ const STAGE_LABELS = ["Artwork cleanup", "Detail pass", "Vector output"];
 
 // How fast progress closes the remaining gap, per second. Higher = quicker climb.
 const STAGE_EASE_RATE = 0.3;
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 5;
+const WHEEL_ZOOM_SENSITIVITY = 0.00145;
+const WHEEL_ZOOM_EASE_MS = 46;
+const PREVIEW_TRANSITION_MIN_MS = 720;
+const PREVIEW_REVEAL_MS = 320;
 
-function OutputRaster({ proxyUrl, directUrl }) {
+function createZoomAnchor(leftPane, rightPane, pointer) {
+  const leftRect = leftPane.getBoundingClientRect();
+  const rightRect = rightPane.getBoundingClientRect();
+  const activeRect = pointer.x < rightRect.left ? leftRect : rightRect;
+  const focusX = Math.min(1, Math.max(0, (pointer.x - activeRect.left) / activeRect.width));
+  const focusY = Math.min(1, Math.max(0, (pointer.y - activeRect.top) / activeRect.height));
+
+  const capturePane = (pane) => {
+    const localX = pane.clientWidth * focusX;
+    const localY = pane.clientHeight * focusY;
+    return {
+      localX,
+      localY,
+      pointX: pane.scrollLeft + localX,
+      pointY: pane.scrollTop + localY,
+      scrollWidth: pane.scrollWidth,
+      scrollHeight: pane.scrollHeight,
+    };
+  };
+
+  return {
+    leftPane: capturePane(leftPane),
+    rightPane: capturePane(rightPane),
+  };
+}
+
+function resolveZoomAnchor(anchor, leftPane, rightPane) {
+  const resolvePane = (captured, current) => ({
+    left: captured.pointX * (current.scrollWidth / captured.scrollWidth) - captured.localX,
+    top: captured.pointY * (current.scrollHeight / captured.scrollHeight) - captured.localY,
+  });
+
+  return {
+    leftPane: resolvePane(anchor.leftPane, leftPane),
+    rightPane: resolvePane(anchor.rightPane, rightPane),
+  };
+}
+
+function WorkspaceOutputLoader({ label = "Loading preview" }) {
+  return (
+    <div className="workspace-output-loader" role="status" aria-label={label}>
+      <div className="workspace-output-mark" aria-hidden="true">
+        <LogoLoader size={54} color="#f4f4ef" decorative />
+      </div>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function OutputRaster({ proxyUrl, directUrl, onReady }) {
   const [attempt, setAttempt] = useState(0);
   const [retry, setRetry] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (attempt === 2) onReady?.();
+  }, [attempt, onReady]);
 
   if (attempt === 2) {
     return (
@@ -39,14 +106,29 @@ function OutputRaster({ proxyUrl, directUrl }) {
     : directUrl;
 
   return (
-    <img
-      src={src}
-      draggable={false}
-      alt="Output"
-      referrerPolicy="no-referrer"
-      onError={() => setAttempt(current => current === 0 && directUrl ? 1 : 2)}
-      style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain" }}
-    />
+    <div className="workspace-output-raster">
+      {!isLoaded && <WorkspaceOutputLoader />}
+      <img
+        src={src}
+        draggable={false}
+        alt="Output"
+        referrerPolicy="no-referrer"
+        onLoad={(event) => {
+          const image = event.currentTarget;
+          const reveal = () => {
+            setIsLoaded(true);
+            onReady?.();
+          };
+          if (typeof image.decode === "function") image.decode().then(reveal, reveal);
+          else reveal();
+        }}
+        onError={() => {
+          setIsLoaded(false);
+          setAttempt(current => current === 0 && directUrl ? 1 : 2);
+        }}
+        style={{ opacity: isLoaded ? 1 : 0 }}
+      />
+    </div>
   );
 }
 
@@ -124,59 +206,184 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     trackRef: progressTrackRef,
   });
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [canvasViewport, setCanvasViewport] = useState({ width: 0, height: 0 });
+  const [artworkAspectRatio, setArtworkAspectRatio] = useState(null);
   const leftScrollRef = useRef(null);
   const rightScrollRef = useRef(null);
+  const leftZoomSpaceRef = useRef(null);
+  const rightZoomSpaceRef = useRef(null);
+  const leftArtworkRef = useRef(null);
+  const rightArtworkRef = useRef(null);
+  const zoomOutputRef = useRef(null);
+  const canvasPairRef = useRef(null);
   const isSyncingLeft = useRef(false);
   const isSyncingRight = useRef(false);
+  const isApplyingZoomScroll = useRef(false);
+  const zoomScrollReleaseFrame = useRef(0);
   const containerRef = useRef(null);
 
   const currentZoom = useRef(zoomLevel);
-  currentZoom.current = zoomLevel;
+  const canvasViewportRef = useRef(canvasViewport);
+  canvasViewportRef.current = canvasViewport;
+  const artworkAspectRatioRef = useRef(artworkAspectRatio);
+  artworkAspectRatioRef.current = artworkAspectRatio;
   const pendingScrollRef = useRef(null);
+  const targetZoomRef = useRef(zoomLevel);
+  const wheelAnimationRef = useRef(0);
+  const wheelAnchorRef = useRef(null);
+  const panGestureRef = useRef(null);
+  const panFrameRef = useRef(0);
+  const panPointRef = useRef({ x: 0, y: 0 });
+  const isApplyingPanScroll = useRef(false);
+  const panScrollReleaseFrame = useRef(0);
   const previousActiveUrlRef = useRef(null);
   const wasProcessingRef = useRef(false);
   const [completionRevealKey, setCompletionRevealKey] = useState("");
+  const [previewTransitionPhase, setPreviewTransitionPhase] = useState("idle");
+  const previewTransitionKeyRef = useRef("");
+  const previewTransitionStartedRef = useRef(0);
+  const previewTransitionTimerRef = useRef(0);
+  const previewTransitionEndTimerRef = useRef(0);
 
-  // Scroll to zoom to pointer
+  useLayoutEffect(() => {
+    const pane = leftScrollRef.current;
+    if (!pane) return undefined;
+
+    const measure = () => {
+      const next = { width: pane.clientWidth, height: pane.clientHeight };
+      setCanvasViewport((current) => (
+        current.width === next.width && current.height === next.height ? current : next
+      ));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(pane);
+    return () => observer.disconnect();
+  }, []);
+
+  // Wheel input updates a target only; the rendered zoom eases toward it. This
+  // makes a coarse mouse wheel feel as fluid as a trackpad and prevents event
+  // bursts from snapping the heavy SVG between discrete scales.
   useEffect(() => {
-    const handleWheel = (e) => {
-      e.preventDefault();
-      const z = currentZoom.current;
-      const delta = Math.sign(e.deltaY) * 0.25;
-      const newZ = Math.min(Math.max(0.25, z - delta), 5);
-      if (newZ === z) return;
+    let lastFrameTime = 0;
 
-      const scale = newZ / z;
-      const leftScroll = leftScrollRef.current;
-      const rightScroll = rightScrollRef.current;
-      
-      if (leftScroll && rightScroll) {
-        const rectL = leftScroll.getBoundingClientRect();
-        const rectR = rightScroll.getBoundingClientRect();
-        
-        let active, rect;
-        if (e.clientX >= rectL.left && e.clientX <= rectL.right && e.clientY >= rectL.top && e.clientY <= rectL.bottom) {
-          active = leftScroll;
-          rect = rectL;
-        } else if (e.clientX >= rectR.left && e.clientX <= rectR.right && e.clientY >= rectR.top && e.clientY <= rectR.bottom) {
-          active = rightScroll;
-          rect = rectR;
-        }
+    const paintZoomLayout = (zoom) => {
+      const viewport = canvasViewportRef.current;
+      const aspectRatio = artworkAspectRatioRef.current;
+      const hasFittedLayout = viewport.width > 0 && viewport.height > 0 && aspectRatio;
+      const fitted = hasFittedLayout
+        ? calculateFittedArtworkLayout({
+            viewportWidth: viewport.width,
+            viewportHeight: viewport.height,
+            aspectRatio,
+            zoom,
+          })
+        : null;
+      const fallback = fitted ? null : calculateZoomLayerSize(zoom);
+      const surfaceWidth = fitted ? `${fitted.surfaceWidth}px` : `${fallback.scrollPercent}%`;
+      const surfaceHeight = fitted ? `${fitted.surfaceHeight}px` : `${fallback.scrollPercent}%`;
+      const artworkWidth = fitted ? `${fitted.artworkWidth}px` : `${fallback.artworkPercent}%`;
+      const artworkHeight = fitted ? `${fitted.artworkHeight}px` : `${fallback.artworkPercent}%`;
+      const artworkPadding = fitted ? "0px" : "24px";
 
-        if (active && rect) {
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
-          
-          const pointX = active.scrollLeft + mouseX;
-          const pointY = active.scrollTop + mouseY;
-          
-          pendingScrollRef.current = { 
-            left: pointX * scale - mouseX, 
-            top: pointY * scale - mouseY 
-          };
-        }
+      for (const space of [leftZoomSpaceRef.current, rightZoomSpaceRef.current]) {
+        if (!space) continue;
+        space.style.width = surfaceWidth;
+        space.style.height = surfaceHeight;
       }
-      setZoomLevel(newZ);
+      for (const artwork of [leftArtworkRef.current, rightArtworkRef.current]) {
+        if (!artwork) continue;
+        artwork.style.width = artworkWidth;
+        artwork.style.height = artworkHeight;
+        artwork.style.padding = artworkPadding;
+      }
+
+      if (zoomOutputRef.current) {
+        const percentage = Math.round(zoom * 100);
+        zoomOutputRef.current.textContent = `${percentage}%`;
+        zoomOutputRef.current.setAttribute("aria-label", `Zoom ${percentage} percent`);
+      }
+      if (canvasPairRef.current && !panGestureRef.current) {
+        canvasPairRef.current.style.cursor = zoom > 1 ? "grab" : "default";
+      }
+    };
+
+    const applyZoomScroll = (positions) => {
+      const leftPane = leftScrollRef.current;
+      const rightPane = rightScrollRef.current;
+      if (!leftPane || !rightPane) return;
+
+      isApplyingZoomScroll.current = true;
+      leftPane.scrollLeft = positions.leftPane.left;
+      leftPane.scrollTop = positions.leftPane.top;
+      rightPane.scrollLeft = positions.rightPane.left;
+      rightPane.scrollTop = positions.rightPane.top;
+
+      if (zoomScrollReleaseFrame.current) cancelAnimationFrame(zoomScrollReleaseFrame.current);
+      zoomScrollReleaseFrame.current = requestAnimationFrame(() => {
+        isApplyingZoomScroll.current = false;
+        isSyncingLeft.current = false;
+        isSyncingRight.current = false;
+        zoomScrollReleaseFrame.current = 0;
+      });
+    };
+
+    const animateZoom = (now) => {
+      const zoom = currentZoom.current;
+      const target = targetZoomRef.current;
+      const elapsed = lastFrameTime ? Math.min(now - lastFrameTime, 34) : 16;
+      lastFrameTime = now;
+      const blend = 1 - Math.exp(-elapsed / WHEEL_ZOOM_EASE_MS);
+      const distance = target - zoom;
+      const finished = Math.abs(distance) < 0.0015;
+      const nextZoom = finished ? target : zoom + distance * blend;
+
+      const leftPane = leftScrollRef.current;
+      const rightPane = rightScrollRef.current;
+      if (leftPane && rightPane && wheelAnchorRef.current && nextZoom !== zoom) {
+        paintZoomLayout(nextZoom);
+        applyZoomScroll(resolveZoomAnchor(wheelAnchorRef.current, leftPane, rightPane));
+      }
+
+      currentZoom.current = nextZoom;
+
+      if (finished) {
+        wheelAnimationRef.current = 0;
+        wheelAnchorRef.current = null;
+        lastFrameTime = 0;
+        setZoomLevel(nextZoom);
+      } else {
+        wheelAnimationRef.current = requestAnimationFrame(animateZoom);
+      }
+    };
+
+    const handleWheel = (e) => {
+      if (!(e.target instanceof Element) || !e.target.closest(".workspace-canvas-surface")) return;
+      if (panGestureRef.current) return;
+      e.preventDefault();
+
+      const node = containerRef.current;
+      const deltaMultiplier = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? node?.clientHeight || 800 : 1;
+      const delta = Math.max(-180, Math.min(180, e.deltaY * deltaMultiplier));
+      targetZoomRef.current = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, targetZoomRef.current * Math.exp(-delta * WHEEL_ZOOM_SENSITIVITY)),
+      );
+
+      if (!wheelAnimationRef.current) {
+        const leftPane = leftScrollRef.current;
+        const rightPane = rightScrollRef.current;
+        if (leftPane && rightPane) {
+          wheelAnchorRef.current = createZoomAnchor(
+            leftPane,
+            rightPane,
+            { x: e.clientX, y: e.clientY },
+          );
+        }
+        lastFrameTime = 0;
+        wheelAnimationRef.current = requestAnimationFrame(animateZoom);
+      }
     };
 
     const node = containerRef.current;
@@ -187,53 +394,170 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
       if (node) {
         node.removeEventListener("wheel", handleWheel);
       }
+      if (wheelAnimationRef.current) cancelAnimationFrame(wheelAnimationRef.current);
+      if (zoomScrollReleaseFrame.current) cancelAnimationFrame(zoomScrollReleaseFrame.current);
+      if (panFrameRef.current) cancelAnimationFrame(panFrameRef.current);
+      if (panScrollReleaseFrame.current) cancelAnimationFrame(panScrollReleaseFrame.current);
+      wheelAnchorRef.current = null;
     };
   }, []);
 
   useLayoutEffect(() => {
     if (pendingScrollRef.current && leftScrollRef.current && rightScrollRef.current) {
-      const { left, top } = pendingScrollRef.current;
-      isSyncingLeft.current = true;
-      isSyncingRight.current = true;
-      
-      leftScrollRef.current.scrollLeft = left;
-      leftScrollRef.current.scrollTop = top;
-      rightScrollRef.current.scrollLeft = left;
-      rightScrollRef.current.scrollTop = top;
-      
+      const pending = pendingScrollRef.current;
+      const positions = pending.anchor
+        ? resolveZoomAnchor(pending.anchor, leftScrollRef.current, rightScrollRef.current)
+        : pending;
+      const { leftPane, rightPane } = positions;
+      isApplyingZoomScroll.current = true;
+
+      leftScrollRef.current.scrollLeft = leftPane.left;
+      leftScrollRef.current.scrollTop = leftPane.top;
+      rightScrollRef.current.scrollLeft = rightPane.left;
+      rightScrollRef.current.scrollTop = rightPane.top;
+
       pendingScrollRef.current = null;
+      if (zoomScrollReleaseFrame.current) cancelAnimationFrame(zoomScrollReleaseFrame.current);
+      zoomScrollReleaseFrame.current = requestAnimationFrame(() => {
+        isApplyingZoomScroll.current = false;
+        isSyncingLeft.current = false;
+        isSyncingRight.current = false;
+        zoomScrollReleaseFrame.current = 0;
+      });
     }
   }, [zoomLevel]);
 
-  // Drag to pan state
+  // Drag-to-pan uses pointer capture and one DOM update per display frame.
+  // Scroll listeners are paused during the gesture so they cannot feed the
+  // programmatic positions back into each other and create visible jitter.
   const [isGrabbing, setIsGrabbing] = useState(false);
-  const lastPos = useRef({ x: 0, y: 0 });
+
+  const paintPan = () => {
+    panFrameRef.current = 0;
+    const gesture = panGestureRef.current;
+    if (!gesture) return;
+
+    const source = gesture.source;
+    const linked = source === leftScrollRef.current ? rightScrollRef.current : leftScrollRef.current;
+    if (!source || !linked) return;
+
+    const result = calculateSynchronizedPan({
+      sourceStartLeft: gesture.startLeft,
+      sourceStartTop: gesture.startTop,
+      deltaX: panPointRef.current.x - gesture.startX,
+      deltaY: panPointRef.current.y - gesture.startY,
+      sourceMaxLeft: source.scrollWidth - source.clientWidth,
+      sourceMaxTop: source.scrollHeight - source.clientHeight,
+      linkedMaxLeft: linked.scrollWidth - linked.clientWidth,
+      linkedMaxTop: linked.scrollHeight - linked.clientHeight,
+    });
+
+    isApplyingPanScroll.current = true;
+    source.scrollLeft = result.source.left;
+    source.scrollTop = result.source.top;
+    linked.scrollLeft = result.linked.left;
+    linked.scrollTop = result.linked.top;
+  };
 
   const handlePointerDown = (e) => {
     if (e.button !== 0) return;
     if (e.target.closest('button')) return;
+    if (currentZoom.current <= 1) return;
+
+    const source = e.target.closest(".workspace-canvas-surface");
+    if (source !== leftScrollRef.current && source !== rightScrollRef.current) return;
+
+    if (wheelAnimationRef.current) cancelAnimationFrame(wheelAnimationRef.current);
+    wheelAnimationRef.current = 0;
+    wheelAnchorRef.current = null;
+    targetZoomRef.current = currentZoom.current;
+    setZoomLevel(currentZoom.current);
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    panGestureRef.current = {
+      pointerId: e.pointerId,
+      source,
+      startX: e.clientX,
+      startY: e.clientY,
+      startLeft: source.scrollLeft,
+      startTop: source.scrollTop,
+    };
+    panPointRef.current = { x: e.clientX, y: e.clientY };
+    isApplyingPanScroll.current = true;
     setIsGrabbing(true);
-    lastPos.current = { x: e.clientX, y: e.clientY };
   };
 
   const handlePointerMove = (e) => {
-    if (!isGrabbing) return;
-    const dx = e.clientX - lastPos.current.x;
-    const dy = e.clientY - lastPos.current.y;
-    lastPos.current = { x: e.clientX, y: e.clientY };
-
-    if (leftScrollRef.current && rightScrollRef.current) {
-      isSyncingLeft.current = true;
-      isSyncingRight.current = true;
-      leftScrollRef.current.scrollLeft -= dx;
-      leftScrollRef.current.scrollTop -= dy;
-      rightScrollRef.current.scrollLeft -= dx;
-      rightScrollRef.current.scrollTop -= dy;
-    }
+    const gesture = panGestureRef.current;
+    if (!gesture || gesture.pointerId !== e.pointerId) return;
+    e.preventDefault();
+    panPointRef.current = { x: e.clientX, y: e.clientY };
+    if (!panFrameRef.current) panFrameRef.current = requestAnimationFrame(paintPan);
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e) => {
+    const gesture = panGestureRef.current;
+    if (!gesture || (e.pointerId != null && gesture.pointerId !== e.pointerId)) return;
+
+    if (panFrameRef.current) {
+      cancelAnimationFrame(panFrameRef.current);
+      panFrameRef.current = 0;
+      paintPan();
+    }
+
+    panGestureRef.current = null;
+    if (e.currentTarget?.hasPointerCapture?.(gesture.pointerId)) {
+      e.currentTarget.releasePointerCapture(gesture.pointerId);
+    }
+
+    if (panScrollReleaseFrame.current) cancelAnimationFrame(panScrollReleaseFrame.current);
+    panScrollReleaseFrame.current = requestAnimationFrame(() => {
+      isApplyingPanScroll.current = false;
+      isSyncingLeft.current = false;
+      isSyncingRight.current = false;
+      panScrollReleaseFrame.current = 0;
+    });
     setIsGrabbing(false);
+  };
+
+  const setZoomFromControl = (nextValue) => {
+    const zoom = currentZoom.current;
+    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextValue));
+    if (nextZoom === zoom) return;
+
+    if (wheelAnimationRef.current) cancelAnimationFrame(wheelAnimationRef.current);
+    wheelAnimationRef.current = 0;
+    targetZoomRef.current = nextZoom;
+
+    const leftPane = leftScrollRef.current;
+    const rightPane = rightScrollRef.current;
+    if (leftPane && rightPane) {
+      const rect = leftPane.getBoundingClientRect();
+      const anchor = createZoomAnchor(
+        leftPane,
+        rightPane,
+        { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      );
+      pendingScrollRef.current = { anchor };
+    }
+
+    currentZoom.current = nextZoom;
+    setZoomLevel(nextZoom);
+  };
+
+  const fitArtworkToCanvas = () => {
+    if (wheelAnimationRef.current) cancelAnimationFrame(wheelAnimationRef.current);
+    wheelAnimationRef.current = 0;
+    wheelAnchorRef.current = null;
+    targetZoomRef.current = 1;
+    currentZoom.current = 1;
+    pendingScrollRef.current = {
+      leftPane: { left: 0, top: 0 },
+      rightPane: { left: 0, top: 0 },
+    };
+    setZoomLevel(1);
+    leftScrollRef.current?.scrollTo({ left: 0, top: 0 });
+    rightScrollRef.current?.scrollTo({ left: 0, top: 0 });
   };
 
   // Derive proxy URLs
@@ -263,6 +587,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
 
   // Sync scroll positions proportionally
   const handleLeftScroll = (e) => {
+    if (isApplyingZoomScroll.current || isApplyingPanScroll.current) return;
     if (isSyncingLeft.current) {
       isSyncingLeft.current = false;
       return;
@@ -282,6 +607,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   };
 
   const handleRightScroll = (e) => {
+    if (isApplyingZoomScroll.current || isApplyingPanScroll.current) return;
     if (isSyncingRight.current) {
       isSyncingRight.current = false;
       return;
@@ -318,7 +644,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     }
   }, [traceState, project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (traceState !== "idle") {
       wasProcessingRef.current = true;
       return;
@@ -333,10 +659,40 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
 
     if (!shouldReveal) return;
 
-    setCompletionRevealKey(`${activeTab}:${activeUrl}`);
-    const t = setTimeout(() => setCompletionRevealKey(""), 1150);
-    return () => clearTimeout(t);
+    const transitionKey = `${activeTab}:${activeUrl}`;
+    clearTimeout(previewTransitionTimerRef.current);
+    clearTimeout(previewTransitionEndTimerRef.current);
+    previewTransitionKeyRef.current = transitionKey;
+    previewTransitionStartedRef.current = performance.now();
+    setCompletionRevealKey(transitionKey);
+    setPreviewTransitionPhase("loading");
   }, [activeUrl, activeTab, traceState]);
+
+  useEffect(() => () => {
+    clearTimeout(previewTransitionTimerRef.current);
+    clearTimeout(previewTransitionEndTimerRef.current);
+  }, []);
+
+  const handlePreviewReady = useCallback(() => {
+    const transitionKey = previewTransitionKeyRef.current;
+    if (!transitionKey) return;
+
+    clearTimeout(previewTransitionTimerRef.current);
+    clearTimeout(previewTransitionEndTimerRef.current);
+    const elapsed = performance.now() - previewTransitionStartedRef.current;
+    const remaining = Math.max(0, PREVIEW_TRANSITION_MIN_MS - elapsed);
+
+    previewTransitionTimerRef.current = window.setTimeout(() => {
+      if (previewTransitionKeyRef.current !== transitionKey) return;
+      setPreviewTransitionPhase("revealing");
+      previewTransitionEndTimerRef.current = window.setTimeout(() => {
+        if (previewTransitionKeyRef.current !== transitionKey) return;
+        previewTransitionKeyRef.current = "";
+        setCompletionRevealKey("");
+        setPreviewTransitionPhase("idle");
+      }, PREVIEW_REVEAL_MS);
+    }, remaining);
+  }, []);
 
   // Right-side label
   const rightLabel = activeTab === "generated" ? "FLAT EXTRACT" : activeTab === "upscaled" ? "HD UPSCALE" : "VECTOR PREVIEW";
@@ -369,7 +725,6 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               <div className="processing-logo-outline" aria-hidden="true">
                 <img src="/SVG/LOGO%20OUTLINE.svg" alt="" decoding="async" />
               </div>
-              <div className="processing-reveal-sweep" />
             </div>
           </div>
 
@@ -476,31 +831,49 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     { id: "upscaled",  label: "2. HD UPSCALE",   hasContent: !!project?.upscaled_image_url },
     { id: "svg",       label: "3. VECTOR SVG",    hasContent: !!project?.svg_url },
   ];
+  const zoomLayerSize = calculateZoomLayerSize(zoomLevel);
+  const fittedArtworkLayout = canvasViewport.width > 0 && canvasViewport.height > 0 && artworkAspectRatio
+    ? calculateFittedArtworkLayout({
+        viewportWidth: canvasViewport.width,
+        viewportHeight: canvasViewport.height,
+        aspectRatio: artworkAspectRatio,
+        zoom: zoomLevel,
+      })
+    : null;
+  const surfaceWidth = fittedArtworkLayout ? `${fittedArtworkLayout.surfaceWidth}px` : `${zoomLayerSize.scrollPercent}%`;
+  const surfaceHeight = fittedArtworkLayout ? `${fittedArtworkLayout.surfaceHeight}px` : `${zoomLayerSize.scrollPercent}%`;
+  const artworkWidth = fittedArtworkLayout ? `${fittedArtworkLayout.artworkWidth}px` : `${zoomLayerSize.artworkPercent}%`;
+  const artworkHeight = fittedArtworkLayout ? `${fittedArtworkLayout.artworkHeight}px` : `${zoomLayerSize.artworkPercent}%`;
+  const artworkPadding = fittedArtworkLayout ? 0 : "24px";
 
   return (
-    <div ref={containerRef} style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
+    <div ref={containerRef} className="garment-split-view" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
 
       {/* ── Stage toolbar ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", background: "#161616", borderBottom: "1px solid #222", height: "38px", flexShrink: 0 }}>
-        <div style={{ minWidth: 0, display: "flex", alignItems: "center", padding: "0 12px", gap: "10px", borderRight: "1px solid #222", overflow: "hidden" }}>
+      <div className="garment-stage-toolbar" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", background: "#161616", borderBottom: "1px solid #222", height: "38px", flexShrink: 0 }}>
+        <div className="garment-stage-tools" style={{ minWidth: 0, display: "flex", alignItems: "center", padding: "0 12px", gap: "10px", borderRight: "1px solid #222", overflow: "hidden" }}>
           {commandBar || (
             <span style={{ color: "#555", fontSize: "10px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px", marginRight: "auto" }}>ORIGINAL UPLOAD</span>
           )}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-          <button onClick={() => setZoomLevel(z => Math.max(0.25, z - 0.25))} style={zoomBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor="#333"}>−</button>
-          <span style={{ color: "#FFD700", fontSize: "11px", minWidth: "42px", textAlign: "center", fontWeight: "600", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>{Math.round(zoomLevel * 100)}%</span>
-          <button onClick={() => setZoomLevel(z => Math.min(5, z + 0.25))} style={zoomBtnStyle} onMouseOver={e => e.currentTarget.style.borderColor="#FFD700"} onMouseOut={e => e.currentTarget.style.borderColor="#333"}>+</button>
-          <button onClick={() => setZoomLevel(1)} style={{ ...zoomBtnStyle, border: "none", color: "#888", padding: "4px 8px" }} onMouseOver={e => e.currentTarget.style.color="#FFD700"} onMouseOut={e => e.currentTarget.style.color="#888"}>
-            <Maximize size={12} style={{ display: "inline", marginRight: "4px", verticalAlign: "middle" }} />Fit
-          </button>
+          <div style={{ marginLeft: "auto", flexShrink: 0 }}>
+            <WorkspaceZoomControls
+              zoom={zoomLevel}
+              min={MIN_ZOOM}
+              max={MAX_ZOOM}
+              onZoomOut={() => setZoomFromControl(currentZoom.current - 0.25)}
+              onZoomIn={() => setZoomFromControl(currentZoom.current + 0.25)}
+              onFit={fitArtworkToCanvas}
+              outputRef={zoomOutputRef}
+            />
           </div>
         </div>
 
-        <div style={{ minWidth: 0, display: "flex", alignItems: "stretch" }}>
+        <div className="garment-stage-tabs" style={{ minWidth: 0, display: "flex", alignItems: "stretch" }}>
           <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", height: "100%" }}>
           {tabs.map((tab, i) => (
             <button
               key={tab.id}
+              className={`garment-stage-tab${activeTab === tab.id ? " is-active" : ""}${tab.hasContent ? " has-content" : ""}`}
               onClick={() => setActiveTab(tab.id)}
               style={{
                 padding: "0 10px",
@@ -518,13 +891,11 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                 position: "relative",
                 whiteSpace: "nowrap",
               }}
-              onMouseOver={e => { if (activeTab !== tab.id) e.currentTarget.style.color = "#ccc"; }}
-              onMouseOut={e => { if (activeTab !== tab.id) e.currentTarget.style.color = tab.hasContent ? "#888" : "#444"; }}
             >
               {tab.label}
               {/* Active indicator line at bottom */}
               {activeTab === tab.id && (
-                <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", background: "#FFD700" }} />
+                <span className="garment-stage-indicator" style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", background: "#FFD700" }} />
               )}
             </button>
           ))}
@@ -533,22 +904,35 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
       </div>
 
       {/* ── Main canvas area ── */}
-      <div 
-        style={{ display: "flex", flex: 1, overflow: "hidden", cursor: isGrabbing ? "grabbing" : (zoomLevel > 1 ? "grab" : "default"), userSelect: "none" }}
+      <div ref={canvasPairRef} className="garment-canvas-pair"
+        style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", flex: 1, minWidth: 0, overflow: "hidden", cursor: isGrabbing ? "grabbing" : (zoomLevel > 1 ? "grab" : "default"), userSelect: "none", touchAction: "none" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onLostPointerCapture={handlePointerUp}
       >
         {/* LEFT PANEL: Original Image */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: "1px solid #2a2a2a" }}>
-          <div ref={leftScrollRef} onScroll={handleLeftScroll} className="no-scrollbar workspace-canvas-surface" style={{ flex: 1, overflow: "auto", backgroundColor: "#1a1a1a", position: "relative" }}>
+        <div className="garment-canvas-pane is-original" style={{ minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid #2a2a2a" }}>
+          <div ref={leftScrollRef} onScroll={handleLeftScroll} className="no-scrollbar workspace-canvas-surface" style={{ width: "100%", minWidth: 0, flex: 1, overflow: "auto", backgroundColor: "#1a1a1a", position: "relative" }}>
             {/* Canvas label */}
-            <div style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>ORIGINAL</div>
+            <div className="garment-canvas-label" style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>ORIGINAL</div>
             {proxyOriginal ? (
-              <div style={{ position: "relative", width: `${Math.max(100, zoomLevel * 100)}%`, height: `${Math.max(100, zoomLevel * 100)}%`, minWidth: "100%", minHeight: "100%" }}>
-                <div style={{ position: "absolute", top: "50%", left: "50%", width: `${100 / Math.max(1, zoomLevel)}%`, height: `${100 / Math.max(1, zoomLevel)}%`, transform: `translate(-50%, -50%) scale(${zoomLevel})`, padding: "24px", boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                  <img src={proxyOriginal} draggable={false} alt="Original" style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain" }} />
+              <div ref={leftZoomSpaceRef} className="workspace-canvas-zoom-space" style={{ position: "relative", width: surfaceWidth, height: surfaceHeight, minWidth: "100%", minHeight: "100%" }}>
+                <div ref={leftArtworkRef} className="workspace-canvas-artwork" style={{ position: "absolute", top: "50%", left: "50%", width: artworkWidth, height: artworkHeight, transform: "translate3d(-50%, -50%, 0)", padding: artworkPadding, boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <img
+                    src={proxyOriginal}
+                    draggable={false}
+                    alt="Original"
+                    onLoad={(event) => {
+                      const image = event.currentTarget;
+                      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                        const nextRatio = image.naturalWidth / image.naturalHeight;
+                        setArtworkAspectRatio((current) => current === nextRatio ? current : nextRatio);
+                      }
+                    }}
+                    style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, objectFit: "contain" }}
+                  />
                 </div>
               </div>
             ) : (
@@ -558,30 +942,41 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
         </div>
 
         {/* RIGHT PANEL: Outputs */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div ref={rightScrollRef} onScroll={handleRightScroll} className="no-scrollbar workspace-canvas-surface" style={{ flex: 1, overflow: "auto", backgroundColor: "#1c1c1c", position: "relative" }}>
+        <div className="garment-canvas-pane is-output" style={{ minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div ref={rightScrollRef} onScroll={handleRightScroll} className="no-scrollbar workspace-canvas-surface" style={{ width: "100%", minWidth: 0, flex: 1, overflow: "auto", backgroundColor: "#1c1c1c", position: "relative" }}>
             {/* Canvas label */}
-            <div style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: activeTab === "svg" ? "rgba(255,215,0,0.35)" : "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>{rightLabel}</div>
+            <div className="garment-canvas-label" style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: activeTab === "svg" ? "rgba(255,215,0,0.35)" : "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>{rightLabel}</div>
             {activeUrl && traceState === "idle" ? (
               <div
-                className={completionRevealKey ? "output-completion-reveal" : ""}
-                style={{ position: "relative", width: `${Math.max(100, zoomLevel * 100)}%`, height: `${Math.max(100, zoomLevel * 100)}%`, minWidth: "100%", minHeight: "100%" }}
+                ref={rightZoomSpaceRef}
+                className={`workspace-canvas-zoom-space${completionRevealKey ? " output-completion-reveal" : ""}`}
+                style={{ position: "relative", width: surfaceWidth, height: surfaceHeight, minWidth: "100%", minHeight: "100%" }}
               >
-                <div style={{ position: "absolute", top: "50%", left: "50%", width: `${100 / Math.max(1, zoomLevel)}%`, height: `${100 / Math.max(1, zoomLevel)}%`, transform: `translate(-50%, -50%) scale(${zoomLevel})`, padding: "24px", boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <div ref={rightArtworkRef} className={`workspace-canvas-artwork${completionRevealKey && previewTransitionPhase === "loading" ? " is-preview-preparing" : ""}`} style={{ position: "absolute", top: "50%", left: "50%", width: artworkWidth, height: artworkHeight, transform: "translate3d(-50%, -50%, 0)", padding: artworkPadding, boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
                   {activeTab === "svg" ? (
                     <SafeInlineSVG
                       url={activeUrl}
                       style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                      loadingFallback={<div style={{ width: "100%", height: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 12 }}>Loading SVG...</div>}
+                      loadingFallback={<WorkspaceOutputLoader label="Loading vector preview" />}
+                      onReady={handlePreviewReady}
                     />
                   ) : (
                     <OutputRaster
                       key={activeUrl}
                       proxyUrl={activeUrl}
                       directUrl={activeTab === "generated" ? project?.generated_image_url : project?.upscaled_image_url}
+                      onReady={handlePreviewReady}
                     />
                   )}
                 </div>
+                {completionRevealKey && (
+                  <div className={`workspace-output-transition${previewTransitionPhase === "revealing" ? " is-revealing" : ""}`} aria-hidden="true">
+                    <div className="workspace-output-mark">
+                      <LogoLoader size={54} color="#f4f4ef" decorative />
+                    </div>
+                    <span>Preparing preview</span>
+                  </div>
+                )}
               </div>
             ) : (
               renderStatus()
@@ -596,17 +991,5 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     </div>
   );
 });
-
-const zoomBtnStyle = {
-  background: "#1a1a1a",
-  border: "1px solid #333",
-  color: "#ccc",
-  padding: "4px 10px",
-  cursor: "pointer",
-  fontSize: "12px",
-  fontWeight: "600",
-  transition: "all 0.15s",
-  lineHeight: 1,
-};
 
 export default SplitViewCanvas;

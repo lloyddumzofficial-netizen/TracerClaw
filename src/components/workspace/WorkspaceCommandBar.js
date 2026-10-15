@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Columns2, Eraser, ImageMinus, Palette, Scissors } from "lucide-react";
+import { Columns2, Palette, Scissors } from "lucide-react";
 
 const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
   activeTool,
@@ -10,8 +10,6 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
   hasSvg,
   onSelectTool,
   onOpenCrop,
-  onOpenErase,
-  onOpenRemoveBg,
   onOpenCompare,
   onOpenPalettePreview,
 }) {
@@ -33,24 +31,6 @@ const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
         >
           <Scissors size={13} />
           Crop
-        </button>
-        <button
-          className={`workspace-command-btn ${activeTool === "erase" ? "is-active" : ""}`}
-          onClick={() => openTool("erase", onOpenErase)}
-          disabled={!hasProject || isBusy}
-          title="Erase noise manually"
-        >
-          <Eraser size={13} />
-          Erase
-        </button>
-        <button
-          className={`workspace-command-btn ${activeTool === "remove-bg" ? "is-active" : ""}`}
-          onClick={() => openTool("remove-bg", onOpenRemoveBg)}
-          disabled={!hasProject || isBusy}
-          title="Remove background"
-        >
-          <ImageMinus size={13} />
-          Remove BG
         </button>
         </div>
       </div>
