@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Zap, Sparkles, Download } from "lucide-react";
+import { ArrowRight, Download, Layers3, Sparkles, X, Zap } from "lucide-react";
 import styles from "./OnboardingModal.module.css";
 
 const steps = [
@@ -44,12 +44,24 @@ const OnboardingModal = memo(function OnboardingModal({ show, onClose }) {
         aria-modal="true"
         aria-labelledby="onboarding-title"
       >
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label="Close welcome guide"
+        >
+          <X size={17} strokeWidth={1.8} />
+        </button>
+
         <div className={styles.header}>
-          <span className={styles.eyebrow}>Workspace ready</span>
-          <h2 id="onboarding-title">Welcome to DesaynClaw</h2>
-          <p>
-            A compact guide before you start tracing, cleaning, and exporting production files.
-          </p>
+          <div className={styles.headerMark} aria-hidden="true">
+            <Layers3 size={20} strokeWidth={1.7} />
+          </div>
+          <div>
+            <span className={styles.eyebrow}>Welcome to DesaynClaw</span>
+            <h2 id="onboarding-title">Your workspace is ready.</h2>
+            <p>Three simple steps from rough artwork to production-ready files.</p>
+          </div>
         </div>
 
         <div className={styles.steps}>
@@ -68,15 +80,20 @@ const OnboardingModal = memo(function OnboardingModal({ show, onClose }) {
         </div>
 
         <div className={styles.creditNote}>
-          <strong>1 claw = 1 standard generation</strong>
-          <span>Need more? Top up anytime from the Claws button.</span>
+          <div>
+            <span className={styles.creditDot} aria-hidden="true" />
+            <strong>1 Claw</strong>
+            <span>per standard generation</span>
+          </div>
+          <small>Top up anytime from your balance menu.</small>
         </div>
 
         <button
           className={styles.primaryButton}
           onClick={onClose}
         >
-          Start creating
+          <span>Enter workspace</span>
+          <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
     </div>,

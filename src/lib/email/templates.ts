@@ -3,7 +3,7 @@ import type { EmailData, EmailTemplateRenderer } from "./types";
 
 const HOME_CTA = { label: "Open DesaynClaw", url: "https://desaynclaw.com" };
 const WELCOME_HEADER_URL = "https://desaynclaw.com/Welcome.jpg";
-const TUTORIAL_PREVIEW_URL = "https://desaynclaw.com/cover-photo-banner.jpg";
+const TUTORIAL_PREVIEW_URL = "https://desaynclaw.com/EMAIL-VIDEO-THUMBNAIL-TUTOORIAL.jpg";
 const TUTORIAL_URL = "https://desaynclaw.com/#how-desaynclaw-works";
 
 const supportTemplate = (data: EmailData) => ({
