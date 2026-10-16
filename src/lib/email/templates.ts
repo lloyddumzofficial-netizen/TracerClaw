@@ -2,7 +2,7 @@ import { field, textToHtml } from "./render";
 import type { EmailData, EmailTemplateRenderer } from "./types";
 
 const HOME_CTA = { label: "Open DesaynClaw", url: "https://desaynclaw.com" };
-const WELCOME_HEADER_URL = "https://desaynclaw.com/Welcome.jpg";
+const WELCOME_HEADER_URL = "https://desaynclaw.com/Welcome.jpg?v=20261016";
 const TUTORIAL_PREVIEW_URL = "https://desaynclaw.com/EMAIL-VIDEO-THUMBNAIL-TUTOORIAL.jpg";
 const TUTORIAL_URL = "https://desaynclaw.com/#how-desaynclaw-works";
 
