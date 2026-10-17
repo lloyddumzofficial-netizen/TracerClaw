@@ -787,9 +787,32 @@ export default function StartScreen() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
-        const response = await fetch("/api/payments/dodo/status", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+
+        const requestRecovery = (accessToken) => fetch("/api/payments/dodo/status", {
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
+
+        let response = await requestRecovery(session.access_token);
+
+        // This is a best-effort background repair. The cached browser session
+        // can expire between hydration and this request, so refresh once before
+        // treating the response as a real reconciliation failure.
+        if (response.status === 401 && !cancelled) {
+          const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshedSession?.access_token) {
+            sessionStorage.removeItem(recoveryKey);
+            return;
+          }
+          response = await requestRecovery(refreshedSession.access_token);
+        }
+
+        // A signed-out or invalidated session is not a payment error. A future
+        // authenticated page load can safely retry the idempotent recovery.
+        if (response.status === 401) {
+          sessionStorage.removeItem(recoveryKey);
+          return;
+        }
+
         const result = await safeJson(response, "Failed to recover Dodo payments");
         if (!response.ok) throw new Error(result.error || "Failed to recover Dodo payments");
         if (!cancelled && result.status === "paid" && result.credits > 0) {
@@ -799,7 +822,7 @@ export default function StartScreen() {
         }
       } catch (error) {
         sessionStorage.removeItem(recoveryKey);
-        console.error("Dodo pending-payment recovery failed:", error);
+        console.warn("Dodo pending-payment recovery was deferred:", error);
       }
     };
 
