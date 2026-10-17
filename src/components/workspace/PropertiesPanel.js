@@ -10,9 +10,7 @@ import {
   Download,
   Palette,
   SplitSquareHorizontal,
-  CheckCircle2,
-  HelpCircle,
-  ExternalLink
+  CheckCircle2
 } from "lucide-react";
 import GoogleDriveMark from "./integrations/GoogleDriveMark";
 import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integrations/clientApi";
@@ -115,11 +113,13 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
   const stepsDone = traceState === "step2" ? 1 : traceState === "step3" ? 2 : traceState === "idle" && finalSec !== null ? 3 : 0;
   const isProcessing = traceState !== "idle";
+  const isPatternWorkspace = project?.trace_type === "pattern";
   const steps = [
-    { label: "Neural Extract", active: traceState === "step1" },
+    { label: isPatternWorkspace ? "Pattern Retrace" : "Neural Extract", active: traceState === "step1" },
     { label: "Upscale", active: traceState === "step2" },
     { label: "Vectorize", active: traceState === "step3" },
   ];
+  const activeStepLabel = steps.find((step) => step.active)?.label;
   const fmtTime = (s) => s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
 
   const standardPlan = getTraceResumePlan(project, "standard");
@@ -137,7 +137,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const canUsePaletteStudio = hasSvg;
   const isLogoWorkspace = project?.trace_type === "logo";
 
-  const cropWarningCopy = isLogoWorkspace
+  const cropWarningCopy = isPatternWorkspace
+    ? "Crop to the exact artwork boundary before retracing."
+    : isLogoWorkspace
     ? "Crop tightly around the mark and remove empty background."
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
   const hasCurrentDriveExport = String(project?.google_drive_export_signature || "").startsWith("gdrive:v2:");
@@ -256,14 +258,13 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 ? creditCost === 0 ? "Retry SVG — No Claws" : "Retry Precision SVG  (−1 Claw)"
                 : resumeFromExtract
                   ? creditCost === 0 ? "Resume HD + SVG — No Claws" : "Resume HD + Precision SVG  (−1 Claw)"
-                : `Run Auto-Trace  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
+                : `${isPatternWorkspace ? "Run Pattern Retrace" : "Run Auto-Trace"}  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
   const exportDetails = [
-    { label: "File Format", value: "SVG", gold: false },
-    { label: "Max Vectors", value: "Unlimited", gold: false },
-    { label: "Color Mode", value: "Full Color", gold: false },
-    { label: "Max Size", value: "50 MP", gold: false },
-      { label: "Claws Required", value: creditCost === 0 ? "None to resume" : `${creditCost} Claw${creditCost > 1 ? "s" : ""}`, gold: true },
+    { label: "Format", value: "SVG" },
+    { label: "Vectors", value: "No limit" },
+    { label: "Color", value: "Full" },
+    { label: "Max size", value: "50 MP" },
   ];
 
   return (
@@ -273,7 +274,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       borderLeft: "1px solid #222",
       display: "flex",
       flexDirection: "column",
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
       flexShrink: 0,
       height: "100%",
       overflow: "hidden",
@@ -380,9 +381,107 @@ const PropertiesPanel = memo(function PropertiesPanel({
         }
         .pp-row-dot { flex: 1; border-bottom: 1px dotted #333; margin: 0 4px; }
 
+        .pp-output-readout {
+          border-top: 1px solid rgba(255,255,255,.09);
+        }
+        .pp-scroll-region {
+          flex: 1 1 auto; min-height: 0; overflow: hidden;
+          display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .pp-spec-row {
+          min-height: 28px; display: grid; grid-template-columns: minmax(0,1fr) auto;
+          align-items: center; gap: 14px; border-bottom: 1px solid rgba(255,255,255,.065);
+        }
+        .pp-spec-label {
+          color: rgba(255,255,255,.42); font-size: 9.5px; line-height: 1.2;
+        }
+        .pp-spec-value {
+          color: rgba(255,255,255,.88); font-size: 9.5px; font-weight: 550;
+          line-height: 1.2; text-align: right; font-variant-numeric: tabular-nums;
+        }
+        .pp-process-readout {
+          margin: 0 -2px 8px;
+          padding: 10px 2px 11px;
+          border-bottom: 1px solid rgba(255,255,255,.085);
+        }
+        .pp-process-readout.is-processing {
+          background: linear-gradient(90deg, rgba(255,255,255,.025), transparent 76%);
+        }
+        .pp-process-head {
+          display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+          margin-bottom: 10px;
+        }
+        .pp-process-head span {
+          overflow: hidden; color: rgba(255,255,255,.46); font-size: 9px;
+          font-weight: 550; white-space: nowrap; text-overflow: ellipsis;
+        }
+        .pp-process-head strong {
+          color: rgba(255,255,255,.78); font-size: 9.5px; font-weight: 550;
+          font-variant-numeric: tabular-nums;
+        }
+        .pp-process-head strong.is-live {
+          color: #fff; text-shadow: 0 0 12px rgba(255,255,255,.2);
+        }
+        .pp-stage-rail {
+          display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px;
+        }
+        .pp-stage-segment { min-width: 0; }
+        .pp-stage-line {
+          position: relative; height: 4px; overflow: hidden; border-radius: 1px;
+          background: rgba(255,255,255,.1);
+        }
+        .pp-stage-segment.is-done .pp-stage-line { background: rgba(255,255,255,.72); }
+        .pp-stage-segment.is-active .pp-stage-line {
+          background: rgba(255,215,0,.14); box-shadow: 0 0 10px rgba(255,215,0,.08);
+        }
+        .pp-stage-segment.is-active .pp-stage-line::after {
+          content: ""; position: absolute; inset: 0; width: 55%;
+          background: linear-gradient(90deg, transparent, rgba(255,215,0,.34) 26%, #ffd700 52%, rgba(255,215,0,.34) 74%, transparent);
+          box-shadow: 0 0 8px rgba(255,215,0,.24);
+          animation: pp-rail-sweep .9s ease-in-out infinite;
+          will-change: transform;
+        }
+        .pp-stage-name {
+          display: block; overflow: hidden; margin-top: 6px; color: rgba(255,255,255,.23);
+          font-size: 7.5px; line-height: 1.2; font-weight: 550; white-space: nowrap;
+          text-overflow: ellipsis; text-transform: uppercase;
+        }
+        .pp-stage-segment.is-done .pp-stage-name { color: rgba(255,255,255,.56); }
+        .pp-stage-segment.is-active .pp-stage-name { color: #fff; }
+
         @keyframes pp-spin { to { transform: rotate(360deg); } }
         .pp-spin { animation: pp-spin .9s linear infinite; display: inline-flex; }
         @keyframes pp-shimmer { 0% { left: -100%; } 100% { left: 200%; } }
+        @keyframes pp-rail-sweep { 0% { transform: translateX(-110%); } 100% { transform: translateX(190%); } }
+
+        @media (max-height: 840px) {
+          .pp-scroll-region { justify-content: flex-start; }
+          .pp-color-section { padding: 6px 12px !important; }
+          .pp-mode-section, .pp-actions-section { padding: 0 12px 6px !important; }
+          .pp-export-section { padding: 0 12px 7px !important; }
+          .pp-card { padding: 6px 9px; gap: 9px; }
+          .pp-desc { margin-top: 3px; font-size: 9px; line-height: 1.25; }
+          .pp-trace-btn { min-height: 36px; margin-bottom: 4px; padding-block: 7px; }
+          .pp-warn { padding: 6px; }
+          .pp-warn span { font-size: 9px; line-height: 1.25; }
+          .pp-svg-btn { padding-block: 6px; }
+          .pp-sec { min-height: 36px; padding: 3px; gap: 3px; }
+          .pp-spec-row { min-height: 23px; }
+          .pp-process-readout { margin-bottom: 5px; padding-block: 7px 8px; }
+          .pp-process-head { margin-bottom: 7px; }
+          .pp-stage-name { margin-top: 4px; }
+        }
+
+        @media (max-height: 700px) {
+          .pp-desc { display: none; }
+          .pp-color-section { padding-block: 5px !important; }
+          .pp-card { padding-block: 5px; }
+          .pp-plan-meta { font-size: 8px !important; }
+          .pp-warn { margin-bottom: 4px !important; }
+          .pp-sec { min-height: 32px; }
+          .pp-spec-row { min-height: 21px; }
+          .pp-process-readout { padding-block: 6px 7px; }
+        }
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────── */}
@@ -395,7 +494,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
           <span style={{
             fontSize: "11px", fontWeight: "600",
             color: "#fff", letterSpacing: "1px", textTransform: "uppercase",
-          }}>AI Trace Settings</span>
+          }}>{isPatternWorkspace ? "AI Retrace Settings" : "AI Trace Settings"}</span>
         </div>
         <button style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", display: "flex" }}
           onClick={() => { }} aria-label="Close panel">
@@ -403,6 +502,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </button>
       </div>
 
+      <div className="pp-scroll-region">
       {/* ── COLOR DETAIL ─────────────────────────────────── */}
       <div className="pp-section pp-color-section" style={{ padding: "8px 14px", flexShrink: 0 }}>
         <span className="pp-lbl">Color Detail</span>
@@ -471,7 +571,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </div>
 
         <p className="pp-desc">
-          {isLogoWorkspace
+          {isPatternWorkspace
+            ? "Precision is best for detailed patterns, small lettering, and tightly registered shapes."
+            : isLogoWorkspace
             ? "Precision is best for logos with small text, circles, and tight curves."
             : "Precision is best for logos, marks, and clean artwork that needs tighter SVG paths."}
         </p>
@@ -554,112 +656,44 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {/* ── EXPORT DETAILS ───────────────────────────────── */}
-      <div className="pp-section pp-export-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
+      <div className="pp-section pp-export-section" style={{ padding: "0 14px 10px", flexShrink: 0 }}>
         <span className="pp-lbl">Export Details</span>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {exportDetails.map(({ label, value, gold }) => (
-            <div key={label} className="pp-row">
-              <CheckCircle2 size={12} color="#FFD700" />
-              <span className="pp-row-lbl">{label}</span>
-              <div className="pp-row-dot" />
-              <span className="pp-row-val" style={{ color: gold ? "#FFD700" : "#e4e4e7", fontWeight: gold ? "600" : "400" }}>
-                {value}
-              </span>
-            </div>
-          ))}
-
+        <div className="pp-output-readout">
           {/* ── Processing Time — live progress ── */}
-          <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #222" }}>
-            <div className="pp-row" style={{ marginBottom: "4px" }}>
-              <span className="pp-row-lbl" style={{ fontSize: "9px" }}>Processing Time</span>
-              <div className="pp-row-dot" />
-              <span style={{
-                fontSize: "10px", fontWeight: "600", fontVariantNumeric: "tabular-nums",
-                color: isProcessing ? "#FFD700" : finalSec !== null ? "#e4e4e7" : "#52525b",
-                minWidth: "32px", textAlign: "right",
-              }}>
+          <div className={`pp-process-readout${isProcessing ? " is-processing" : ""}`}>
+            <div className="pp-process-head">
+              <span>{isProcessing ? (activeStepLabel || "Processing") : finalSec !== null ? "Complete" : "Estimate"}</span>
+              <strong className={isProcessing ? "is-live" : ""}>
                 {isProcessing
                   ? `${fmtTime(elapsedSec)}…`
                   : finalSec !== null
                     ? fmtTime(finalSec)
                     : "10 – 30 sec"}
-              </span>
+              </strong>
             </div>
 
-            {/* Step pills */}
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div className="pp-stage-rail" aria-label="Processing stages">
               {steps.map((step, i) => {
                 const done = i < stepsDone;
                 const active = step.active;
                 return (
-                  <div key={step.label} style={{
-                    flex: 1, display: "flex", flexDirection: "column",
-                    alignItems: "center", gap: "3px",
-                  }}>
-                    <div style={{
-                      width: "100%", height: "4px", borderRadius: "2px",
-                      background: done
-                        ? "#FFD700"
-                        : active
-                          ? "linear-gradient(90deg, #FFD700 40%, #333 100%)"
-                          : "#2a2a2a",
-                      transition: "background 0.4s ease",
-                      boxShadow: done ? "0 0 6px rgba(255,215,0,0.5)" : active ? "0 0 4px rgba(255,215,0,0.3)" : "none",
-                      position: "relative", overflow: active ? "hidden" : "visible",
-                    }}>
-                      {active && (
-                        <div style={{
-                          position: "absolute", top: 0, left: "-100%", width: "60%", height: "100%",
-                          background: "linear-gradient(90deg, transparent, rgba(255,215,0,0.6), transparent)",
-                          animation: "pp-shimmer 1.2s ease-in-out infinite",
-                        }} />
-                      )}
-                    </div>
-                    <span style={{
-                      fontSize: "7.5px", fontWeight: "600", letterSpacing: "0.3px",
-                      textTransform: "uppercase",
-                      color: done ? "#FFD700" : active ? "#a1a1aa" : "#3f3f46",
-                      transition: "color 0.3s",
-                    }}>{step.label}</span>
+                  <div key={step.label} className={`pp-stage-segment${done ? " is-done" : ""}${active ? " is-active" : ""}`}>
+                    <div className="pp-stage-line" />
+                    <span className="pp-stage-name">{step.label}</span>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {exportDetails.map(({ label, value }) => (
+            <div key={label} className="pp-spec-row">
+              <span className="pp-spec-label">{label}</span>
+              <span className="pp-spec-value">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
-
-      {/* ── HELP FOOTER ──────────────────────────────────── */}
-      <div className="pp-help-footer" style={{
-        padding: "8px 14px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
-        background: "transparent", borderTop: "1px solid #222", flexShrink: 0,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <HelpCircle size={18} color="#FFD700" />
-          <div>
-            <div style={{ fontSize: "10px", fontWeight: "600", color: "#e4e4e7", marginBottom: "2px" }}>
-              Need help?
-            </div>
-            <div style={{ fontSize: "9px", color: "#a1a1aa" }}>
-              View guide or contact support.
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => window.open("https://www.facebook.com/profile.php?id=61564332563389", "_blank")}
-          style={{
-            background: "transparent", border: "1px solid #333", color: "#a1a1aa",
-            fontSize: "8px", fontWeight: "700", letterSpacing: "0.5px",
-            textTransform: "uppercase", padding: "6px 10px", cursor: "pointer",
-            display: "flex", alignItems: "center", gap: "6px",
-            transition: "all .15s", whiteSpace: "nowrap", flexShrink: 0
-          }}
-          onMouseOver={e => e.currentTarget.style.borderColor = "#555"}
-          onMouseOut={e => e.currentTarget.style.borderColor = "#333"}
-        >
-          Contact Us <ExternalLink size={10} />
-        </button>
       </div>
 
     </aside>

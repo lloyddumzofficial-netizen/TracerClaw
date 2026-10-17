@@ -255,7 +255,7 @@ export async function POST(request) {
       const metadata = await sharp(rawSourceBuffer).metadata();
 
       let targetAspectRatio = "auto";
-      if (project.trace_type !== "logo" && metadata && metadata.width && metadata.height) {
+      if (project.trace_type !== "logo" && project.trace_type !== "pattern" && metadata && metadata.width && metadata.height) {
         const ratio = metadata.width / metadata.height;
         const allowedRatios = {
           "21:9": 21 / 9, "16:9": 16 / 9, "3:2": 3 / 2, "4:3": 4 / 3, "5:4": 5 / 4,
@@ -488,22 +488,23 @@ export async function POST(request) {
           upscaleScale,
         });
       } catch (sizeErr) {
-        if (project.trace_type === "logo") {
-          throw new Error(`Could not prepare the preserved logo for upscale: ${sizeErr.message}`);
+        if (project.trace_type === "logo" || project.trace_type === "pattern") {
+          throw new Error(`Could not prepare the preserved artwork for upscale: ${sizeErr.message}`);
         }
         upscaleScale = 2;
         console.warn("[API Step 2] Could not measure step-1 image, defaulting to 2x:", sizeErr.message);
       }
 
-      // Keep Logo Workspace non-generative end to end. Lanczos resampling adds
-      // resolution for the vectorizer but cannot reinterpret text or artwork.
-      if (project.trace_type === "logo") {
-        const upscaledLogo = await upscaleLogoDeterministically(stepOneBuffer);
+      // Keep Logo and Pattern workspaces non-generative after the edit pass.
+      // Lanczos resampling adds vectorizer resolution without reinterpreting
+      // text, colors, shapes, or composition.
+      if (project.trace_type === "logo" || project.trace_type === "pattern") {
+        const upscaledArtwork = await upscaleLogoDeterministically(stepOneBuffer);
         const { uploadToR2 } = await import("@/lib/cloudflare");
         const persistedUpscaledUrl = await uploadToR2(
-          upscaledLogo.buffer,
+          upscaledArtwork.buffer,
           `projects/${projectId}/upscaled_${Date.now()}.png`,
-          upscaledLogo.mimeType,
+          upscaledArtwork.mimeType,
         );
 
         const { error: upscaleSaveError } = await adminSupabase
@@ -517,27 +518,27 @@ export async function POST(request) {
           .eq('id', projectId)
           .eq('user_id', user.id);
         if (upscaleSaveError) {
-          logger.error("[API Step 2] Failed to record deterministic logo upscale", {
+          logger.error("[API Step 2] Failed to record deterministic artwork upscale", {
             projectId,
             message: upscaleSaveError.message,
           });
-          throw new Error("Failed to record persisted logo upscale");
+          throw new Error("Failed to record persisted artwork upscale");
         }
 
-        logger.info("[API Step 2] Logo upscaled without generative reconstruction", {
+        logger.info("[API Step 2] Artwork upscaled without generative reconstruction", {
           projectId,
-          size: `${upscaledLogo.width}x${upscaledLogo.height}`,
-          scale: upscaledLogo.scale,
-          bytes: upscaledLogo.buffer.length,
+          size: `${upscaledArtwork.width}x${upscaledArtwork.height}`,
+          scale: upscaledArtwork.scale,
+          bytes: upscaledArtwork.buffer.length,
         });
 
         return NextResponse.json({
           success: true,
           step: 2,
           fileUrl: persistedUpscaledUrl,
-          mimeType: upscaledLogo.mimeType,
+          mimeType: upscaledArtwork.mimeType,
           persisted: true,
-          processingMode: "deterministic-logo",
+          processingMode: project.trace_type === "pattern" ? "deterministic-pattern" : "deterministic-logo",
         });
       }
 

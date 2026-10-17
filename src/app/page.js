@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import laptopPreview from "../../public/LAPTOP.jpg";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
@@ -15,7 +16,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, ShieldCheck, Star, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./home.css";
@@ -108,66 +109,32 @@ async function uploadImageToStorage({ token, file, purpose }) {
   }
 }
 
-function HomepageWorkflowPreview() {
+function HomepageWorkflowPreview({ onStart }) {
   return (
     <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
       <div className="workflow-preview-copy">
-        <div className="workflow-kicker-row">
-          <span className="section-kicker">Production Preview</span>
-          <span className="workflow-status-pill">Live handoff</span>
-        </div>
-        <h2>Clean production files from rough client artwork.</h2>
+        <h2>
+          Clean production files
+          <em>from rough artwork.</em>
+        </h2>
         <p>
           See the full handoff after upload: cropped artwork, vector controls,
           transparent assets, and export-ready files built for real print shop work.
         </p>
-        <div className="workflow-output-grid">
-          <div className="workflow-output-card"><CheckCircle2 size={15} /> Editable SVG</div>
-          <div className="workflow-output-card"><CheckCircle2 size={15} /> 4K PNG</div>
-          <div className="workflow-output-card"><CheckCircle2 size={15} /> Transparent BG</div>
-          <div className="workflow-output-card"><CheckCircle2 size={15} /> ZIP Package</div>
-        </div>
-        <div className="workflow-trust-row" aria-label="Workflow trust notes">
-          <span><ShieldCheck size={14} /> Files auto-expire after 3 days</span>
-          <span><Monitor size={14} /> Desktop workspace protected</span>
-          <span><Star size={14} /> Real extraction stats</span>
-        </div>
+        <button className="workflow-preview-cta" type="button" onClick={onStart}>
+          Start designing
+          <span><ArrowUpRight size={16} aria-hidden="true" /></span>
+        </button>
       </div>
 
       <div className="workflow-mockup" aria-hidden="true">
-        <div className="workflow-window">
-          <div className="workflow-window-bar">
-            <span className="workflow-window-dot" />
-            <span className="workflow-window-dot" />
-            <span className="workflow-window-dot" />
-            <span className="workflow-window-title">desaynclaw.com/workspace</span>
-          </div>
-          <figure className="workflow-preview-figure">
-            <Image
-              src="/banner-2.png"
-              alt=""
-              width={1916}
-              height={962}
-              sizes="(max-width: 980px) 100vw, 720px"
-              loading="lazy"
-            />
-            <span className="workflow-zoom-ring" />
-            <figcaption className="workflow-preview-caption">
-              <span>Output preview</span>
-              <strong>SVG + PNG + Palette</strong>
-            </figcaption>
-          </figure>
-        </div>
-        <div className="workflow-mini-panel">
-          <span>Export details</span>
-          <strong>Production-ready</strong>
-          <small>Clean vectors, transparent files, ZIP delivery</small>
-        </div>
-        <div className="workflow-scale-rail">
-          <span>Crop</span>
-          <span>Trace</span>
-          <span>Export</span>
-        </div>
+        <Image
+          className="workflow-standalone-image"
+          src={laptopPreview}
+          alt=""
+          sizes="(max-width: 980px) 100vw, 720px"
+          loading="lazy"
+        />
       </div>
     </section>
   );
@@ -180,8 +147,6 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
       title: "Garment Extract",
       description: "Turn jersey and garment mockups into clean, editable production artwork.",
       action: "Start extracting",
-      badge: "Featured",
-      badgeFeatured: true,
       image: "/samples/Reference.webp",
       imageClassName: "is-cover",
       onClick: onExtract,
@@ -190,7 +155,6 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
       title: "Image Upscaler",
       description: "Recover cleaner edges and usable resolution while preserving the original.",
       action: "Open upscaler",
-      badge: "4K detail",
       comparison: {
         leftImage: "/samples/upscale-hq.webp",
         rightImage: "/samples/upscale-original.png",
@@ -202,7 +166,6 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
       title: "Background Remover",
       description: "Isolate subjects with transparent edges ready for design and production.",
       action: "Remove background",
-      badge: "Clean cutout",
       comparison: {
         leftImage: "/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp",
         rightImage: "/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp",
@@ -214,7 +177,6 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
       title: "Mockup Studio",
       description: "Build polished garment previews from production panels and artwork.",
       action: "Open studio",
-      badge: "New studio",
       image: "/MOCKUP_STUDIO_thumbnail.jpg",
       imageClassName: "is-cover is-mockup-photo",
       onClick: onMockupStudio,
@@ -286,10 +248,6 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
               </div>
             )}
             <div className="desktop-tool-card-shade" />
-            <span className={`desktop-tool-badge${tool.badgeFeatured ? " is-featured" : ""}`}>
-              <span aria-hidden="true" />
-              {tool.badge}
-            </span>
             <div className="desktop-tool-card-copy">
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
@@ -558,6 +516,7 @@ export default function StartScreen() {
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
+  const homeRootRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
   const dodoReturnHandledRef = useRef(false);
 
@@ -598,6 +557,77 @@ export default function StartScreen() {
   useEffect(() => {
     setShowDriveAnnouncement(localStorage.getItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY) !== "1");
   }, []);
+
+  useEffect(() => {
+    const root = homeRootRef.current;
+    if (!root?.classList.contains("has-guest-home")) return undefined;
+
+    const sectionSelector = [
+      ".home-content-frame > .workflow-preview-section",
+      ".home-content-frame > .desktop-tools-shelf",
+      ".home-content-frame .guest-landing-example",
+      ".home-content-frame > .edu-demo-section",
+      ".home-content-frame > .edu-cards-section",
+      ".home-content-frame > .how-it-works-section",
+      ".home-content-frame > .homepage-tutorial-section",
+      ".home-content-frame > .product-features-section",
+      ".home-content-frame > .tool-showcase-section",
+      ".home-content-frame > .great-for-section",
+      ".home-content-frame > .testimonial-showcase",
+      ".home-content-frame #pricing",
+      ".home-content-frame #faq",
+    ].join(",");
+
+    const sections = Array.from(root.querySelectorAll(sectionSelector));
+    sections.forEach((section) => {
+      section.classList.add("home-scroll-reveal");
+      Array.from(section.children).forEach((piece, index) => {
+        piece.classList.add("home-reveal-piece");
+        piece.style.setProperty("--home-reveal-order", String(Math.min(index, 3)));
+      });
+    });
+
+    root.classList.add("home-motion-ready");
+
+    if (!("IntersectionObserver" in window)) {
+      sections.forEach((section) => section.classList.add("is-revealed"));
+      return () => {
+        root.classList.remove("home-motion-ready");
+        sections.forEach((section) => {
+          section.classList.remove("home-scroll-reveal", "is-revealed");
+          Array.from(section.children).forEach((piece) => {
+            piece.classList.remove("home-reveal-piece");
+            piece.style.removeProperty("--home-reveal-order");
+          });
+        });
+      };
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-revealed");
+        observer.unobserve(entry.target);
+      });
+    }, {
+      threshold: 0.12,
+      rootMargin: "0px 0px -8% 0px",
+    });
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => {
+      observer.disconnect();
+      root.classList.remove("home-motion-ready");
+      sections.forEach((section) => {
+        section.classList.remove("home-scroll-reveal", "is-revealed");
+        Array.from(section.children).forEach((piece) => {
+          piece.classList.remove("home-reveal-piece");
+          piece.style.removeProperty("--home-reveal-order");
+        });
+      });
+    };
+  }, [user]);
 
   const dismissDriveAnnouncement = () => {
     localStorage.setItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY, "1");
@@ -1102,7 +1132,7 @@ export default function StartScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div id="start" className={`start-screen-container${user ? "" : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
+    <div ref={homeRootRef} id="start" className={`start-screen-container${user ? "" : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
       {user && <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
         DesaynClaw AI Vector Tracer and Sublimation Design Extractor
       </h1>}
@@ -1390,7 +1420,15 @@ export default function StartScreen() {
 
         {user && <HomeTrustMarquee />}
 
-        {user && <HomepageWorkflowPreview />}
+        {user && (
+          <HomepageWorkflowPreview
+            onStart={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowModal(true);
+            }}
+          />
+        )}
 
         {user && (
           <DesktopToolsShelf
@@ -1417,7 +1455,15 @@ export default function StartScreen() {
           />
         )}
 
-        {!user && <GuestHomepageSampleSection />}
+        {!user && (
+          <HomepageWorkflowPreview
+            onStart={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowLoginModal(true);
+            }}
+          />
+        )}
 
         {!user && (
           <DesktopToolsShelf
@@ -1444,7 +1490,7 @@ export default function StartScreen() {
           />
         )}
 
-        {!user && <HomepageWorkflowPreview />}
+        {!user && <GuestHomepageSampleSection />}
 
         <EduSection />
 

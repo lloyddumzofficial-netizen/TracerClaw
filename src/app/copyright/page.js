@@ -1,78 +1,174 @@
-"use client";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Copyright,
+  FileCheck2,
+  FileText,
+  Scale,
+  ShieldCheck,
+} from "lucide-react";
+import "../legal-policy.css";
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft, ShieldAlert } from "lucide-react";
+const SUMMARY = [
+  {
+    icon: FileCheck2,
+    title: "Use authorized artwork",
+    text: "Only process files you own or have permission to use.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "You keep your rights",
+    text: "DesaynClaw does not claim ownership of uploaded content.",
+  },
+  {
+    icon: Scale,
+    title: "Rights still apply",
+    text: "Processing a file does not create copyright or commercial-use rights.",
+  },
+];
 
-export default function CopyrightPolicy() {
-  const router = useRouter();
-
+function Section({ number, id, title, children }) {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#111", color: "#eee", padding: "40px 20px" }}>
-      {/* Header */}
-      <div style={{ maxWidth: "800px", margin: "0 auto", paddingBottom: "20px", borderBottom: "1px solid #333" }}>
-        <button
-          onClick={() => router.push("/")}
-          style={{ display: "flex", alignItems: "center", gap: "8px", background: "transparent", color: "#aaa", border: "none", cursor: "pointer", padding: "0", fontSize: "14px", marginBottom: "30px", transition: "color 0.2s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#FFD700")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#aaa")}
-        >
-          <ArrowLeft size={16} /> Back to Home
-        </button>
-        <h1 style={{ fontSize: "36px", margin: "0 0 10px 0", color: "#fff", display: "flex", alignItems: "center", gap: "12px" }}>
-          <ShieldAlert color="#FFD700" size={36} /> Copyright Policy
-        </h1>
-        <p style={{ color: "#888", fontSize: "14px", margin: "8px 0 0 0" }}>
-          Last updated: July 2026 &nbsp;|&nbsp; Applies to uploaded content and generated output.
-        </p>
+    <section className="legal-section" id={id}>
+      <div className="legal-section-number">{number}</div>
+      <div>
+        <h2>{title}</h2>
+        {children}
       </div>
-
-      {/* Body */}
-      <div style={{ maxWidth: "800px", margin: "40px auto 100px auto", display: "flex", flexDirection: "column", gap: "36px", fontSize: "15px", lineHeight: "1.8", color: "#ccc" }}>
-
-        {/* Intro */}
-        <div style={{ background: "#1a1a1a", padding: "24px", borderRadius: "12px", border: "1px solid #2a2a2a" }}>
-          <p style={{ margin: 0, color: "#aaa" }}>
-            DesaynClaw is an AI processing tool for user-supplied artwork. This policy explains how copyright and intellectual property rights apply when you upload, process, export, or use content through the Service.
-          </p>
-        </div>
-
-        <Section num="1" title="User Responsibility">
-          Users are responsible for every file they upload. You must own the artwork or have sufficient authorization from the copyright owner, trademark owner, client, brand, team, school, business, or other rights holder before processing it with DesaynClaw.
-        </Section>
-
-        <Section num="2" title="No Rights Transfer">
-          Using DesaynClaw does not transfer, create, or grant copyright, trademark, reproduction, merchandising, resale, distribution, or commercial exploitation rights over uploaded content or generated output.
-        </Section>
-
-        <Section num="3" title="Ownership of Uploaded Content">
-          DesaynClaw does not claim ownership of uploaded content. We process uploaded files only to provide the requested service, subject to our Terms of Service and Privacy Policy.
-        </Section>
-
-        <Section num="4" title="Unauthorized Content">
-          You may not upload, process, reproduce, sell, distribute, or commercially exploit copyrighted or trademarked content without authorization. This includes copied artwork, brand marks, team logos, school marks, character art, artist work, and client files you are not authorized to use.
-        </Section>
-
-        <Section num="5" title="Enforcement">
-          DesaynClaw may remove content that appears to violate intellectual property rights. Accounts may be limited, suspended, or terminated for repeated infringement or serious copyright or trademark violations.
-        </Section>
-
-        <Section num="6" title="Copyright Complaints">
-          If you believe content processed or displayed through DesaynClaw infringes your rights, please review our Copyright Takedown Request page and contact us with the requested details.
-        </Section>
-
-      </div>
-    </div>
+    </section>
   );
 }
 
-function Section({ num, title, children }) {
+export default function CopyrightPolicy() {
   return (
-    <div style={{ borderLeft: "3px solid #2a2a2a", paddingLeft: "24px" }}>
-      <div style={{ color: "#FFD700", fontSize: "12px", textTransform: "uppercase", letterSpacing: "2px", fontWeight: "700", marginBottom: "8px" }}>
-        Section {num}
-      </div>
-      <h2 style={{ color: "#fff", fontSize: "20px", margin: "0 0 16px 0", fontWeight: "600" }}>{title}</h2>
-      <div style={{ color: "#aaa", lineHeight: "1.8" }}>{children}</div>
+    <div className="legal-page copyright-page">
+      <header className="legal-topbar">
+        <a className="legal-brand" href="/" aria-label="DesaynClaw home">
+          <img src="/logo.png" alt="DesaynClaw" />
+        </a>
+        <a className="legal-back" href="/">
+          <ArrowLeft size={15} /> Back to home
+        </a>
+      </header>
+
+      <main>
+        <section className="legal-hero">
+          <div className="legal-kicker">
+            <Copyright size={14} /> Intellectual property
+          </div>
+          <h1>Protect the work behind every production file.</h1>
+          <p>
+            Clear responsibilities for artwork ownership, authorization, processing,
+            and copyright complaints on DesaynClaw.
+          </p>
+          <div className="legal-meta">
+            <span>Last updated July 2026</span>
+            <i />
+            <span>Applies to uploads and generated output</span>
+          </div>
+        </section>
+
+        <section className="legal-summary" aria-label="Copyright policy overview">
+          {SUMMARY.map(({ icon: Icon, title, text }) => (
+            <article key={title}>
+              <span className="legal-summary-icon"><Icon size={18} /></span>
+              <div><strong>{title}</strong><p>{text}</p></div>
+            </article>
+          ))}
+        </section>
+
+        <section className="legal-layout">
+          <article className="legal-document">
+            <header>
+              <span><FileText size={16} /> Official policy</span>
+              <h2>Copyright Policy</h2>
+              <p>
+                This policy explains how intellectual property rights apply when you
+                upload, process, export, or use content through DesaynClaw.
+              </p>
+            </header>
+
+            <Section number="01" id="responsibility" title="Your responsibility">
+              <p>
+                You are responsible for every file you upload. You must own the artwork
+                or have sufficient authorization from the copyright owner, trademark
+                owner, client, brand, team, school, business, or other rights holder
+                before processing it with DesaynClaw.
+              </p>
+            </Section>
+
+            <Section number="02" id="rights-transfer" title="No transfer of rights">
+              <p>
+                Using DesaynClaw does not transfer, create, or grant copyright,
+                trademark, reproduction, merchandising, resale, distribution, or
+                commercial exploitation rights over uploaded content or generated output.
+              </p>
+            </Section>
+
+            <Section number="03" id="ownership" title="Ownership of uploaded content">
+              <p>
+                DesaynClaw does not claim ownership of uploaded content. We process files
+                only to provide the requested service, subject to our Terms of Service
+                and Privacy Policy.
+              </p>
+              <a className="legal-inline-link" href="/privacy">
+                Review the Privacy Policy <ArrowUpRight size={14} />
+              </a>
+            </Section>
+
+            <Section number="04" id="unauthorized-content" title="Unauthorized content">
+              <p>
+                You may not upload, process, reproduce, sell, distribute, or commercially
+                exploit copyrighted or trademarked content without authorization. This
+                includes copied artwork, brand marks, team logos, school marks, character
+                art, artist work, and client files you are not authorized to use.
+              </p>
+            </Section>
+
+            <Section number="05" id="enforcement" title="Enforcement">
+              <p>
+                DesaynClaw may remove content that appears to violate intellectual
+                property rights. Accounts may be limited, suspended, or terminated for
+                repeated infringement or serious copyright or trademark violations.
+              </p>
+            </Section>
+
+            <Section number="06" id="complaints" title="Copyright complaints">
+              <p>
+                If you believe content processed or displayed through DesaynClaw
+                infringes your rights, send a complete request through our copyright
+                takedown process so the claim can be reviewed.
+              </p>
+              <a className="legal-inline-link" href="/copyright-takedown">
+                View takedown requirements <ArrowUpRight size={14} />
+              </a>
+            </Section>
+
+            <aside className="legal-contact" aria-label="Copyright support">
+              <div className="legal-contact-copy">
+                <span className="legal-contact-icon"><Copyright size={17} /></span>
+                <div>
+                  <h3>Need to report an infringement?</h3>
+                  <p>Review the required information before submitting your request.</p>
+                </div>
+              </div>
+              <a href="/copyright-takedown">
+                Takedown process <ArrowUpRight size={14} />
+              </a>
+            </aside>
+          </article>
+        </section>
+      </main>
+
+      <footer className="legal-footer">
+        <img src="/logo.png" alt="DesaynClaw" />
+        <p>Your artwork. Your rights. Clear responsibilities.</p>
+        <nav aria-label="Legal links">
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/refunds">Refunds</a>
+        </nav>
+      </footer>
     </div>
   );
 }

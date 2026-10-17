@@ -336,10 +336,11 @@ const CropModal = memo(function CropModal({
     : "No selection";
   const sourceMetaLabel = imageSize ? `JPG · ${imageSize.width} x ${imageSize.height}px` : "Loading image";
   const isLogoMode = project?.trace_type === 'logo';
+  const isPatternMode = project?.trace_type === 'pattern';
 
   return (
     <div className="modal-overlay crop-workspace-overlay" translate="no">
-      <div className="crop-workspace-modal">
+      <div className={`crop-workspace-modal ${isPatternMode ? "is-pattern-workspace" : isLogoMode ? "is-logo-workspace" : "is-garment-workspace"}`}>
         {showCropGuideIntro && (
           <div className="crop-intro-layer" role="dialog" aria-modal="true" aria-labelledby="crop-intro-title">
             <div className="crop-intro-card">
@@ -349,19 +350,33 @@ const CropModal = memo(function CropModal({
               <div className="crop-intro-heading">
                 <div>
                   <span className="crop-intro-kicker">Crop source quality</span>
-                  <h3 id="crop-intro-title">Keep only the printable area</h3>
+                  <h3 id="crop-intro-title">{isPatternMode ? "Frame the exact pattern artwork" : "Keep only the printable area"}</h3>
                 </div>
               </div>
               <p className="crop-intro-lead">
-                The crop becomes the exact source for extraction. Keep it tight to the design/body panel so the output does not include unwanted side space.
+                {isPatternMode
+                  ? "The crop becomes the exact retrace canvas. Keep only the flat pattern and exclude scan margins, tables, backgrounds, and unrelated content."
+                  : "The crop becomes the exact source for extraction. Keep it tight to the design/body panel so the output does not include unwanted side space."}
               </p>
               <div className="crop-intro-rules">
-                <div><span>01</span><p>Choose one side only: front or back.</p></div>
-                <div><span>02</span><p>Do not include sleeves, collar, armholes, shadows, background, or white margins.</p></div>
-                <div><span>03</span><p>Use the guide videos on the right side of the crop screen if you are unsure.</p></div>
+                {isPatternMode ? (
+                  <>
+                    <div><span>01</span><p>Frame the complete flat artwork you want to retrace.</p></div>
+                    <div><span>02</span><p>Exclude scanner edges, empty margins, tables, and surrounding objects.</p></div>
+                    <div><span>03</span><p>Keep the original artwork proportions; do not trim intentional edge details.</p></div>
+                  </>
+                ) : (
+                  <>
+                    <div><span>01</span><p>Choose one side only: front or back.</p></div>
+                    <div><span>02</span><p>Do not include sleeves, collar, armholes, shadows, background, or white margins.</p></div>
+                    <div><span>03</span><p>Use the guide videos on the right side of the crop screen if you are unsure.</p></div>
+                  </>
+                )}
               </div>
               <div className="crop-intro-warning">
-                Wrong crop or extra mockup space is user error and is not refundable.
+                {isPatternMode
+                  ? "Only content inside this crop will be retraced. Review every edge before continuing."
+                  : "Wrong crop or extra mockup space is user error and is not refundable."}
               </div>
               <div className="crop-intro-footer">
                 <label className="crop-intro-check">
@@ -374,6 +389,7 @@ const CropModal = memo(function CropModal({
                 </label>
                 <button type="button" className="btn-primary crop-intro-action" onClick={dismissCropGuideIntro}>
                   Start Crop
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -386,7 +402,8 @@ const CropModal = memo(function CropModal({
             </div>
             <div>
               <div className="crop-title-line">
-                <h3>Crop</h3>
+                <h3>Crop artwork</h3>
+                <span>{isPatternMode ? "Prepare the exact retrace canvas" : isLogoMode ? "Isolate the complete mark" : "Isolate one printable garment panel"}</span>
               </div>
             </div>
           </div>
@@ -476,9 +493,31 @@ const CropModal = memo(function CropModal({
           <aside className="crop-guide-panel">
             <div className="crop-guide-header">
               <span>Guide</span>
-              <strong>{isLogoMode ? "Logo Mode" : "Pattern Mode"}</strong>
+              <strong>{isLogoMode ? "Logo Mode" : isPatternMode ? "Pattern Workspace" : "Garment Mode"}</strong>
             </div>
-            {isLogoMode ? (
+            {isPatternMode ? (
+              <>
+                <div className="crop-guide-card is-good">
+                  <div className="crop-guide-label">
+                    <CheckCircle2 size={14} />
+                    Exact artwork boundary
+                  </div>
+                  <p>Include the complete flat pattern while keeping the crop close to its intended canvas edges.</p>
+                  <div className="crop-pattern-guide-preview" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+                <div className="crop-guide-card is-bad">
+                  <div className="crop-guide-label">
+                    <XCircle size={14} />
+                    Exclude surrounding space
+                  </div>
+                  <p>Do not include scanner margins, desk surfaces, shadows, or unrelated objects outside the artwork.</p>
+                </div>
+              </>
+            ) : isLogoMode ? (
               <>
                 <div className="crop-guide-card is-good">
                   <div className="crop-guide-label">
@@ -571,7 +610,7 @@ const CropModal = memo(function CropModal({
           <div className="crop-tip-block">
             <Info size={17} />
             <div>
-              <span>Frame the printable area. Scroll to zoom.</span>
+              <span>{isPatternMode ? "Frame the exact flat artwork. Scroll to zoom." : "Frame the printable area. Scroll to zoom."}</span>
             </div>
           </div>
           {project?.generated_image_url && (
@@ -594,8 +633,8 @@ const CropModal = memo(function CropModal({
               </>
             ) : (
               <>
+                {isPatternMode ? "Apply Crop & Retrace" : "Apply Crop & Extract"}
                 <ArrowRight size={14} />
-                Apply Crop & Extract
               </>
             )}
           </button>

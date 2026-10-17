@@ -21,6 +21,7 @@ export function safeExportName(name) {
 
 export function buildProjectExportAssets(project) {
   const baseName = safeExportName(project?.name);
+  const generatedLabel = project?.trace_type === "pattern" ? "PatternRetrace" : "FlatExtract";
   return [
     project?.original_image_url && {
       url: project.original_image_url,
@@ -30,7 +31,7 @@ export function buildProjectExportAssets(project) {
     },
     project?.generated_image_url && project.generated_image_url !== "REFUNDED" && {
       url: project.generated_image_url,
-      name: `DesaynClaw_${baseName}_FlatExtract.png`,
+      name: `DesaynClaw_${baseName}_${generatedLabel}.png`,
       maxBytes: getFlatExtractMaxBytes(project.trace_type),
       contentType: "image/png",
     },

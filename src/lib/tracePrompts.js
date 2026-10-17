@@ -441,10 +441,29 @@ Identify the outer background separately from the complete foreground mark. Repl
 
 Before output, compare the edited image to the input: same element count, text shapes, color regions, proportions, spacing, and foreground placement. When any proposed cleanup changes identity or an uncertain detail, leave that foreground detail as it appears in the input. Output one image only.`;
 
+// Pattern Workspace has a deliberately separate contract from Garment Workspace.
+// These prompts operate on already-flat artwork and must never inherit garment
+// reconstruction, perspective correction, panel, seam, sleeve, or collar rules.
+const PATTERN_SYSTEM_PROMPT = `You are editing an already-flat pattern or production artwork. The cropped source is the complete canvas and the only source of truth. Preserve its exact crop, aspect ratio, composition, registration, palette, gradients, shapes, strokes, spacing, and layer relationships. Never interpret the source as a garment or mockup. Never add sleeves, collars, seams, panels, perspective, lighting, fabric, folds, or a presentation scene. Do not search for or substitute a more familiar design. Output one flat, front-facing PNG only.`;
+
+const PATTERN_PRESERVE = `Faithfully restore and retrace the supplied flat pattern artwork without redesigning it. Keep every visible element: background pattern, typography, spelling, numerals, logos, badges, sponsors, mascots, icons, borders, gradients, shadows that are part of the artwork, and small decorative marks.
+
+Match the source canvas exactly. Preserve every element's position, size, orientation, proportions, overlap, color, and spacing. Do not typeset, autocorrect, translate, complete, or replace any letterform. If text or a small detail is unclear, preserve its visible form rather than guessing. Do not simplify a detailed graphic or replace custom artwork with a plausible alternative.
+
+Clean only obvious scan noise, JPEG artifacts, and accidental blur where the underlying boundary is clearly visible. Do not change an intentional texture, gradient, glow, highlight, halftone, or color variation. Keep the original background and all four canvas edges. Return one maximum-fidelity flat PNG and nothing else.`;
+
+const PATTERN_CLEAN = `Create a clean, branding-free version of the supplied already-flat pattern artwork. Remove all text, names, numbers, logos, badges, sponsor marks, brand marks, crests, mascots, and foreground identifiers. Preserve the underlying abstract pattern, color fields, gradients, lines, textures, borders, and decorative geometry.
+
+Reconstruct only the artwork directly underneath removed branding. Continue nearby lines, gradients, textures, and repeated shapes using visible surrounding evidence. Do not invent a new motif, recolor the artwork, rearrange the composition, or simplify unrelated details. Keep the exact crop, canvas, aspect ratio, palette, proportions, and registration of every retained element.
+
+The input is already flat artwork, not a garment or mockup. Do not add garment anatomy, seams, sleeves, collars, folds, lighting, perspective, or presentation scenery. Return one clean, flat PNG and nothing else.`;
+
 const TRACE_PROMPTS = {
   ERASE_LOGOS,
   PRESERVE_LOGOS,
   LOGO_FLATTEN,
+  PATTERN_PRESERVE,
+  PATTERN_CLEAN,
   // Legacy projects and any unrecognized mode fall back to the non-destructive
   // behavior: keep the artwork rather than silently deleting the customer's design.
   DEFAULT: PRESERVE_LOGOS,
@@ -458,8 +477,16 @@ export function isLogoPrompt(aiPrompt) {
   return aiPrompt === "LOGO_FLATTEN";
 }
 
+export function isPatternPrompt(aiPrompt) {
+  return aiPrompt === "PATTERN_PRESERVE" || aiPrompt === "PATTERN_CLEAN";
+}
+
 export function resolveTracePromptMode(traceType, aiPrompt) {
-  return traceType === "logo" ? "LOGO_FLATTEN" : aiPrompt;
+  if (traceType === "logo") return "LOGO_FLATTEN";
+  if (traceType === "pattern") {
+    return isPatternPrompt(aiPrompt) ? aiPrompt : "PATTERN_PRESERVE";
+  }
+  return aiPrompt;
 }
 
 export function buildNanoBananaPrompt(aiPrompt) {
@@ -478,6 +505,10 @@ export function buildNanoBananaSystemPrompt(aiPrompt) {
     return CLEAN_PATTERN_SYSTEM_PROMPT;
   }
 
+  if (isPatternPrompt(aiPrompt)) {
+    return PATTERN_SYSTEM_PROMPT;
+  }
+
   return GARMENT_SYSTEM_PROMPT;
 }
 
@@ -494,7 +525,7 @@ export function getNanoBananaInputTuning(aiPrompt) {
     // Logo restoration uses the endpoint's maximum native tier so custom
     // lettering and tight curves survive before vectorization. Garment extracts
     // stay at 2K to keep their larger-area processing cost predictable.
-    resolution: isLogoPrompt(aiPrompt) ? "4K" : "2K",
+    resolution: isLogoPrompt(aiPrompt) || isPatternPrompt(aiPrompt) ? "4K" : "2K",
     // PNG keeps hard shape boundaries crisp for the downstream vectorizer;
     // JPEG ringing along high-contrast edges becomes stray vector paths.
     output_format: "png",

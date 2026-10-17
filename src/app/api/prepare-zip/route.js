@@ -67,11 +67,12 @@ export async function POST(request) {
     }
 
     const baseName = safeFileName(project.name);
+    const generatedLabel = project.trace_type === "pattern" ? "PatternRetrace" : "DesaynVision";
     const assets = [
       project.original_image_url && { url: project.original_image_url, name: `DesaynClaw_${baseName}_Reference.png`, maxBytes: DEFAULT_MAX_IMAGE_BYTES },
       project.generated_image_url && project.generated_image_url !== "REFUNDED" && {
         url: project.generated_image_url,
-        name: `DesaynClaw_${baseName}_DesaynVision.png`,
+        name: `DesaynClaw_${baseName}_${generatedLabel}.png`,
         maxBytes: getFlatExtractMaxBytes(project.trace_type),
       },
       project.upscaled_image_url && {

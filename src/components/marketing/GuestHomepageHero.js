@@ -46,10 +46,6 @@ export function GuestHomepageSampleSection() {
           </div>
         </div>
         <div className="guest-landing-proof-board">
-          <div className="guest-landing-proof-toolbar">
-            <span className="guest-landing-proof-status"><i aria-hidden="true" /> Artwork review</span>
-            <span><b>2</b> production panels ready</span>
-          </div>
           <div className="guest-landing-example-grid">
             {HOMEPAGE_COMPARISONS.map((comparison) => (
               <article className="guest-landing-example-card" key={comparison.id}>
@@ -61,9 +57,6 @@ export function GuestHomepageSampleSection() {
                       <small>{comparison.meta}</small>
                     </div>
                   </div>
-                  <span className="guest-landing-example-drag">
-                    <ArrowLeftRight size={13} aria-hidden="true" /> Drag
-                  </span>
                 </header>
                 <div className="guest-landing-example-slider">
                   <BeforeAfterSlider

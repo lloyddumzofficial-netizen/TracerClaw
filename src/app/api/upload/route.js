@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 
 function resolveProjectTraceType(traceType) {
   if (traceType === "mockup_erase" || traceType === "mockup_preserve") return "mockup";
+  if (traceType === "pattern_clean" || traceType === "pattern_preserve") return "pattern";
   if (traceType === "logo") return "logo";
   if (traceType === "bg_remover") return "bg_remover";
   return "logo";
@@ -14,6 +15,8 @@ function resolveProjectTraceType(traceType) {
 function resolveAiPromptMode(traceType) {
   if (traceType === "mockup_erase") return "ERASE_LOGOS";
   if (traceType === "mockup_preserve") return "PRESERVE_LOGOS";
+  if (traceType === "pattern_clean") return "PATTERN_CLEAN";
+  if (traceType === "pattern_preserve") return "PATTERN_PRESERVE";
   if (traceType === "logo") return "LOGO_FLATTEN";
   return null;
 }

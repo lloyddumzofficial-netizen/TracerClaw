@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cookie_consent", "declined");
+  });
+
   await page.route("**/api/public-stats", async (route) => {
     await route.fulfill({
       status: 200,
@@ -17,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function acceptPrivacyNotice(page) {
-  const consentButton = page.getByRole("button", { name: "I UNDERSTAND & AGREE" });
+  const consentButton = page.getByRole("button", { name: /I understand.*continue/i });
   if (await consentButton.isVisible()) await consentButton.click();
 }
 

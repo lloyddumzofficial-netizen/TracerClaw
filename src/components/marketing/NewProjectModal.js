@@ -13,6 +13,35 @@ const LogoIcon = ({ size = 38 }) => (
   </svg>
 );
 
+const PatternIcon = ({ size = 38 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 7.5 8.5 3 14 7.5 19.5 3 22 5v5.5L16.5 15 11 10.5 5.5 15 2 12.2V9z" />
+    <path d="m2 16 3.5 2.8 5.5-4.5 5.5 4.5 5.5-4.5" />
+  </svg>
+);
+
+const PatternThumbnail = () => (
+  <svg className="new-project-pattern-art" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="patternCardBase" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#152f4d" />
+        <stop offset="1" stopColor="#081423" />
+      </linearGradient>
+      <linearGradient id="patternCardSilver" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#73869a" />
+        <stop offset="0.5" stopColor="#e8edf0" />
+        <stop offset="1" stopColor="#647688" />
+      </linearGradient>
+    </defs>
+    <rect width="320" height="180" fill="url(#patternCardBase)" />
+    <path d="M-35 160 82 16l51 1L14 161z" fill="#233f65" />
+    <path d="M18 180 136 34l26 2L47 180z" fill="url(#patternCardSilver)" opacity=".9" />
+    <path d="m75 180 105-126 28 4L105 180z" fill="#9dc53a" />
+    <path d="M130 180 244 43l36 6-111 131z" fill="#1e416a" />
+    <path d="m204 180 91-106 44 7-79 99z" fill="url(#patternCardSilver)" opacity=".8" />
+  </svg>
+);
+
 /* ─── Radio option card (details step) ─────────────────────── */
 function TraceOptionCard({ value, current, onChange, title, description }) {
   const active = current === value;
@@ -62,7 +91,7 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
 }
 
 /* ─── Category card (step 1) ────────────────────────────────── */
-function CategoryCard({ onClick, icon, title, description, badge, thumbnail, thumbnailFit = "cover", thumbnailPosition = "center" }) {
+function CategoryCard({ onClick, icon, title, description, badge, thumbnail, thumbnailContent, thumbnailFit = "cover", thumbnailPosition = "center" }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -91,13 +120,15 @@ function CategoryCard({ onClick, icon, title, description, badge, thumbnail, thu
       }}
     >
       <div className={`new-project-category-thumbnail${thumbnailFit === "contain" ? " is-contain" : ""}`} aria-hidden="true">
-        <Image
-          src={thumbnail}
-          alt=""
-          fill
-          sizes="(max-width: 820px) 45vw, 245px"
-          style={{ objectPosition: thumbnailPosition }}
-        />
+        {thumbnailContent || (
+          <Image
+            src={thumbnail}
+            alt=""
+            fill
+            sizes="(max-width: 820px) 45vw, 245px"
+            style={{ objectPosition: thumbnailPosition }}
+          />
+        )}
       </div>
       <div className="new-project-category-fade" aria-hidden="true" />
 
@@ -208,6 +239,8 @@ const NewProjectModal = memo(function NewProjectModal({
     }
     if (cat === "logo") {
       setTraceType("logo");
+    } else if (cat === "pattern") {
+      setTraceType("pattern_clean");
     } else {
       setTraceType("mockup_erase");
     }
@@ -245,7 +278,7 @@ const NewProjectModal = memo(function NewProjectModal({
         className="modal-content new-project-modal"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: step === "category" ? 1060 : 480,
+          maxWidth: step === "category" ? 1280 : 480,
           position: "relative",
           transition: "max-width 0.32s cubic-bezier(0.4,0,0.2,1)",
           width: "calc(100vw - 32px)",
@@ -292,12 +325,12 @@ const NewProjectModal = memo(function NewProjectModal({
               </p>
             </div>
 
-            <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 13 }}>
+            <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 13 }}>
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 icon={<Shirt size={38} strokeWidth={1.2} />}
                 title="Garment Workspace"
-                description="Jerseys, shirts, mockups — extract the flat pattern as SVG."
+                description="Extract clean flat artwork from jerseys, shirts, and apparel mockups."
                 thumbnail="/samples/Reference.webp"
                 thumbnailPosition="center 20%"
               />
@@ -305,14 +338,21 @@ const NewProjectModal = memo(function NewProjectModal({
                 onClick={() => handleCategorySelect("logo")}
                 icon={<LogoIcon size={38} />}
                 title="Logo Workspace"
-                description="Icons, emblems, wordmarks — vectorize with exact color and text."
+                description="Rebuild logos and wordmarks as accurate, editable vectors."
                 thumbnail="/samples/esports-vector.webp"
+              />
+              <CategoryCard
+                onClick={() => handleCategorySelect("pattern")}
+                icon={<PatternIcon size={38} />}
+                title="Pattern Workspace"
+                description="Retrace flat patterns accurately and export clean, editable SVG files."
+                thumbnailContent={<PatternThumbnail />}
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("bg_remover")}
                 icon={<Scissors size={38} strokeWidth={1.2} />}
                 title="BG Remover Studio"
-                description="Remove backgrounds instantly with AI — perfect for products & portraits."
+                description="Create clean transparent artwork for products, portraits, and graphics."
                 badge="AI"
                 thumbnail="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
                 thumbnailPosition="center 22%"
@@ -321,7 +361,7 @@ const NewProjectModal = memo(function NewProjectModal({
                 onClick={() => handleCategorySelect("mockup_studio")}
                 icon={<Camera size={38} strokeWidth={1.2} />}
                 title="Mockup Studio"
-                description="Turn exact jersey panels into a premium five-view campaign set."
+                description="Turn exact jersey panels into polished garment previews."
                 badge="NEW"
                 thumbnail="/MOCKUP_STUDIO_thumbnail.jpg"
                 thumbnailPosition="center 28%"
@@ -359,10 +399,12 @@ const NewProjectModal = memo(function NewProjectModal({
               }}>
                 {category === "logo"
                   ? <LogoIcon size={17} />
-                  : <Shirt size={17} strokeWidth={1.5} />}
+                  : category === "pattern"
+                    ? <PatternIcon size={17} />
+                    : <Shirt size={17} strokeWidth={1.5} />}
               </div>
               <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "#fff" }}>
-                {category === "logo" ? "Logo Workspace" : "Garment Workspace"}
+                {category === "logo" ? "Logo Workspace" : category === "pattern" ? "Pattern Workspace" : "Garment Workspace"}
               </h2>
             </div>
 
@@ -421,6 +463,33 @@ const NewProjectModal = memo(function NewProjectModal({
                   <strong>icons, emblems, combined logos, and text-only wordmarks.</strong>{" "}
                   All text and colors will be preserved exactly as in the reference.
                 </p>
+              </div>
+            )}
+
+            {category === "pattern" && (
+              <div className="form-group" style={{ marginBottom: 18 }}>
+                <label style={{
+                  display: "block", marginBottom: 10, color: "#555",
+                  fontSize: "10.5px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700,
+                }}>
+                  Retrace Mode
+                </label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <TraceOptionCard
+                    value="pattern_clean"
+                    current={traceType}
+                    onChange={setTraceType}
+                    title="Clean Pattern Only (Recommended)"
+                    description="Removes text, names, numbers, logos, badges, sponsors, and branding while rebuilding the underlying pattern."
+                  />
+                  <TraceOptionCard
+                    value="pattern_preserve"
+                    current={traceType}
+                    onChange={setTraceType}
+                    title="Keep Complete Design"
+                    description="Preserves the full flat artwork, including text, logos, gradients, colors, graphics, positions, and proportions."
+                  />
+                </div>
               </div>
             )}
 

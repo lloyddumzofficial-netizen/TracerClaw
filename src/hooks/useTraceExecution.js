@@ -116,7 +116,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       if (!resumeVectorization) {
       if (!resumeUpscale) {
       // ─── Step 1: Gemini ───────────────────────────────────────────────
-      clearConsole("[Step 1] Analyzing Image with DesaynVision™...");
+      clearConsole(project.trace_type === "pattern"
+        ? "[Step 1] Retracing flat pattern with DesaynVision™..."
+        : "[Step 1] Analyzing Image with DesaynVision™...");
       const requestKey = getOrCreateGenerationRequestKey("trace", project.id);
 
       const res1 = await fetch("/api/trace", {

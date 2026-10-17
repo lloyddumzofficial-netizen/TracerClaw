@@ -6,6 +6,7 @@ import { scaleSvgToContainer } from "@/lib/svgDisplay";
 
 export default function SafeInlineSVG({
   url,
+  className,
   style,
   fallbackToImage = false,
   loadingFallback = null,
@@ -80,10 +81,10 @@ export default function SafeInlineSVG({
   }, [onReady, svgHtml]);
 
   if (useImageFallback) {
-    return <img src={url} alt={imageAlt} loading={imageLoading} decoding="async" draggable="false" style={style} onLoad={onReady} />;
+    return <img src={url} alt={imageAlt} loading={imageLoading} decoding="async" draggable="false" className={className} style={style} onLoad={onReady} />;
   }
 
   if (loading && loadingFallback) return loadingFallback;
   if (!svgHtml) return null;
-  return <div style={{ ...style, overflow: "hidden" }} dangerouslySetInnerHTML={{ __html: svgHtml }} />;
+  return <div className={className} style={{ ...style, overflow: "hidden" }} dangerouslySetInnerHTML={{ __html: svgHtml }} />;
 }

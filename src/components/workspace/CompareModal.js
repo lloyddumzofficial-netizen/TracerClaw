@@ -79,6 +79,12 @@ const CompareModal = memo(function CompareModal({
   if (!show || !project) return null;
 
   const rasterAfter = project.upscaled_image_url || project.generated_image_url;
+  const isPatternWorkspace = project.trace_type === "pattern";
+  const outputLabel = isPatternWorkspace
+    ? "Retraced output"
+    : rasterAfter
+      ? "Processed output"
+      : "Vector output";
 
   // Direct R2 first; proxy only if that genuinely fails.
   const onRasterError = (event) => {
@@ -90,39 +96,32 @@ const CompareModal = memo(function CompareModal({
 
   return (
     <div
-      className="modal-overlay"
+      className="modal-overlay compare-modal-overlay"
       onMouseMove={(e) => { if (draggingRef.current) setPositionFromEvent(e.clientX); }}
       onMouseUp={() => { draggingRef.current = false; }}
       onMouseLeave={() => { draggingRef.current = false; }}
     >
-      <div className="modal-content" style={{ maxWidth: "1400px", width: "fit-content", padding: "0", overflow: "hidden" }}>
+      <div className="modal-content compare-modal-shell">
         {/* Header */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #2a2a2a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <CheckCircle size={18} color="#888" />
-            <span style={{ fontWeight: "700", fontSize: "15px", color: "#fff" }}>Generation Complete!</span>
-            <span style={{ color: "#666", fontSize: "12px", marginLeft: "10px" }}>Drag slider to compare</span>
+        <div className="compare-modal-header">
+          <div className="compare-modal-heading">
+            <span className="compare-modal-status"><CheckCircle size={14} /> Output ready</span>
+            <div>
+              <strong>Review the final artwork</strong>
+              <span>Drag across the image to inspect the source and result.</span>
+            </div>
           </div>
-          <button className="icon-btn-small" onClick={onClose} aria-label="Close comparison"><X size={16} /></button>
+          <button className="compare-modal-close" onClick={onClose} aria-label="Close comparison"><X size={16} /></button>
         </div>
 
         {/* Slider Compare Area */}
         <div
-          style={{
-            position: "relative", width: "100%", display: "flex", justifyContent: "center",
-            background: "repeating-conic-gradient(#1e1e1e 0% 25%, #141414 0% 50%) 0 0 / 20px 20px",
-            padding: "0"
-          }}
+          className="compare-modal-stage"
         >
           <div
             ref={containerRef}
             id="compare-container"
-            style={{
-              position: "relative",
-              overflow: "hidden", cursor: "ew-resize", userSelect: "none",
-              boxShadow: "0 0 20px rgba(0,0,0,0.5)",
-              maxWidth: "100%",
-            }}
+            className="compare-modal-canvas"
             onMouseDown={(e) => {
               draggingRef.current = true;
               setPositionFromEvent(e.clientX);
@@ -132,7 +131,7 @@ const CompareModal = memo(function CompareModal({
                 Same src as the BEFORE layer, so the browser serves it from cache. */}
             <img
               src={project.original_image_url}
-              style={{ display: "block", height: "80vh", width: "auto", maxWidth: "85vw", objectFit: "contain", opacity: 0, pointerEvents: "none" }}
+              className="compare-modal-placeholder"
               alt=""
               aria-hidden="true"
               decoding="async"
@@ -143,14 +142,14 @@ const CompareModal = memo(function CompareModal({
               <img
                 src={rasterAfter}
                 onError={onRasterError}
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", objectFit: "contain" }}
+                className="compare-modal-image"
                 alt="After"
                 decoding="async"
               />
             ) : (
               <SafeInlineSVG
                 url={project.svg_url ? `/api/proxy?url=${encodeURIComponent(project.svg_url)}` : null}
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
               />
             )}
 
@@ -170,7 +169,7 @@ const CompareModal = memo(function CompareModal({
                 src={project.original_image_url}
                 alt="Original"
                 decoding="async"
-                style={{ width: "100%", height: "100%", objectFit: "fill", pointerEvents: "none" }}
+                className="compare-modal-image compare-modal-before-image"
               />
             </div>
 
@@ -178,56 +177,46 @@ const CompareModal = memo(function CompareModal({
             <div
               ref={lineRef}
               id="compare-slider-line"
-              style={{
-                position: "absolute", top: 0, bottom: 0, left: "50%",
-                width: "2px", background: "#555",
-                transform: "translateX(-50%) translateZ(0)", pointerEvents: "none", willChange: "left",
-              }}
+              className="compare-modal-divider"
             >
-              <div style={{
-                position: "absolute", top: "50%", left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "36px", height: "36px", background: "#333", borderRadius: "50%",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 0 12px rgba(0,0,0,0.5)", border: "1px solid #555", gap: "1px",
-              }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              <div className="compare-modal-divider-handle">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
               </div>
             </div>
 
             {/* Labels */}
-            <div style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>ORIGINAL (BEFORE)</div>
-            <div style={{ position: "absolute", bottom: "14px", right: "14px", background: "rgba(0,0,0,0.75)", padding: "4px 10px", borderRadius: "4px", color: "#aaa", fontSize: "11px", pointerEvents: "none", letterSpacing: "0.5px" }}>
-              {rasterAfter ? "AI UPSCALED (AFTER)" : "VECTOR (AFTER)"}
-            </div>
+            <div className="compare-modal-label is-source">Source</div>
+            <div className="compare-modal-label is-output">{outputLabel}</div>
           </div>
         </div>
 
         {/* Download actions */}
-        <div style={{ padding: "14px 20px", borderTop: "1px solid #2a2a2a", display: "flex", gap: "10px" }}>
+        <div className="compare-modal-actions">
+          <div className="compare-modal-export-copy">
+            <span>Export package</span>
+            <strong>Production files are ready</strong>
+          </div>
+          <div className="compare-modal-action-buttons">
           <button
             onClick={() => { onDownloadAll(); onClose(); }}
-            style={{ flex: 1, padding: "12px", background: "#2a2a2a", color: "#fff", border: "1px solid #444", borderRadius: "6px", fontWeight: "800", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            onMouseOver={e => e.currentTarget.style.background = "#333"}
-            onMouseOut={e => e.currentTarget.style.background = "#2a2a2a"}
+            className="compare-modal-download-primary"
           >
             <FolderDown size={15} /> Download All (ZIP)
           </button>
           <button
             onClick={onDownloadSvg}
-            style={{ flex: 1, padding: "12px", background: "#111", color: "#e0e0e0", border: "1px solid #444", borderRadius: "6px", fontWeight: "800", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            onMouseOver={e => { e.currentTarget.style.background = "#1a1a1a"; e.currentTarget.style.color = "#fff"; }}
-            onMouseOut={e => { e.currentTarget.style.background = "#111"; e.currentTarget.style.color = "#e0e0e0"; }}
+            className="compare-modal-download-secondary"
           >
             <Download size={15} /> SVG Only
           </button>
           <button
             onClick={onClose}
-            style={{ padding: "11px 16px", background: "transparent", color: "#666", border: "1px solid #333", borderRadius: "8px", cursor: "pointer", fontSize: "13px" }}
+            className="compare-modal-dismiss"
           >
             Close
           </button>
+          </div>
         </div>
       </div>
     </div>

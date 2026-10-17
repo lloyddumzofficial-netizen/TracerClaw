@@ -373,6 +373,14 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.065);
 }
 
+.garment-workspace-ui .workspace-properties-panel .pp-export-section {
+  padding: 4px 14px 20px !important;
+}
+
+.garment-workspace-ui .workspace-properties-panel .pp-output-readout .pp-spec-row:last-child {
+  border-bottom: 0;
+}
+
 .garment-workspace-ui .workspace-properties-panel .pp-lbl {
   margin-bottom: 7px !important;
   color: rgba(255, 255, 255, 0.34) !important;
@@ -402,8 +410,8 @@
 }
 
 .garment-workspace-ui .workspace-properties-panel .pp-card {
-  min-height: 50px !important;
-  padding: 9px 10px !important;
+  min-height: 42px !important;
+  padding: 6px 9px !important;
   color: rgba(255, 255, 255, 0.48) !important;
   background: rgba(255, 255, 255, 0.018) !important;
   border: 1px solid var(--gw-line) !important;
@@ -442,16 +450,20 @@
 .garment-workspace-ui .workspace-properties-panel .pp-plan-cost {
   width: 24px !important;
   height: 24px !important;
-  color: rgba(255, 255, 255, 0.62) !important;
-  background: rgba(255, 255, 255, 0.025) !important;
-  border-color: var(--gw-line) !important;
+  color: rgba(255, 215, 0, 0.86) !important;
+  background: rgba(255, 215, 0, 0.045) !important;
+  border-color: rgba(255, 215, 0, 0.24) !important;
   border-radius: 7px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 177, 0.035) !important;
 }
 
 .garment-workspace-ui .workspace-properties-panel .pp-card.on .pp-plan-cost {
-  color: #0a0b0c !important;
-  background: linear-gradient(180deg, #fff, #dfe0e1) !important;
-  border-color: rgba(255, 255, 255, 0.9) !important;
+  color: #151208 !important;
+  background: linear-gradient(145deg, #ffe76a 0%, #ffd700 52%, #d6aa00 100%) !important;
+  border-color: rgba(255, 231, 106, 0.9) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.46),
+    0 4px 12px rgba(255, 215, 0, 0.18) !important;
 }
 
 .garment-workspace-ui .workspace-properties-panel .pp-trace-btn,
@@ -493,7 +505,7 @@
 }
 
 .garment-workspace-ui .workspace-properties-panel .pp-sec {
-  min-height: 48px !important;
+  min-height: 36px !important;
   color: rgba(255, 255, 255, 0.55) !important;
   background: rgba(255, 255, 255, 0.018) !important;
   border: 1px solid var(--gw-line) !important;
@@ -583,6 +595,34 @@
   .garment-workspace-ui .workspace-command-btn { padding: 0 8px !important; }
 }
 
+@media (max-height: 840px) {
+  .garment-workspace-ui .workspace-properties-panel .pp-color-section {
+    padding: 6px 12px !important;
+  }
+
+  .garment-workspace-ui .workspace-properties-panel .pp-mode-section,
+  .garment-workspace-ui .workspace-properties-panel .pp-actions-section {
+    padding: 0 12px 6px !important;
+  }
+
+  .garment-workspace-ui .workspace-properties-panel .pp-export-section {
+    padding: 4px 12px 16px !important;
+  }
+
+  .garment-workspace-ui .workspace-properties-panel .pp-card {
+    min-height: 42px !important;
+    padding: 6px 9px !important;
+  }
+
+  .garment-workspace-ui .workspace-properties-panel .pp-sec {
+    min-height: 36px !important;
+  }
+
+  .garment-workspace-ui .workspace-properties-panel .pp-spec-row {
+    min-height: 23px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .garment-workspace-ui *,
   .garment-workspace-ui *::before,
@@ -593,8 +633,69 @@
     animation-iteration-count: 1 !important;
   }
 
-  /* Loading motion is functional feedback. Keep only this compact indicator
-     alive when the operating system reduces decorative workspace motion. */
+  /* Generation motion is functional feedback. Keep the active processing
+     indicators alive even when decorative page motion is reduced. */
+  .garment-workspace-ui .processing-logo-outline {
+    animation: processingLogoFloat 3.2s cubic-bezier(.4, 0, .2, 1) infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-outline::before {
+    animation: processingLogoAura 2.4s ease-in-out infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-vector svg path {
+    animation: processingVectorDraw 3s cubic-bezier(.55, .05, .22, 1) infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-vector svg path:nth-of-type(2) {
+    animation-delay: .18s !important;
+  }
+
+  .garment-workspace-ui .processing-logo-vector svg path:nth-of-type(3) {
+    animation-delay: .34s !important;
+  }
+
+  .garment-workspace-ui .processing-canvas-scan {
+    display: block !important;
+    animation: processingLogoScan 2.25s cubic-bezier(.45, 0, .2, 1) infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-orbit,
+  .garment-workspace-ui .processing-logo-node {
+    display: block !important;
+  }
+
+  .garment-workspace-ui .processing-logo-orbit.is-outer {
+    animation: processingOrbitOuter 8s linear infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-orbit.is-inner {
+    animation: processingOrbitInner 5.5s linear infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-node {
+    animation: processingNodePulse 1.25s ease-in-out infinite !important;
+  }
+
+  .garment-workspace-ui .processing-logo-node.n2 { animation-delay: .3s !important; }
+  .garment-workspace-ui .processing-logo-node.n3 { animation-delay: .6s !important; }
+  .garment-workspace-ui .processing-logo-node.n4 { animation-delay: .9s !important; }
+
+  .garment-workspace-ui .processing-stage-activity i {
+    animation: processingActivity .9s ease-in-out infinite !important;
+  }
+
+  .garment-workspace-ui .processing-stage-dot {
+    animation: processingDotPulse 1.2s ease-in-out infinite !important;
+  }
+
+  .garment-workspace-ui .processing-stage-activity i:nth-child(2) { animation-delay: .12s !important; }
+  .garment-workspace-ui .processing-stage-activity i:nth-child(3) { animation-delay: .24s !important; }
+
+  .garment-workspace-ui .pp-stage-segment.is-active .pp-stage-line::after {
+    animation: pp-rail-sweep .9s ease-in-out infinite !important;
+  }
+
   .garment-workspace-ui .workspace-output-mark::before {
     animation-duration: 1.4s !important;
     animation-iteration-count: infinite !important;

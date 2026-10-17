@@ -74,7 +74,7 @@ function WorkspaceOutputLoader({ label = "Loading preview" }) {
   return (
     <div className="workspace-output-loader" role="status" aria-label={label}>
       <div className="workspace-output-mark" aria-hidden="true">
-        <LogoLoader size={54} color="#f4f4ef" decorative />
+        <LogoLoader size={78} color="#f4f4ef" decorative />
       </div>
       <span>{label}</span>
     </div>
@@ -196,6 +196,10 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   nodeErrors,
   commandBar,
 }) {
+  const isPatternWorkspace = project?.trace_type === "pattern";
+  const stageLabels = isPatternWorkspace
+    ? ["Pattern retrace", "Detail pass", "Vector output"]
+    : STAGE_LABELS;
   const [activeTab, setActiveTab] = useState("generated");
   const progressFillRef = useRef(null);
   const progressTextRef = useRef(null);
@@ -695,12 +699,16 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   }, []);
 
   // Right-side label
-  const rightLabel = activeTab === "generated" ? "FLAT EXTRACT" : activeTab === "upscaled" ? "HD UPSCALE" : "VECTOR PREVIEW";
+  const rightLabel = activeTab === "generated"
+    ? isPatternWorkspace ? "PATTERN RETRACE" : "FLAT EXTRACT"
+    : activeTab === "upscaled" ? "HD UPSCALE" : "VECTOR PREVIEW";
 
   const renderStatus = () => {
     if (traceState !== "idle") {
       const stepMeta = traceState === "step1"
-        ? { label: "Flat Extract", detail: "Separating the artwork from the source" }
+        ? isPatternWorkspace
+          ? { label: "Pattern Retrace", detail: "Rebuilding the cropped flat artwork at maximum fidelity" }
+          : { label: "Flat Extract", detail: "Separating the artwork from the source" }
         : traceState === "step2"
           ? { label: "HD Upscale", detail: "Refining contours and print definition" }
           : { label: "Vector SVG", detail: "Building clean, production-ready paths" };
@@ -722,8 +730,19 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                 />
               )}
               <div className="processing-canvas-shade" aria-hidden="true" />
+              <span className="processing-canvas-scan" aria-hidden="true" />
               <div className="processing-logo-outline" aria-hidden="true">
-                <img src="/SVG/LOGO%20OUTLINE.svg" alt="" decoding="async" />
+                <img className="processing-logo-ghost" src="/SVG/LOGO%20OUTLINE.svg" alt="" decoding="async" />
+                <SafeInlineSVG
+                  className="processing-logo-vector"
+                  url="/SVG/LOGO%20OUTLINE.svg"
+                />
+                <span className="processing-logo-orbit is-outer" />
+                <span className="processing-logo-orbit is-inner" />
+                <span className="processing-logo-node n1" />
+                <span className="processing-logo-node n2" />
+                <span className="processing-logo-node n3" />
+                <span className="processing-logo-node n4" />
               </div>
             </div>
           </div>
@@ -752,7 +771,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
             </div>
             <p>{stepMeta.detail}</p>
             <div className="processing-layer-stack">
-              {STAGE_LABELS.map((label, index) => {
+              {stageLabels.map((label, index) => {
                 const state = index < layerState ? "is-done" : index === layerState ? "is-active" : "is-pending";
                 return (
                   <div key={label} className={state}>
@@ -827,7 +846,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
 
   // Tab config
   const tabs = [
-    { id: "generated", label: "1. FLAT EXTRACT", hasContent: !!project?.generated_image_url },
+    { id: "generated", label: isPatternWorkspace ? "1. PATTERN RETRACE" : "1. FLAT EXTRACT", hasContent: !!project?.generated_image_url },
     { id: "upscaled",  label: "2. HD UPSCALE",   hasContent: !!project?.upscaled_image_url },
     { id: "svg",       label: "3. VECTOR SVG",    hasContent: !!project?.svg_url },
   ];
@@ -972,7 +991,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                 {completionRevealKey && (
                   <div className={`workspace-output-transition${previewTransitionPhase === "revealing" ? " is-revealing" : ""}`} aria-hidden="true">
                     <div className="workspace-output-mark">
-                      <LogoLoader size={54} color="#f4f4ef" decorative />
+                      <LogoLoader size={78} color="#f4f4ef" decorative />
                     </div>
                     <span>Preparing preview</span>
                   </div>

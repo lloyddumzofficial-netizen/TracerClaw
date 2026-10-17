@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import {
   buildNanoBananaPrompt,
   buildNanoBananaSystemPrompt,
@@ -8,6 +9,30 @@ import {
 } from "@/lib/tracePrompts";
 
 describe("trace prompt source fidelity", () => {
+  it("keeps the existing garment prompt contracts byte-for-byte unchanged", () => {
+    const digest = (value) => createHash("sha256").update(value).digest("hex");
+
+    expect(digest(buildNanoBananaPrompt("ERASE_LOGOS"))).toBe("ac6330456fe8b9fe6941d7d9401d1151a5d78614dd308ec40558040484b1d118");
+    expect(digest(buildNanoBananaPrompt("PRESERVE_LOGOS"))).toBe("7e4b1ed2a4ce325952c013840a420cb607bb10a2fde15164acd797e3b7b6addf");
+    expect(digest(buildNanoBananaSystemPrompt("ERASE_LOGOS"))).toBe("6b7cea7e040c642863122ff5ee16e4468156f7f43fb2bfdc02f17552ee098ca2");
+    expect(digest(buildNanoBananaSystemPrompt("PRESERVE_LOGOS"))).toBe("792cf91184ac824a3d818bea606d55e25a046cb51c1aad3ae178a359142adcba");
+  });
+
+  it("keeps Pattern Workspace isolated, non-destructive by default, and at 4K", () => {
+    expect(resolveTracePromptMode("pattern", "PATTERN_CLEAN")).toBe("PATTERN_CLEAN");
+    expect(resolveTracePromptMode("pattern", "PATTERN_PRESERVE")).toBe("PATTERN_PRESERVE");
+    expect(resolveTracePromptMode("pattern", "ERASE_LOGOS")).toBe("PATTERN_PRESERVE");
+    expect(resolveTracePromptMode("pattern", null)).toBe("PATTERN_PRESERVE");
+
+    const tuning = getNanoBananaInputTuning("PATTERN_PRESERVE");
+    expect(tuning).toMatchObject({ resolution: "4K", output_format: "png", enable_web_search: false });
+    expect(buildNanoBananaSystemPrompt("PATTERN_PRESERVE")).toContain("already-flat pattern");
+    expect(buildNanoBananaSystemPrompt("PATTERN_PRESERVE")).not.toContain("TORSO ONLY");
+    expect(buildNanoBananaPrompt("PATTERN_PRESERVE")).toContain("Do not typeset, autocorrect");
+    expect(buildNanoBananaPrompt("PATTERN_CLEAN")).toContain("Remove all text, names, numbers, logos, badges");
+    expect(buildNanoBananaPrompt("PATTERN_CLEAN")).toContain("Reconstruct only the artwork directly underneath removed branding");
+  });
+
   it("locks logo restoration to Nano Banana Pro Edit", () => {
     expect(NANO_BANANA_EDIT_MODEL).toBe("fal-ai/nano-banana-pro/edit");
     expect(getNanoBananaInputTuning("LOGO_FLATTEN").resolution).toBe("4K");

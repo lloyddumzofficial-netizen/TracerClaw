@@ -8,6 +8,17 @@ describe("saved Flat Extract limits", () => {
     expect(getFlatExtractMaxBytes("logo")).toBe(DEFAULT_MAX_UPSCALED_IMAGE_BYTES);
   });
 
+  it("allows 4K Pattern Workspace extracts through every downstream read", () => {
+    expect(getFlatExtractMaxBytes("pattern")).toBe(DEFAULT_MAX_UPSCALED_IMAGE_BYTES);
+
+    const assets = buildProjectExportAssets({
+      name: "Pattern",
+      trace_type: "pattern",
+      generated_image_url: "https://storage.example/projects/1/generated_flat_1.png",
+    });
+    expect(assets[0].maxBytes).toBe(DEFAULT_MAX_UPSCALED_IMAGE_BYTES);
+  });
+
   it("keeps garment inputs at the normal upload limit", () => {
     expect(getFlatExtractMaxBytes("garment")).toBe(DEFAULT_MAX_IMAGE_BYTES);
   });

@@ -8,6 +8,46 @@ const portraitSvg = `
   </svg>
 `;
 
+test("Pattern Workspace keeps the shared production tools with pattern-specific guidance", async ({ page }) => {
+  await page.setViewportSize({ width: 1800, height: 1000 });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, get: () => 0 });
+    localStorage.setItem("cookie_consent", "declined");
+  });
+
+  await page.route("**/rest/v1/projects*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "pattern-workspace-test",
+        name: "Pattern workspace test",
+        original_image_url: "https://assets.test/crop_pattern.svg",
+        generated_image_url: "https://assets.test/generated.svg",
+        upscaled_image_url: "https://assets.test/upscaled.svg",
+        svg_url: "https://assets.test/output.svg",
+        trace_type: "pattern",
+        ai_prompt: "PATTERN_PRESERVE",
+      }),
+    });
+  });
+
+  await page.route("**/api/proxy?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "image/svg+xml", body: portraitSvg });
+  });
+
+  await page.goto("/workspace/pattern-workspace-test");
+
+  await expect(page.getByText("PATTERN WORKSPACE", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "1. PATTERN RETRACE" })).toBeVisible();
+  await expect(page.getByText("AI Retrace Settings", { exact: true })).toBeVisible();
+  await expect(page.getByText("Crop to the exact artwork boundary before retracing.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Export as SVG/i })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Download All/i })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Palette Preview/i })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Before.*After Compare/i })).toBeEnabled();
+});
+
 test("zoomed portrait artwork pans without resizing either canvas pane", async ({ page }) => {
   await page.setViewportSize({ width: 1800, height: 1000 });
   await page.addInitScript(() => {

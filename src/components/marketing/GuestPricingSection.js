@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Check, CreditCard, QrCode } from "lucide-react";
+import { ArrowUpRight, Check, CreditCard, ExternalLink, QrCode } from "lucide-react";
 import Image from "next/image";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
 import styles from "./GuestPricingSection.module.css";
@@ -97,6 +97,35 @@ export default function GuestPricingSection({ onStart }) {
         <span><CreditCard size={14} aria-hidden="true" /> Card checkout on Basic and above</span>
         <small>Standard SVG uses 1 Claw. Precision SVG uses 2 Claws.</small>
       </div>
+
+      <aside className={styles.registrationTrust} aria-labelledby="bir-registration-heading">
+        <header className={styles.registrationHeading}>
+          <div>
+            <span>Registered business</span>
+            <h3 id="bir-registration-heading">Official BIR registration seal</h3>
+          </div>
+          <p>DesaynClaw is registered with the Philippine Bureau of Internal Revenue. View or scan the official 2026 seal to verify the registration.</p>
+          <a href="/BADGE-BIR.jpg" target="_blank" rel="noreferrer">
+            View full seal <ExternalLink size={13} aria-hidden="true" />
+          </a>
+        </header>
+
+        <a
+          className={styles.registrationSeal}
+          href="/BADGE-BIR.jpg"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open the full resolution DesaynClaw BIR registration seal"
+        >
+          <Image
+            src="/BADGE-BIR.jpg"
+            alt="DesaynClaw 2026 Bureau of Internal Revenue registration seal with verification QR code"
+            width={1368}
+            height={520}
+            sizes="(max-width: 700px) calc(100vw - 36px), 1136px"
+          />
+        </a>
+      </aside>
     </section>
   );
 }

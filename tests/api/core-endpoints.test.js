@@ -134,6 +134,31 @@ describe("project creation", () => {
       }),
     ]);
   });
+
+  it.each([
+    ["pattern_clean", "PATTERN_CLEAN"],
+    ["pattern_preserve", "PATTERN_PRESERVE"],
+  ])("stores %s as an isolated Pattern Workspace project", async (traceType, aiPrompt) => {
+    const single = vi.fn(async () => ({ data: { id: "pattern-project" }, error: null }));
+    const select = vi.fn(() => ({ single }));
+    const insert = vi.fn(() => ({ select }));
+    adminSupabase.from = vi.fn(() => ({ insert }));
+
+    const { POST } = await import("@/app/api/upload/route.js");
+    const res = await POST(jsonRequest({
+      imageUrl: "https://storage.example/users/user-1/pattern.png",
+      traceType,
+      projectName: "Pattern Test",
+    }));
+
+    expect(res.status).toBe(200);
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        trace_type: "pattern",
+        ai_prompt: aiPrompt,
+      }),
+    ]);
+  });
 });
 
 describe("delete project", () => {
