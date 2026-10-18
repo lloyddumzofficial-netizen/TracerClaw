@@ -1,9 +1,10 @@
 "use client";
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
-import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertCircle, Sparkles } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 import LogoLoader from "@/components/ui/LogoLoader";
+import WorkspaceProcessingLoader from "./WorkspaceProcessingLoader";
 import {
   calculateFittedArtworkLayout,
   calculateSynchronizedPan,
@@ -23,8 +24,6 @@ const STAGE_RANGE = {
 
 const STAGE_LABELS = ["Artwork cleanup", "Detail pass", "Vector output"];
 
-// How fast progress closes the remaining gap, per second. Higher = quicker climb.
-const STAGE_EASE_RATE = 0.3;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 5;
 const WHEEL_ZOOM_SENSITIVITY = 0.00145;
@@ -132,64 +131,6 @@ function OutputRaster({ proxyUrl, directUrl, onReady }) {
   );
 }
 
-/**
- * Drives the progress bar at display refresh rate, writing straight to the DOM.
- *
- * Two things this deliberately avoids:
- *  - React state per frame, which would re-render the whole canvas 60x/sec.
- *  - A CSS `transition` on width. The width is rewritten every frame, which
- *    restarts the transition before it can resolve and leaves the computed width
- *    pinned at 0 (an empty bar). Frame-level updates are already smooth.
- *
- * Progress eases asymptotically toward the stage ceiling, so it keeps inching
- * forward for as long as the stage runs and never overshoots into the next one.
- */
-function useStageProgress(traceState, { fillRef, textRef, trackRef }) {
-  const valueRef = useRef(0);
-
-  useEffect(() => {
-    const range = STAGE_RANGE[traceState];
-    if (!range) {
-      valueRef.current = 0;
-      return undefined;
-    }
-
-    const [start, end] = range;
-    // Resume from the previous stage's ceiling rather than snapping backwards.
-    if (!(valueRef.current > start && valueRef.current < end)) valueRef.current = start;
-
-    let frame = 0;
-    let lastTime = performance.now();
-    let lastShown = -1;
-
-    const paint = (now) => {
-      // Clamp dt so a backgrounded tab doesn't jump the bar on return.
-      const dt = Math.min(now - lastTime, 120) / 1000;
-      lastTime = now;
-
-      const current = valueRef.current;
-      valueRef.current = current + (end - current) * (1 - Math.exp(-STAGE_EASE_RATE * dt));
-      const value = valueRef.current;
-
-      if (fillRef.current) fillRef.current.style.width = `${value.toFixed(2)}%`;
-
-      const rounded = Math.round(value);
-      if (rounded !== lastShown) {
-        lastShown = rounded;
-        if (textRef.current) textRef.current.textContent = `${rounded}%`;
-        trackRef.current?.setAttribute("aria-valuenow", String(rounded));
-      }
-
-      frame = requestAnimationFrame(paint);
-    };
-
-    frame = requestAnimationFrame(paint);
-    return () => cancelAnimationFrame(frame);
-  }, [traceState, fillRef, textRef, trackRef]);
-
-  return valueRef;
-}
-
 const SplitViewCanvas = memo(function SplitViewCanvas({
   project,
   traceState,
@@ -201,14 +142,6 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
     ? ["Pattern retrace", "Detail pass", "Vector output"]
     : STAGE_LABELS;
   const [activeTab, setActiveTab] = useState("generated");
-  const progressFillRef = useRef(null);
-  const progressTextRef = useRef(null);
-  const progressTrackRef = useRef(null);
-  useStageProgress(traceState, {
-    fillRef: progressFillRef,
-    textRef: progressTextRef,
-    trackRef: progressTrackRef,
-  });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [canvasViewport, setCanvasViewport] = useState({ width: 0, height: 0 });
   const [artworkAspectRatio, setArtworkAspectRatio] = useState(null);
@@ -713,86 +646,16 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
           ? { label: "HD Upscale", detail: "Refining contours and print definition" }
           : { label: "Vector SVG", detail: "Building clean, production-ready paths" };
       const layerState = traceState === "step1" ? 0 : traceState === "step2" ? 1 : 2;
-      // Initial paint only — the rAF loop owns these values from the first frame.
-      const stageStart = STAGE_RANGE[traceState]?.[0] ?? 0;
-
       return (
-        <div key={traceState} className="processing-blueprint-stage" aria-live="polite">
-          <div className="processing-blueprint-bg" />
-          <div className="processing-blueprint-board">
-            <div className="processing-blueprint-canvas">
-              {proxyOriginal && (
-                <img
-                  src={proxyOriginal}
-                  alt="Processing preview"
-                  referrerPolicy="no-referrer"
-                  decoding="async"
-                />
-              )}
-              <div className="processing-canvas-shade" aria-hidden="true" />
-              <span className="processing-canvas-scan" aria-hidden="true" />
-              <div className="processing-logo-outline" aria-hidden="true">
-                <img className="processing-logo-ghost" src="/SVG/LOGO%20OUTLINE.svg" alt="" decoding="async" />
-                <SafeInlineSVG
-                  className="processing-logo-vector"
-                  url="/SVG/LOGO%20OUTLINE.svg"
-                />
-                <span className="processing-logo-orbit is-outer" />
-                <span className="processing-logo-orbit is-inner" />
-                <span className="processing-logo-node n1" />
-                <span className="processing-logo-node n2" />
-                <span className="processing-logo-node n3" />
-                <span className="processing-logo-node n4" />
-              </div>
-            </div>
-          </div>
-
-          <div className="processing-layer-panel">
-            <div className="processing-layer-header">
-              <span>
-                <i className="processing-stage-dot" aria-hidden="true" />
-                {stepMeta.label}
-              </span>
-              <strong>
-                <span ref={progressTextRef}>{Math.round(stageStart)}%</span>
-                <em>Stage {layerState + 1} of 3</em>
-              </strong>
-            </div>
-            <div
-              className="processing-progress-track"
-              ref={progressTrackRef}
-              role="progressbar"
-              aria-valuenow={Math.round(stageStart)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${stepMeta.label}: ${stepMeta.detail}`}
-            >
-              <i ref={progressFillRef} style={{ width: `${stageStart}%` }} />
-            </div>
-            <p>{stepMeta.detail}</p>
-            <div className="processing-layer-stack">
-              {stageLabels.map((label, index) => {
-                const state = index < layerState ? "is-done" : index === layerState ? "is-active" : "is-pending";
-                return (
-                  <div key={label} className={state}>
-                    {index < layerState
-                      ? <CheckCircle2 size={13} />
-                      : index === layerState
-                        ? (
-                          <span className="processing-stage-activity" aria-hidden="true">
-                            <i />
-                            <i />
-                            <i />
-                          </span>
-                        )
-                        : <span className="processing-stage-pip" aria-hidden="true">{index + 1}</span>}
-                    <span>{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <WorkspaceProcessingLoader
+          key={traceState}
+          previewUrl={proxyOriginal}
+          label={stepMeta.label}
+          detail={stepMeta.detail}
+          stageIndex={layerState}
+          stageLabels={stageLabels}
+          progressRange={STAGE_RANGE[traceState]}
+        />
       );
     }
     const failure = nodeErrors?.step3 || nodeErrors?.step2 || nodeErrors?.step1 || nodeErrors?.step4;

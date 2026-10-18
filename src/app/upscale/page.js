@@ -12,6 +12,7 @@ import { safeJson } from "@/lib/safeJson";
 import FeedbackWidget from "@/components/shared/FeedbackWidget";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
+import WorkspaceProcessingLoader from "@/components/workspace/WorkspaceProcessingLoader";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import "../home.css";
 
@@ -20,6 +21,8 @@ const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: fa
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const UPSCALE_POLL_MAX_MS = 6 * 60 * 1000;
+const UPSCALE_PROCESSING_RANGE = [4, 96];
+const UPSCALE_PROCESSING_STAGES = ["Edge recovery", "Detail reconstruction", "Color protection"];
 
 function formatSourceFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "Cloud source";
@@ -556,15 +559,19 @@ export default function UpscalePage() {
             </div>
             <div className="upscale-panel-section upscale-job-panel">
               <div className="upscale-tool-heading">
-                <div>
-                  <span className="upscale-panel-eyebrow">Image upscaler</span>
-                  <h2>6× detail recovery</h2>
+                <div className="upscale-profile-heading">
+                  <span className="upscale-profile-mark"><Wand2 size={16} /></span>
+                  <div>
+                    <span className="upscale-panel-eyebrow">Enhancement profile</span>
+                    <h2>Precision 6×</h2>
+                    <p>Production detail recovery</p>
+                  </div>
                 </div>
-                <span className="upscale-tool-rate">PNG output · 1 Claw</span>
+                <span className="upscale-tool-rate"><strong>1</strong> Claw</span>
               </div>
 
               <div className="upscale-source-docket">
-                <div className="upscale-docket-label">Source</div>
+                <div className="upscale-docket-label"><span>01</span> Source artwork</div>
                 <div className="upscale-source-file">
                   <div>
                     <strong title={activeFileName || "Uploaded artwork"}>{activeFileName || "Uploaded artwork"}</strong>
@@ -579,7 +586,7 @@ export default function UpscalePage() {
               {sourceMeta && (
                 <div className="upscale-output-readout" aria-label="Upscale output projection">
                   <div className="upscale-docket-label">
-                    <span>Output projection</span>
+                    <span><i>02</i> Resolution map</span>
                     <strong className={`is-${sourceMeta.quality.tone}`}>{sourceMeta.quality.label}</strong>
                   </div>
                   <div className="upscale-dimension-route">
@@ -587,16 +594,16 @@ export default function UpscalePage() {
                     <span className="upscale-route-line" aria-hidden="true" />
                     <div><span>6× output</span><strong>{sourceMeta.outputWidth} × {sourceMeta.outputHeight}</strong></div>
                   </div>
-                  <p>PNG export · detail recovery pass</p>
+                  <p><span>PNG</span> Lossless production export</p>
                 </div>
               )}
 
               <div className="upscale-auto-pass" aria-label="Automatic enhancement pass">
-                <span>Automatic pass</span>
+                <span><i>03</i> Recovery sequence</span>
                 <ul>
-                  <li>Edge recovery</li>
-                  <li>Noise cleanup</li>
-                  <li>Color protection</li>
+                  <li><b>01</b><div><strong>Edge structure</strong><small>Rebuild clean contours</small></div></li>
+                  <li><b>02</b><div><strong>Surface cleanup</strong><small>Reduce compression noise</small></div></li>
+                  <li><b>03</b><div><strong>Color lock</strong><small>Protect the source palette</small></div></li>
                 </ul>
               </div>
 
@@ -611,7 +618,7 @@ export default function UpscalePage() {
                     ? <><Loader2 size={15} className="animate-spin" /> Enhancing…</>
                     : noCredits
                       ? <><Wand2 size={15} /> Get more Claws</>
-                      : <><Wand2 size={15} /> Generate 6×</>}
+                      : <><Wand2 size={15} /> Run precision upscale</>}
                 </button>
                 <button type="button" onClick={() => upscaledImage && handleDownload(upscaledImage)} disabled={!upscaledImage} className="upscale-action-btn">
                   <Download size={14} /> Download
@@ -689,40 +696,14 @@ export default function UpscalePage() {
             >
               {!previewImage && !upscaledImage ? (
                 <div className="upscale-empty-panel">
-                  <div className="upscale-upload-visual">
-                    <div className="upscale-upload-after">
-                      <img src="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp" alt="" />
-                    </div>
-                    <div className="upscale-upload-before" style={{ clipPath: `inset(0 ${100 - uploadComparePosition}% 0 0)` }}>
-                      <img src="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp" alt="" />
-                    </div>
-                    <span className="upscale-upload-divider" style={{ left: `${uploadComparePosition}%` }} aria-hidden="true">
-                      <i><Columns2 size={13} /></i>
-                    </span>
-                    <input
-                      className="upscale-upload-range"
-                      type="range"
-                      min="4"
-                      max="96"
-                      step="1"
-                      value={uploadComparePosition}
-                      onInput={(event) => setUploadComparePosition(Number(event.currentTarget.value))}
-                      onChange={(event) => setUploadComparePosition(Number(event.target.value))}
-                      aria-label="Compare enhanced and original sample"
-                    />
-                    <small className="is-before">Enhanced</small>
-                    <small className="is-after">Original</small>
-                  </div>
                   <div className="upscale-upload-content">
-                    <div className="upscale-upload-title">
-                      <span><Wand2 size={17} /></span>
-                      <h2>6× Image Upscaler</h2>
-                    </div>
-                    <p>Recover sharper edges and production-ready resolution while preserving the original artwork.</p>
+                    <div className="upscale-empty-kicker"><i aria-hidden="true" /> AI IMAGE UPSCALER</div>
+                    <h2>More resolution.<br /><em>Same artwork.</em></h2>
+                    <p>Recover cleaner edges and expand low-resolution artwork up to 6× without redesigning the source.</p>
 
                     <div className="upscale-empty-actions">
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="upscale-empty-btn is-primary">
-                        <Plus size={14} /> Upload image
+                        <Plus size={14} /> Choose source image
                       </button>
                       <button
                         type="button"
@@ -745,14 +726,59 @@ export default function UpscalePage() {
                       </div>
                     ) : (
                       <div className="upscale-drop-note">
-                        <span>or drop an image here</span>
+                        <span>Drop artwork anywhere on this canvas</span>
                         <small>PNG, JPG or WebP · Maximum {formatUploadLimit(resolveImageUploadLimit())}</small>
                       </div>
                     )}
+
+                    <div className="upscale-empty-specs" aria-label="Upscale features">
+                      <div><strong>6×</strong><span>Resolution</span></div>
+                      <div><strong>PNG</strong><span>Clean export</span></div>
+                      <div><strong>1</strong><span>Claw per image</span></div>
+                    </div>
+                  </div>
+
+                  <div className="upscale-upload-visual">
+                    <div className="upscale-visual-topline">
+                      <span>LIVE QUALITY PREVIEW</span>
+                      <small>Drag to compare</small>
+                    </div>
+                    <div className="upscale-upload-after">
+                      <img src="/MOCKUP_STUDIO_thumbnail.jpg" alt="Enhanced artwork example" />
+                    </div>
+                    <div className="upscale-upload-before" style={{ clipPath: `inset(0 ${100 - uploadComparePosition}% 0 0)` }}>
+                      <img src="/MOCKUP_STUDIO_thumbnail.jpg" alt="Original artwork example" />
+                    </div>
+                    <span className="upscale-upload-divider" style={{ left: `${uploadComparePosition}%` }} aria-hidden="true">
+                      <i><Columns2 size={13} /></i>
+                    </span>
+                    <input
+                      className="upscale-upload-range"
+                      type="range"
+                      min="4"
+                      max="96"
+                      step="1"
+                      value={uploadComparePosition}
+                      onInput={(event) => setUploadComparePosition(Number(event.currentTarget.value))}
+                      onChange={(event) => setUploadComparePosition(Number(event.target.value))}
+                      aria-label="Compare enhanced and original sample"
+                    />
+                    <small className="is-before">Original</small>
+                    <small className="is-after">Enhanced 6×</small>
                   </div>
                 </div>
               ) : (
                 <div className="upscale-preview-shell">
+                  {isProcessing && (
+                    <WorkspaceProcessingLoader
+                      previewUrl={previewImage}
+                      label="Precision Upscale"
+                      detail="Recovering edges, texture, and color at 6× resolution"
+                      stageLabels={UPSCALE_PROCESSING_STAGES}
+                      progressRange={UPSCALE_PROCESSING_RANGE}
+                      className="upscale-workspace-loader"
+                    />
+                  )}
                   {!upscaledImage && !isProcessing && (
                     <div className="upscale-start-overlay">
                       <span>Ready for enhancement</span>
