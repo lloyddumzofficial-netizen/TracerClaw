@@ -8,6 +8,7 @@ import {
 } from "node:crypto";
 import { adminSupabase } from "@/lib/supabase";
 import { getClientIp } from "@/lib/rateLimit";
+import { logger } from "@/lib/logger";
 import { isDisposableEmailDomain, normalizeEmailDomain } from "./disposableDomains";
 
 export const REFERRAL_COOKIE = "dc_referral";
@@ -18,6 +19,10 @@ const REFERRAL_CODE_PATTERN = /^DC[A-F0-9]{18}$/;
 
 export function referralsEnabled() {
   return process.env.REFERRALS_ENABLED === "true";
+}
+
+export function isReferralRewardProviderEligible(provider) {
+  return String(provider || "").trim().toLowerCase() === "google";
 }
 
 export function getReferralSecret() {
@@ -161,6 +166,8 @@ export async function bindReferralFromAuthCallback(request, user) {
 
   const domain = normalizeEmailDomain(user.email);
   const provider = user.app_metadata?.provider || user.app_metadata?.providers?.[0] || "email";
+  const disposableEmail = isDisposableEmailDomain(domain);
+  const providerEligible = isReferralRewardProviderEligible(provider);
   const { data, error } = await adminSupabase.rpc("bind_referral_and_grant_trial", {
     target_code_hash: hashReferralCode(referral.code),
     target_invitee_user_id: user.id,
@@ -170,10 +177,31 @@ export async function bindReferralFromAuthCallback(request, user) {
     target_device_hash: hashDeviceId(deviceId),
     target_network_hash: hashRequestNetwork(request),
     target_referral_issued_at: new Date(referral.issuedAt).toISOString(),
-    target_disposable_email: isDisposableEmailDomain(domain),
+    // Unknown disposable domains rotate continuously. Referral rewards therefore
+    // require Google identity in addition to the domain denylist. Magic-link
+    // authentication remains available, but it cannot mint referral Claws.
+    target_disposable_email: disposableEmail || !providerEligible,
   });
   if (error) throw error;
   const result = Array.isArray(data) ? data[0] : data;
+
+  if (result?.status === "rejected" && result?.referral_id && !disposableEmail && !providerEligible) {
+    const [referralUpdate, signalUpdate] = await Promise.all([
+      adminSupabase.from("referrals")
+        .update({ rejection_reason: "untrusted_auth_provider" })
+        .eq("id", result.referral_id)
+        .eq("rejection_reason", "disposable_email"),
+      adminSupabase.from("referral_risk_signals")
+        .update({ signal_type: "untrusted_auth_provider" })
+        .eq("referral_id", result.referral_id)
+        .eq("signal_type", "disposable_email"),
+    ]);
+    if (referralUpdate.error || signalUpdate.error) {
+      logger.warn("[Referrals] Could not refine rejected provider audit reason", {
+        referralId: result.referral_id,
+      });
+    }
+  }
   return { handled: true, status: result?.status || "unknown", referralId: result?.referral_id || null };
 }
 

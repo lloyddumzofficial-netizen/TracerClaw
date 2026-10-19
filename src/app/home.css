@@ -4743,8 +4743,23 @@
   border-radius: 7px;
   background: rgba(255, 255, 255, .038);
 }
-.home-credit-pill { padding: 5px 11px; color: inherit; cursor: pointer; transition: border-color .2s, background .2s; }
+.home-credit-pill { position: relative; padding: 5px 11px; color: inherit; cursor: pointer; transition: border-color .2s, background .2s; }
 .home-credit-pill:hover { border-color: rgba(255, 213, 0, .34); background: rgba(255, 213, 0, .055); }
+.home-credit-count { color: #ecece8; font: 700 14px/1 var(--font-manrope), 'Segoe UI', Arial, sans-serif; }
+.home-credit-label { color: #888b87; font: 680 9px/1 var(--font-manrope), 'Segoe UI', Arial, sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+.home-credit-reward-badge {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  background: #e9e9e5;
+  color: #151616;
+  font: 800 8px/1 var(--font-geist-mono, monospace);
+  letter-spacing: -.03em;
+}
 .home-profile-pill { padding: 4px 11px 4px 4px; }
 .home-profile-pill > img,
 .home-profile-placeholder { width: 25px; height: 25px; border-radius: 5px; }
@@ -4865,7 +4880,7 @@
   .home-topbar-brand img { width: 124px; }
   .home-account-actions { gap: 6px; }
   .home-credit-pill { padding: 5px 8px; }
-  .home-credit-pill span:last-child { display: none; }
+  .home-credit-label { display: none; }
   .home-referral-button { width: 34px; padding: 0; justify-content: center; }
   .home-referral-button span { display: none; }
   .home-profile-pill { padding-right: 6px; }

@@ -39,6 +39,8 @@ changes; the root-level SQL files are historical references.
 29. `029_persist_project_reviews.sql`
 30. `030_secure_referrals.sql`
 31. `031_harden_referral_identity_and_qualification.sql`
+32. `032_referral_reward_acknowledgements.sql`
+33. `033_require_google_for_referral_rewards.sql`
 
 Run `npm run migrations:check` before every deployment. It verifies that the
 ordered migration files are sequential and that this manifest contains every

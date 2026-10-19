@@ -145,6 +145,9 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
     
     setIsLoadingEmail(true);
     try {
+      if (new URLSearchParams(window.location.search).get("referral") === "ready") {
+        toast.info("Email sign-in is available, but referral trial Claws require verified Google sign-in.");
+      }
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {

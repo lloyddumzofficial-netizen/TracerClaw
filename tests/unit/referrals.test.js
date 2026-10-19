@@ -14,6 +14,7 @@ import {
   createReferralCookie,
   deriveReferralCode,
   hashReferralCode,
+  isReferralRewardProviderEligible,
   readDeviceCookie,
   readReferralCookie,
 } from "@/server/referrals";
@@ -61,7 +62,15 @@ describe("referral security primitives", () => {
     expect(isDisposableEmailDomain("person@1secmail.com")).toBe(true);
     expect(isDisposableEmailDomain("person@mail.gw")).toBe(true);
     expect(isDisposableEmailDomain("person@dropmail.me")).toBe(true);
+    expect(isDisposableEmailDomain("person@goldlical.com")).toBe(true);
     expect(isDisposableEmailDomain("gmail.com")).toBe(false);
+  });
+
+  it("requires Google identity before referral rewards can be issued", () => {
+    expect(isReferralRewardProviderEligible("google")).toBe(true);
+    expect(isReferralRewardProviderEligible("GOOGLE")).toBe(true);
+    expect(isReferralRewardProviderEligible("email")).toBe(false);
+    expect(isReferralRewardProviderEligible(undefined)).toBe(false);
   });
 });
 
@@ -110,5 +119,31 @@ describe("auth callback referral binding", () => {
       email: "real@example.com",
     })).resolves.toMatchObject({ handled: false });
     expect(adminSupabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("fails closed for a verified magic-link account even on a permanent domain", async () => {
+    const code = deriveReferralCode("referrer-1");
+    const referralCookie = createReferralCookie(code);
+    const deviceCookie = createDeviceCookie("123e4567-e89b-12d3-a456-426614174000");
+    adminSupabase.rpc.mockResolvedValue({
+      data: [{ status: "rejected", referral_id: null }],
+      error: null,
+    });
+    const request = new Request("https://desaynclaw.com/api/auth/callback", {
+      headers: {
+        cookie: `dc_referral=${encodeURIComponent(referralCookie)}; dc_ref_device=${encodeURIComponent(deviceCookie)}`,
+      },
+    });
+
+    await expect(bindReferralFromAuthCallback(request, {
+      id: "invitee-email-only",
+      email: "real@gmail.com",
+      app_metadata: { provider: "email" },
+    })).resolves.toMatchObject({ handled: true, status: "rejected" });
+
+    expect(adminSupabase.rpc).toHaveBeenCalledWith("bind_referral_and_grant_trial", expect.objectContaining({
+      target_auth_provider: "email",
+      target_disposable_email: true,
+    }));
   });
 });

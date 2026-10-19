@@ -37,6 +37,7 @@ import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 import HomepageTutorialSection from "@/components/marketing/HomepageTutorialSection";
 import ReferralModal from "@/components/marketing/ReferralModal";
 import ReferralPromptController from "@/components/marketing/ReferralPromptController";
+import ClawRewardNotice from "@/components/shared/ClawRewardNotice";
 import { markReferralPromptSeen } from "@/lib/referralPrompt";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
@@ -540,6 +541,8 @@ export default function StartScreen() {
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [topUpInitialTab, setTopUpInitialTab] = useState("plans");
+  const [unreadReferralRewards, setUnreadReferralRewards] = useState(0);
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
@@ -1218,10 +1221,20 @@ export default function StartScreen() {
                   <span>Refer &amp; Earn</span>
                 </button>
                 {/* Premium Credits Badge */}
-                <button className="home-credit-pill" type="button" onClick={() => setShowTopUpModal(true)} aria-label={`${credits} Claws available. Add more Claws`}>
+                <button
+                  className="home-credit-pill"
+                  type="button"
+                  onClick={() => { setTopUpInitialTab("plans"); setShowTopUpModal(true); }}
+                  aria-label={`${credits} Claws available${unreadReferralRewards > 0 ? `. ${unreadReferralRewards} new referral reward${unreadReferralRewards > 1 ? "s" : ""}` : ". Add more Claws"}`}
+                >
                   <img src="/Claws/Claws.webp" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
-                  <span style={{ color: "#FFD700", fontWeight: "600", fontSize: "14px", fontFamily: "var(--font-manrope), 'Segoe UI', Arial, sans-serif" }}>{credits}</span>
-                  <span style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>CLAWS</span>
+                  <span className="home-credit-count">{credits}</span>
+                  <span className="home-credit-label">Claws</span>
+                  {unreadReferralRewards > 0 && (
+                    <span className="home-credit-reward-badge" aria-hidden="true">
+                      +{unreadReferralRewards}
+                    </span>
+                  )}
                 </button>
 
                 {/* Profile Pill */}
@@ -1748,6 +1761,7 @@ export default function StartScreen() {
             show={showTopUpModal}
             user={user}
             supabase={supabase}
+            initialTab={topUpInitialTab}
             onClose={() => setShowTopUpModal(false)}
             onLoginRequired={() => { setShowTopUpModal(false); setShowLoginModal(true); }}
           />
@@ -1774,6 +1788,21 @@ export default function StartScreen() {
             || showOnboarding || showQrModal || isUploading
           )}
           onOpen={openReferralModal}
+        />
+
+        <ClawRewardNotice
+          user={user}
+          supabase={supabase}
+          blocked={Boolean(
+            showReferralModal || showModal || showTopUpModal || showLoginModal
+            || showOnboarding || showQrModal || isUploading
+          )}
+          onBalanceChange={setCredits}
+          onUnreadChange={setUnreadReferralRewards}
+          onViewActivity={() => {
+            setTopUpInitialTab("history");
+            setShowTopUpModal(true);
+          }}
         />
 
         {/* Delete Confirmation Modal */}

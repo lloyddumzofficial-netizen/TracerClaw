@@ -1,6 +1,6 @@
 // Versioned, deliberately local deny-list. Keep this list reviewed in source
 // control; referral settlement rechecks it so newly blocked domains do not pay.
-export const DISPOSABLE_DOMAIN_LIST_VERSION = "2026-10-20";
+export const DISPOSABLE_DOMAIN_LIST_VERSION = "2026-10-20.1";
 
 const DISPOSABLE_DOMAINS = new Set([
   "10minutemail.com",
@@ -14,6 +14,7 @@ const DISPOSABLE_DOMAINS = new Set([
   "emailondeck.com",
   "fakeinbox.com",
   "getnada.com",
+  "goldlical.com",
   "guerrillamail.com",
   "guerrillamail.net",
   "guerrillamail.org",

@@ -4,6 +4,7 @@ import { getRedisClient } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
 import {
   getReferralSecret,
+  isReferralRewardProviderEligible,
   referralsEnabled,
 } from "@/server/referrals";
 import { isDisposableEmailDomain, normalizeEmailDomain } from "@/server/referrals/disposableDomains";
@@ -50,6 +51,7 @@ export async function GET(request) {
       const { data: authData, error: authError } = await adminSupabase.auth.admin.getUserById(item.invitee_user_id);
       const authUser = authData?.user;
       const currentDomain = normalizeEmailDomain(authUser?.email);
+      const authProvider = authUser?.app_metadata?.provider || authUser?.app_metadata?.providers?.[0] || "email";
       const emailChanged = !authUser?.email || authUser.email.toLowerCase() !== item.invitee_email.toLowerCase();
       const unverified = !authUser?.email_confirmed_at && !authUser?.confirmed_at;
       const disabled = Boolean(authUser?.banned_until && new Date(authUser.banned_until) > new Date());
@@ -61,6 +63,11 @@ export async function GET(request) {
       }
       if (emailChanged || unverified || disabled) {
         await reject(item.referral_id, emailChanged ? "invitee_email_changed" : unverified ? "invitee_unverified" : "invitee_disabled");
+        results.rejected += 1;
+        continue;
+      }
+      if (!isReferralRewardProviderEligible(authProvider)) {
+        await reject(item.referral_id, "untrusted_auth_provider");
         results.rejected += 1;
         continue;
       }

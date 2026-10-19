@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 const migrationUrl = new URL("../../database/migrations/030_secure_referrals.sql", import.meta.url);
 const hardeningMigrationUrl = new URL("../../database/migrations/031_harden_referral_identity_and_qualification.sql", import.meta.url);
+const acknowledgementMigrationUrl = new URL("../../database/migrations/032_referral_reward_acknowledgements.sql", import.meta.url);
+const providerHardeningMigrationUrl = new URL("../../database/migrations/033_require_google_for_referral_rewards.sql", import.meta.url);
 
 describe("secure referral migration", () => {
   it("keeps all referral tables service-role only", async () => {
@@ -50,5 +52,22 @@ describe("secure referral migration", () => {
     expect(sql).toContain("UPDATE OF generated_image_url, upscaled_image_url, svg_url, refunded, credit_deducted");
     expect(sql).toMatch(/SECURITY DEFINER SET search_path = public/);
     expect(sql).toContain("REVOKE EXECUTE ON FUNCTION public.canonical_referral_email(text)");
+  });
+
+  it("tracks reward acknowledgement separately from settlement", async () => {
+    const sql = await readFile(acknowledgementMigrationUrl, "utf8");
+    expect(sql).toContain("ADD COLUMN IF NOT EXISTS acknowledged_at timestamptz");
+    expect(sql).toContain("referral_rewards_unacknowledged_idx");
+    expect(sql).toContain("status = 'rewarded' AND acknowledged_at IS NULL");
+  });
+
+  it("enforces Google identity at the database reward boundary", async () => {
+    const sql = await readFile(providerHardeningMigrationUrl, "utf8");
+    expect(sql).toContain("enforce_referral_reward_identity");
+    expect(sql).toContain("Referral rewards require a Google-verified identity");
+    expect(sql).toContain("BEFORE INSERT ON public.referral_rewards");
+    expect(sql).toContain("BEFORE UPDATE OF status ON public.referral_rewards");
+    expect(sql).toContain("untrusted_auth_provider");
+    expect(sql).toContain("goldlical.com");
   });
 });

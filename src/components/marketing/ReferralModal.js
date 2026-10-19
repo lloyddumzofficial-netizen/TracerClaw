@@ -13,7 +13,7 @@ const STATUS_LABELS = {
   trial_granted: "Trial granted",
   qualified: "Qualified",
   pending_review: "Security hold",
-  rewarded: "Rewarded",
+  rewarded: "Rewarded · +1 Claw",
   rejected: "Not eligible",
 };
 
@@ -182,7 +182,7 @@ export default function ReferralModal({ show, onClose, supabase }) {
                 </div>
                 <div className={styles.flowRow}>
                   <span><Users size={15} /></span>
-                  <div><strong>Your friend receives <b>1 trial Claw</b></strong><small>Available after a verified Google or magic-link signup.</small></div>
+                  <div><strong>Your friend receives <b>1 trial Claw</b></strong><small>Available after verified Google sign-in. Email-only accounts are excluded from referral rewards.</small></div>
                 </div>
                 <div className={styles.flowRow}>
                   <span><Gift size={15} /></span>

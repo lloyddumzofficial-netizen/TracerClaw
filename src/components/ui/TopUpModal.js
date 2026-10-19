@@ -131,7 +131,7 @@ function formatLocalizedPrice(amount, pricing) {
   return formatCurrencyFromMinor(Math.round(Number(amount || 0) * rate), pricing?.currency || "PHP");
 }
 
-const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, onClose, onLoginRequired }) {
+const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supabaseProp, initialTab = "plans", onClose, onLoginRequired }) {
   const [fallbackSupabase] = useState(() => createClient());
   const supabase = supabaseProp || fallbackSupabase;
   const [step, setStep] = useState(1);
@@ -154,6 +154,11 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!show) return;
+    setActiveTab(initialTab === "history" ? "history" : "plans");
+  }, [initialTab, show]);
 
   useEffect(() => {
     if (!show) return;

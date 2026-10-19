@@ -89,7 +89,7 @@ export const REQUIRED_COLUMNS = {
   ],
   referral_rewards: [
     "id", "referral_id", "recipient_user_id", "reward_type", "status",
-    "available_at", "settled_at", "credit_log_reference",
+    "available_at", "settled_at", "acknowledged_at", "credit_log_reference",
   ],
   successful_project_events: ["id", "project_id", "user_id", "completion_kind", "completed_at"],
   user_activity_summary: ["user_id", "account_created_at", "completed_project_count"],
