@@ -490,7 +490,7 @@ const CropModal = memo(function CropModal({
             </div>
           </div>
 
-          <aside className="crop-guide-panel">
+          <aside className={`crop-guide-panel ${!isPatternMode && !isLogoMode ? "is-garment-guide" : ""}`}>
             <div className="crop-guide-header">
               <span>Guide</span>
               <strong>{isLogoMode ? "Logo Mode" : isPatternMode ? "Pattern Workspace" : "Garment Mode"}</strong>

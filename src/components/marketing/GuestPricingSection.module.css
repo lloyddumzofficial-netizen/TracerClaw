@@ -337,47 +337,58 @@
 }
 
 .registrationHeading {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   display: grid;
-  grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.3fr) auto;
-  align-items: end;
-  gap: 34px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title action"
+    "copy action";
+  align-items: center;
+  column-gap: 32px;
+  row-gap: 11px;
 }
 
 .registrationHeading > div {
+  grid-area: title;
   min-width: 0;
 }
 
 .registrationHeading > div > span {
   display: block;
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  margin-bottom: 11px;
+  color: rgba(255, 255, 255, 0.46);
+  font: 720 9px/1 var(--font-geist-mono, monospace);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .registrationHeading h3 {
   margin: 0;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: clamp(1.2rem, 2vw, 1.65rem);
-  font-weight: 650;
-  line-height: 1.08;
-  letter-spacing: -0.035em;
+  max-width: 390px;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: clamp(1.45rem, 2.25vw, 1.9rem);
+  font-weight: 735;
+  line-height: 1.02;
+  letter-spacing: -0.048em;
+  text-wrap: balance;
 }
 
 .registrationHeading p {
-  max-width: 570px;
+  grid-area: copy;
+  max-width: 680px;
   margin: 0;
-  color: rgba(255, 255, 255, 0.49);
-  font-size: 11px;
-  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 480;
+  line-height: 1.65;
+  letter-spacing: -0.006em;
+  text-wrap: pretty;
 }
 
 .registrationHeading > a {
-  min-height: 36px;
-  padding: 0 12px;
+  grid-area: action;
+  min-height: 40px;
+  padding: 0 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -386,8 +397,8 @@
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.025);
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 11px;
+  font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
   transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
@@ -429,6 +440,10 @@
   .featured,
   .card:nth-child(4) {
     grid-column: 1 / -1;
+  }
+
+  .registrationHeading {
+    column-gap: 24px;
   }
 }
 
@@ -504,8 +519,12 @@
   .registrationHeading {
     margin-bottom: 16px;
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "copy"
+      "action";
     align-items: start;
-    gap: 14px;
+    gap: 12px;
   }
 
   .registrationHeading p {
@@ -514,6 +533,7 @@
 
   .registrationHeading > a {
     width: fit-content;
+    margin-top: 3px;
   }
 }
 

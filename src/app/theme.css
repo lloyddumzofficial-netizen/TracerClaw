@@ -38,4 +38,12 @@
   --font-inter: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   --font-outfit: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   --font-jetbrains-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+
+  /* Shared interaction timing: calm, consistent, and easy to disable. */
+  --motion-instant: 120ms;
+  --motion-fast: 180ms;
+  --motion-standard: 280ms;
+  --motion-slow: 420ms;
+  --ease-ui: cubic-bezier(.2, .8, .2, 1);
+  --ease-enter: cubic-bezier(.16, 1, .3, 1);
 }

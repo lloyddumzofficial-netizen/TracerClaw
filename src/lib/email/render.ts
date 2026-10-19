@@ -135,6 +135,20 @@ export function renderEmailLayout(content: EmailTemplateRenderResult): string {
                       Your growth partner,<br>
                       <strong>The DesaynClaw Team</strong>
                     </p>
+
+                    ${content.socialLinks?.length ? `
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0 0;">
+                      <tr>
+                        ${content.socialLinks.map((social) => `
+                        <td style="padding:0 12px 0 0;">
+                          <a href="${escapeHtml(social.url)}" target="_blank" aria-label="Follow DesaynClaw on ${escapeHtml(social.label)}" style="display:inline-block; text-decoration:none;">
+                            <img src="${escapeHtml(social.iconUrl)}" width="28" height="28" alt="${escapeHtml(social.label)}" style="display:block; width:28px; height:28px; border:0; outline:none; text-decoration:none;">
+                          </a>
+                        </td>
+                        `).join("")}
+                      </tr>
+                    </table>
+                    ` : ""}
                   </td>
                 </tr>
                 <tr>

@@ -37,6 +37,8 @@ changes; the root-level SQL files are historical references.
 27. `027_guard_paid_credits_and_precision_refunds.sql`
 28. `028_log_dodo_credit_grants.sql`
 29. `029_persist_project_reviews.sql`
+30. `030_secure_referrals.sql`
+31. `031_harden_referral_identity_and_qualification.sql`
 
 Run `npm run migrations:check` before every deployment. It verifies that the
 ordered migration files are sequential and that this manifest contains every

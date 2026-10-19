@@ -64,6 +64,8 @@ export const OPTIONAL_ENV = [
   "NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
   "NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE",
   "SENTRY_AUTH_TOKEN",
+  "REFERRALS_ENABLED",
+  "REFERRAL_SECURITY_SECRET",
   "LOG_LEVEL",
 ];
 
@@ -75,11 +77,23 @@ export const REQUIRED_COLUMNS = {
     "credit_deducted", "refunded", "failed_at", "failed_step", "client_request_id",
   ],
   profiles: ["id", "email", "credits"],
-  credit_logs: ["user_id", "action", "amount"],
+  credit_logs: ["user_id", "action", "amount", "reference_id"],
   generation_attempts: [
     "id", "request_key", "user_id", "project_id", "operation", "status",
     "charge_amount", "result_url", "result_mime_type", "error_code", "created_at", "updated_at",
   ],
+  referral_codes: ["id", "owner_user_id", "code_hash", "enabled", "click_count"],
+  referrals: [
+    "id", "referrer_user_id", "invitee_user_id", "status", "device_hash",
+    "network_hash", "trial_granted_at", "qualified_at", "review_after", "rejection_reason",
+  ],
+  referral_rewards: [
+    "id", "referral_id", "recipient_user_id", "reward_type", "status",
+    "available_at", "settled_at", "credit_log_reference",
+  ],
+  successful_project_events: ["id", "project_id", "user_id", "completion_kind", "completed_at"],
+  user_activity_summary: ["user_id", "account_created_at", "completed_project_count"],
+  referral_risk_signals: ["id", "referral_id", "signal_type", "severity", "expires_at"],
 };
 
 export function checkEnv() {
@@ -103,7 +117,20 @@ export function checkCapabilities() {
     googleDrive: has("GOOGLE_CLIENT_ID") && has("GOOGLE_CLIENT_SECRET") && has("INTEGRATION_ENCRYPTION_KEY"),
     dodoPayments: has("DODO_PAYMENTS_API_KEY") && has("DODO_PAYMENTS_WEBHOOK_SECRET"),
     paymongo: has("PAYMONGO_SECRET_KEY") && has("PAYMONGO_WEBHOOK_SECRET"),
+    referrals: process.env.REFERRALS_ENABLED === "true"
+      ? has("REFERRAL_SECURITY_SECRET") && has("UPSTASH_REDIS_REST_URL") && has("UPSTASH_REDIS_REST_TOKEN")
+      : false,
   };
+}
+
+export function checkReferralReadiness() {
+  if (process.env.REFERRALS_ENABLED !== "true") return { ok: true, enabled: false };
+  const secret = process.env.REFERRAL_SECURITY_SECRET || "";
+  const missing = [];
+  if (secret.length < 32) missing.push("REFERRAL_SECURITY_SECRET (minimum 32 characters)");
+  if (!process.env.UPSTASH_REDIS_REST_URL) missing.push("UPSTASH_REDIS_REST_URL");
+  if (!process.env.UPSTASH_REDIS_REST_TOKEN) missing.push("UPSTASH_REDIS_REST_TOKEN");
+  return { ok: missing.length === 0, enabled: true, missing };
 }
 
 export async function checkAiProvider() {
@@ -258,6 +285,7 @@ export async function runDeepHealthChecks() {
     schema,
     rls,
     capabilities: checkCapabilities(),
+    referrals: checkReferralReadiness(),
     aiProvider,
   };
   const failed = Object.entries(checks)

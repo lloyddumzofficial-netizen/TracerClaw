@@ -4015,32 +4015,16 @@
 .guest-landing-output-mark {
   position: relative;
   display: inline-block;
-  color: #f8f7f3;
-}
-
-.guest-landing-output-mark::after {
-  content: "";
-  position: absolute;
-  left: .05em;
-  right: .05em;
-  bottom: -.18em;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(215, 194, 73, .18), rgba(215, 194, 73, .8) 36%, rgba(215, 194, 73, .42));
-  pointer-events: none;
-}
-
-.guest-landing-output-mark::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  right: .05em;
-  bottom: calc(-.18em - 2px);
-  width: 5px;
-  height: 5px;
-  border: 1px solid rgba(8, 9, 10, .84);
-  background: #d7c249;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .16);
-  pointer-events: none;
+  padding-block: .025em .16em;
+  padding-inline: .025em .07em;
+  margin-block: -.025em -.16em;
+  margin-inline: -.025em -.07em;
+  color: #ffd700;
+  background: linear-gradient(108deg, #fff2a3 0%, #ffd700 28%, #f0b900 55%, #ffe45c 78%, #ffc400 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 18px rgba(255, 204, 0, .1));
 }
 @media (max-width: 640px) {
   .guest-landing-title-handles {
@@ -4057,11 +4041,13 @@
   }
 }
 .guest-landing-description {
-  max-width: 620px;
+  width: min(760px, 86vw);
+  max-width: 760px;
   margin: 0;
   color: #a7a7a6;
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: 16px;
+  line-height: 1.65;
+  letter-spacing: 0.005em;
   text-wrap: balance;
 }
 .guest-landing-actions { display: flex; align-items: center; gap: 24px; margin-top: 34px; }
@@ -4728,6 +4714,24 @@
   color: #fff;
 }
 .home-tutorial-button:focus-visible { outline: 2px solid rgba(255, 224, 82, .8); outline-offset: 3px; }
+.home-referral-button {
+  height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .038);
+  color: #bbbcb8;
+  font: 680 10px/1 var(--font-manrope), 'Segoe UI', Arial, sans-serif;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease, color .2s ease;
+}
+.home-referral-button svg { color: #cbb54b; }
+.home-referral-button:hover { border-color: rgba(203, 181, 75, .34); background: rgba(203, 181, 75, .055); color: #f0f0ed; }
+.home-referral-button:focus-visible { outline: 2px solid rgba(255, 224, 82, .8); outline-offset: 3px; }
 .home-credit-pill,
 .home-profile-pill {
   min-height: 34px;
@@ -4862,6 +4866,8 @@
   .home-account-actions { gap: 6px; }
   .home-credit-pill { padding: 5px 8px; }
   .home-credit-pill span:last-child { display: none; }
+  .home-referral-button { width: 34px; padding: 0; justify-content: center; }
+  .home-referral-button span { display: none; }
   .home-profile-pill { padding-right: 6px; }
   .home-profile-pill > span { display: none; }
   .recent-projects-head { align-items: stretch; flex-direction: column; gap: 12px; }
@@ -5264,8 +5270,8 @@
 }
 
 .site-footer-socials a {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5274,13 +5280,21 @@
   color: #f5f5f5;
   background: rgba(255, 255, 255, 0.018);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
 
 .site-footer-socials a:hover {
-  border-color: rgba(255, 215, 0, 0.55);
-  color: #ffd700;
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+.site-footer-brand .site-footer-socials img {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  filter: none;
 }
 
 .site-footer-links {
@@ -8067,6 +8081,7 @@ html:has(.has-guest-home) {
 }
 
 .homepage-tutorial-player {
+  position: relative;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .14);
   border-radius: 13px;
@@ -8075,18 +8090,30 @@ html:has(.has-guest-home) {
 }
 
 .homepage-tutorial-playerbar {
-  height: 41px;
-  padding: 0 15px;
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 20px;
+  left: 20px;
+  height: auto;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
-  background: #111213;
-  color: rgba(255, 255, 255, .37);
-  font: 680 8px/1 var(--font-geist-mono, monospace);
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, .58);
+  font: 720 8px/1 var(--font-geist-mono, monospace);
   letter-spacing: .12em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, .96);
   text-transform: uppercase;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+
+.homepage-tutorial-player[data-playing="true"] .homepage-tutorial-playerbar {
+  opacity: 0;
 }
 
 .homepage-tutorial-video-wrap {
@@ -8203,8 +8230,11 @@ html:has(.has-guest-home) {
   }
 
   .homepage-tutorial-playerbar {
-    height: 33px;
-    padding: 0 10px;
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    height: auto;
+    padding: 0;
     font-size: 7px;
   }
 
@@ -8581,34 +8611,45 @@ html:has(.has-guest-home) {
 }
 
 .guest-landing-example-card {
+  position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, .11);
-  border-radius: 12px;
-  background: #0a0b0c;
-  box-shadow: 0 22px 55px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .025);
-  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .guest-landing-example-card + .guest-landing-example-card {
-  border-left: 1px solid rgba(255, 255, 255, .11);
+  border-left: 0;
 }
 
 .guest-landing-example-card:hover {
-  border-color: rgba(255, 255, 255, .2);
-  background: #0a0b0c;
-  transform: translateY(-2px);
-  box-shadow: 0 28px 68px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .04);
+  border-color: transparent;
+  background: transparent;
+  transform: none;
+  box-shadow: none;
 }
 
 .guest-landing-example-card-heading {
-  height: 58px;
-  padding: 0 18px;
-  border-bottom-color: rgba(255, 255, 255, .075);
-  background: #0d0e0f;
+  position: absolute;
+  z-index: 6;
+  left: 16px;
+  bottom: 16px;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 .guest-landing-example-card-title {
-  gap: 14px;
+  gap: 10px;
+  padding: 10px 13px 10px 11px;
+  border-left: 2px solid rgba(255, 255, 255, .78);
+  background: linear-gradient(90deg, rgba(5, 6, 7, .84), rgba(5, 6, 7, .58) 74%, transparent);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, .95);
+  backdrop-filter: blur(7px);
 }
 
 .guest-landing-example-card-title > span {
@@ -8624,13 +8665,20 @@ html:has(.has-guest-home) {
 }
 
 .guest-landing-example-card-title strong {
-  color: rgba(255, 255, 255, .92);
+  color: rgba(255, 255, 255, .96);
   font-size: 13px;
-  font-weight: 675;
+  font-weight: 720;
 }
 
 .guest-landing-example-card-title small {
-  color: rgba(255, 255, 255, .34);
+  color: rgba(255, 255, 255, .52);
+}
+
+.guest-landing-example-slider {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .11);
+  border-radius: 10px;
+  background: #080909;
 }
 
 .guest-landing-example-drag {
@@ -8720,13 +8768,15 @@ html:has(.has-guest-home) {
   }
 
   .guest-landing-example-card + .guest-landing-example-card {
-    border-top: 1px solid rgba(255, 255, 255, .11);
-    border-left: 1px solid rgba(255, 255, 255, .11);
+    border-top: 0;
+    border-left: 0;
   }
 
   .guest-landing-example-card-heading {
-    height: 60px;
-    padding: 0 13px;
+    left: 12px;
+    bottom: 12px;
+    height: auto;
+    padding: 0;
   }
 
   .guest-landing-example-slider .ba-slider-stage {

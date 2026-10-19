@@ -31,7 +31,7 @@ export default function HomepageTutorialSection() {
         </div>
       </header>
 
-      <div className="homepage-tutorial-player">
+      <div className="homepage-tutorial-player" data-playing={isPlaying}>
         <div className="homepage-tutorial-playerbar" aria-hidden="true">
           <span>DesaynClaw Academy</span>
           <span>Official walkthrough</span>

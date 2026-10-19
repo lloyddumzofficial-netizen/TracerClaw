@@ -2,6 +2,7 @@ import { ToastContainer } from "@/components/ui/Toast";
 import MobileWarning from "@/components/shared/MobileWarning";
 import CookieConsent from "@/components/shared/CookieConsent";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
+import NavigationProgress from "@/components/shared/NavigationProgress";
 import {
   defaultDescription,
   siteName,
@@ -159,6 +160,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <NavigationProgress />
         <AnalyticsProvider />
         <MobileWarning />
         <GlobalMobileSync />

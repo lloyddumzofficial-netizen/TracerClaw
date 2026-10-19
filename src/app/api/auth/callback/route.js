@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { sendEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
+import {
+  REFERRAL_COOKIE,
+  bindReferralFromAuthCallback,
+  referralCookieOptions,
+} from '@/server/referrals'
 
 export const dynamic = 'force-dynamic'
 const NEW_USER_WELCOME_WINDOW_MS = 5 * 60 * 1000
@@ -79,13 +84,37 @@ export async function GET(request) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      let referralHandled = false
+      try {
+        const referralResult = await bindReferralFromAuthCallback(request, data?.session?.user)
+        referralHandled = referralResult.handled
+        if (referralHandled) {
+          logger.info('[auth callback] Referral processed', {
+            userId: data?.session?.user?.id,
+            status: referralResult.status,
+            referralId: referralResult.referralId,
+          })
+        }
+      } catch (referralError) {
+        // Authentication must still succeed. Keeping the referral cookie lets a
+        // later callback retry instead of silently losing attribution.
+        logger.error('[auth callback] Referral processing failed after sign in', {
+          userId: data?.session?.user?.id,
+          error: referralError?.message,
+        })
+      }
+
       try {
         await sendWelcomeEmailForNewUser(data?.session?.user)
       } catch (welcomeError) {
         logger.warn('[auth callback] Welcome email failed after sign in', { error: welcomeError })
       }
 
-      return NextResponse.redirect(resolveSafeRedirect(next, origin))
+      const response = NextResponse.redirect(resolveSafeRedirect(next, origin))
+      if (referralHandled) {
+        response.cookies.set(REFERRAL_COOKIE, '', referralCookieOptions(0))
+      }
+      return response
     }
 
     console.error('[auth callback] Failed to exchange auth code for session', {

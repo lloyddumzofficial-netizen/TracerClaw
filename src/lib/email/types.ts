@@ -29,6 +29,7 @@ export type EmailTemplateRenderResult = {
   detailsLabel?: string;
   details?: Array<{ label: string; value: string | number | null | undefined; highlight?: boolean }>;
   cta?: { label: string; url: string };
+  socialLinks?: Array<{ label: string; url: string; iconUrl: string }>;
 };
 
 export type EmailTemplateRenderer = (data: EmailData) => EmailTemplateRenderResult;

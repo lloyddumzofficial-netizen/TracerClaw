@@ -5,6 +5,23 @@ const HOME_CTA = { label: "Open DesaynClaw", url: "https://desaynclaw.com" };
 const WELCOME_HEADER_URL = "https://desaynclaw.com/Welcome.jpg?v=20261016";
 const TUTORIAL_PREVIEW_URL = "https://desaynclaw.com/EMAIL-VIDEO-THUMBNAIL-TUTOORIAL.jpg";
 const TUTORIAL_URL = "https://desaynclaw.com/#how-desaynclaw-works";
+const WELCOME_SOCIAL_LINKS = [
+  {
+    label: "Facebook",
+    url: "https://www.facebook.com/profile.php?id=61564332563389",
+    iconUrl: "https://desaynclaw.com/social/facebook.png",
+  },
+  {
+    label: "Instagram",
+    url: "https://www.instagram.com/desaynclaw/",
+    iconUrl: "https://desaynclaw.com/social/instagram.png",
+  },
+  {
+    label: "LinkedIn",
+    url: "https://ph.linkedin.com/in/lloyd-dumz-a8a754370",
+    iconUrl: "https://desaynclaw.com/social/linkedin.png",
+  },
+];
 
 const supportTemplate = (data: EmailData) => ({
   title: field(data, "title", "Support Reply"),
@@ -30,6 +47,7 @@ export const emailTemplates = {
       actionLabel: "Watch the tutorial",
     },
     cta: HOME_CTA,
+    socialLinks: WELCOME_SOCIAL_LINKS,
   }),
 
   emailVerification: (data: EmailData) => ({

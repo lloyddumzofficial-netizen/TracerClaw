@@ -1,7 +1,7 @@
 "use client";
 
 // ─── React & Routing ──────────────────────────────────────────────────────────
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -16,7 +16,7 @@ import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight, Gift } from "lucide-react";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./home.css";
@@ -35,6 +35,9 @@ import TestimonialSection from "@/components/marketing/TestimonialSection";
 import GuestHomepageHero, { GuestHomepageConversionSections, GuestHomepageSampleSection } from "@/components/marketing/GuestHomepageHero";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 import HomepageTutorialSection from "@/components/marketing/HomepageTutorialSection";
+import ReferralModal from "@/components/marketing/ReferralModal";
+import ReferralPromptController from "@/components/marketing/ReferralPromptController";
+import { markReferralPromptSeen } from "@/lib/referralPrompt";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
@@ -512,7 +515,7 @@ function AnimatedCounter({ value }) {
 
 export default function StartScreen() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
   const bgRemoveInputRef = useRef(null);
@@ -536,10 +539,16 @@ export default function StartScreen() {
   const [showModal, setShowModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
+
+  const openReferralModal = useCallback(() => {
+    if (user?.id) markReferralPromptSeen(user.id);
+    setShowReferralModal(true);
+  }, [user?.id]);
 
   // ─── Modal Specific State ───────────────────────────────────────────────────
   const [modalProjectName, setModalProjectName] = useState("Untitled Design");
@@ -1199,6 +1208,15 @@ export default function StartScreen() {
                 >
                   <Play size={13} fill="currentColor" aria-hidden="true" /> Tutorial <span>5 min</span>
                 </button>
+                <button
+                  className="home-referral-button"
+                  type="button"
+                  onClick={openReferralModal}
+                  aria-label="Open Refer and Earn"
+                >
+                  <Gift size={14} aria-hidden="true" />
+                  <span>Refer &amp; Earn</span>
+                </button>
                 {/* Premium Credits Badge */}
                 <button className="home-credit-pill" type="button" onClick={() => setShowTopUpModal(true)} aria-label={`${credits} Claws available. Add more Claws`}>
                   <img src="/Claws/Claws.webp" alt="Claws" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
@@ -1228,7 +1246,7 @@ export default function StartScreen() {
         </div>
       </header>}
 
-      {showDriveAnnouncement && (
+      {showDriveAnnouncement && !showReferralModal && (
         <section className="home-announcement-banner" aria-label="Google Drive integration announcement">
           <div className="home-announcement-inner">
             <div className="home-announcement-icon" aria-hidden="true">
@@ -1742,6 +1760,22 @@ export default function StartScreen() {
           returnFocusRef={loginTriggerRef}
         />
 
+        <ReferralModal
+          show={showReferralModal}
+          onClose={() => setShowReferralModal(false)}
+          supabase={supabase}
+        />
+
+        <ReferralPromptController
+          user={user}
+          supabase={supabase}
+          blocked={Boolean(
+            showReferralModal || showModal || showTopUpModal || showLoginModal
+            || showOnboarding || showQrModal || isUploading
+          )}
+          onOpen={openReferralModal}
+        />
+
         {/* Delete Confirmation Modal */}
         {projectToDelete && (
           <div className="modal-overlay">
@@ -1849,9 +1883,15 @@ export default function StartScreen() {
               <img src="/logo.png" alt="DesaynClaw Logo" />
               <p>AI-powered production tools for clean SVG tracing, background removal, upscaling, and print-ready artwork delivery.</p>
               <div className="site-footer-socials" aria-label="DesaynClaw social links">
-                <a href="https://www.facebook.com/desaynbro" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
-                <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer" aria-label="Messenger">m</a>
-                <a href="https://desaynclaw.com" target="_blank" rel="noreferrer" aria-label="Website">⌁</a>
+                <a href="https://www.facebook.com/profile.php?id=61564332563389" target="_blank" rel="noreferrer" aria-label="Follow DesaynClaw on Facebook" title="Facebook">
+                  <Image src="/social/facebook.svg" alt="" width={18} height={18} aria-hidden="true" />
+                </a>
+                <a href="https://www.instagram.com/desaynclaw/" target="_blank" rel="noreferrer" aria-label="Follow DesaynClaw on Instagram" title="Instagram">
+                  <Image src="/social/instagram.svg" alt="" width={18} height={18} aria-hidden="true" />
+                </a>
+                <a href="https://ph.linkedin.com/in/lloyd-dumz-a8a754370" target="_blank" rel="noreferrer" aria-label="Follow DesaynClaw founder on LinkedIn" title="LinkedIn">
+                  <Image src="/social/linkedin.svg" alt="" width={18} height={18} aria-hidden="true" />
+                </a>
               </div>
             </div>
 
