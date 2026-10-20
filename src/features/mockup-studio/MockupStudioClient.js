@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
 import { safeJson } from "@/lib/safeJson";
@@ -175,7 +175,7 @@ function GarmentPreview({ assets, colors, garmentType }) {
 }
 
 export default function MockupStudioClient() {
-  const router = useRouter();
+  const router = useAppRouter();
   const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef(null);
   const activeRoleRef = useRef(null);

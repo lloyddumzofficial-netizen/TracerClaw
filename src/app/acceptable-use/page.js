@@ -1,10 +1,10 @@
 "use client";
 
-import { useTrackedRouter } from "@/hooks/useTrackedRouter";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 
 export default function AcceptableUsePolicy() {
-  const router = useTrackedRouter();
+  const router = useAppRouter();
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#111", color: "#eee", padding: "40px 20px" }}>

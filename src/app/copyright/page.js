@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -43,12 +44,12 @@ export default function CopyrightPolicy() {
   return (
     <div className="legal-page copyright-page">
       <header className="legal-topbar">
-        <a className="legal-brand" href="/" aria-label="DesaynClaw home">
+        <Link className="legal-brand" href="/" aria-label="DesaynClaw home">
           <img src="/logo.png" alt="DesaynClaw" />
-        </a>
-        <a className="legal-back" href="/">
+        </Link>
+        <Link className="legal-back" href="/">
           <ArrowLeft size={15} /> Back to home
-        </a>
+        </Link>
       </header>
 
       <main>
@@ -111,9 +112,9 @@ export default function CopyrightPolicy() {
                 only to provide the requested service, subject to our Terms of Service
                 and Privacy Policy.
               </p>
-              <a className="legal-inline-link" href="/privacy">
+              <Link className="legal-inline-link" href="/privacy">
                 Review the Privacy Policy <ArrowUpRight size={14} />
-              </a>
+              </Link>
             </Section>
 
             <Section number="04" id="unauthorized-content" title="Unauthorized content">
@@ -139,9 +140,9 @@ export default function CopyrightPolicy() {
                 infringes your rights, send a complete request through our copyright
                 takedown process so the claim can be reviewed.
               </p>
-              <a className="legal-inline-link" href="/copyright-takedown">
+              <Link className="legal-inline-link" href="/copyright-takedown">
                 View takedown requirements <ArrowUpRight size={14} />
-              </a>
+              </Link>
             </Section>
 
             <aside className="legal-contact" aria-label="Copyright support">
@@ -152,9 +153,9 @@ export default function CopyrightPolicy() {
                   <p>Review the required information before submitting your request.</p>
                 </div>
               </div>
-              <a href="/copyright-takedown">
+              <Link href="/copyright-takedown">
                 Takedown process <ArrowUpRight size={14} />
-              </a>
+              </Link>
             </aside>
           </article>
         </section>
@@ -164,9 +165,9 @@ export default function CopyrightPolicy() {
         <img src="/logo.png" alt="DesaynClaw" />
         <p>Your artwork. Your rights. Clear responsibilities.</p>
         <nav aria-label="Legal links">
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-          <a href="/refunds">Refunds</a>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/refunds">Refunds</Link>
         </nav>
       </footer>
     </div>

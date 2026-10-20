@@ -3,7 +3,7 @@
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { useTrackedRouter } from "@/hooks/useTrackedRouter";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import dynamic from "next/dynamic";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ function normalizeProjectForWorkspace(project) {
 }
 
 export default function Workspace() {
-  const router = useTrackedRouter();
+  const router = useAppRouter();
   const params = useParams();
   const projectId = params.id;
   const isMobileDevice = useIsMobileDevice();

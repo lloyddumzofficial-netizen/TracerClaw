@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, Clock3, LockKeyhole, ShieldCheck } from "lucide-react";
 import "../shared/consent-surfaces.css";
 
@@ -85,7 +86,7 @@ export default function AIDisclaimerModal() {
 
         <div className="privacy-consent-footer">
           <p>
-            Full details are available in our <a href="/privacy">Privacy Policy</a>.
+            Full details are available in our <Link href="/privacy">Privacy Policy</Link>.
           </p>
           <button
             type="button"

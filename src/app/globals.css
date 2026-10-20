@@ -51,7 +51,7 @@ html {
 
 .route-transition-shell {
   min-height: 100%;
-  animation: route-content-enter var(--motion-standard) var(--ease-enter) both;
+  animation: route-content-enter 150ms var(--ease-enter) both;
 }
 
 @keyframes route-content-enter {
@@ -59,135 +59,55 @@ html {
   to { opacity: 1; }
 }
 
-.global-navigation-progress {
+.global-navigation-feedback {
   position: fixed;
   z-index: 120000;
-  top: 0;
-  right: 0;
-  left: 0;
+  inset: 0 0 auto;
   height: 2px;
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
-  transition: opacity var(--motion-instant) ease;
+  transition: opacity 180ms ease;
 }
 
-.global-navigation-progress span {
+.global-navigation-feedback span {
   display: block;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, rgba(255,255,255,.18), #fff 72%, rgba(255,255,255,.5));
-  box-shadow: 0 0 12px rgba(255, 255, 255, .28);
-  transform: scaleX(.08);
+  background: rgba(246, 246, 242, .82);
+  transform: scaleX(0);
   transform-origin: left center;
+  will-change: transform;
 }
 
-.global-navigation-progress[data-state="loading"],
-.global-navigation-progress[data-state="complete"] {
+.global-navigation-feedback[data-state="active"],
+.global-navigation-feedback[data-state="complete"] {
   opacity: 1;
-  transition-delay: 120ms;
 }
 
-.global-navigation-progress[data-state="loading"] span {
-  animation: global-navigation-running 6s cubic-bezier(.1, .65, .2, 1) forwards;
+.global-navigation-feedback[data-state="active"] span {
+  animation: navigation-progress-active 12s cubic-bezier(.12, .72, .2, 1) forwards;
 }
 
-.global-navigation-progress[data-state="complete"] {
-  transition-delay: 0ms;
-}
-
-.global-navigation-progress[data-state="complete"] span {
+.global-navigation-feedback[data-state="complete"] span,
+.global-navigation-feedback[data-state="fading"] span {
   transform: scaleX(1);
-  transition: transform 180ms cubic-bezier(.2, .8, .2, 1);
 }
 
-@keyframes global-navigation-running {
-  0% { transform: scaleX(.08); }
-  18% { transform: scaleX(.42); }
-  58% { transform: scaleX(.72); }
-  100% { transform: scaleX(.92); }
+.global-navigation-feedback[data-state="complete"] span {
+  transition: transform 200ms cubic-bezier(.2, .8, .2, 1);
 }
 
-.route-loading-shell {
-  position: relative;
-  min-height: 100dvh;
-  display: grid;
-  place-content: center;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, .045), transparent 28%),
-    linear-gradient(rgba(255, 255, 255, .018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, .018) 1px, transparent 1px),
-    #090a0a;
-  background-size: auto, 48px 48px, 48px 48px, auto;
-  color: #f5f5f2;
-  text-align: center;
+.global-navigation-feedback[data-state="fading"] {
+  opacity: 0;
 }
 
-.route-loading-stage {
-  width: min(320px, calc(100vw - 48px));
-  display: grid;
-  justify-items: center;
-}
-
-.route-loading-mark {
-  width: 82px;
-  height: 76px;
-  display: grid;
-  place-items: center;
-  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, .38));
-}
-
-.route-loading-mark svg {
-  display: block;
-}
-
-.route-loading-copy {
-  margin-top: 19px;
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-}
-
-.route-loading-copy > span {
-  color: rgba(255, 255, 255, .48);
-  font: 720 9px/1 var(--font-geist-mono), monospace;
-  letter-spacing: .18em;
-}
-
-.route-loading-copy strong {
-  color: #f2f2ef;
-  font: 650 17px/1.2 var(--font-manrope), sans-serif;
-  letter-spacing: -.025em;
-}
-
-.route-loading-copy small {
-  color: rgba(255, 255, 255, .43);
-  font: 500 11px/1.4 var(--font-manrope), sans-serif;
-}
-
-.route-loading-progress {
-  width: 180px;
-  height: 1px;
-  margin-top: 24px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, .1);
-}
-
-.route-loading-progress span {
-  width: 44%;
-  height: 100%;
-  display: block;
-  background: linear-gradient(90deg, transparent, #f4f4ef, transparent);
-  transform: translateX(-125%);
-  animation: route-loader-sweep 1.35s cubic-bezier(.45, 0, .55, 1) infinite;
-}
-
-@keyframes route-loader-sweep {
-  0% { transform: translateX(-125%); opacity: 0; }
-  18% { opacity: 1; }
-  82% { opacity: 1; }
-  100% { transform: translateX(355%); opacity: 0; }
+@keyframes navigation-progress-active {
+  0% { transform: scaleX(.07); }
+  18% { transform: scaleX(.4); }
+  52% { transform: scaleX(.68); }
+  78% { transform: scaleX(.8); }
+  100% { transform: scaleX(.88); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -196,6 +116,11 @@ html {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
+  }
+
+  .global-navigation-feedback[data-state="active"] span {
+    animation: none !important;
+    transform: scaleX(.72);
   }
 }
 .app-container {

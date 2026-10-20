@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import { ToastContainer } from "@/components/ui/Toast";
 import MobileWarning from "@/components/shared/MobileWarning";
 import CookieConsent from "@/components/shared/CookieConsent";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
-import NavigationProgress from "@/components/shared/NavigationProgress";
+import NavigationFeedback from "@/components/shared/NavigationFeedback";
 import {
   defaultDescription,
   siteName,
@@ -160,7 +161,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <NavigationProgress />
+        <Suspense fallback={null}>
+          <NavigationFeedback />
+        </Suspense>
         <AnalyticsProvider />
         <MobileWarning />
         <GlobalMobileSync />

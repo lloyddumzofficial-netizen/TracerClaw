@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTrackedRouter } from "@/hooks/useTrackedRouter";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { createBrowserClient } from "@supabase/ssr";
 import { safeJson } from "@/lib/safeJson";
 
@@ -11,7 +11,7 @@ const DEFAULT_RECIPIENT = "lloyddumzofficial@gmail.com";
 const ADMIN_EMAIL = "lloyddumzofficial@gmail.com";
 
 export default function AdminSendEmailPage() {
-  const router = useTrackedRouter();
+  const router = useAppRouter();
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState("");
   const [to, setTo] = useState(DEFAULT_RECIPIENT);

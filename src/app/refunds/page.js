@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AlertCircle, ArrowLeft, ArrowUpRight, Check, CheckCircle2, Clock3, CreditCard, FileText, MessageCircle, RotateCcw, XCircle } from "lucide-react";
 import "../legal-policy.css";
 
@@ -23,8 +24,8 @@ export default function RefundPolicy() {
   return (
     <div className="legal-page">
       <header className="legal-topbar">
-        <a className="legal-brand" href="/"><img src="/logo.png" alt="DesaynClaw" /></a>
-        <a className="legal-back" href="/"><ArrowLeft size={15}/> Back to home</a>
+        <Link className="legal-brand" href="/"><img src="/logo.png" alt="DesaynClaw" /></Link>
+        <Link className="legal-back" href="/"><ArrowLeft size={15}/> Back to home</Link>
       </header>
       <main>
         <section className="legal-hero">
@@ -50,7 +51,7 @@ export default function RefundPolicy() {
           </article>
         </section>
       </main>
-      <footer className="legal-footer"><img src="/logo.png" alt="DesaynClaw"/><p>Transparent rules for every Claw purchase.</p><nav><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/copyright">Copyright</a></nav></footer>
+      <footer className="legal-footer"><img src="/logo.png" alt="DesaynClaw"/><p>Transparent rules for every Claw purchase.</p><nav><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/copyright">Copyright</Link></nav></footer>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowUpRight, Cookie, X } from "lucide-react";
 import "./consent-surfaces.css";
 
@@ -50,9 +51,9 @@ export default function CookieConsent() {
           <p>
             We use essential cookies and local storage to keep your session secure and remember your preferences.
             {" "}
-            <a href="/privacy">
+            <Link href="/privacy">
               Privacy Policy <ArrowUpRight size={12} strokeWidth={2} aria-hidden="true" />
-            </a>
+            </Link>
           </p>
         </div>
 

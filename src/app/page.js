@@ -2,9 +2,10 @@
 
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useTrackedRouter } from "@/hooks/useTrackedRouter";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import Link from "next/link";
 import laptopPreview from "../../public/LAPTOP.jpg";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
@@ -515,7 +516,7 @@ function AnimatedCounter({ value }) {
 }
 
 export default function StartScreen() {
-  const router = useTrackedRouter();
+  const router = useAppRouter();
   const supabase = useMemo(() => createClient(), []);
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
@@ -1967,18 +1968,18 @@ export default function StartScreen() {
             <nav className="site-footer-links" aria-label="Footer links">
               <div>
                 <h3>Resources</h3>
-                <a href="/privacy">Privacy Policy</a>
-                <a href="/terms">Terms of Service</a>
-                <a href="/refunds">Refund Policy</a>
-                <a href="/#faq">FAQ</a>
+                <Link href="/privacy">Privacy Policy</Link>
+                <Link href="/terms">Terms of Service</Link>
+                <Link href="/refunds">Refund Policy</Link>
+                <Link href="/#faq">FAQ</Link>
               </div>
               <div>
                 <h3>Company</h3>
-                <a href="/team">Team</a>
+                <Link href="/team">Team</Link>
                 <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Contact</a>
                 <a href="https://m.me/105884602605306" target="_blank" rel="noreferrer">Customer Support</a>
-                <a href="/#start">Start Workspace</a>
-                <a href="/upscale">Image Upscale</a>
+                <Link href="/#start">Start Workspace</Link>
+                <Link href="/upscale">Image Upscale</Link>
               </div>
             </nav>
           </div>

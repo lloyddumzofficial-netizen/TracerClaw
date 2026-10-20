@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -49,10 +50,10 @@ export default function PrivacyPolicy() {
   return (
     <div className="privacy-page">
       <header className="privacy-topbar">
-        <a className="privacy-brand" href="/" aria-label="DesaynClaw home">
+        <Link className="privacy-brand" href="/" aria-label="DesaynClaw home">
           <img src="/logo.png" alt="DesaynClaw" />
-        </a>
-        <a className="privacy-back" href="/"><ArrowLeft size={15} /> Back to home</a>
+        </Link>
+        <Link className="privacy-back" href="/"><ArrowLeft size={15} /> Back to home</Link>
       </header>
 
       <main>
@@ -114,7 +115,7 @@ export default function PrivacyPolicy() {
 
             <PolicySection number="03" id="ownership" title="Ownership and permitted use">
               <p>DesaynClaw does not claim ownership of your uploaded files or generated outputs. You retain the rights you hold in that content. You are responsible for having the necessary permission to process client artwork, trademarks, logos, characters, and copyrighted material.</p>
-              <a className="privacy-inline-link" href="/copyright">Read our Copyright Policy <ArrowUpRight size={14} /></a>
+              <Link className="privacy-inline-link" href="/copyright">Read our Copyright Policy <ArrowUpRight size={14} /></Link>
             </PolicySection>
 
             <PolicySection number="04" id="account-data" title="Account and technical information">
@@ -123,7 +124,7 @@ export default function PrivacyPolicy() {
 
             <PolicySection number="05" id="payments" title="Payments and Claws">
               <p>We process the purchase and transaction information needed to verify payments, credit Claws, prevent fraud, and provide customer support. Payment providers may process billing details under their own privacy terms.</p>
-              <a className="privacy-inline-link" href="/refunds">Review Refunds &amp; Payments <ArrowUpRight size={14} /></a>
+              <Link className="privacy-inline-link" href="/refunds">Review Refunds &amp; Payments <ArrowUpRight size={14} /></Link>
             </PolicySection>
 
             <PolicySection number="06" id="providers" title="Infrastructure and service providers">
@@ -143,7 +144,7 @@ export default function PrivacyPolicy() {
       <footer className="privacy-footer">
         <img src="/logo.png" alt="DesaynClaw" />
         <p>Private-by-default tools for real production work.</p>
-        <nav aria-label="Legal links"><a href="/terms">Terms</a><a href="/refunds">Refunds</a><a href="/copyright">Copyright</a></nav>
+        <nav aria-label="Legal links"><Link href="/terms">Terms</Link><Link href="/refunds">Refunds</Link><Link href="/copyright">Copyright</Link></nav>
       </footer>
     </div>
   );

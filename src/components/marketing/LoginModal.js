@@ -3,6 +3,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import Link from "next/link";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -307,7 +308,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
                   </div>
 
                   <p className="login-legal">
-                    By continuing, you agree to our <a href="/terms">Terms</a> and acknowledge our <a href="/privacy">Privacy Policy</a>.
+                    By continuing, you agree to our <Link href="/terms">Terms</Link> and acknowledge our <Link href="/privacy">Privacy Policy</Link>.
                   </p>
                 </form>
               )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { useTrackedRouter } from "@/hooks/useTrackedRouter";
+import { useAppRouter } from "@/hooks/useAppRouter";
 import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
 import { CheckCircle2, Columns2, Download, Image as ImageIcon, Loader2, Minus, Plus, RotateCcw, Scissors, ShieldCheck } from "lucide-react";
@@ -21,7 +21,7 @@ const PREVIEW_SURFACES = [
 ];
 
 export default function BgRemoverPage() {
-  const router = useTrackedRouter();
+  const router = useAppRouter();
   const params = useParams();
   const projectId = params.id;
   const isMobileDevice = useIsMobileDevice();

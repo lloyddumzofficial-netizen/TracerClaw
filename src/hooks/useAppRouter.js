@@ -5,23 +5,24 @@ import { useRouter } from "next/navigation";
 
 export const NAVIGATION_START_EVENT = "desaynclaw:navigation-start";
 
-function shouldTrackNavigation(href) {
-  if (typeof window === "undefined") return false;
+export function isTrackableNavigation(href, currentHref) {
   try {
-    const destination = new URL(String(href), window.location.href);
-    if (destination.origin !== window.location.origin) return false;
-    return destination.href !== window.location.href;
+    const current = new URL(currentHref);
+    const destination = new URL(String(href), current);
+
+    if (destination.origin !== current.origin) return false;
+    return destination.pathname !== current.pathname || destination.search !== current.search;
   } catch {
     return false;
   }
 }
 
 export function announceNavigation(href) {
-  if (!shouldTrackNavigation(href)) return;
-  window.dispatchEvent(new CustomEvent(NAVIGATION_START_EVENT, { detail: { href: String(href) } }));
+  if (typeof window === "undefined" || !isTrackableNavigation(href, window.location.href)) return;
+  window.dispatchEvent(new CustomEvent(NAVIGATION_START_EVENT));
 }
 
-export function useTrackedRouter() {
+export function useAppRouter() {
   const router = useRouter();
 
   const push = useCallback((href, options) => {
