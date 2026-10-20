@@ -83,7 +83,7 @@ export async function GET(request) {
       if (settlementError) throw settlementError;
       const row = Array.isArray(settlement) ? settlement[0] : settlement;
       if (["rewarded", "already_rewarded"].includes(row?.status)) results.rewarded += 1;
-      else if (["monthly_cap", "not_pending", "referral_code_disabled"].includes(row?.status)) results.rejected += 1;
+      else if (["lifetime_cap", "monthly_cap", "not_pending", "referral_code_disabled"].includes(row?.status)) results.rejected += 1;
       else results.deferred += 1;
     } catch (itemError) {
       results.failures += 1;

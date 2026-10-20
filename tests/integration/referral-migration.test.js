@@ -5,6 +5,7 @@ const migrationUrl = new URL("../../database/migrations/030_secure_referrals.sql
 const hardeningMigrationUrl = new URL("../../database/migrations/031_harden_referral_identity_and_qualification.sql", import.meta.url);
 const acknowledgementMigrationUrl = new URL("../../database/migrations/032_referral_reward_acknowledgements.sql", import.meta.url);
 const providerHardeningMigrationUrl = new URL("../../database/migrations/033_require_google_for_referral_rewards.sql", import.meta.url);
+const lifetimeCapMigrationUrl = new URL("../../database/migrations/034_lifetime_referral_reward_cap.sql", import.meta.url);
 
 describe("secure referral migration", () => {
   it("keeps all referral tables service-role only", async () => {
@@ -69,5 +70,14 @@ describe("secure referral migration", () => {
     expect(sql).toContain("BEFORE UPDATE OF status ON public.referral_rewards");
     expect(sql).toContain("untrusted_auth_provider");
     expect(sql).toContain("goldlical.com");
+  });
+
+  it("enforces a permanent three-Claw referrer reward ceiling", async () => {
+    const sql = await readFile(lifetimeCapMigrationUrl, "utf8");
+    expect(sql).toContain("lifetime_rewards >= 3");
+    expect(sql).toContain("rejection_reason = 'lifetime_cap'");
+    expect(sql).not.toContain("date_trunc('month'");
+    expect(sql).toContain("referrer_lifetime_rewards");
+    expect(sql).toContain("FOR UPDATE");
   });
 });

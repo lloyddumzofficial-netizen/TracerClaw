@@ -17,6 +17,19 @@ afterEach(() => {
 });
 
 describe("referral endpoint gates", () => {
+  it("exposes the server-side feature flag without caching it", async () => {
+    const { GET } = await import("@/app/api/referrals/status/route.js");
+
+    const disabledResponse = GET();
+    expect(disabledResponse.status).toBe(200);
+    expect(disabledResponse.headers.get("cache-control")).toBe("no-store");
+    expect(await disabledResponse.json()).toEqual({ enabled: false });
+
+    process.env.REFERRALS_ENABLED = "true";
+    const enabledResponse = GET();
+    expect(await enabledResponse.json()).toEqual({ enabled: true });
+  });
+
   it("keeps link creation disabled by default", async () => {
     const { POST } = await import("@/app/api/referrals/code/route.js");
     const response = await POST(new Request("http://localhost/api/referrals/code", { method: "POST" }));

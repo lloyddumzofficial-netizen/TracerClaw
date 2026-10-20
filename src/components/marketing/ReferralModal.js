@@ -8,24 +8,6 @@ import { safeJson } from "@/lib/safeJson";
 import { toast } from "@/components/ui/Toast";
 import styles from "./ReferralModal.module.css";
 
-const STATUS_LABELS = {
-  bound: "Signed up",
-  trial_granted: "Trial granted",
-  qualified: "Qualified",
-  pending_review: "Security hold",
-  rewarded: "Rewarded · +1 Claw",
-  rejected: "Not eligible",
-};
-
-function formatStatus(status) {
-  return STATUS_LABELS[status] || String(status || "Pending").replaceAll("_", " ");
-}
-
-function formatDate(value) {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
-}
-
 export default function ReferralModal({ show, onClose, supabase }) {
   const [mounted, setMounted] = useState(show);
   const [isVisible, setIsVisible] = useState(false);
@@ -119,9 +101,14 @@ export default function ReferralModal({ show, onClose, supabase }) {
 
   if (!mounted) return null;
 
-  const cap = summary?.monthlyCap || 5;
+  const cap = summary?.lifetimeCap || 3;
   const ageDays = summary?.eligibility?.accountAgeDays || 0;
   const completedProjects = summary?.eligibility?.completedProjects || 0;
+  const referralActivity = summary?.referrals || [];
+  const activityCount = referralActivity.length;
+  const rewardedCount = referralActivity.filter((referral) => referral.status === "rewarded").length;
+  const notEligibleCount = referralActivity.filter((referral) => referral.status === "rejected").length;
+  const activeCount = activityCount - rewardedCount - notEligibleCount;
 
   return createPortal((
     <div className={`${styles.backdrop} ${isVisible ? styles.visible : ""}`} role="presentation" onMouseDown={(event) => {
@@ -130,7 +117,7 @@ export default function ReferralModal({ show, onClose, supabase }) {
       <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="referral-title">
         <header className={styles.header}>
           <div className={styles.topline}>
-            <div className={styles.rewardPill}>Earn up to {cap} Claws</div>
+            <div className={styles.rewardPill}>Earn up to {cap} Claws total</div>
           </div>
           <button ref={closeButtonRef} type="button" className={styles.close} onClick={onClose} aria-label="Close referral program">
             <X size={18} aria-hidden="true" />
@@ -231,19 +218,18 @@ export default function ReferralModal({ show, onClose, supabase }) {
                 </div>
               )}
 
-              {summary?.referrals?.length > 0 && (
+              {activityCount > 0 && (
                 <div className={styles.activity}>
-                  <div className={styles.sectionHeading}>
-                    <div><div><strong>Referral activity</strong><small>Latest verified invite activity</small></div></div>
+                  <div className={styles.activityHeading}>
+                    <div>
+                      <strong>Referral activity</strong>
+                      <small>{activityCount} tracked {activityCount === 1 ? "invite" : "invites"}</small>
+                    </div>
                   </div>
-                  <div className={styles.activityList}>
-                    {summary.referrals.slice(0, 5).map((referral) => (
-                      <div className={styles.activityRow} key={referral.id}>
-                        <span className={styles.person}><Users size={14} aria-hidden="true" /> {referral.invitee}</span>
-                        <span className={styles.status} data-status={referral.status}>{formatStatus(referral.status)}</span>
-                        <time>{formatDate(referral.settledAt || referral.createdAt)}</time>
-                      </div>
-                    ))}
+                  <div className={styles.activitySummary} aria-label={`${activityCount} referrals: ${rewardedCount} rewarded, ${activeCount} in progress, ${notEligibleCount} not eligible`}>
+                    <span><b>{rewardedCount}</b> rewarded</span>
+                    <span><b>{activeCount}</b> in progress</span>
+                    <span><b>{notEligibleCount}</b> not eligible</span>
                   </div>
                 </div>
               )}

@@ -213,9 +213,7 @@ export function maskEmail(email) {
 }
 
 export async function getReferralSummary(userId, origin) {
-  const now = new Date();
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const [profileResult, activityResult, codeResult, referralsResult, monthlyRewardResult] = await Promise.all([
+  const [profileResult, activityResult, codeResult, referralsResult, lifetimeRewardResult] = await Promise.all([
     adminSupabase.from("profiles").select("created_at").eq("id", userId).single(),
     adminSupabase.from("user_activity_summary").select("completed_project_count").eq("user_id", userId).maybeSingle(),
     adminSupabase.from("referral_codes").select("id, enabled, code_hash, click_count").eq("owner_user_id", userId).maybeSingle(),
@@ -228,14 +226,13 @@ export async function getReferralSummary(userId, origin) {
       .select("id", { count: "exact", head: true })
       .eq("recipient_user_id", userId)
       .eq("reward_type", "referrer_completion")
-      .eq("status", "rewarded")
-      .gte("settled_at", monthStart),
+      .eq("status", "rewarded"),
   ]);
   if (profileResult.error) throw profileResult.error;
   if (activityResult.error) throw activityResult.error;
   if (codeResult.error) throw codeResult.error;
   if (referralsResult.error) throw referralsResult.error;
-  if (monthlyRewardResult.error) throw monthlyRewardResult.error;
+  if (lifetimeRewardResult.error) throw lifetimeRewardResult.error;
 
   const accountAgeMs = Date.now() - new Date(profileResult.data.created_at).getTime();
   const completedProjects = activityResult.data?.completed_project_count || 0;
@@ -254,7 +251,7 @@ export async function getReferralSummary(userId, origin) {
     rejectionReason: item.rejection_reason,
     createdAt: item.created_at,
   }));
-  const monthlyRewards = monthlyRewardResult.count || 0;
+  const lifetimeRewards = lifetimeRewardResult.count || 0;
 
   return {
     enabled: true,
@@ -264,8 +261,8 @@ export async function getReferralSummary(userId, origin) {
     link: secretMatches && code ? `${origin}/r/${code}` : null,
     codeEnabled: Boolean(codeResult.data?.enabled),
     clickCount: codeResult.data?.click_count || 0,
-    monthlyRewards,
-    monthlyCap: 5,
+    lifetimeRewards,
+    lifetimeCap: 3,
     referrals,
     configurationError: secretMatches ? null : "REFERRAL_SECRET_CHANGED",
   };

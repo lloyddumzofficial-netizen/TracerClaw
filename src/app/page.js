@@ -541,6 +541,7 @@ export default function StartScreen() {
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [isReferralProgramEnabled, setIsReferralProgramEnabled] = useState(false);
   const [topUpInitialTab, setTopUpInitialTab] = useState("plans");
   const [unreadReferralRewards, setUnreadReferralRewards] = useState(0);
   const loginTriggerRef = useRef(null);
@@ -549,8 +550,41 @@ export default function StartScreen() {
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   const openReferralModal = useCallback(() => {
+    if (!isReferralProgramEnabled) return;
     if (user?.id) markReferralPromptSeen(user.id);
     setShowReferralModal(true);
+  }, [isReferralProgramEnabled, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsReferralProgramEnabled(false);
+      setShowReferralModal(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const loadReferralStatus = async () => {
+      try {
+        const response = await fetch("/api/referrals/status", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const result = await safeJson(response, "Could not load referral availability");
+        const enabled = response.ok && result.enabled === true;
+        if (!controller.signal.aborted) {
+          setIsReferralProgramEnabled(enabled);
+          if (!enabled) setShowReferralModal(false);
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          setIsReferralProgramEnabled(false);
+          setShowReferralModal(false);
+        }
+      }
+    };
+
+    loadReferralStatus();
+    return () => controller.abort();
   }, [user?.id]);
 
   // ─── Modal Specific State ───────────────────────────────────────────────────
@@ -1211,15 +1245,17 @@ export default function StartScreen() {
                 >
                   <Play size={13} fill="currentColor" aria-hidden="true" /> Tutorial <span>5 min</span>
                 </button>
-                <button
-                  className="home-referral-button"
-                  type="button"
-                  onClick={openReferralModal}
-                  aria-label="Open Refer and Earn"
-                >
-                  <Gift size={14} aria-hidden="true" />
-                  <span>Refer &amp; Earn</span>
-                </button>
+                {isReferralProgramEnabled && (
+                  <button
+                    className="home-referral-button"
+                    type="button"
+                    onClick={openReferralModal}
+                    aria-label="Open Refer and Earn"
+                  >
+                    <Gift size={14} aria-hidden="true" />
+                    <span>Refer &amp; Earn</span>
+                  </button>
+                )}
                 {/* Premium Credits Badge */}
                 <button
                   className="home-credit-pill"
@@ -1774,21 +1810,25 @@ export default function StartScreen() {
           returnFocusRef={loginTriggerRef}
         />
 
-        <ReferralModal
-          show={showReferralModal}
-          onClose={() => setShowReferralModal(false)}
-          supabase={supabase}
-        />
+        {isReferralProgramEnabled && (
+          <>
+            <ReferralModal
+              show={showReferralModal}
+              onClose={() => setShowReferralModal(false)}
+              supabase={supabase}
+            />
 
-        <ReferralPromptController
-          user={user}
-          supabase={supabase}
-          blocked={Boolean(
-            showReferralModal || showModal || showTopUpModal || showLoginModal
-            || showOnboarding || showQrModal || isUploading
-          )}
-          onOpen={openReferralModal}
-        />
+            <ReferralPromptController
+              user={user}
+              supabase={supabase}
+              blocked={Boolean(
+                showReferralModal || showModal || showTopUpModal || showLoginModal
+                || showOnboarding || showQrModal || isUploading
+              )}
+              onOpen={openReferralModal}
+            />
+          </>
+        )}
 
         <ClawRewardNotice
           user={user}
