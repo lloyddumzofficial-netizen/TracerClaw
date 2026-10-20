@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTrackedRouter } from "@/hooks/useTrackedRouter";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "@/components/ui/Toast";
 import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasNewRequests, setHasNewRequests] = useState(false);
   const dashboardFetchRef = useRef(null);
-  const router = useRouter();
+  const router = useTrackedRouter();
 
   const PLAN_PRICES = Object.fromEntries(
     Object.values(CREDIT_PLANS).map((plan) => [plan.key, Math.round(plan.amount / 100)])

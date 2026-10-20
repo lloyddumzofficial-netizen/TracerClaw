@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTrackedRouter } from "@/hooks/useTrackedRouter";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 
 export default function CopyrightTakedownRequest() {
-  const router = useRouter();
+  const router = useTrackedRouter();
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#111", color: "#eee", padding: "40px 20px" }}>

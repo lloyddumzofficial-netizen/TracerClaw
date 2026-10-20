@@ -4010,6 +4010,8 @@
 
 .guest-landing-title-question {
   color: rgba(246, 245, 242, .82);
+  letter-spacing: -.025em;
+  font-kerning: normal;
 }
 
 .guest-landing-output-mark {

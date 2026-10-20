@@ -1,10 +1,10 @@
 "use client";
 
 import { MonitorX, ArrowLeft, Monitor } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useTrackedRouter } from "@/hooks/useTrackedRouter";
 
 export default function DesktopRequiredNotice() {
-  const router = useRouter();
+  const router = useTrackedRouter();
 
   return (
     <div style={{

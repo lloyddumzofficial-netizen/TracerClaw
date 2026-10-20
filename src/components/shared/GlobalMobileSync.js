@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useTrackedRouter } from "@/hooks/useTrackedRouter";
 import { createClient } from "@/utils/supabase/client";
 import { X, Shirt, Scissors } from "lucide-react";
 
@@ -14,7 +15,7 @@ const LogoIcon = ({ size = 40 }) => (
 );
 
 export default function GlobalMobileSync() {
-  const router = useRouter();
+  const router = useTrackedRouter();
   const pathname = usePathname();
   const supabase = createClient();
   const [receivedImage, setReceivedImage] = useState(null);

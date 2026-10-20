@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { CheckCircle2, Clock, Columns2, Download, ImageIcon, Loader2, Minus, Plus, RotateCcw, Scan, ShieldCheck, Wand2 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
+import { useTrackedRouter } from "@/hooks/useTrackedRouter";
 import { analytics } from "@/lib/analytics";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
@@ -81,7 +81,7 @@ const getPendingUpscaleRequestId = (project) => {
 };
 
 export default function UpscalePage() {
-  const router = useRouter();
+  const router = useTrackedRouter();
   const fileInputRef = useRef(null);
   const isProcessingRef = useRef(false);
   const upscaleRequestKeyRef = useRef(null);

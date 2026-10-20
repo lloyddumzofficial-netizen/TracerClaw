@@ -2,7 +2,7 @@
 
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useTrackedRouter } from "@/hooks/useTrackedRouter";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import laptopPreview from "../../public/LAPTOP.jpg";
@@ -515,7 +515,7 @@ function AnimatedCounter({ value }) {
 }
 
 export default function StartScreen() {
-  const router = useRouter();
+  const router = useTrackedRouter();
   const supabase = useMemo(() => createClient(), []);
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
