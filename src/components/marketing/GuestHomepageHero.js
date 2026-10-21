@@ -15,16 +15,14 @@ const HOMEPAGE_COMPARISONS = [
   {
     id: "front",
     number: "01",
-    title: "Front view",
-    meta: "Source / extracted",
+    title: "Front panel",
     originalUrl: `${SAMPLE_ASSET_ROOT}/FRONT/ORIGINAL_FRONT.png`,
     extractedUrl: `${SAMPLE_ASSET_ROOT}/FRONT/EXTRACTED_FRONT.png`,
   },
   {
     id: "back",
     number: "02",
-    title: "Back view",
-    meta: "Source / extracted",
+    title: "Back panel",
     originalUrl: `${SAMPLE_ASSET_ROOT}/BACK/BACK_ORIGINAL.png`,
     extractedUrl: `${SAMPLE_ASSET_ROOT}/BACK/BACK_EXTRACETED.png`,
   },
@@ -35,14 +33,11 @@ export function GuestHomepageSampleSection() {
     <div className="guest-landing guest-landing-lower guest-landing-sample">
       <section className="guest-landing-example" id="preview" aria-label="Original artwork and extracted output comparison">
         <div className="guest-landing-example-copy">
-          <div className="guest-landing-example-kicker">
-            <span>PRODUCTION PROOF</span>
-            <small>FRONT / BACK COMPARISON</small>
-          </div>
-          <h2>Inspect every edge <em>before export.</em></h2>
+          <div className="guest-landing-example-kicker">OUTPUT REVIEW</div>
+          <h2>Compare before export.</h2>
           <div className="guest-landing-example-summary">
-            <p>Compare each extracted panel against the source garment. Verify curves, fine print, alignment, and edge quality before the production handoff.</p>
-            <span><ArrowLeftRight size={13} aria-hidden="true" /> Drag either divider to inspect</span>
+            <p>Review the extracted front and back panels against the source garment before handing files to production.</p>
+            <span><ArrowLeftRight size={13} aria-hidden="true" /> Drag the vertical rule to compare</span>
           </div>
         </div>
         <div className="guest-landing-proof-board">
@@ -52,10 +47,12 @@ export function GuestHomepageSampleSection() {
                 <header className="guest-landing-example-card-heading">
                   <div className="guest-landing-example-card-title">
                     <span>{comparison.number}</span>
-                    <div>
-                      <strong>{comparison.title}</strong>
-                      <small>{comparison.meta}</small>
-                    </div>
+                    <strong>{comparison.title}</strong>
+                  </div>
+                  <div className="guest-landing-example-legend" aria-hidden="true">
+                    <span>Extracted</span>
+                    <ArrowLeftRight size={12} />
+                    <span>Original</span>
                   </div>
                 </header>
                 <div className="guest-landing-example-slider">
