@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
-import { getCreditPlan } from "@/lib/paymentPlans";
+import { getPaymentOffer } from "@/lib/paymentPlans";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { getPayMongoAuthHeader } from "@/lib/paymongo";
 import { getBearerToken, parseJsonRequest, stringField } from "@/lib/apiValidation";
@@ -41,7 +41,7 @@ export async function POST(request) {
     const parsed = await parseJsonRequest(request, checkoutSchema, { allowUnknown: false });
     if (!parsed.ok) return parsed.response;
 
-    const plan = getCreditPlan(parsed.data.plan);
+    const plan = getPaymentOffer("paymongo", parsed.data.plan);
     if (!plan) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }

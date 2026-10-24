@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
-import { getCreditPlan, getDodoProductId } from "@/lib/paymentPlans";
+import { getDodoProductId, getPaymentOffer } from "@/lib/paymentPlans";
 import { getDodoClient, getSiteUrl } from "@/lib/dodo";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { getBearerToken, parseJsonRequest, stringField } from "@/lib/apiValidation";
@@ -49,7 +49,7 @@ export async function POST(request) {
     const parsed = await parseJsonRequest(request, checkoutSchema, { allowUnknown: false });
     if (!parsed.ok) return parsed.response;
 
-    const plan = getCreditPlan(parsed.data.plan);
+    const plan = getPaymentOffer("dodo", parsed.data.plan);
     const billingCurrency = parsed.data.billingCurrency || plan?.currency;
     if (!plan) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -57,10 +57,6 @@ export async function POST(request) {
     if (!isSupportedBillingCurrency(billingCurrency)) {
       return NextResponse.json({ error: "Unsupported billing currency" }, { status: 400 });
     }
-    if (!plan.dodoEnabled) {
-      return NextResponse.json({ error: "This package is available through automatic QR Ph payment only." }, { status: 400 });
-    }
-
     const productId = getDodoProductId(plan);
     if (!productId) {
       return NextResponse.json({ error: `${plan.dodoProductEnv} is not configured` }, { status: 500 });
@@ -75,6 +71,9 @@ export async function POST(request) {
         credits: plan.credits,
         amount: plan.amount,
         currency: plan.currency,
+        provider_product_id: productId,
+        catalog_version: plan.catalogVersion,
+        requested_billing_currency: billingCurrency,
         status: "pending",
       })
       .select("*")

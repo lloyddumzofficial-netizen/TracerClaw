@@ -31,10 +31,10 @@ If any are missing in production, startup fails before the app can serve partial
 - `DODO_PAYMENTS_WEBHOOK_SECRET`: Dodo webhook signing secret.
 - `PAYMONGO_SECRET_KEY`: PayMongo secret key used by the QRPh hosted checkout route.
 - `PAYMONGO_WEBHOOK_SECRET`: PayMongo webhook signing secret for automatic QRPh crediting.
-- `DODO_PRODUCT_TINGI`: Dodo product ID for the Tingi package.
-- `DODO_PRODUCT_BASIC`: Dodo product ID for the Basic package.
-- `DODO_PRODUCT_STARTER`: Dodo product ID for the Starter package.
-- `DODO_PRODUCT_PRO`: Dodo product ID for the Pro package.
+- `DODO_PRODUCT_INTL_BASIC_V2`: active Dodo one-time product for 5 Claws at $5.99 USD.
+- `DODO_PRODUCT_INTL_STARTER_V2`: active Dodo one-time product for 10 Claws at $10.99 USD.
+- `DODO_PRODUCT_INTL_PRO_V2`: active Dodo one-time product for 35 Claws at $29.99 USD.
+- `DODO_PRODUCT_BASIC`, `DODO_PRODUCT_STARTER`, `DODO_PRODUCT_PRO`: legacy product IDs used only to reconcile pending checkouts created before the international catalog rollout. Keep them configured through the transition window.
 - `RESEND_API_KEY`: Resend API key for payment notification emails.
 - `VECTORIZER_API_ID`: Vectorizer.AI API ID for precision SVG output.
 - `VECTORIZER_API_SECRET`: Vectorizer.AI API secret.

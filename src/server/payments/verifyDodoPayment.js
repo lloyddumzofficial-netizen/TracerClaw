@@ -13,7 +13,10 @@ function requireMatchingMetadata(localPayment, payment) {
 
   for (const [key, expected] of checks) {
     const actual = metadata[key];
-    if (actual != null && String(actual) !== String(expected)) {
+    if (actual == null) {
+      throw new Error(`Dodo payment ${key} metadata is missing`);
+    }
+    if (String(actual) !== String(expected)) {
       throw new Error(`Dodo payment ${key} does not match the checkout`);
     }
   }

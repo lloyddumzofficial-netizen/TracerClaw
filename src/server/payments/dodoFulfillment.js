@@ -1,6 +1,6 @@
 import { adminSupabase } from "@/lib/supabase";
 import { getDodoClient } from "@/lib/dodo";
-import { getCreditPlan, getDodoProductId } from "@/lib/paymentPlans";
+import { getCreditPlan, getLegacyDodoProductId } from "@/lib/paymentPlans";
 import { logger } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
 import { verifyDodoPayment } from "@/server/payments/verifyDodoPayment";
@@ -80,11 +80,14 @@ export async function fulfillDodoPayment({ payment, localPayment: suppliedLocalP
   }
 
   const plan = getCreditPlan(localPayment.plan);
-  if (!plan || plan.credits !== localPayment.credits || plan.amount !== localPayment.amount) {
+  if (!plan || plan.credits !== localPayment.credits) {
     throw new Error("Local Dodo payment plan is invalid");
   }
 
-  const verification = verifyDodoPayment(localPayment, completePayment, getDodoProductId(plan));
+  // New checkouts persist the exact product at creation time. Legacy pending
+  // rows fall back to their original product environment variable only.
+  const expectedProductId = localPayment.provider_product_id || getLegacyDodoProductId(localPayment.plan);
+  const verification = verifyDodoPayment(localPayment, completePayment, expectedProductId);
   logger.info("[Dodo Payment] Verified successful payment", {
     source,
     localPaymentId: localPayment.id,
@@ -95,8 +98,8 @@ export async function fulfillDodoPayment({ payment, localPayment: suppliedLocalP
     adaptiveCurrency: verification.adaptiveCurrency,
   });
 
-  // The RPC receives the immutable local checkout amount/currency because it is
-  // the final atomic guard. Provider evidence was verified above by exact product.
+  // Persist the provider's actual charge separately from the immutable catalog
+  // snapshot. The RPC remains the final idempotent credit grant.
   const { data: grantRows, error: grantErr } = await adminSupabase.rpc(
     "grant_dodo_payment_credits",
     {
@@ -104,8 +107,8 @@ export async function fulfillDodoPayment({ payment, localPayment: suppliedLocalP
       provider_payment_id: completePayment.payment_id,
       provider_checkout_session_id:
         completePayment.checkout_session_id || localPayment.dodo_checkout_session_id || null,
-      paid_amount: localPayment.amount,
-      paid_currency: localPayment.currency,
+      paid_amount: verification.paidAmount,
+      paid_currency: verification.paidCurrency,
     },
   );
 

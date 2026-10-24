@@ -43,10 +43,9 @@ export const OPTIONAL_ENV = [
   "DODO_PAYMENTS_API_KEY",
   "DODO_PAYMENTS_ENVIRONMENT",
   "DODO_PAYMENTS_WEBHOOK_SECRET",
-  "DODO_PRODUCT_TINGI",
-  "DODO_PRODUCT_BASIC",
-  "DODO_PRODUCT_STARTER",
-  "DODO_PRODUCT_PRO",
+  "DODO_PRODUCT_INTL_BASIC_V2",
+  "DODO_PRODUCT_INTL_STARTER_V2",
+  "DODO_PRODUCT_INTL_PRO_V2",
   "PAYMONGO_SECRET_KEY",
   "PAYMONGO_WEBHOOK_SECRET",
   "GOOGLE_CLIENT_ID",
@@ -82,6 +81,11 @@ export const REQUIRED_COLUMNS = {
     "id", "request_key", "user_id", "project_id", "operation", "status",
     "charge_amount", "result_url", "result_mime_type", "error_code", "created_at", "updated_at",
   ],
+  dodo_payments: [
+    "id", "user_id", "plan", "credits", "amount", "currency",
+    "provider_product_id", "catalog_version", "requested_billing_currency",
+    "paid_amount", "paid_currency", "status", "credited_at",
+  ],
   referral_codes: ["id", "owner_user_id", "code_hash", "enabled", "click_count"],
   referrals: [
     "id", "referrer_user_id", "invitee_user_id", "status", "device_hash",
@@ -115,7 +119,9 @@ export function checkCapabilities() {
     precisionSvg: has("VECTORIZER_API_ID") && has("VECTORIZER_API_SECRET"),
     distributedRateLimit: has("UPSTASH_REDIS_REST_URL") && has("UPSTASH_REDIS_REST_TOKEN"),
     googleDrive: has("GOOGLE_CLIENT_ID") && has("GOOGLE_CLIENT_SECRET") && has("INTEGRATION_ENCRYPTION_KEY"),
-    dodoPayments: has("DODO_PAYMENTS_API_KEY") && has("DODO_PAYMENTS_WEBHOOK_SECRET"),
+    dodoPayments: has("DODO_PAYMENTS_API_KEY") && has("DODO_PAYMENTS_WEBHOOK_SECRET") &&
+      has("DODO_PRODUCT_INTL_BASIC_V2") && has("DODO_PRODUCT_INTL_STARTER_V2") &&
+      has("DODO_PRODUCT_INTL_PRO_V2"),
     paymongo: has("PAYMONGO_SECRET_KEY") && has("PAYMONGO_WEBHOOK_SECRET"),
     referrals: process.env.REFERRALS_ENABLED === "true"
       ? has("REFERRAL_SECURITY_SECRET") && has("UPSTASH_REDIS_REST_URL") && has("UPSTASH_REDIS_REST_TOKEN")

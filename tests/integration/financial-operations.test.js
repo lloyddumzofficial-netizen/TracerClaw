@@ -41,6 +41,7 @@ vi.mock("@/server/payments/dodoFulfillment", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ADMIN_EMAIL = "admin@desaynclaw.test";
+  process.env.DODO_PRODUCT_INTL_BASIC_V2 = "prod_basic_v2";
   process.env.DODO_PRODUCT_BASIC = "prod_basic";
   process.env.DODO_PAYMENTS_WEBHOOK_SECRET = "test-webhook-secret";
   adminSupabase.auth.getUser.mockResolvedValue({
@@ -158,7 +159,7 @@ describe("Dodo checkout", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toMatch(/QR Ph/i);
+    expect(body.error).toMatch(/Invalid plan/i);
     expect(adminSupabase.from).not.toHaveBeenCalled();
   });
 
@@ -172,11 +173,26 @@ describe("Dodo checkout", () => {
     expect(adminSupabase.from).not.toHaveBeenCalled();
   });
 
+  it("rejects client-supplied price and credit overrides", async () => {
+    adminSupabase.from = vi.fn();
+
+    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
+    const res = await POST(jsonRequest({
+      plan: "basic",
+      billingCurrency: "USD",
+      amount: 1,
+      credits: 500,
+    }));
+
+    expect(res.status).toBe(400);
+    expect(adminSupabase.from).not.toHaveBeenCalled();
+  });
+
   it("creates a pending local payment before opening Dodo checkout", async () => {
     const updateEq = vi.fn(() => ({}));
     const update = vi.fn(() => ({ eq: vi.fn(() => ({ eq: updateEq })) }));
     const insertSingle = vi.fn(async () => ({
-      data: { id: "dodo-local-1", plan: "basic", amount: 14000, credits: 5 },
+      data: { id: "dodo-local-1", plan: "basic", amount: 599, credits: 5 },
       error: null,
     }));
     const insert = vi.fn(() => ({ select: () => ({ single: insertSingle }) }));
@@ -197,6 +213,11 @@ describe("Dodo checkout", () => {
       user_id: "user-1",
       plan: "basic",
       credits: 5,
+      amount: 599,
+      currency: "USD",
+      provider_product_id: "prod_basic_v2",
+      catalog_version: "dodo_intl_2026_11",
+      requested_billing_currency: "USD",
       status: "pending",
     }));
     expect(getDodoClient().checkoutSessions.create).toHaveBeenCalledWith(expect.objectContaining({

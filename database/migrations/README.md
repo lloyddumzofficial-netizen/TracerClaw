@@ -42,6 +42,7 @@ changes; the root-level SQL files are historical references.
 32. `032_referral_reward_acknowledgements.sql`
 33. `033_require_google_for_referral_rewards.sql`
 34. `034_lifetime_referral_reward_cap.sql`
+35. `035_version_payment_catalog.sql`
 
 Run `npm run migrations:check` before every deployment. It verifies that the
 ordered migration files are sequential and that this manifest contains every
