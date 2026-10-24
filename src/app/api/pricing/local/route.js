@@ -78,7 +78,11 @@ export async function GET(request) {
   const isPhilippines = !country || country === "PH";
   const detectedCurrency = currencyForCountry(country);
   const currency = requested || (isPhilippines ? "PHP" : detectedCurrency === "PHP" ? "USD" : detectedCurrency);
-  const primaryProvider = isPhilippines ? "paymongo" : "dodo";
+  // PHP is the local PayMongo catalog. Every other display currency follows
+  // the international Dodo catalog so the plan card and hosted checkout share
+  // the same source price. This prevents a converted PHP price from being
+  // shown before opening a higher-priced Dodo product.
+  const primaryProvider = isPhilippines && currency === "PHP" ? "paymongo" : "dodo";
 
   try {
     const [paymongo, dodo] = await Promise.all([

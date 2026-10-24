@@ -67,6 +67,26 @@ describe("localized pricing API", () => {
     expect(body.providers.dodo).toEqual(expect.objectContaining({ baseCurrency: "USD", rate: 63 }));
   });
 
+  it("switches Philippine users to the Dodo catalog when they select USD", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ rate: 0.016 }) }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await GET(new Request("http://localhost/api/pricing/local?currency=USD", {
+      headers: { "x-vercel-ip-country": "PH" },
+    }));
+    const body = await response.json();
+
+    expect(body).toEqual(expect.objectContaining({
+      baseCurrency: "USD",
+      currency: "USD",
+      primaryProvider: "dodo",
+      rate: 1,
+      estimated: false,
+    }));
+    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 599, currency: "USD" }));
+    expect(body.providers.dodo.plans.tingi).toBeUndefined();
+  });
+
   it("rejects currencies outside the server allowlist", async () => {
     const response = await GET(new Request("http://localhost/api/pricing/local?currency=ZZZ"));
     expect(response.status).toBe(400);

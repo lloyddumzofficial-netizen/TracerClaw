@@ -491,8 +491,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     {isPricingLoading
                       ? "Updating…"
                       : usingLocalEstimate
-                        ? "Estimated conversion · final amount shown at checkout"
-                        : "Base catalog price"}
+                        ? `Estimated from the ${primaryPricing.baseCurrency} checkout price · final amount shown at checkout`
+                        : primaryProvider === "dodo"
+                          ? "Dodo card checkout price"
+                          : "PayMongo local checkout price"}
                   </span>
                 </div>
               </div>
