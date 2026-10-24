@@ -1369,6 +1369,15 @@
   margin-top: 16px !important;
 }
 
+@media (min-width: 981px) {
+  .modal-overlay .top-up-modal .top-up-pricing-table.top-up-pricing-table-three {
+    width: min(100%, 870px) !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
 @media (max-height: 820px) and (min-width: 761px) {
   .modal-overlay .top-up-modal .top-up-modal-body-plans {
     padding-top: 18px !important;

@@ -499,7 +499,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 </div>
               </div>
 
-              <div className="top-up-plans-grid top-up-pricing-table">
+              <div className={`top-up-plans-grid top-up-pricing-table${plans.length === 3 ? ' top-up-pricing-table-three' : ''}`}>
                 {plans.map((p, index) => {
                   const unavailable = p.key === "tingi" && !showQrPh;
                   return (
