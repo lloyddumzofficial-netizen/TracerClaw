@@ -392,4 +392,56 @@ describe("paid AI operation charge boundaries", () => {
     expect(body.error).toBe("INSUFFICIENT_CREDITS");
     expect(fal.queue.submit).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["photo", "High Fidelity V3"], ["logo", "Text Refine"], ["artwork", "CGI"],
+  ])("Upscale queues faithful Topaz %s settings without shrinking the source", async (profile, model) => {
+    sharpInstance.metadata.mockResolvedValueOnce({ width: 1500, height: 1000 });
+    adminSupabase.rpc.mockResolvedValue({ data: [{ status: "claimed", project_id: "project-1" }], error: null });
+    const query = mockQuery({ data: {}, error: null });
+    adminSupabase.from.mockReturnValue(query);
+    const { fal } = await import("@fal-ai/client");
+    fal.queue.submit.mockResolvedValue({ request_id: "topaz-job", status: "IN_QUEUE" });
+    const { POST } = await import("@/app/api/upscale/route.js");
+    const res = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "topaz-request", profile }));
+    expect(res.status).toBe(200);
+    expect(fal.queue.submit).toHaveBeenCalledWith("topaz/upscale/image/precision", {
+      input: expect.objectContaining({ image_url: "https://storage.example/users/user-1/source.png", model, upscale_factor: 4, face_enhancement: false, crop_to_fill: false, output_format: "png", denoise: 0, sharpen: 0.1 }),
+    });
+    expect(query.update).toHaveBeenCalledWith({ ai_prompt: "fal:topaz/upscale/image/precision:topaz-job" });
+    expect(sharpInstance.resize).not.toHaveBeenCalled();
+    expect((await res.json()).cost).toMatchObject({ outputSize: "6000x4000", estimatedUsd: 0.08 });
+  });
+
+  it("Upscale rejects output above 24 MP before claiming credits or queueing", async () => {
+    sharpInstance.metadata.mockResolvedValueOnce({ width: 1501, height: 1000 });
+    const { POST } = await import("@/app/api/upscale/route.js");
+    const res = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "too-large" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("UPSCALE_INPUT_LIMIT");
+    expect(adminSupabase.rpc).not.toHaveBeenCalled();
+    const { fal } = await import("@fal-ai/client");
+    expect(fal.queue.submit).not.toHaveBeenCalled();
+  });
+
+  it("Upscale rejects unapproved provider models before charging", async () => {
+    const { POST } = await import("@/app/api/upscale/route.js");
+    const res = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "bad-model", profile: "Faces" }));
+    expect(res.status).toBe(400);
+    expect(adminSupabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["fal:topaz/upscale/image/precision:job-1", "topaz/upscale/image/precision"],
+    ["fal:esrgan:job-1", "fal-ai/esrgan"],
+    ["fal:aura-sr:job-1", "fal-ai/aura-sr"],
+  ])("Upscale polls the saved endpoint for %s", async (marker, endpoint) => {
+    adminSupabase.from.mockReturnValue(mockQuery({ data: { id: "project-1", ai_prompt: marker }, error: null }));
+    const { fal } = await import("@fal-ai/client");
+    fal.queue.status.mockResolvedValue({ status: "IN_PROGRESS" });
+    const { GET } = await import("@/app/api/upscale/route.js");
+    const res = await GET(new Request("http://localhost/api/upscale?projectId=project-1&requestId=job-1", { headers: { authorization: "Bearer test-token" } }));
+    expect(res.status).toBe(200);
+    expect(fal.queue.status).toHaveBeenCalledWith(endpoint, { requestId: "job-1", logs: true });
+  });
 });

@@ -3,6 +3,7 @@
 import { memo, useState, useRef, useCallback, useEffect } from "react";
 import { ArrowRight, CheckCircle2, Crosshair, Info, Loader2, Maximize, Minus, Plus, RotateCcw, ScanLine, X, XCircle } from "lucide-react";
 import ReactCrop, { convertToPixelCrop } from "react-image-crop";
+import LogoCropGuide from "./LogoCropGuide";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
@@ -518,66 +519,7 @@ const CropModal = memo(function CropModal({
                 </div>
               </>
             ) : isLogoMode ? (
-              <>
-                <div className="crop-guide-card is-good">
-                  <div className="crop-guide-label">
-                    <CheckCircle2 size={14} />
-                    Tight logo crop
-                  </div>
-                  <p>Keep the frame close to the outermost artwork.</p>
-                  <svg className="crop-logo-guide-svg" viewBox="0 0 256 112" role="img" aria-label="Tight logo crop example">
-                    <defs>
-                      <pattern id="logoGuideGridGood" width="16" height="16" patternUnits="userSpaceOnUse">
-                        <path d="M16 0H0V16" fill="none" stroke="rgba(255,255,255,.025)" />
-                      </pattern>
-                    </defs>
-                    <rect width="256" height="112" fill="#0c0d0e" />
-                    <rect width="256" height="112" fill="url(#logoGuideGridGood)" />
-                    <text x="218" y="17" textAnchor="end" fill="rgba(74,222,128,.72)" fontSize="7" fontWeight="700" letterSpacing="1.2">CORRECT</text>
-                    <rect x="31" y="25" width="194" height="57" fill="rgba(74,222,128,.025)" stroke="rgba(74,222,128,.82)" strokeWidth="1.25" strokeDasharray="4 4" />
-                    <g className="crop-logo-guide-art">
-                      <rect x="46" y="39" width="29" height="29" rx="6" fill="#ffd700" />
-                      <path d="M56 62V46h8c6 0 10 3 10 8s-4 8-10 8h-8zm6-5h2c2 0 4-1 4-3s-2-3-4-3h-2v6z" fill="#080808" />
-                      <text x="83" y="60" fill="#f5f5f5" fontSize="16" fontWeight="700" letterSpacing=".8">DESAYN</text>
-                      <text x="151" y="60" fill="#ffd700" fontSize="17" fontWeight="600" fontStyle="italic">Claw</text>
-                    </g>
-                    <g fill="#4ade80">
-                      <path d="M27 21h12v3h-9v9h-3zM229 21h-12v3h9v9h3zM27 86h12v-3h-9v-9h-3zM229 86h-12v-3h9v-9h3z" />
-                    </g>
-                    <text x="128" y="99" textAnchor="middle" fill="rgba(255,255,255,.42)" fontSize="8" fontWeight="600" letterSpacing="1.1">MINIMAL EDGE SPACE</text>
-                  </svg>
-                </div>
-                <div className="crop-guide-card is-bad">
-                  <div className="crop-guide-label">
-                    <XCircle size={14} />
-                    Avoid extra space
-                  </div>
-                  <p>Remove blank margins before generating the SVG.</p>
-                  <svg className="crop-logo-guide-svg is-bad-sample" viewBox="0 0 256 112" role="img" aria-label="Logo crop with too much empty space example">
-                    <defs>
-                      <pattern id="logoGuideGridBad" width="16" height="16" patternUnits="userSpaceOnUse">
-                        <path d="M16 0H0V16" fill="none" stroke="rgba(255,255,255,.025)" />
-                      </pattern>
-                    </defs>
-                    <rect width="256" height="112" fill="#0c0d0e" />
-                    <rect width="256" height="112" fill="url(#logoGuideGridBad)" />
-                    <text x="218" y="17" textAnchor="end" fill="rgba(255,91,91,.7)" fontSize="7" fontWeight="700" letterSpacing="1.2">AVOID</text>
-                    <g className="crop-logo-guide-art is-muted">
-                      <rect x="91" y="43" width="22" height="22" rx="5" fill="#ffd700" />
-                      <path d="M99 59V48h6c4 0 7 2 7 6s-3 6-7 6h-6zm5-4h1c2 0 3 0 3-2s-1-2-3-2h-1v4z" fill="#080808" />
-                      <text x="120" y="58" fill="#f5f5f5" fontSize="12" fontWeight="700" letterSpacing=".7">DESAYN</text>
-                    </g>
-                    <rect x="24" y="23" width="208" height="61" fill="rgba(255,91,91,.018)" stroke="rgba(255,91,91,.75)" strokeWidth="1.25" strokeDasharray="4 4" />
-                    <g stroke="rgba(255,91,91,.52)" strokeWidth="1">
-                      <path d="M35 54h46M175 54h46" strokeDasharray="2 3" />
-                    </g>
-                    <g fill="#ff5b5b">
-                      <path d="M20 19h12v3h-9v9h-3zM236 19h-12v3h9v9h3zM20 88h12v-3h-9v-9h-3zM236 88h-12v-3h9v-9h3z" />
-                    </g>
-                    <text x="128" y="99" textAnchor="middle" fill="rgba(255,255,255,.38)" fontSize="8" fontWeight="600" letterSpacing="1.1">EXCESS EMPTY SPACE</text>
-                  </svg>
-                </div>
-              </>
+              <LogoCropGuide />
             ) : (
               <>
                 <CropGuidePhoto
@@ -610,7 +552,7 @@ const CropModal = memo(function CropModal({
           <div className="crop-tip-block">
             <Info size={17} />
             <div>
-              <span>{isPatternMode ? "Frame the exact flat artwork. Scroll to zoom." : "Frame the printable area. Scroll to zoom."}</span>
+              <span>{isPatternMode ? "Frame the exact flat artwork. Scroll to zoom." : isLogoMode ? "Frame the complete logo. Scroll to zoom." : "Frame the printable area. Scroll to zoom."}</span>
             </div>
           </div>
           {project?.generated_image_url && (

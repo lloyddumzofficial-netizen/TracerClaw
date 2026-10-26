@@ -39,6 +39,7 @@ import HomepageTutorialSection from "@/components/marketing/HomepageTutorialSect
 import ReferralModal from "@/components/marketing/ReferralModal";
 import ReferralPromptController from "@/components/marketing/ReferralPromptController";
 import ClawRewardNotice from "@/components/shared/ClawRewardNotice";
+import PromoModal from "@/components/marketing/PromoModal";
 import { markReferralPromptSeen } from "@/lib/referralPrompt";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
@@ -145,45 +146,42 @@ function HomepageWorkflowPreview({ onStart }) {
   );
 }
 
-function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }) {
+function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockupStudio }) {
   const trackRef = useRef(null);
   const tools = [
     {
+      agent: "Panel Agent",
       title: "Garment Extract",
-      description: "Turn jersey and garment mockups into clean, editable production artwork.",
-      action: "Start extracting",
-      image: "/samples/Reference.webp",
-      imageClassName: "is-cover",
-      onClick: onExtract,
+      description: "Extract clean production artwork from garment mockups.",
+      image: "/tool-agent-cutouts/yellow-v2/01-garment-agent.png",
+      onClick: onGarment,
     },
     {
-      title: "Image Upscaler",
-      description: "Recover cleaner edges and usable resolution while preserving the original.",
-      action: "Open upscaler",
-      comparison: {
-        leftImage: "/samples/upscale-hq.webp",
-        rightImage: "/samples/upscale-original.png",
-        className: "is-upscale-comparison",
-      },
-      onClick: onUpscale,
+      agent: "Vector Agent",
+      title: "Logo Vectorizer",
+      description: "Convert logos and wordmarks into accurate editable vectors.",
+      image: "/tool-agent-cutouts/yellow-v2/02-logo-agent.png",
+      onClick: onLogo,
     },
     {
+      agent: "Motif Agent",
+      title: "Pattern Rebuilder",
+      description: "Reconstruct flat patterns as clean, editable SVG files.",
+      image: "/tool-agent-cutouts/yellow-v2/03-pattern-agent.png",
+      onClick: onPattern,
+    },
+    {
+      agent: "Cutout Agent",
       title: "Background Remover",
-      description: "Isolate subjects with transparent edges ready for design and production.",
-      action: "Remove background",
-      comparison: {
-        leftImage: "/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp",
-        rightImage: "/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp",
-        className: "is-cutout-comparison",
-      },
+      description: "Create clean transparent cutouts for products and graphics.",
+      image: "/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png",
       onClick: onBgRemover,
     },
     {
+      agent: "Form Agent",
       title: "Mockup Studio",
-      description: "Build polished garment previews from production panels and artwork.",
-      action: "Open studio",
-      image: "/MOCKUP_STUDIO_thumbnail.jpg",
-      imageClassName: "is-cover is-mockup-photo",
+      description: "Build polished garment previews from production panels.",
+      image: "/tool-agent-cutouts/yellow-v2/05-mockup-agent.png",
       onClick: onMockupStudio,
     },
   ];
@@ -215,49 +213,22 @@ function DesktopToolsShelf({ onExtract, onUpscale, onBgRemover, onMockupStudio }
       <div className="desktop-tools-track" ref={trackRef} role="list">
         {tools.map((tool) => (
           <article className="desktop-tool-card" key={tool.title} role="listitem">
-            {tool.comparison ? (
-              <div className={`desktop-tool-comparison ${tool.comparison.className}`} aria-hidden="true">
-                <div className="desktop-tool-comparison-right">
-                  <Image
-                    src={tool.comparison.rightImage}
-                    alt=""
-                    fill
-                    sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 360px"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="desktop-tool-comparison-left">
-                  <div className="desktop-tool-comparison-left-image">
-                    <Image
-                      src={tool.comparison.leftImage}
-                      alt=""
-                      fill
-                      sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 360px"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-                <span className="desktop-tool-comparison-line">
-                  <span>Ⅱ</span>
-                </span>
-              </div>
-            ) : (
-              <div className={`desktop-tool-visual ${tool.imageClassName}`}>
-                <Image
-                  src={tool.image}
-                  alt=""
-                  fill
-                  sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 360px"
-                  loading="lazy"
-                />
-              </div>
-            )}
+            <div className="desktop-tool-visual">
+              <Image
+                src={tool.image}
+                alt=""
+                fill
+                sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 260px"
+                loading="lazy"
+              />
+            </div>
             <div className="desktop-tool-card-shade" />
             <div className="desktop-tool-card-copy">
+              <span className="desktop-tool-agent-name">{tool.agent}</span>
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
               <button type="button" onClick={tool.onClick}>
-                {tool.action}
+                Open workspace
                 <ArrowUpRight size={15} strokeWidth={1.8} />
               </button>
             </div>
@@ -520,7 +491,6 @@ export default function StartScreen() {
   const supabase = useMemo(() => createClient(), []);
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
-  const bgRemoveInputRef = useRef(null);
   const homeRootRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
   const dodoReturnHandledRef = useRef(false);
@@ -539,6 +509,7 @@ export default function StartScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [initialProjectCategory, setInitialProjectCategory] = useState(null);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
@@ -548,6 +519,7 @@ export default function StartScreen() {
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   const openReferralModal = useCallback(() => {
@@ -1191,6 +1163,7 @@ export default function StartScreen() {
       return;
     }
     setPendingFile(file);
+    setInitialProjectCategory(null);
     setShowModal(true);
   };
 
@@ -1296,7 +1269,7 @@ export default function StartScreen() {
         </div>
       </header>}
 
-      {showDriveAnnouncement && !showReferralModal && (
+      {showDriveAnnouncement && !showReferralModal && !showPromoModal && (
         <section className="home-announcement-banner" aria-label="Google Drive integration announcement">
           <div className="home-announcement-inner">
             <div className="home-announcement-icon" aria-hidden="true">
@@ -1408,7 +1381,7 @@ export default function StartScreen() {
               </div>
 
               <div className="hero-action-bar" style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflow: "visible", paddingBottom: "2px" }}>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory(null); setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   {isUploading ? <><Monitor size={13} className="animate-pulse" /> Creating...</> : <><FilePlus size={13} /> New Project</>}
                 </button>
                 <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
@@ -1420,7 +1393,7 @@ export default function StartScreen() {
                 <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
                   <ImageIcon size={13} /> Image Upscale
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push("/bg-remover"); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <Scissors size={13} color="#FFD700" /> BG Remover
                 </button>
               </div>
@@ -1516,6 +1489,7 @@ export default function StartScreen() {
             onStart={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
+              setInitialProjectCategory(null);
               setShowModal(true);
             }}
           />
@@ -1523,20 +1497,28 @@ export default function StartScreen() {
 
         {user && (
           <DesktopToolsShelf
-            onExtract={(e) => {
+            onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
+              setInitialProjectCategory("garment");
               setShowModal(true);
             }}
-            onUpscale={(e) => {
+            onLogo={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
-              router.push('/upscale');
+              setInitialProjectCategory("logo");
+              setShowModal(true);
+            }}
+            onPattern={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setInitialProjectCategory("pattern");
+              setShowModal(true);
             }}
             onBgRemover={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
-              bgRemoveInputRef.current.click();
+              router.push("/bg-remover");
             }}
             onMockupStudio={(e) => {
               e?.stopPropagation?.();
@@ -1558,12 +1540,17 @@ export default function StartScreen() {
 
         {!user && (
           <DesktopToolsShelf
-            onExtract={(e) => {
+            onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
               setShowLoginModal(true);
             }}
-            onUpscale={(e) => {
+            onLogo={(e) => {
+              e?.stopPropagation?.();
+              if (requireDesktopTool()) return;
+              setShowLoginModal(true);
+            }}
+            onPattern={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
               setShowLoginModal(true);
@@ -1583,6 +1570,171 @@ export default function StartScreen() {
 
         {!user && <GuestHomepageSampleSection />}
 
+        {/* Maya — Garment Panel Agent */}
+        <section className="tool-showcase-section section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">Maya · Panel Agent</span>
+            <h2>Extract Clean Garment Artwork</h2>
+            <p>
+              Maya isolates production artwork from jersey and apparel mockups, then
+              prepares clean panels your team can refine and send to production.
+            </p>
+            <button
+              className="tool-showcase-button is-maya-gradient"
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory("garment"); setShowModal(true); }}
+            >
+              <Scan size={18} />
+              Try Garment Extract
+            </button>
+          </div>
+          <div className="tool-showcase-media">
+            <figure className="tool-agent-showcase is-maya">
+              <div className="tool-agent-showcase-label is-left">
+                <strong>Maya</strong>
+                <span>Panel Agent</span>
+              </div>
+              <Image
+                src="/tool-agent-cutouts/yellow-v2/01-garment-agent.png"
+                alt="Maya, the DesaynClaw Panel Agent"
+                fill
+                sizes="(max-width: 760px) 92vw, 540px"
+              />
+            </figure>
+          </div>
+        </section>
+
+        {/* Victor — Logo Vector Agent */}
+        <section className="tool-showcase-section is-reversed section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">Victor · Vector Agent</span>
+            <h2>Turn Logos Into Clean Vectors</h2>
+            <p>
+              Victor rebuilds logos and wordmarks as sharp, scalable artwork that stays
+              clean across uniforms, merchandise, signage, and large-format production.
+            </p>
+            <button
+              className="tool-showcase-button is-victor-gradient"
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory("logo"); setShowModal(true); }}
+            >
+              <ImageIcon size={18} />
+              Try Logo Vectorizer
+            </button>
+          </div>
+          <div className="tool-showcase-media">
+            <figure className="tool-agent-showcase is-victor">
+              <div className="tool-agent-showcase-label is-right">
+                <strong>Victor</strong>
+                <span>Vector Agent</span>
+              </div>
+              <Image
+                src="/tool-agent-cutouts/yellow-v2/02-logo-agent.png"
+                alt="Victor, the DesaynClaw Vector Agent"
+                fill
+                sizes="(max-width: 760px) 92vw, 540px"
+              />
+            </figure>
+          </div>
+        </section>
+
+        {/* Tess — Pattern Motif Agent */}
+        <section className="tool-showcase-section section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">Tess · Motif Agent</span>
+            <h2>Rebuild Every Pattern Detail</h2>
+            <p>
+              Tess reconstructs flat patterns, repeats, and graphic motifs while keeping
+              the original rhythm, spacing, color relationships, and production intent.
+            </p>
+            <button
+              className="tool-showcase-button is-tess-gradient"
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory("pattern"); setShowModal(true); }}
+            >
+              <Layers size={18} />
+              Try Pattern Rebuilder
+            </button>
+          </div>
+          <div className="tool-showcase-media">
+            <figure className="tool-agent-showcase is-tess">
+              <div className="tool-agent-showcase-label is-left">
+                <strong>Tess</strong>
+                <span>Motif Agent</span>
+              </div>
+              <Image
+                src="/tool-agent-cutouts/yellow-v2/03-pattern-agent.png"
+                alt="Tess, the DesaynClaw Motif Agent"
+                fill
+                sizes="(max-width: 760px) 92vw, 540px"
+              />
+            </figure>
+          </div>
+        </section>
+
+        {/* Cora — Background Remover Agent */}
+        <section className="tool-showcase-section is-reversed section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">Cora · Cutout Agent</span>
+            <h2>Flawless Subject Cutouts</h2>
+            <p>
+              Cora creates clean transparent cutouts from difficult edges, fine hair,
+              products, portraits, and graphics without slow manual tracing.
+            </p>
+            <button
+              className="tool-showcase-button is-cora-gradient"
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push("/bg-remover"); }}
+            >
+              <Scissors size={18} />
+              Try Background Remover
+            </button>
+          </div>
+          <div className="tool-showcase-media">
+            <figure className="tool-agent-showcase is-cora">
+              <div className="tool-agent-showcase-label is-right">
+                <strong>Cora</strong>
+                <span>Cutout Agent</span>
+              </div>
+              <Image
+                src="/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png"
+                alt="Cora, the DesaynClaw Cutout Agent"
+                fill
+                sizes="(max-width: 760px) 92vw, 540px"
+              />
+            </figure>
+          </div>
+        </section>
+
+        {/* Marco — Mockup Form Agent */}
+        <section className="tool-showcase-section section-line-accent">
+          <div className="tool-showcase-copy">
+            <span className="section-kicker">Marco · Form Agent</span>
+            <h2>Shape Production-Ready Mockups</h2>
+            <p>
+              Marco turns finished panels into polished garment previews, helping your
+              team review form, placement, and presentation before final production.
+            </p>
+            <button
+              className="tool-showcase-button is-marco-gradient"
+              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/mockup-studio'); }}
+            >
+              <Monitor size={18} />
+              Try Mockup Studio
+            </button>
+          </div>
+          <div className="tool-showcase-media">
+            <figure className="tool-agent-showcase is-marco">
+              <div className="tool-agent-showcase-label is-left">
+                <strong>Marco</strong>
+                <span>Form Agent</span>
+              </div>
+              <Image
+                src="/tool-agent-cutouts/yellow-v2/05-mockup-agent.png"
+                alt="Marco, the DesaynClaw Form Agent"
+                fill
+                sizes="(max-width: 760px) 92vw, 540px"
+              />
+            </figure>
+          </div>
+        </section>
+
         <EduSection />
 
         <HowItWorksSection />
@@ -1595,6 +1747,7 @@ export default function StartScreen() {
             e?.stopPropagation?.();
             if (requireDesktopTool()) return;
             if (!user) { setShowLoginModal(true); return; }
+            setInitialProjectCategory(null);
             setShowModal(true);
           }}
           onUpscale={(e) => {
@@ -1607,67 +1760,9 @@ export default function StartScreen() {
             e?.stopPropagation?.();
             if (requireDesktopTool()) return;
             if (!user) { setShowLoginModal(true); return; }
-            bgRemoveInputRef.current.click();
+            router.push("/bg-remover");
           }}
         />
-
-        {/* BG Remover Sample Section */}
-        <section className="tool-showcase-section section-line-accent">
-          <div className="tool-showcase-copy">
-            <span className="section-kicker">AI Background Remover</span>
-            <h2>Flawless Subject Cutouts</h2>
-            <p>
-              Slide to see how our AI perfectly removes complex backgrounds, including fine details like hair, fur, and difficult edges. Get precise cutouts in seconds without manual tracing.
-            </p>
-            <button
-              className="tool-showcase-button is-primary"
-              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } bgRemoveInputRef.current.click(); }}
-            >
-              <Scissors size={18} color="#000" />
-              Try Background Remover
-            </button>
-          </div>
-          <div className="tool-showcase-media">
-            <BeforeAfterSlider
-              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
-              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
-              leftLabel="NO BACKGROUND"
-              rightLabel="ORIGINAL"
-              layout="vertical"
-              aspectRatio="1 / 1"
-              showCheckerboard={true}
-            />
-          </div>
-        </section>
-
-        {/* Upscaler Sample Section */}
-        <section className="tool-showcase-section is-reversed section-line-accent">
-          <div className="tool-showcase-copy">
-            <span className="section-kicker">AI Image Upscaler</span>
-            <h2>Enhance to 4K Quality</h2>
-            <p>
-              Recover lost details, sharpen blurry edges, and magically enhance low-resolution images. Slide to see the crystal clear difference when upgrading to 4K resolution.
-            </p>
-            <button
-              className="tool-showcase-button"
-              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }}
-            >
-              <ImageIcon size={18} />
-              Try Image Upscaler
-            </button>
-          </div>
-          <div className="tool-showcase-media">
-            <BeforeAfterSlider
-              rasterUrl="/samples/upscale-original.png"
-              vectorUrl="/samples/upscale-hq.webp"
-              leftLabel="4K UPSCALE"
-              rightLabel="PIXELATED"
-              layout="vertical"
-              aspectRatio="1 / 1"
-              pixelateRaster={true}
-            />
-          </div>
-        </section>
 
         {/* ─── GREAT FOR SECTION ────────────────────────────────────────────── */}
         <section className="great-for-section section-line-accent">
@@ -1761,15 +1856,28 @@ export default function StartScreen() {
 
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
-        <input type="file" ref={bgRemoveInputRef} onChange={(e) => { if (e.target.files[0]) { if (requireDesktopTool()) { e.target.value = ""; return; } handleFileUpload(e.target.files[0], true); } e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
 
         {/* ─── Modals ────────────────────────────────────────────────────────── */}
+        <PromoModal
+          enabled={!showModal && !showLoginModal && !showTopUpModal && !showReferralModal}
+          onVisibilityChange={setShowPromoModal}
+          onChooseAgent={() => {
+            if (!user) {
+              setShowLoginModal(true);
+              return;
+            }
+            setInitialProjectCategory(null);
+            setShowModal(true);
+          }}
+        />
+
         <NewProjectModal
           show={showModal}
           projectName={modalProjectName} setProjectName={setModalProjectName}
           traceType={modalTraceType} setTraceType={setModalTraceType}
+          initialCategory={initialProjectCategory}
           isUploading={isUploading}
-          onClose={() => { setShowModal(false); setPendingFile(null); }}
+          onClose={() => { setShowModal(false); setPendingFile(null); setInitialProjectCategory(null); }}
           onSelectImage={() => {
             if (requireDesktopTool()) return;
             if (pendingFile) {
@@ -1780,7 +1888,7 @@ export default function StartScreen() {
           }}
           onSelectBgRemover={() => {
             if (requireDesktopTool()) return;
-            bgRemoveInputRef.current.click();
+            router.push("/bg-remover");
           }}
           onSelectMockupStudio={() => {
             if (requireDesktopTool()) return;
@@ -1942,7 +2050,7 @@ export default function StartScreen() {
           <span className="prefooter-cta-kicker">Production tools for real artwork</span>
           <h2 id="prefooter-cta-heading">Turn rough artwork into production-ready files.</h2>
           <p>Trace, clean up, remove backgrounds, and upscale client artwork in one focused workspace.</p>
-          <button type="button" onClick={() => { if (!user) { setShowLoginModal(true); return; } setShowModal(true); }}>
+          <button type="button" onClick={() => { if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory(null); setShowModal(true); }}>
             Start designing <span><ArrowUpRight size={18} aria-hidden="true" /></span>
           </button>
           <small>Private by default <i aria-hidden="true" /> No subscription required <i aria-hidden="true" /> Auto-deleted after 3 days</small>

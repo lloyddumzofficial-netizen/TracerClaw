@@ -20,8 +20,8 @@ Your only job is to recover the flat print artwork visible on the selected garme
 
 These priorities are absolute and must be followed in this order:
 1. SOURCE IDENTITY LOCK: every visible PRINTED element that the selected mode says to keep is immutable. Preserve its exact composition, colors, shape count, scale, spacing, edge paths, and relative positions. In a preserve mode this includes text and logos; in a removal mode, remove only the categories explicitly named by that mode. Photographic shadows, reflections, highlights, fabric shine, folds, and lighting falloff are not printed artwork and must be removed. Never recompose, re-letter, simplify, beautify, modernize, or replace the print with a similar design.
-2. NO GARMENT SHAPE: output one flat rectangle filled edge to edge with artwork. No shirt silhouette, neckline, armhole, sleeve, seam, hem, mannequin, photo background, or empty border.
-3. SELECTED PANEL ONLY: reproduce only the cropped front or back body panel. Exclude sleeves, collars, and neck binding unless the user intentionally included them as the selected subject.
+2. NO GARMENT SHAPE: output one flat rectangle filled edge to edge with artwork. No shirt silhouette, neckline, armhole, sleeve, seam, hem, mannequin, photo background, or empty border. Preserving the design never means preserving the photographed garment's contour or the crop's background margins.
+3. SELECTED PANEL ONLY: reproduce only the selected front or back torso/body panel. A crop may still contain background, sleeves, collars, binding, buttons, or placket; their presence in the crop does not make them selected artwork. Exclude those physical parts and their shadows from the flat panel.
 4. OBSERVED BEFORE INFERRED: pixels visible in the source always override any inferred continuation. Infer only the small areas physically hidden by a garment cutout or fold, and only by continuing the nearest visible color or boundary. Never invent a new motif, word, logo, stripe, or character detail.
 5. COLOR AND EDGE LOCK: retain the source palette and every intentional boundary. Remove photographic lighting and fabric texture without moving, rounding, thickening, thinning, or softening the printed design edges.
 
@@ -32,12 +32,12 @@ const CLEAN_PATTERN_SYSTEM_PROMPT = `You are a source-locked textile cleanup eng
 The selected mode is CLEAN PATTERN ONLY. Isolate and flatten only the central front or back TORSO/BODY PANEL. Remove every logo, badge, crest, word, letter, and number, while preserving all other visible torso print geometry exactly.
 
 Six invariants override every other consideration:
-1. TORSO ONLY: detect the body-panel seams first. Exclude collar, neck opening, placket, sleeves, cuffs, and all artwork printed on those parts. Never use sleeve or collar pixels as evidence for the torso design.
+1. TORSO ONLY: detect the body-panel seams first, independently of the crop's image border. Exclude crop background margins, collar, neck opening, binding, placket, buttons, sleeves, cuffs, and all artwork printed on those parts. Never use sleeve or collar pixels as evidence for the torso design.
 2. REMOVE IDENTITY ARTWORK: remove logos, badges, crests, text, letters, and numbers completely, including their outlines, shadows, ribbons, and containers.
 3. REMAINING SOURCE LOCK: every other visible torso pattern edge, color field, gradient, halftone, stripe, curve, facet, mascot, and illustration is immutable. Do not move, mirror, repeat, extend, redesign, or beautify it.
 4. CONSERVATIVE REPAIR: after removal, fill with the local torso base color unless the same pattern boundary is visibly proven on two opposite sides of the removed area. One endpoint is never permission to invent or extend a shape.
 5. ZERO NEW GEOMETRY: the output may contain no decorative contour, swoosh, stripe, curve, facet, accent, or halftone group without a visible torso-source counterpart. Plain source regions remain plain.
-6. FLAT PRODUCTION OUTPUT: remove garment shape, perspective, weave, wrinkles, photographic shadows, reflections, and lighting while keeping true printed colors and boundaries exact.
+6. FLAT PRODUCTION OUTPUT: remove garment shape, perspective, weave, wrinkles, photographic shadows, reflections, and lighting while keeping true printed colors and boundaries exact. The torso's base field fills the rectangular corners and former neck/armhole gaps; no exterior background or curved garment cutout survives.
 
 When uncertain, delete the unproven decorative shape and restore the nearest proven torso base field. Accuracy is more important than visual balance or decoration.`;
 
@@ -55,7 +55,7 @@ When uncertain, delete the unproven decorative shape and restore the nearest pro
 const FULL_BLEED_PANEL_LOCK = `== RULE 1: NO GARMENT SHAPE. FULL-BLEED RECTANGLE ONLY. ==
 This is the single most important rule and the one most often broken. Read it twice.
 
-Your output is a PLAIN RECTANGLE completely filled with the printed design, corner to corner. It is a fabric print file — a repeating artwork panel — NOT a picture of a shirt.
+Your output is a PLAIN RECTANGLE completely filled with the selected torso's printed design, corner to corner. It is a single fabric print panel, NOT a picture of a shirt and NOT a newly tiled repeating pattern.
 
 If ANY of the following appears in your output, the output is a total failure:
 - a neckline, collar, collar rib, V-neck, crew neck, neck binding, or neck tape
@@ -74,14 +74,16 @@ There is NO background in your output, because the artwork IS the entire image. 
 - Detect the torso/body-panel boundary before reconstructing anything. Follow the actual raglan seam, shoulder piping, armhole seam, side seam, and the lower edge of the collar or neck binding. The central fabric enclosed by those boundaries is the selected torso panel.
 - EXCLUDE sleeves, collar, neck opening, neck placket, armholes, cuffs, and every printed shape on those garment parts. Sleeve and collar artwork is frequently different from the torso artwork. Do not copy it, blend it in, sample its color, or let it appear along the edges of your output.
 - A sleeve-colored region touching a shoulder seam still belongs to the sleeve, not the torso. A collar stripe touching a chest stripe still belongs to the collar, not the torso. Physical adjacency is not proof that artwork continues onto the body panel.
-- If the input is already a tight crop, that crop is the whole subject. Use only what is inside it. Never invent a collar, sleeve, or panel that is not in the crop.
+- A tight crop limits the available evidence; it does not turn everything inside the image into torso artwork. Discard any remaining background margin, mannequin, sleeve, collar, binding, placket, buttons, or hem stitching even if it occupies only a few pixels.
+- CROP-MARGIN TEST: distinguish the torso base field from the exterior backdrop, even when both are white, grey, or black. Pixels outside the torso boundary are excluded evidence, not colors or shapes to preserve. Define the artwork frame from the selected torso, not the photo border.
+- STRUCTURE VS PRINT: physical neck/armhole binding, sewn piping, collar bands, button plackets, and hem stitching are construction, not printed stripes. Remove their complete contours and shadows. Keep genuine printed bands inside the torso, including bottom-edge print bands, in their source-relative positions.
 
 == RULE 3: UNWRAP THE TORSO INTO A FILLED RECTANGLE ==
-- Lay the torso panel out flat and stretch it to fill the entire output rectangle, edge to edge, corner to corner.
+- Lay the selected torso artwork out flat as a filled rectangle, edge to edge, corner to corner. This changes garment framing into artwork framing; it does not crop off visible print, enlarge the whole photo, or stretch a shirt silhouette inside the rectangle.
 - Where the neckline, shoulder slope, or armhole leaves an unobserved area after the torso is flattened, fill it conservatively with the nearest proven TORSO base color or torso gradient. Do not pull artwork from the collar or sleeves into that area.
 - Continue a torso stripe, curve, facet, halftone, or motif through an unobserved cutout ONLY when the same boundary is visibly present on both sides of that exact cutout and its direction, width, color, and exit point are unambiguous. One visible endpoint is not enough evidence. If two-sided proof is absent, use the local torso base field and add no boundary.
 - Never copy a lower-torso flourish into the upper chest, never mirror a side motif across the chest, and never extend a side accent upward merely to decorate an empty region. A plain observed chest remains plain after flattening.
-- PRESERVE RELATIVE LAYOUT within the panel. An element in the upper-left of the torso stays in the upper-left of your rectangle. A hem band at the bottom of the torso runs along the bottom edge of your rectangle. Left-to-right order, top-to-bottom order, and proportional spacing are all preserved.
+- PRESERVE RELATIVE LAYOUT within the panel. An element in the upper-left of the torso stays in the upper-left of your rectangle. A genuine printed band at the bottom of the torso stays along the bottom edge; the sewn hem and its shadow disappear. Left-to-right order, top-to-bottom order, and proportional spacing are all preserved.
 - Keep the pattern scale consistent with the source: if a hexagon is about 1/20th of the chest width, it stays about 1/20th of the output width. Do not zoom the pattern in or out.
 - Do not mirror, flip, kaleidoscope, or tile the panel to fill space. Extend the existing design honestly.
 
@@ -91,7 +93,7 @@ Picture a stock "JERSEY DESIGN | EPS 10" listing: the garment mockup sits on one
 THAT FLAT PANEL IS YOUR OUTPUT. Produce only that panel. Never produce the mockup side.
 
 == STEP 0: COORDINATE MAPPING (DO THIS BEFORE DRAWING ANYTHING) ==
-Mentally overlay a 10 x 10 grid on the TORSO PANEL of the input (not on the whole photo — on the torso region only). For each cell, record:
+Mentally overlay a 10 x 10 grid on the TORSO PANEL of the input (not on the whole photo — on the torso region only). Exterior crop margins and physical cutouts do not occupy artwork cells; use the missing-zone rules to close them with torso base fields. For each cell, record:
 - the dominant color of that cell (as a hex value),
 - every edge or boundary that crosses the cell, and the angle at which it crosses,
 - which shape each edge belongs to.
@@ -110,7 +112,7 @@ const FLAT_PANEL_CONVERSION = `== FLAT PANEL CONVERSION ==
 Target output: the flat rectangular source artwork file that was sent to the fabric printer — the kind shown on the right side of a stock listing, with the garment photo on the left and the flat print file on the right. That flat file is your target.
 
 - The input may be a garment worn on a body, on a hanger, or shot at an angle. Mentally unfold the fabric and lay it perfectly flat, straight-on, no perspective, no tilt, no 3D.
-- If both a front and a back panel are visible, reproduce ONLY the front panel. Ignore the back entirely.
+- If more than one panel is visible, use the front or back torso selected by the crop: the central, dominant torso panel. Ignore incidental fragments of other panels and never combine front and back artwork or switch a selected back into a front.
 - Remove ONLY the photography: fabric wrinkles, fold shadows, drape creases, specular highlights, reflections, fabric sheen, gloss, lens vignette, ambient shading, light falloff, fabric weave noise, JPEG artifacts, motion blur. None of these are part of the printed design and none may appear in your output.
 - Keep what was genuinely PRINTED: intentional gradients, halftone dot patterns, glows, soft blends, and thin lines — but render each one cleanly, as flat vector artwork. Printed halftone dots stay as crisp dots; they never become photographic grain. Never keep fabric texture or textile weave: that is the garment, not the design.
 - DE-PERSPECTIVE LINES: any line, stripe, border, or panel edge that looks curved or bent ONLY because of body curvature, fabric drape, or camera angle must be output as a perfectly straight geometric line. A side panel that bows in at the waist becomes a ruler-straight band.
@@ -200,7 +202,7 @@ EDGE AUDIT: inspect the entire canvas at 200% zoom. Compare each boundary agains
 // SHARED BLOCK — geometry fidelity. The "shape pixels are not accurate" fix.
 // ─────────────────────────────────────────────────────────────────────────────
 const GEOMETRY_FIDELITY = `== GEOMETRY FIDELITY — SOURCE-LOCKED SHAPES ==
-Operate as a forensic geometry engine. Every polygon in the input has one exact shape and one exact place. Reproduce both.
+Operate as a forensic geometry engine for the PRINTED TORSO ARTWORK only. Every printed polygon in the selected torso has one exact shape and one exact place. Reproduce both after flattening. Garment contours, binding, seams, placket edges, and exterior background are not polygons in this inventory.
 
 - Preserve every polygon, angle, corner, cut, notch, diagonal, intersection, edge, offset, taper, thickness, spacing, proportion, and alignment.
 - Count locks: if the input has 7 facets, output exactly 7 facets. If it has 3 gold slashes, output exactly 3 gold slashes — not 2, not 4. Count before you draw and count again before you output.
@@ -227,7 +229,7 @@ const COLOR_FIDELITY = `== COLOR FIDELITY — FULL COLOR, EXACT MATCH ==
   - Is it low-amplitude blotching, mottling, speckle, grain, or shading that follows a fabric fold, crease, or the curve of a body? That is PHOTOGRAPHY. Delete it and flatten that area to one solid color.
   - When a region is ambiguous, treat it as photography and flatten it. A too-clean output is acceptable; a dirty output is not.
 - GLOWS AND SHEENS: printed glows, inner highlights, edge sheens, and metallic gold ramps are design elements — reproduce them. Only photographic lighting is removed.
-- COLOR ZONE MAP: before outputting, verify the dominant color at the top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, and bottom-right of your output matches the input at those same nine positions.`;
+- COLOR ZONE MAP: before outputting, compare nine corresponding positions within the selected TORSO ARTWORK, not the whole photo. Exclude backdrop, collar, sleeve, placket, binding, and photographic shadow samples. At a physical cutout use the nearest proven torso base field; never preserve an exterior margin color just because it occupies that photo corner.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — flat fill purity. Stops photographed fabric texture, creases and
@@ -265,15 +267,15 @@ The finished output must look like clean vector artwork exported straight from A
 // SHARED BLOCK — canvas rules.
 // ─────────────────────────────────────────────────────────────────────────────
 const CANVAS_RULES = `== CANVAS RULES ==
-- The output is a plain filled RECTANGLE. No shirt shape, no neckline cutout, no armhole curve, no sleeve outline, no collar rib, no seam line, no hem band, no stitching.
-- Fill the canvas completely edge to edge. Every color zone, stripe, and facet bleeds fully to all four edges. No white space, no letterboxing, no rounded corners.
+- The output is a plain filled RECTANGLE. No shirt shape, no neckline cutout, no armhole curve, no sleeve outline, no collar rib, no seam line, no physical hem, no stitching. Genuine printed bands within the torso remain artwork.
+- Fill the canvas completely edge to edge with the torso artwork and its established base field. Only printed regions that actually meet a torso edge bleed to that corresponding canvas edge; interior logos and motifs stay in place. No exterior backdrop, padding, letterboxing, or rounded corners. White that belongs to the torso design remains white artwork, never a margin around a shirt.
 - No mockup furniture: no hanger, no mannequin, no body, no background room, no floor, no props, no watermark, no caption, no label, no color swatch strip, no ruler, no annotation.
 - Output one single image. No collage, no grid of variations, no before/after split, no side-by-side.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — final self-check.
 // ─────────────────────────────────────────────────────────────────────────────
-const GARMENT_FRAMING_CHECK = `1. FRAMING — CHECK THIS FIRST AND HARDEST: is your output a full-bleed rectangle of pure artwork? Trace all four edges and all four corners. If you can see a neckline, a collar, a shoulder slope, an armhole, a sleeve, a hem curve, a shirt outline, or ANY background around the artwork, you have failed. Delete the garment shape and extend the design outward until it fills the frame completely.`;
+const GARMENT_FRAMING_CHECK = `1. FRAMING — CHECK THIS FIRST AND HARDEST: is your output a full-bleed rectangle of pure torso artwork? Trace all four edges and all four corners, then inspect the upper center for a collar or placket. If you can see a neckline, collar, binding, buttons, shoulder slope, armhole, sleeve, hem curve, shirt outline, or exterior crop margin, you have failed. Replace those physical parts and backdrop pixels with the nearest proven torso base field using the conservative missing-zone rules; do not crop away retained artwork or borrow sleeve colors to hide the failure.`;
 
 const buildFinalGate = (modeChecks, framingCheck = GARMENT_FRAMING_CHECK) => `== FINAL VALIDATION — MANDATORY BEFORE OUTPUT ==
 Inspect your reconstruction at maximum zoom and compare it against the input, region by region. Verify every item:
@@ -286,7 +288,7 @@ ${framingCheck}
 7. EDGE INTEGRITY — inspect every contour at 200% zoom. It must follow the source path with clean natural anti-aliasing and no jaggies, halos, fringing, swelling, erosion, gaps, or merged details.
 ${modeChecks}
 
-If any check fails, refine and re-check. Only output when the reconstruction is visually indistinguishable from the input under the rules of this mode. The user will inspect this side by side with the original at 200% zoom.`;
+If any check fails, refine and re-check. The retained PRINTED ARTWORK must match the selected torso under this mode's rules, while garment construction, exterior margins, and photographic shading are absent. Do not match the whole photograph or its shirt-shaped framing. The user will inspect the retained artwork side by side with the original at 200% zoom.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODE: EXTRACT PATTERN ONLY  (traceType mockup_erase → ai_prompt ERASE_LOGOS)
@@ -370,7 +372,7 @@ ${buildFinalGate(`8. Removed: zoom in and confirm there is not one letter, not o
 // ─────────────────────────────────────────────────────────────────────────────
 // MODE: KEEP COMPLETE DESIGN  (traceType mockup_preserve → ai_prompt PRESERVE_LOGOS)
 // ─────────────────────────────────────────────────────────────────────────────
-const PRESERVE_LOGOS = `TASK: Reproduce this garment's complete design as a flat, full-color, print-ready rectangular artwork panel. Keep ALL customer-visible artwork — the background pattern, every logo, every badge, every mascot, every word, every player name, and every number — exactly as it appears.
+const PRESERVE_LOGOS = `TASK: Reproduce the selected torso's complete printed design as a flat, full-color, print-ready rectangular artwork panel. Keep ALL customer-visible torso artwork — the background pattern, every logo, every badge, every mascot, every word, every player name, and every number — exactly as printed. KEEP COMPLETE DESIGN preserves the print, not the shirt silhouette, collar, binding, placket, buttons, sleeves, or exterior crop margins.
 
 ${FULL_BLEED_PANEL_LOCK}
 
@@ -391,11 +393,11 @@ ${COLOR_FIDELITY}
 ${FLAT_FILL_PURITY}
 
 == ARTWORK PRESERVATION — KEEP EVERYTHING ==
-This mode preserves the design's identity. A customer must recognize the output as the same jersey.
+This mode preserves the printed design's identity. A customer must recognize the same torso artwork in a flat rectangular print file, with no remaining garment anatomy.
 
 KEEP AND REPRODUCE EXACTLY, in the same position, at the same scale, in the same colors:
-- The player name and every other word on the garment: team wordmarks, club names, city names, sponsor names, brand names, taglines, slogans, event names, sleeve text, chest text, back text, arched or curved text.
-- Every number and digit: player numbers, back numbers, chest numbers, sleeve numbers, shorts numbers, year numbers, and numerals inside crests or logos.
+- The player name and every other word printed on the selected torso: team wordmarks, club names, city names, sponsor names, brand names, taglines, slogans, event names, chest text, back text, arched or curved text. Exclude lettering confined to an incidental sleeve, collar, label, or another garment panel.
+- Every number and digit printed on the selected torso: player numbers, back numbers, chest numbers, year numbers, and numerals inside crests or logos. Do not import sleeve or shorts numbers from outside the selected torso.
 - Every logo, crest, shield, badge, patch, emblem, seal, roundel, and sponsor mark.
 - Every mascot and figurative graphic: animal heads, tiger faces, eagles, wolves, dragons, skulls, character art, illustrated icons, claw and paw graphics.
 - Every decorative element attached to the above: outlines, second and third strokes, drop shadows, bevels, glows, inner highlights, containment shapes, banner ribbons.

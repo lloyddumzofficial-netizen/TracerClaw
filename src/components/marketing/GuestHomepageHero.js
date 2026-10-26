@@ -127,6 +127,28 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
       </header>
 
       <section className="guest-landing-hero" aria-labelledby="guest-landing-heading">
+        <div className="guest-agent-scene" aria-hidden="true">
+          <figure className="guest-hero-agent guest-hero-agent-tess">
+            <Image src="/tool-agent-cutouts/yellow-v2/03-pattern-agent.png" alt="" width={260} height={320} sizes="220px" />
+            <figcaption><strong>Tess</strong><span>Motif Agent</span></figcaption>
+          </figure>
+
+          <figure className="guest-hero-agent guest-hero-agent-victor">
+            <Image src="/tool-agent-cutouts/yellow-v2/02-logo-agent.png" alt="" width={330} height={410} sizes="290px" />
+            <figcaption><strong>Victor</strong><span>Vector Agent</span></figcaption>
+          </figure>
+
+          <figure className="guest-hero-agent guest-hero-agent-cora">
+            <Image src="/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png" alt="" width={330} height={410} sizes="290px" />
+            <figcaption><strong>Cora</strong><span>Cutout Agent</span></figcaption>
+          </figure>
+
+          <figure className="guest-hero-agent guest-hero-agent-marco">
+            <Image src="/tool-agent-cutouts/yellow-v2/05-mockup-agent.png" alt="" width={260} height={320} sizes="220px" />
+            <figcaption><strong>Marco</strong><span>Form Agent</span></figcaption>
+          </figure>
+        </div>
+
         <h1 id="guest-landing-heading"><span className="guest-landing-title-mark">AI-generated<span className="guest-landing-title-handles" aria-hidden="true" /></span><span className="guest-landing-title-question"> artwork?</span><br /><em>Turn it into <span className="guest-landing-output-mark">editable flat design</span>.</em></h1>
         <p className="guest-landing-description">
           Extract artwork from garments and logos, refine the details, and deliver clean files your production team can actually use.

@@ -13,32 +13,15 @@ import {
   validateUrlForSSRF,
 } from "@/lib/ssrf";
 import { logger } from "@/lib/logger";
+import { UPSCALE_ENDPOINT, UPSCALE_FACTOR, UPSCALE_LIMIT_MESSAGE, getUpscalePlan, getUpscaleSettings, buildUpscaleJobMarker, parseUpscaleJobMarker } from "@/lib/standaloneUpscale";
 
 export const runtime = 'nodejs';
 // 60s, not 30s: the completed result is now downloaded from the provider and
 // re-uploaded to R2 before it is recorded, which needs headroom on large output.
 export const maxDuration = 60;
 
-// ─── Upscaler model ─────────────────────────────────────────────────────────
-// fal-ai/esrgan is a Real-ESRGAN upscaler. Keep the settings explicit so the
-// standalone Image Upscale tool always queues the requested model/configuration.
-const UPSCALE_MODEL_SLUG = "esrgan";
-const UPSCALE_ENDPOINT = `fal-ai/${UPSCALE_MODEL_SLUG}`;
-const UPSCALE_SETTINGS = {
-  scale: 6,
-  model: "RealESRGAN_x4plus",
-  output_format: "png",
-  tile: 400,
-};
-const MAX_ESRGAN_INPUT_LONG_EDGE = 1280;
-
 function isAiGenerationConfigured() {
   return Boolean(process.env.FAL_KEY);
-}
-
-/** Job marker stored in ai_prompt: fal:<model-slug>:<requestId>. */
-function buildJobMarker(requestId) {
-  return `fal:${UPSCALE_MODEL_SLUG}:${requestId}`;
 }
 
 /**
@@ -47,9 +30,8 @@ function buildJobMarker(requestId) {
  * every in-flight upscale at deploy time would fail its status lookup.
  */
 function resolveJobEndpoint(aiPrompt, requestId) {
-  const match = String(aiPrompt || '').match(/^fal:([a-z0-9.-]+):(.+)$/i);
-  if (!match || match[2] !== requestId) return null;
-  return `fal-ai/${match[1]}`;
+  const job = parseUpscaleJobMarker(aiPrompt);
+  return job?.requestId === requestId ? job.endpoint : null;
 }
 
 async function getAuthenticatedUser(request) {
@@ -142,7 +124,9 @@ export async function POST(request) {
     if (!rateLimit.success) return rateLimit.response;
 
     const body = await request.json();
-    const { imageUrl, idempotencyKey } = body;
+    const { imageUrl, idempotencyKey, profile = "photo" } = body;
+    const upscaleSettings = getUpscaleSettings(profile);
+    if (!upscaleSettings) return NextResponse.json({ error: "Invalid upscale profile" }, { status: 400 });
 
     if (!imageUrl) {
       return NextResponse.json({ error: "Missing imageUrl" }, { status: 400 });
@@ -181,6 +165,14 @@ export async function POST(request) {
       return NextResponse.json({ error: "Could not read that image. Please try another file." }, { status: 400 });
     }
 
+    const plan = getUpscalePlan(sourceMeta.width, sourceMeta.height);
+    if (!plan.allowed || (sourceMeta.pages || 1) > 1) {
+      return NextResponse.json({
+        error: (sourceMeta.pages || 1) > 1 ? "Please upload a single, still image." : UPSCALE_LIMIT_MESSAGE,
+        code: "UPSCALE_INPUT_LIMIT",
+      }, { status: 400 });
+    }
+
     if (!isAiGenerationConfigured()) {
       logger.error("[API Upscale] AI provider is not configured; refusing to charge", { userId });
       return NextResponse.json({
@@ -192,7 +184,7 @@ export async function POST(request) {
     logger.info("[API Upscale] Plan", {
       source: `${sourceMeta.width}x${sourceMeta.height}`,
       endpoint: UPSCALE_ENDPOINT,
-      ...UPSCALE_SETTINGS,
+      ...upscaleSettings,
     });
 
     const { data: claimRows, error: claimErr } = await adminSupabase
@@ -224,27 +216,12 @@ export async function POST(request) {
     if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
     const { fal } = await import("@fal-ai/client");
 
-    let modelInputUrl = finalImageUrl;
-    const sourceLongEdge = Math.max(sourceMeta.width, sourceMeta.height);
-    if (sourceLongEdge > MAX_ESRGAN_INPUT_LONG_EDGE) {
-      const resizeScale = MAX_ESRGAN_INPUT_LONG_EDGE / sourceLongEdge;
-      const resized = await sharp(sourceBuffer)
-        .resize(Math.round(sourceMeta.width * resizeScale), Math.round(sourceMeta.height * resizeScale), { fit: 'fill', kernel: 'lanczos3' })
-        .png({ effort: 1 })
-        .toBuffer();
-      modelInputUrl = await uploadToR2(resized, `users/${userId}/upscale_src_${Date.now()}.png`, 'image/png');
-      logger.info("[API Upscale] Pre-shrank oversized ESRGAN source", {
-        from: `${sourceMeta.width}x${sourceMeta.height}`,
-        maxLongEdge: MAX_ESRGAN_INPUT_LONG_EDGE,
-      });
-    }
-
-    logger.info("[API Upscale] Queueing", { endpoint: UPSCALE_ENDPOINT, ...UPSCALE_SETTINGS });
+    logger.info("[API Upscale] Queueing", { endpoint: UPSCALE_ENDPOINT, ...upscaleSettings });
 
     const queued = await fal.queue.submit(UPSCALE_ENDPOINT, {
       input: {
-        image_url: modelInputUrl,
-        ...UPSCALE_SETTINGS,
+        image_url: finalImageUrl,
+        ...upscaleSettings,
       },
     });
 
@@ -254,7 +231,7 @@ export async function POST(request) {
 
     const { error: markerErr } = await adminSupabase
       .from('projects')
-      .update({ ai_prompt: buildJobMarker(queued.request_id) })
+      .update({ ai_prompt: buildUpscaleJobMarker(queued.request_id) })
       .eq('id', projectId)
       .eq('user_id', userId)
       .eq('client_request_id', requestKey);
@@ -272,8 +249,10 @@ export async function POST(request) {
       cost: {
         model: UPSCALE_ENDPOINT,
         sourceSize: `${sourceMeta.width}x${sourceMeta.height}`,
-        scale: UPSCALE_SETTINGS.scale,
-        esrganModel: UPSCALE_SETTINGS.model,
+        scale: UPSCALE_FACTOR,
+        precisionModel: upscaleSettings.model,
+        outputSize: `${plan.outputWidth}x${plan.outputHeight}`,
+        estimatedUsd: 0.08,
       },
     });
 

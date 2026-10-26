@@ -9,13 +9,63 @@ import {
 } from "@/lib/tracePrompts";
 
 describe("trace prompt source fidelity", () => {
-  it("keeps the existing garment prompt contracts byte-for-byte unchanged", () => {
+  it("keeps unrelated logo and flat-pattern prompts byte-for-byte unchanged", () => {
     const digest = (value) => createHash("sha256").update(value).digest("hex");
+    const expected = {
+      LOGO_FLATTEN: ["c3316d5ddcdb7a4c09f24e2d205e410d9ca417a72db916ad3b520f35f67dad95", "b7d359ea11f474f202166eb80cd8f2a961f67eff5f152e1f71b2fa9ac18917bc"],
+      PATTERN_CLEAN: ["0adf40488f5efe925f73fd7f6011ce80bf8bc9ae39783e6910a3ecfdf6f78cc4", "22175b3b3b8195a2f55e7094fa64073737b409ea17df637611c65213f70f856b"],
+      PATTERN_PRESERVE: ["c68cd376527c28b95f5e4af073f97353fb1fecf9b99ccc7ecc9d646e511f23bb", "22175b3b3b8195a2f55e7094fa64073737b409ea17df637611c65213f70f856b"],
+    };
+    for (const [mode, [promptHash, systemHash]] of Object.entries(expected)) {
+      expect(digest(buildNanoBananaPrompt(mode))).toBe(promptHash);
+      expect(digest(buildNanoBananaSystemPrompt(mode))).toBe(systemHash);
+    }
+  });
 
-    expect(digest(buildNanoBananaPrompt("ERASE_LOGOS"))).toBe("ac6330456fe8b9fe6941d7d9401d1151a5d78614dd308ec40558040484b1d118");
-    expect(digest(buildNanoBananaPrompt("PRESERVE_LOGOS"))).toBe("7e4b1ed2a4ce325952c013840a420cb607bb10a2fde15164acd797e3b7b6addf");
-    expect(digest(buildNanoBananaSystemPrompt("ERASE_LOGOS"))).toBe("6b7cea7e040c642863122ff5ee16e4468156f7f43fb2bfdc02f17552ee098ca2");
-    expect(digest(buildNanoBananaSystemPrompt("PRESERVE_LOGOS"))).toBe("792cf91184ac824a3d818bea606d55e25a046cb51c1aad3ae178a359142adcba");
+  it.each(["ERASE_LOGOS", "PRESERVE_LOGOS"])(
+    "excludes crop margins and physical construction without changing print identity in %s",
+    (mode) => {
+      const prompt = buildNanoBananaPrompt(mode);
+      const system = buildNanoBananaSystemPrompt(mode);
+
+      expect(prompt).toContain("CROP-MARGIN TEST");
+      expect(prompt).toContain("STRUCTURE VS PRINT");
+      expect(prompt).toContain("physical neck/armhole binding");
+      expect(prompt).toContain("buttons, or hem stitching even if it occupies only a few pixels");
+      expect(prompt).toContain("White that belongs to the torso design remains white artwork");
+      expect(prompt).toContain("do not crop away retained artwork or borrow sleeve colors");
+      expect(prompt).toContain("nine corresponding positions within the selected TORSO ARTWORK");
+      expect(prompt).toContain("never combine front and back artwork");
+      expect(prompt).toContain("Genuine printed bands within the torso remain artwork");
+      expect(system).toContain("crop");
+      expect(system).toContain("placket");
+      expect(system).toContain("buttons");
+
+      // These former clauses encouraged copying the mockup's framing or
+      // bleeding every interior motif to the edges rather than flattening it.
+      expect(prompt).not.toContain("that crop is the whole subject");
+      expect(prompt).not.toContain("Every color zone, stripe, and facet bleeds fully to all four edges");
+      expect(prompt).not.toContain("visually indistinguishable from the input");
+      expect(prompt).not.toContain("reproduce ONLY the front panel");
+      expect(prompt).not.toContain("a repeating artwork panel");
+    },
+  );
+
+  it("preserves the different removal contracts and existing garment settings", () => {
+    const clean = buildNanoBananaPrompt("ERASE_LOGOS");
+    const preserve = buildNanoBananaPrompt("PRESERVE_LOGOS");
+    expect(clean).toContain("This mode removes EXACTLY THREE THINGS");
+    expect(clean).toContain("THE MASCOT AND ALL CHARACTER ARTWORK");
+    expect(preserve).toContain("KEEP COMPLETE DESIGN preserves the print");
+    expect(preserve).toContain("Do not remove player names");
+    expect(preserve).toContain("Do not remove player numbers");
+    expect(preserve).toContain("Exclude lettering confined to an incidental sleeve");
+    expect(buildNanoBananaPrompt(undefined)).toBe(preserve);
+    for (const mode of ["ERASE_LOGOS", "PRESERVE_LOGOS"]) {
+      expect(getNanoBananaInputTuning(mode)).toEqual({
+        resolution: "2K", output_format: "png", num_images: 1, enable_web_search: false,
+      });
+    }
   });
 
   it("keeps Pattern Workspace isolated, non-destructive by default, and at 4K", () => {

@@ -1,99 +1,133 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
-/**
- * PromoModal — A lightweight promotional popup that displays a banner.
- * Uses localStorage so it doesn't spam the user on every reload.
- */
-const PromoModal = memo(function PromoModal() {
+const STORAGE_KEY = "claw-agents-promo-seen-v1";
+const PRIVACY_KEY = "ai_disclaimer_seen";
+const ONE_DAY_MS = 86_400_000;
+
+const PromoModal = memo(function PromoModal({ enabled = true, onChooseAgent, onVisibilityChange }) {
   const [show, setShow] = useState(false);
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
 
   useEffect(() => {
+    onVisibilityChange?.(show);
+    return () => {
+      if (show) onVisibilityChange?.(false);
+    };
+  }, [onVisibilityChange, show]);
+
+  const handleClose = useCallback(() => {
+    setShow(false);
+    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) {
+      setShow(false);
+      return undefined;
+    }
+
     let timer;
-
     const schedulePromo = () => {
-      if (!localStorage.getItem("ai_disclaimer_seen")) return;
+      if (!localStorage.getItem(PRIVACY_KEY)) return;
 
-      // Only show if they haven't closed it in the last 24 hours
-      const lastSeen = localStorage.getItem("promo_seen_timestamp");
-      const now = Date.now();
+      const lastSeen = Number(localStorage.getItem(STORAGE_KEY) || 0);
+      if (Date.now() - lastSeen < ONE_DAY_MS) return;
 
-      // Show after 2 seconds for a nice effect
-      if (!lastSeen || now - parseInt(lastSeen, 10) > 86400000) { // 24 hours
-        timer = setTimeout(() => {
-          setShow(true);
-        }, 2000);
-      }
+      timer = window.setTimeout(() => setShow(true), 2400);
     };
 
     schedulePromo();
     window.addEventListener("desaynclaw:data-privacy-accepted", schedulePromo);
 
     return () => {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       window.removeEventListener("desaynclaw:data-privacy-accepted", schedulePromo);
     };
-  }, []);
+  }, [enabled]);
 
-  const handleClose = () => {
-    setShow(false);
-    localStorage.setItem("promo_seen_timestamp", Date.now().toString());
-  };
+  useEffect(() => {
+    if (!show) return undefined;
+
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus({ preventScroll: true });
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const buttons = dialogRef.current?.querySelectorAll("button:not(:disabled)");
+      if (!buttons?.length) return;
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+      const focusOutside = !dialogRef.current.contains(document.activeElement);
+      if (event.shiftKey && (document.activeElement === first || focusOutside)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || focusOutside)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (!document.querySelector('[role="dialog"]') && previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, [handleClose, show]);
 
   if (!show) return null;
 
-  return (
-    <div className="modal-overlay" style={{ zIndex: 9999, display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>
-      <div
-        className="modal-content"
-        style={{
-          maxWidth: "900px",
-          width: "95%",
-          padding: 0,
-          borderRadius: "0",
-          overflow: "hidden",
-          background: "transparent",
-          position: "relative",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
-          border: "none"
-        }}
+  const handleChooseAgent = () => {
+    handleClose();
+    onChooseAgent?.();
+  };
+
+  return createPortal(
+    <div className="claw-agents-promo-overlay" role="presentation" onClick={handleClose}>
+      <section
+        ref={dialogRef}
+        className="claw-agents-promo"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Meet the DesaynClaw agents"
+        onClick={(event) => event.stopPropagation()}
       >
-        {/* Close Button */}
         <button
+          ref={closeRef}
+          className="claw-agents-promo-close"
+          type="button"
           onClick={handleClose}
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "16px",
-            background: "rgba(0,0,0,0.5)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            color: "#fff",
-            borderRadius: "50%",
-            width: "32px",
-            height: "32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            zIndex: 10,
-            transition: "all 0.2s"
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.8)"; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.5)"; }}
+          aria-label="Close agent announcement"
         >
-          <X size={16} />
+          <X size={17} aria-hidden="true" />
         </button>
 
-        {/* Promo Image ONLY */}
-        <img
-          src="/DESAYNCLAW.jpg"
-          alt="Announcement"
-          style={{ width: "100%", height: "auto", display: "block" }}
-        />
-      </div>
-    </div>
+        <button
+          className="claw-agents-promo-action"
+          type="button"
+          onClick={handleChooseAgent}
+          aria-label="Choose a DesaynClaw agent"
+        >
+          <img src="/POP-UP-BANNER.jpg" width={2328} height={1892} alt="Meet the DesaynClaw Claw Agents" />
+        </button>
+      </section>
+    </div>,
+    document.body,
   );
 });
 

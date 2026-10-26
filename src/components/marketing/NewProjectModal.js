@@ -20,28 +20,6 @@ const PatternIcon = ({ size = 38 }) => (
   </svg>
 );
 
-const PatternThumbnail = () => (
-  <svg className="new-project-pattern-art" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="patternCardBase" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#152f4d" />
-        <stop offset="1" stopColor="#081423" />
-      </linearGradient>
-      <linearGradient id="patternCardSilver" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stopColor="#73869a" />
-        <stop offset="0.5" stopColor="#e8edf0" />
-        <stop offset="1" stopColor="#647688" />
-      </linearGradient>
-    </defs>
-    <rect width="320" height="180" fill="url(#patternCardBase)" />
-    <path d="M-35 160 82 16l51 1L14 161z" fill="#233f65" />
-    <path d="M18 180 136 34l26 2L47 180z" fill="url(#patternCardSilver)" opacity=".9" />
-    <path d="m75 180 105-126 28 4L105 180z" fill="#9dc53a" />
-    <path d="M130 180 244 43l36 6-111 131z" fill="#1e416a" />
-    <path d="m204 180 91-106 44 7-79 99z" fill="url(#patternCardSilver)" opacity=".8" />
-  </svg>
-);
-
 /* ─── Radio option card (details step) ─────────────────────── */
 function TraceOptionCard({ value, current, onChange, title, description }) {
   const active = current === value;
@@ -91,7 +69,7 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
 }
 
 /* ─── Category card (step 1) ────────────────────────────────── */
-function CategoryCard({ onClick, icon, title, description, badge, thumbnail, thumbnailContent, thumbnailFit = "cover", thumbnailPosition = "center" }) {
+function CategoryCard({ onClick, icon, agentName, title, description, badge, thumbnail, thumbnailContent, thumbnailFit = "cover", thumbnailPosition = "center" }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -170,6 +148,7 @@ function CategoryCard({ onClick, icon, title, description, badge, thumbnail, thu
 
       {/* Text */}
       <div className="new-project-category-copy">
+        <span className="new-project-category-agent">{agentName}</span>
         <p className="new-project-category-title" style={{
           margin: "0 0 6px 0",
           color: hovered ? "#fff" : "#ddd",
@@ -208,6 +187,7 @@ const NewProjectModal = memo(function NewProjectModal({
   setProjectName,
   traceType,
   setTraceType,
+  initialCategory = null,
   isUploading,
   onClose,
   onSelectImage,
@@ -221,6 +201,20 @@ const NewProjectModal = memo(function NewProjectModal({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!show || !initialCategory) return;
+
+    setCategory(initialCategory);
+    if (initialCategory === "logo") {
+      setTraceType("logo");
+    } else if (initialCategory === "pattern") {
+      setTraceType("pattern_clean");
+    } else {
+      setTraceType("mockup_erase");
+    }
+    setStep("details");
+  }, [initialCategory, setTraceType, show]);
 
   if (!show || !mounted) return null;
 
@@ -329,42 +323,54 @@ const NewProjectModal = memo(function NewProjectModal({
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 icon={<Shirt size={38} strokeWidth={1.2} />}
-                title="Garment Workspace"
-                description="Extract clean flat artwork from jerseys, shirts, and apparel mockups."
-                thumbnail="/samples/Reference.webp"
-                thumbnailPosition="center 20%"
+                agentName="Panel Agent"
+                title="Garment Extract"
+                description="Extract clean production artwork from garment mockups."
+                thumbnail="/tool-agent-cutouts/yellow-v2/01-garment-agent.png"
+                thumbnailFit="contain"
+                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("logo")}
                 icon={<LogoIcon size={38} />}
-                title="Logo Workspace"
-                description="Rebuild logos and wordmarks as accurate, editable vectors."
-                thumbnail="/samples/esports-vector.webp"
+                agentName="Vector Agent"
+                title="Logo Vectorizer"
+                description="Convert logos and wordmarks into accurate editable vectors."
+                thumbnail="/tool-agent-cutouts/yellow-v2/02-logo-agent.png"
+                thumbnailFit="contain"
+                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("pattern")}
                 icon={<PatternIcon size={38} />}
-                title="Pattern Workspace"
-                description="Retrace flat patterns accurately and export clean, editable SVG files."
-                thumbnailContent={<PatternThumbnail />}
+                agentName="Motif Agent"
+                title="Pattern Rebuilder"
+                description="Reconstruct flat patterns as clean, editable SVG files."
+                thumbnail="/tool-agent-cutouts/yellow-v2/03-pattern-agent.png"
+                thumbnailFit="contain"
+                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("bg_remover")}
                 icon={<Scissors size={38} strokeWidth={1.2} />}
-                title="BG Remover Studio"
-                description="Create clean transparent artwork for products, portraits, and graphics."
+                agentName="Cutout Agent"
+                title="Background Remover"
+                description="Create clean transparent cutouts for products and graphics."
                 badge="AI"
-                thumbnail="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.webp"
-                thumbnailPosition="center 22%"
+                thumbnail="/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png"
+                thumbnailFit="contain"
+                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("mockup_studio")}
                 icon={<Camera size={38} strokeWidth={1.2} />}
+                agentName="Form Agent"
                 title="Mockup Studio"
-                description="Turn exact jersey panels into polished garment previews."
+                description="Build polished garment previews from production panels."
                 badge="NEW"
-                thumbnail="/MOCKUP_STUDIO_thumbnail.jpg"
-                thumbnailPosition="center 28%"
+                thumbnail="/tool-agent-cutouts/yellow-v2/05-mockup-agent.png"
+                thumbnailFit="contain"
+                thumbnailPosition="center top"
               />
             </div>
 
@@ -404,7 +410,7 @@ const NewProjectModal = memo(function NewProjectModal({
                     : <Shirt size={17} strokeWidth={1.5} />}
               </div>
               <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "#fff" }}>
-                {category === "logo" ? "Logo Workspace" : category === "pattern" ? "Pattern Workspace" : "Garment Workspace"}
+                {category === "logo" ? "Logo Vectorizer" : category === "pattern" ? "Pattern Rebuilder" : "Garment Extract"}
               </h2>
             </div>
 

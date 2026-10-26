@@ -1,0 +1,72 @@
+/*
+ * Processing motion is intentionally global and route-scoped. The shared
+ * loader keyframes live in the global stylesheet, so these
+ * animation names must not be renamed by CSS Modules.
+ */
+.image-tool-workspace-ui .processing-layer-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.image-tool-workspace-ui .processing-layer-stack > div {
+  justify-content: center;
+}
+
+.image-tool-workspace-ui .processing-layer-stack > div > span:last-child {
+  line-height: 1;
+}
+
+.image-tool-workspace-ui .processing-stage-activity {
+  align-self: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-tool-workspace-ui .processing-logo-outline {
+    animation: processingLogoFloat 3.2s cubic-bezier(.4, 0, .2, 1) infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-outline::before {
+    animation: processingLogoAura 2.4s ease-in-out infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-vector svg path {
+    animation: processingVectorDraw 3s cubic-bezier(.55, .05, .22, 1) infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-vector svg path:nth-of-type(2) {
+    animation-delay: .18s !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-vector svg path:nth-of-type(3) {
+    animation-delay: .34s !important;
+  }
+
+  .image-tool-workspace-ui .processing-canvas-scan {
+    display: block !important;
+    animation: processingLogoScan 2.25s cubic-bezier(.45, 0, .2, 1) infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-orbit,
+  .image-tool-workspace-ui .processing-logo-node {
+    display: block !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-orbit.is-outer {
+    animation: processingOrbitOuter 8s linear infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-orbit.is-inner {
+    animation: processingOrbitInner 5.5s linear infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-node {
+    animation: processingNodePulse 1.25s ease-in-out infinite !important;
+  }
+
+  .image-tool-workspace-ui .processing-logo-node.n2 { animation-delay: .3s !important; }
+  .image-tool-workspace-ui .processing-logo-node.n3 { animation-delay: .6s !important; }
+  .image-tool-workspace-ui .processing-logo-node.n4 { animation-delay: .9s !important; }
+
+  .image-tool-workspace-ui .processing-stage-activity i {
+    animation: processingActivity .9s ease-in-out infinite !important;
+  }
+}

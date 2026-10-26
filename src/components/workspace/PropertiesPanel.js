@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { memo, useState, useEffect } from "react";
 import {
   Loader2,
   Sparkles,
@@ -17,6 +18,22 @@ import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integratio
 import { getTraceResumePlan } from "@/lib/traceResume";
 
 const GOOGLE_DRIVE_RECONNECT_REQUIRED = "GOOGLE_DRIVE_RECONNECT_REQUIRED";
+
+const GARMENT_AGENT = {
+  name: "Maya", number: "01", role: "Panel extraction",
+  label: "Maya, your garment panel agent",
+  headline: ["Clean panels.", "Ready to produce."],
+  description: "Maya isolates garment artwork while preserving the shapes, colors, and layout you designed.",
+  image: "/tool-agent-cutouts/yellow-v2/01-garment-agent.png",
+};
+
+const LOGO_AGENT = {
+  name: "Victor", number: "02", role: "Logo vectorization",
+  label: "Victor, your logo vector agent",
+  headline: ["Sharp logos.", "At every scale."],
+  description: "Victor turns logos and wordmarks into clean, scalable SVG artwork.",
+  image: "/tool-agent-cutouts/yellow-v2/02-logo-agent.png",
+};
 
 /* ─── Custom Icons ──────────────────────────────────────────────────────── */
 
@@ -79,48 +96,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const [integrationStatus, setIntegrationStatus] = useState({ loading: true });
   const [driveRequiresReconnect, setDriveRequiresReconnect] = useState(false);
 
-  // ── Live processing timer ──────────────────────────────────────────────────
-  const [elapsedSec, setElapsedSec] = useState(0);
-  const [finalSec, setFinalSec] = useState(null);
-  const timerRef = useRef(null);
-  const startTimeRef = useRef(null);
-
-  useEffect(() => {
-    const isProcessing = traceState !== "idle";
-    if (isProcessing) {
-      // Start fresh timer when processing begins
-      if (!timerRef.current) {
-        startTimeRef.current = Date.now();
-        setElapsedSec(0);
-        setFinalSec(null);
-        timerRef.current = setInterval(() => {
-          setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
-        }, 1000);
-      }
-    } else {
-      // Processing finished — freeze the timer
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-        setFinalSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
-      }
-    }
-    return () => { };
-  }, [traceState]);
-
-  // Cleanup on unmount
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
-
-  const stepsDone = traceState === "step2" ? 1 : traceState === "step3" ? 2 : traceState === "idle" && finalSec !== null ? 3 : 0;
-  const isProcessing = traceState !== "idle";
   const isPatternWorkspace = project?.trace_type === "pattern";
-  const steps = [
-    { label: isPatternWorkspace ? "Pattern Retrace" : "Neural Extract", active: traceState === "step1" },
-    { label: "Upscale", active: traceState === "step2" },
-    { label: "Vectorize", active: traceState === "step3" },
-  ];
-  const activeStepLabel = steps.find((step) => step.active)?.label;
-  const fmtTime = (s) => s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
+  const agent = project?.trace_type === "logo" ? LOGO_AGENT : GARMENT_AGENT;
 
   const standardPlan = getTraceResumePlan(project, "standard");
   const precisionPlan = getTraceResumePlan(project, "precision");
@@ -260,13 +237,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
                   ? creditCost === 0 ? "Resume HD + SVG — No Claws" : "Resume HD + Precision SVG  (−1 Claw)"
                 : `${isPatternWorkspace ? "Run Pattern Retrace" : "Run Auto-Trace"}  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
-  const exportDetails = [
-    { label: "Format", value: "SVG" },
-    { label: "Vectors", value: "No limit" },
-    { label: "Color", value: "Full" },
-    { label: "Max size", value: "50 MP" },
-  ];
-
   return (
     <aside className="workspace-properties-panel" style={{
       width: "280px",
@@ -381,84 +351,19 @@ const PropertiesPanel = memo(function PropertiesPanel({
         }
         .pp-row-dot { flex: 1; border-bottom: 1px dotted #333; margin: 0 4px; }
 
-        .pp-output-readout {
-          border-top: 1px solid rgba(255,255,255,.09);
-        }
         .pp-scroll-region {
           flex: 1 1 auto; min-height: 0; overflow: hidden;
           display: flex; flex-direction: column; justify-content: space-between;
         }
-        .pp-spec-row {
-          min-height: 28px; display: grid; grid-template-columns: minmax(0,1fr) auto;
-          align-items: center; gap: 14px; border-bottom: 1px solid rgba(255,255,255,.065);
-        }
-        .pp-spec-label {
-          color: rgba(255,255,255,.42); font-size: 9.5px; line-height: 1.2;
-        }
-        .pp-spec-value {
-          color: rgba(255,255,255,.88); font-size: 9.5px; font-weight: 550;
-          line-height: 1.2; text-align: right; font-variant-numeric: tabular-nums;
-        }
-        .pp-process-readout {
-          margin: 0 -2px 8px;
-          padding: 10px 2px 11px;
-          border-bottom: 1px solid rgba(255,255,255,.085);
-        }
-        .pp-process-readout.is-processing {
-          background: linear-gradient(90deg, rgba(255,255,255,.025), transparent 76%);
-        }
-        .pp-process-head {
-          display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-          margin-bottom: 10px;
-        }
-        .pp-process-head span {
-          overflow: hidden; color: rgba(255,255,255,.46); font-size: 9px;
-          font-weight: 550; white-space: nowrap; text-overflow: ellipsis;
-        }
-        .pp-process-head strong {
-          color: rgba(255,255,255,.78); font-size: 9.5px; font-weight: 550;
-          font-variant-numeric: tabular-nums;
-        }
-        .pp-process-head strong.is-live {
-          color: #fff; text-shadow: 0 0 12px rgba(255,255,255,.2);
-        }
-        .pp-stage-rail {
-          display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px;
-        }
-        .pp-stage-segment { min-width: 0; }
-        .pp-stage-line {
-          position: relative; height: 4px; overflow: hidden; border-radius: 1px;
-          background: rgba(255,255,255,.1);
-        }
-        .pp-stage-segment.is-done .pp-stage-line { background: rgba(255,255,255,.72); }
-        .pp-stage-segment.is-active .pp-stage-line {
-          background: rgba(255,215,0,.14); box-shadow: 0 0 10px rgba(255,215,0,.08);
-        }
-        .pp-stage-segment.is-active .pp-stage-line::after {
-          content: ""; position: absolute; inset: 0; width: 55%;
-          background: linear-gradient(90deg, transparent, rgba(255,215,0,.34) 26%, #ffd700 52%, rgba(255,215,0,.34) 74%, transparent);
-          box-shadow: 0 0 8px rgba(255,215,0,.24);
-          animation: pp-rail-sweep .9s ease-in-out infinite;
-          will-change: transform;
-        }
-        .pp-stage-name {
-          display: block; overflow: hidden; margin-top: 6px; color: rgba(255,255,255,.23);
-          font-size: 7.5px; line-height: 1.2; font-weight: 550; white-space: nowrap;
-          text-overflow: ellipsis; text-transform: uppercase;
-        }
-        .pp-stage-segment.is-done .pp-stage-name { color: rgba(255,255,255,.56); }
-        .pp-stage-segment.is-active .pp-stage-name { color: #fff; }
 
         @keyframes pp-spin { to { transform: rotate(360deg); } }
         .pp-spin { animation: pp-spin .9s linear infinite; display: inline-flex; }
         @keyframes pp-shimmer { 0% { left: -100%; } 100% { left: 200%; } }
-        @keyframes pp-rail-sweep { 0% { transform: translateX(-110%); } 100% { transform: translateX(190%); } }
 
         @media (max-height: 840px) {
           .pp-scroll-region { justify-content: flex-start; }
           .pp-color-section { padding: 6px 12px !important; }
           .pp-mode-section, .pp-actions-section { padding: 0 12px 6px !important; }
-          .pp-export-section { padding: 0 12px 7px !important; }
           .pp-card { padding: 6px 9px; gap: 9px; }
           .pp-desc { margin-top: 3px; font-size: 9px; line-height: 1.25; }
           .pp-trace-btn { min-height: 36px; margin-bottom: 4px; padding-block: 7px; }
@@ -466,10 +371,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
           .pp-warn span { font-size: 9px; line-height: 1.25; }
           .pp-svg-btn { padding-block: 6px; }
           .pp-sec { min-height: 36px; padding: 3px; gap: 3px; }
-          .pp-spec-row { min-height: 23px; }
-          .pp-process-readout { margin-bottom: 5px; padding-block: 7px 8px; }
-          .pp-process-head { margin-bottom: 7px; }
-          .pp-stage-name { margin-top: 4px; }
         }
 
         @media (max-height: 700px) {
@@ -479,8 +380,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
           .pp-plan-meta { font-size: 8px !important; }
           .pp-warn { margin-bottom: 4px !important; }
           .pp-sec { min-height: 32px; }
-          .pp-spec-row { min-height: 21px; }
-          .pp-process-readout { padding-block: 6px 7px; }
         }
       `}</style>
 
@@ -655,45 +554,27 @@ const PropertiesPanel = memo(function PropertiesPanel({
         )}
       </div>
 
-      {/* ── EXPORT DETAILS ───────────────────────────────── */}
-      <div className="pp-section pp-export-section" style={{ padding: "0 14px 10px", flexShrink: 0 }}>
-        <span className="pp-lbl">Export Details</span>
-        <div className="pp-output-readout">
-          {/* ── Processing Time — live progress ── */}
-          <div className={`pp-process-readout${isProcessing ? " is-processing" : ""}`}>
-            <div className="pp-process-head">
-              <span>{isProcessing ? (activeStepLabel || "Processing") : finalSec !== null ? "Complete" : "Estimate"}</span>
-              <strong className={isProcessing ? "is-live" : ""}>
-                {isProcessing
-                  ? `${fmtTime(elapsedSec)}…`
-                  : finalSec !== null
-                    ? fmtTime(finalSec)
-                    : "10 – 30 sec"}
-              </strong>
-            </div>
-
-            <div className="pp-stage-rail" aria-label="Processing stages">
-              {steps.map((step, i) => {
-                const done = i < stepsDone;
-                const active = step.active;
-                return (
-                  <div key={step.label} className={`pp-stage-segment${done ? " is-done" : ""}${active ? " is-active" : ""}`}>
-                    <div className="pp-stage-line" />
-                    <span className="pp-stage-name">{step.label}</span>
-                  </div>
-                );
-              })}
+      <aside className="pp-agent-card" aria-label={agent.label}>
+        <div className="pp-agent-card-copy">
+          <div className="pp-agent-identity">
+            <span>{agent.number}</span>
+            <div>
+              <b>{agent.name}</b>
+              <small>{agent.role}</small>
             </div>
           </div>
-
-          {exportDetails.map(({ label, value }) => (
-            <div key={label} className="pp-spec-row">
-              <span className="pp-spec-label">{label}</span>
-              <span className="pp-spec-value">{value}</span>
-            </div>
-          ))}
+          <strong className="pp-agent-headline">{agent.headline[0]}<br />{agent.headline[1]}</strong>
+          <p>{agent.description}</p>
         </div>
-      </div>
+        <div className="pp-agent-portrait" aria-hidden="true">
+          <Image
+            src={agent.image}
+            alt=""
+            fill
+            sizes="150px"
+          />
+        </div>
+      </aside>
       </div>
 
     </aside>

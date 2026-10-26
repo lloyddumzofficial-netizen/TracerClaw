@@ -11,7 +11,7 @@ import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-import { CheckCircle2, Palette, X } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Palette, X } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "@/hooks/useTraceExecution";
@@ -473,11 +473,11 @@ export default function Workspace() {
         <div className="palette-ready-nudge" ref={paletteNudgeRef} role="status" aria-live="polite">
           <div className="palette-ready-copy">
             <span className="palette-ready-icon" aria-hidden="true">
-              <Palette size={13} />
+              <Palette size={17} />
             </span>
             <div>
-              <strong>SVG palette ready</strong>
-              <span>Review colors and merge paths.</span>
+              <strong>Your SVG palette is ready</strong>
+              <span>Refine colors and merge matching paths.</span>
             </div>
           </div>
           <button
@@ -488,7 +488,7 @@ export default function Workspace() {
               setShowPalettePreview(true);
             }}
           >
-            Review
+            Open Palette Studio <ArrowUpRight size={13} aria-hidden="true" />
           </button>
           <button
             type="button"
