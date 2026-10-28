@@ -21,8 +21,13 @@ describe("emergency AI maintenance", () => {
     vi.stubEnv("AI_MAINTENANCE_MODE", "on");
     expect(proxy(new NextRequest(`https://desaynclaw.com${path}`, { method })).headers.get("x-middleware-next")).toBe("1");
   });
-  it("resumes only when explicitly disabled", () => {
+  it("allows service when maintenance is explicitly disabled", () => {
     vi.stubEnv("AI_MAINTENANCE_MODE", "off");
     expect(proxy(new NextRequest("https://desaynclaw.com/api/trace", { method: "POST" })).headers.get("x-middleware-next")).toBe("1");
+  });
+  it("serves the normal site by default after service restoration", () => {
+    vi.stubEnv("AI_MAINTENANCE_MODE", undefined);
+    expect(proxy(new NextRequest("https://desaynclaw.com/")).headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(new NextRequest("https://desaynclaw.com/api/upscale", { method: "POST" })).headers.get("x-middleware-next")).toBe("1");
   });
 });

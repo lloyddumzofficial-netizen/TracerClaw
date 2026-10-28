@@ -1,11 +1,11 @@
-// Emergency AI-service pause. Set AI_MAINTENANCE_MODE=off and redeploy only
-// after provider funding/readiness has been confirmed. Never auto-resume by time.
+// Emergency AI-service pause, explicitly enabled with AI_MAINTENANCE_MODE=on.
+// Provider funding has been restored; normal service is the default again.
 export const MAINTENANCE_RETURN_LABEL = "1:00 PM";
 export const MAINTENANCE_RETURN_DATE = "October 28, 2026";
 export const MAINTENANCE_MESSAGE = "AI processing is temporarily paused. We expect service to return by 1:00 PM on October 28, 2026 (Philippine time). Please wait for confirmation before generating again.";
 
 export function isMaintenanceEnabled() {
-  return process.env.AI_MAINTENANCE_MODE !== "off";
+  return process.env.AI_MAINTENANCE_MODE === "on";
 }
 
 export function isMaintenancePage(path) {
