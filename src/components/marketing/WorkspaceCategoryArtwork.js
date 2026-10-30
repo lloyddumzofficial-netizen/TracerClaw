@@ -2,49 +2,109 @@
 
 import { useId } from "react";
 
-const SHIRT = "M70 44 53 51 39 74 55 85 65 73V126H127V73L137 85 153 74 139 51 122 44C116 57 106 61 96 61S76 57 70 44Z";
+const JERSEY = "M26 8 13 13 3 38 17 46 25 31 23 105Q50 113 77 105L75 31 83 46 97 38 87 13 74 8 62 4C58 16 42 16 38 4Z";
+const VECTOR_MARK = "M65 46H91C117 46 134 62 134 86S117 127 91 127H65ZM84 64V109H91C107 109 115 100 115 86S107 64 91 64Z";
+const paint = (id, name) => "url(#" + id + "-" + name + ")";
 
-function GarmentArtwork() {
+function ArtworkDefinitions({ id }) {
+  return (
+    <defs>
+      <linearGradient id={id + "-silver"} x1="0" y1="0" x2="1" y2="1">
+        <stop stopColor="#fcfcfa" /><stop offset=".42" stopColor="#d0d3d0" />
+        <stop offset=".68" stopColor="#f4f4f1" /><stop offset="1" stopColor="#929894" />
+      </linearGradient>
+      <linearGradient id={id + "-cloth"} x1="0" y1="0" x2="1" y2=".2">
+        <stop stopColor="#9ca29e" /><stop offset=".22" stopColor="#e2e4df" />
+        <stop offset=".52" stopColor="#f4f4f1" /><stop offset=".82" stopColor="#c1c6c1" />
+        <stop offset="1" stopColor="#8c938f" />
+      </linearGradient>
+      <linearGradient id={id + "-surface"} x1="0" y1="0" x2="1" y2="1">
+        <stop stopColor="#f4f4f1" stopOpacity=".075" />
+        <stop offset="1" stopColor="#08090a" stopOpacity=".35" />
+      </linearGradient>
+      <pattern id={id + "-checker"} width="10" height="10" patternUnits="userSpaceOnUse" stroke="none">
+        <rect width="10" height="10" fill="#f4f4f1" fillOpacity=".025" />
+        <path d="M0 0H5V5H0ZM5 5H10V10H5Z" fill="#f4f4f1" fillOpacity=".1" />
+      </pattern>
+      <pattern id={id + "-repeat"} width="28" height="32" patternUnits="userSpaceOnUse" stroke="none">
+        <path d="M0 0 14 8 28 0 14-8Z" fill="#f4f4f1" fillOpacity=".8" />
+        <path d="M0 0 14 8V24L0 16Z" fill="#f4f4f1" fillOpacity=".42" />
+        <path d="M14 8 28 0V16L14 24Z" fill="#f4f4f1" fillOpacity=".13" />
+        <path d="M0 0 14 8 28 0M14 8V24" stroke="#f4f4f1" strokeOpacity=".22" strokeWidth=".7" />
+      </pattern>
+      <clipPath id={id + "-jersey"}><path d={JERSEY} /></clipPath>
+      <clipPath id={id + "-pattern"}><rect x="47" y="39" width="109" height="109" rx="7" /></clipPath>
+      <clipPath id={id + "-photo"}><rect x="29" y="22" width="134" height="132" rx="12" /></clipPath>
+    </defs>
+  );
+}
+
+function Surface({ id, x = 29, y = 22, width = 134, height = 132 }) {
+  return <rect x={x} y={y} width={width} height={height} rx="12" fill={paint(id, "surface")} strokeOpacity=".32" />;
+}
+
+function Jersey({ id, printed = false }) {
   return (
     <>
-      <path d="M52 28H30V50M140 28H162V50M30 122V144H52M162 122V144H140" strokeWidth="2.5" />
-      <path d={SHIRT} fill="currentColor" fillOpacity=".9" stroke="none" />
-      <path d="M96 62V126H127V73L137 85 153 74 139 51 122 44C116 57 106 61 96 61Z" fill="#08090A" fillOpacity=".17" stroke="none" />
-      <path d="M96 28V146" stroke="#08090A" strokeWidth="1.5" strokeDasharray="4 5" />
-      <path d="M96 28V42M96 132V146" strokeOpacity=".6" strokeDasharray="3 4" />
-      <path d="M76 47C81 66 111 66 116 47M65 114H127" stroke="#08090A" strokeOpacity=".22" />
+      <path d={JERSEY} fill={paint(id, "cloth")} stroke="#f4f4f1" strokeOpacity=".6" />
+      {printed && (
+        <g clipPath={paint(id, "jersey")} stroke="none">
+          <path d="M19 73 81 37V50L19 86Z" fill="#f4f4f1" fillOpacity=".72" />
+          <path d="M19 89 81 53V72L19 108Z" fill="#08090a" fillOpacity=".37" />
+          <path d="M19 93 81 57" stroke="#f4f4f1" strokeOpacity=".65" strokeWidth="1" />
+          <path d="M57 34H66V41Q61.5 47 57 41Z" fill="#08090a" fillOpacity=".32" />
+        </g>
+      )}
+      <path d="M38 4C40 23 60 23 62 4L65 6C60 27 40 27 35 6Z" fill="#08090a" fillOpacity=".3" stroke="none" />
+      <path d="M26 12 28 28M74 12 72 28M9 34 19 40M81 40 91 34M25 101Q50 108 75 101" stroke="#08090a" strokeOpacity=".24" strokeWidth=".8" />
+      <path d="M29 33 31 89M71 33 69 89" stroke="#08090a" strokeOpacity=".09" strokeWidth="1.5" />
+      <path d="M32 37 34 88" stroke="#ffffff" strokeOpacity=".25" strokeWidth=".7" />
     </>
   );
 }
 
-function VectorArtwork() {
+function GarmentArtwork({ id }) {
   return (
     <>
-      <rect x="34" y="25" width="124" height="124" rx="2" strokeOpacity=".58" />
-      <path d="M58 111 74 62 111 50 135 75 119 123 87 133Z" fill="currentColor" fillOpacity=".08" stroke="none" />
-      <path d="M61 119 81 64 127 48 139 60 123 106 68 126Z" fill="currentColor" fillOpacity=".92" stroke="none" />
-      <path d="M68 120 104 84M84 65 123 104" stroke="#08090A" strokeWidth="1.6" />
-      <circle cx="108" cy="80" r="6" fill="#08090A" stroke="none" />
-      <path d="M56 112C56 76 78 56 116 56" strokeOpacity=".45" strokeDasharray="2 5" />
-      {[ [34, 25], [96, 25], [158, 25], [34, 87], [158, 87], [34, 149], [96, 149], [158, 149] ].map(([x, y]) => (
-        <rect key={`${x}-${y}`} x={x - 4} y={y - 4} width="8" height="8" rx="1.5" fill="currentColor" stroke="none" />
-      ))}
+      <Surface id={id} />
+      <path d="M47 31H38V40M145 31H154V40M38 136V145H47M154 127V136" strokeOpacity=".72" strokeWidth="1.2" />
+      <path d="M38 49V127M56 145H113M56 31H137" strokeOpacity=".13" strokeDasharray="2 4" />
+      <g transform="translate(52 35) scale(.85)"><Jersey id={id} /></g>
+      <rect x="123" y="111" width="43" height="43" rx="7" fill="#151818" stroke="#b5bcb6" strokeOpacity=".6" />
+      <path d="M135 119Q144 124 153 119L156 144Q144 149 132 144Z" fill={paint(id, "silver")} strokeOpacity=".6" strokeWidth=".7" />
+      <path d="M140 130 144 134 150 127" stroke="#08090a" strokeWidth="1.3" strokeOpacity=".65" />
     </>
   );
 }
 
-function PatternArtwork() {
+function VectorArtwork({ id }) {
+  const nodes = [[65, 46], [91, 46], [134, 86], [91, 127], [65, 127]];
   return (
     <>
-      <rect x="28" y="20" width="136" height="136" rx="15" strokeOpacity=".65" />
-      <path d="M96 20V156M28 88H164" strokeOpacity=".25" />
-      <g fill="currentColor" stroke="none">
-        {[0, 90, 180, 270].map(angle => <path key={angle} d="M62 54C43 55 42 37 43 34 60 33 64 42 62 54Z" transform={`rotate(${angle} 62 54)`} fillOpacity={angle === 90 ? ".58" : ".9"} />)}
-        <path d="M130 32C130 46 137 53 151 54 137 55 130 63 130 77 129 63 122 55 108 54 122 53 129 46 130 32Z" fillOpacity=".9" />
-        <path d="M40 104C66 99 82 112 85 140 68 143 54 134 53 118 55 132 46 135 40 135 45 124 47 114 40 104Z" fillOpacity=".9" />
-        {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => <ellipse key={angle} cx="130" cy="107" rx="5" ry="10" transform={`rotate(${angle} 130 124)`} fillOpacity={angle % 90 ? ".58" : ".9"} />)}
-        <circle cx="130" cy="124" r="5" fillOpacity=".9" />
+      <Surface id={id} />
+      <path d="M48 23V153M75 23V153M102 23V153M129 23V153M30 48H162M30 75H162M30 102H162M30 129H162" strokeOpacity=".055" strokeWidth=".7" />
+      <path d={VECTOR_MARK} fill={paint(id, "silver")} fillRule="evenodd" strokeOpacity=".7" strokeWidth=".8" />
+      <path d="M65 37V137M91 46H121M134 62V110M91 127H119" strokeOpacity=".42" strokeWidth=".8" />
+      {[[121, 46], [134, 62], [134, 110], [119, 127]].map(([x, y]) => <circle key={x + "-" + y} cx={x} cy={y} r="1.7" fill="#f4f4f1" stroke="none" />)}
+      {nodes.map(([x, y]) => <rect key={x + "-" + y} x={x - 2.5} y={y - 2.5} width="5" height="5" rx=".6" fill="#141717" stroke="#f4f4f1" strokeWidth="1" />)}
+      <path d="M39 141H53M39 141V127" strokeOpacity=".45" strokeWidth="1" />
+    </>
+  );
+}
+
+function PatternArtwork({ id }) {
+  return (
+    <>
+      <Surface id={id} x={27} y={21} width={118} height={118} />
+      <path d="M35 33H132M35 41H132M35 49H132M35 57H132" strokeOpacity=".1" strokeWidth=".7" />
+      <rect x="42" y="34" width="119" height="119" rx="11" fill="#151918" strokeOpacity=".5" />
+      <g clipPath={paint(id, "pattern")}>
+        <rect x="47" y="39" width="109" height="109" fill={paint(id, "repeat")} stroke="none" />
+        <path d="M48 94H155M102 40V147" strokeOpacity=".15" strokeDasharray="2 3" strokeWidth=".8" />
       </g>
+      <rect x="47" y="39" width="109" height="109" rx="7" strokeOpacity=".18" strokeWidth=".8" />
+      <path d="M66 25H120M116 22 120 25 116 28M169 60V117M166 113 169 117 172 113" strokeOpacity=".55" strokeWidth="1" />
+      <path d="M36 149V159H46" strokeOpacity=".35" />
     </>
   );
 }
@@ -52,56 +112,46 @@ function PatternArtwork() {
 function CutoutArtwork({ id }) {
   return (
     <>
-      <defs>
-        <pattern id={`${id}-checker`} width="12" height="12" patternUnits="userSpaceOnUse">
-          <rect width="12" height="12" fill="currentColor" fillOpacity=".07" />
-          <path d="M0 0H6V6H0ZM6 6H12V12H6Z" fill="currentColor" fillOpacity=".2" />
-        </pattern>
-        <clipPath id={`${id}-half`}><rect x="32" y="32" width="64" height="100" /></clipPath>
-      </defs>
-      <rect x="29" y="22" width="134" height="128" rx="18" strokeOpacity=".3" />
-      <path d={SHIRT} fill={`url(#${id}-checker)`} strokeOpacity=".55" />
-      <path d={SHIRT} fill="currentColor" fillOpacity=".92" stroke="none" clipPath={`url(#${id}-half)`} />
-      <path d="M96 28V134" strokeDasharray="4 5" strokeOpacity=".85" />
-      <circle cx="49" cy="131" r="22" fill="#08090A" strokeOpacity=".6" />
-      <g transform="translate(33 115)" strokeWidth="2">
-        <circle cx="7" cy="9" r="4" /><circle cx="7" cy="23" r="4" />
-        <path d="M10 12 25 26M10 20 25 6" />
+      <Surface id={id} />
+      <g clipPath={paint(id, "photo")}>
+        <rect x="96" y="22" width="68" height="132" fill={paint(id, "checker")} stroke="none" />
+        <path d="M96 23V67M96 134V154" strokeOpacity=".35" strokeWidth=".8" />
+        <path d="M43 109C43 99 50 85 56 72L65 69C73 86 86 88 96 91L111 99 134 102Q146 103 150 114L147 126H49Q41 124 43 117Z" fill={paint(id, "cloth")} strokeOpacity=".65" strokeWidth="1" />
+        <path d="M43 115Q94 124 149 113L147 126Q98 136 47 127Z" fill={paint(id, "silver")} strokeOpacity=".55" strokeWidth=".8" />
+        <path d="M56 74Q61 90 80 89M55 91Q72 100 94 107L134 111M131 103 137 111M50 122Q91 130 140 122" stroke="#08090a" strokeOpacity=".25" strokeWidth=".8" />
+        <path d="M80 92 87 86M88 97 95 91M97 101 104 96" stroke="#08090a" strokeOpacity=".6" strokeWidth="1.5" />
+        <path d="M38 106C40 94 47 80 53 69L66 64C76 82 86 82 99 88L114 95 138 99Q152 101 155 114" strokeOpacity=".5" strokeDasharray="2 3" strokeWidth=".8" />
       </g>
+      <path d="M43 137V151L48 146 52 153 55 151 51 144H58Z" fill={paint(id, "silver")} stroke="#151818" strokeWidth="1" />
+      <path d="M143 35H153M148 30V40" strokeOpacity=".5" strokeWidth="1" />
     </>
   );
 }
 
-function MockupArtwork() {
+function MockupArtwork({ id }) {
   return (
     <>
-      <rect x="27" y="27" width="94" height="111" rx="8" strokeOpacity=".8" />
-      <path d="M27 45H121M35 139H113" strokeOpacity=".3" />
-      <circle cx="35" cy="36" r="1.5" fill="currentColor" stroke="none" /><circle cx="42" cy="36" r="1.5" fill="currentColor" stroke="none" />
-      <svg x="35" y="42" width="78" height="90" viewBox="32 30 128 114">
-        <path d={SHIRT} fill="currentColor" fillOpacity=".9" stroke="none" />
-        <path d="M76 47C81 66 111 66 116 47" stroke="#08090A" strokeOpacity=".3" />
-      </svg>
-      <path d="M63 139V147H85V139M52 150H96" strokeOpacity=".6" />
-      {[ [136, 27], [136, 70], [136, 113] ].map(([x, y], index) => (
-        <g key={y} opacity={index === 0 ? 1 : .45}>
-          <rect x={x - 5} y={y - 1} width="34" height="36" rx="5" strokeOpacity=".55" />
-          <path d={`M${x + 4} ${y + 7} ${x - 1} ${y + 10} ${x - 3} ${y + 17} ${x + 2} ${y + 19} ${x + 4} ${y + 15}V${y + 27}H${x + 20}V${y + 15}L${x + 22} ${y + 19} ${x + 27} ${y + 17} ${x + 25} ${y + 10} ${x + 20} ${y + 7}C${x + 17} ${y + 13} ${x + 7} ${y + 13} ${x + 4} ${y + 7}Z`} fill="currentColor" fillOpacity=".7" stroke="none" />
-        </g>
-      ))}
+      <Surface id={id} />
+      <path d="M39 143H151M39 147H151" strokeOpacity=".12" strokeWidth=".8" />
+      <g transform="translate(99 43) scale(.57)" opacity=".48"><Jersey id={id} /></g>
+      <path d="M107 40H143M143 40V66" strokeOpacity=".25" strokeDasharray="2 3" strokeWidth=".8" />
+      <g transform="translate(45 32) scale(.94)"><Jersey id={id} printed /></g>
+      <path d="M42 137H54M42 137V125M146 135H153M153 135V128" strokeOpacity=".6" strokeWidth="1" />
+      <circle cx="152" cy="36" r="2" fill="#f4f4f1" fillOpacity=".7" stroke="none" />
     </>
   );
 }
+
+const ARTWORK = { garment: GarmentArtwork, logo: VectorArtwork, pattern: PatternArtwork, bg_remover: CutoutArtwork, mockup_studio: MockupArtwork };
 
 export default function WorkspaceCategoryArtwork({ variant }) {
   const id = useId().replace(/:/g, "");
+  const Artwork = ARTWORK[variant];
+  if (!Artwork) return null;
   return (
-    <svg viewBox="0 0 192 176" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-workspace-artwork={variant}>
-      {variant === "garment" && <GarmentArtwork />}
-      {variant === "logo" && <VectorArtwork />}
-      {variant === "pattern" && <PatternArtwork />}
-      {variant === "bg_remover" && <CutoutArtwork id={id} />}
-      {variant === "mockup_studio" && <MockupArtwork />}
+    <svg viewBox="0 0 192 176" fill="none" stroke="#f4f4f1" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-workspace-artwork={variant}>
+      <ArtworkDefinitions id={id} />
+      <Artwork id={id} />
     </svg>
   );
 }

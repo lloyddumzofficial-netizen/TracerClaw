@@ -87,14 +87,14 @@ function CategoryCard({ onClick, artwork, agentName, title, description, badge }
   return (
     <div
       className={`${modalStyles.categoryCard} ${modalStyles.keyboardOption}`}
-      data-workspace-card
+      data-workspace-card={artwork}
       onClick={onClick}
       role="button"
       tabIndex={0}
       aria-label={title}
       onKeyDown={event => activateOnKeyboard(event, onClick)}
     >
-      {badge && <span className={modalStyles.badge}>{badge}</span>}
+      {badge && <span className={modalStyles.badge} data-badge={badge.toLowerCase()}>{badge}</span>}
       <div className={modalStyles.artwork}>
         <WorkspaceCategoryArtwork variant={artwork} />
       </div>
