@@ -1,19 +1,24 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 import Image from "next/image";
+import useDialogFocus from "@/hooks/useDialogFocus";
 
-const NoCreditsModal = memo(function NoCreditsModal({ show, onClose, onTopUp }) {
+const NoCreditsModal = memo(function NoCreditsModal({ show, onClose, onTopUp, credits, requiredCredits = 1 }) {
+  const dialogRef = useRef(null);
+  useDialogFocus(show, dialogRef, onClose);
   if (!show) return null;
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: "400px", textAlign: "center", padding: "30px" }} onClick={e => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="no-credits-title" aria-describedby="no-credits-description" tabIndex={-1} className="modal-content" style={{ maxWidth: "400px", textAlign: "center", padding: "30px" }} onClick={e => e.stopPropagation()}>
         <div style={{ marginBottom: "16px", display: "flex", justifyContent: "center" }}>
           <Image src="/Claws/Claws.webp" alt="Claws" width={48} height={48} style={{ objectFit: 'contain' }} />
         </div>
-        <h3 style={{ margin: "0 0 10px", color: "#fff", fontWeight: "700", fontSize: "20px" }}>0 Traces Remaining</h3>
-        <p style={{ color: "#aaa", fontSize: "14px", marginBottom: "24px", lineHeight: 1.5 }}>
-          You don't have enough claws to run this generation. Please top up your account to continue.
+        <h3 id="no-credits-title" style={{ margin: "0 0 10px", color: "#fff", fontWeight: "700", fontSize: "20px" }}>More Claws needed</h3>
+        <p id="no-credits-description" style={{ color: "#aaa", fontSize: "14px", marginBottom: "24px", lineHeight: 1.5 }}>
+          This action requires {requiredCredits} Claw{requiredCredits === 1 ? "" : "s"}.
+          {Number.isFinite(credits) && <> Your balance is {credits} Claw{credits === 1 ? "" : "s"}.</>}
+          {" "}Top up to continue; no new generation has started.
         </p>
         <div style={{ display: "flex", gap: "10px" }}>
           <button

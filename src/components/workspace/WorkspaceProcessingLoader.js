@@ -1,47 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { CheckCircle2 } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
-
-const DEFAULT_RANGE = [2, 96];
-const STAGE_EASE_RATE = 0.3;
-
-function useProcessingProgress(progressRange, { fillRef, textRef, trackRef }) {
-  const valueRef = useRef(progressRange?.[0] ?? DEFAULT_RANGE[0]);
-
-  useEffect(() => {
-    const [start, end] = progressRange || DEFAULT_RANGE;
-    if (!(valueRef.current > start && valueRef.current < end)) valueRef.current = start;
-
-    let frame = 0;
-    let lastTime = performance.now();
-    let lastShown = -1;
-
-    const paint = (now) => {
-      const dt = Math.min(now - lastTime, 120) / 1000;
-      lastTime = now;
-
-      const current = valueRef.current;
-      valueRef.current = current + (end - current) * (1 - Math.exp(-STAGE_EASE_RATE * dt));
-      const value = valueRef.current;
-
-      if (fillRef.current) fillRef.current.style.width = `${value.toFixed(2)}%`;
-
-      const rounded = Math.round(value);
-      if (rounded !== lastShown) {
-        lastShown = rounded;
-        if (textRef.current) textRef.current.textContent = `${rounded}%`;
-        trackRef.current?.setAttribute("aria-valuenow", String(rounded));
-      }
-
-      frame = requestAnimationFrame(paint);
-    };
-
-    frame = requestAnimationFrame(paint);
-    return () => cancelAnimationFrame(frame);
-  }, [progressRange, fillRef, textRef, trackRef]);
-}
+import useElapsedTime, { formatElapsedTime } from "@/hooks/useElapsedTime";
+import styles from "./WorkspaceProcessingLoader.module.css";
 
 export default function WorkspaceProcessingLoader({
   previewUrl,
@@ -49,20 +11,10 @@ export default function WorkspaceProcessingLoader({
   detail,
   stageIndex = 0,
   stageCount = 3,
-  stageLabels,
-  progressRange = DEFAULT_RANGE,
+  stageLabels = [],
   className = "",
 }) {
-  const progressFillRef = useRef(null);
-  const progressTextRef = useRef(null);
-  const progressTrackRef = useRef(null);
-  const stageStart = progressRange?.[0] ?? DEFAULT_RANGE[0];
-
-  useProcessingProgress(progressRange, {
-    fillRef: progressFillRef,
-    textRef: progressTextRef,
-    trackRef: progressTrackRef,
-  });
+  const elapsed = useElapsedTime(true, stageIndex);
 
   return (
     <div className={`processing-blueprint-stage ${className}`.trim()} role="status" aria-live="polite">
@@ -99,22 +51,19 @@ export default function WorkspaceProcessingLoader({
             {label}
           </span>
           <strong>
-            <span ref={progressTextRef}>{Math.round(stageStart)}%</span>
+            <span className={styles.elapsed} aria-hidden="true">{formatElapsedTime(elapsed)} elapsed</span>
             <em>Stage {stageIndex + 1} of {stageCount}</em>
           </strong>
         </div>
         <div
-          className="processing-progress-track"
-          ref={progressTrackRef}
+          className={`processing-progress-track ${styles.indeterminate}`}
           role="progressbar"
-          aria-valuenow={Math.round(stageStart)}
-          aria-valuemin={0}
-          aria-valuemax={100}
           aria-label={`${label}: ${detail}`}
         >
-          <i ref={progressFillRef} style={{ width: `${stageStart}%` }} />
+          <i />
         </div>
         <p>{detail}</p>
+        {elapsed >= 45 && <p className={styles.slowNotice}>Taking longer than usual. Your source is still available.</p>}
         <div className="processing-layer-stack">
           {stageLabels.map((stageLabel, index) => {
             const state = index < stageIndex ? "is-done" : index === stageIndex ? "is-active" : "is-pending";

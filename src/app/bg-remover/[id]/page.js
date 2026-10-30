@@ -12,6 +12,8 @@ import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
 import ImageToolSplitWorkspace from "@/components/image-tools/ImageToolSplitWorkspace";
 import ImageToolPropertiesPanel from "@/components/image-tools/ImageToolPropertiesPanel";
+import ImageToolSettingsToggle from "@/components/image-tools/ImageToolSettingsToggle";
+import useSettingsPanel from "@/hooks/useSettingsPanel";
 import { BG_REMOVER_TOOL } from "@/components/image-tools/toolPresets";
 import styles from "@/components/image-tools/image-tool.module.css";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
@@ -39,6 +41,7 @@ export default function BgRemoverPage() {
   const [previewSurface, setPreviewSurface] = useState("checker");
   const [showTopUp, setShowTopUp] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const { settingsOpen, closeSettings, openSettings, closeButtonRef } = useSettingsPanel();
   const sourceMeta = useImageMetadata(project?.original_image_url);
   const resultMeta = useImageMetadata(project?.generated_image_url);
   const requireLogin = useCallback(() => setShowLogin(true), []);
@@ -175,24 +178,25 @@ export default function BgRemoverPage() {
         statusLeft={resultUrl ? <><CheckCircle2 size={12} /><span>Background removed</span><small>Transparent PNG is ready for export.</small></> : <span>{isProcessing ? "Creating transparent cutout…" : "Source ready"}</span>}
       >
         <input {...upload.inputProps} />
-        <main className={styles.workspaceLayout} onDragOver={upload.dropProps.onDragOver} onDrop={(event) => { if (isProcessing) event.preventDefault(); else upload.dropProps.onDrop(event); }}>
+        <main className={`${styles.workspaceLayout} ${!settingsOpen ? styles.settingsCollapsedLayout : ""}`} onDragOver={upload.dropProps.onDragOver} onDrop={(event) => { if (isProcessing) event.preventDefault(); else upload.dropProps.onDrop(event); }}>
           <ImageToolSplitWorkspace
             key={project.id} tool={BG_REMOVER_TOOL} sourceUrl={project.original_image_url} resultUrl={resultUrl}
             isProcessing={isProcessing} errorMessage={errorMsg} onRun={onRun}
             canRun={!isProcessing && !upload.isUploading} noCredits={noCredits} previewSurface={previewSurface}
           />
-          <ImageToolPropertiesPanel
+          {settingsOpen ? <ImageToolPropertiesPanel
             tool={BG_REMOVER_TOOL} fileName={project.name} sourceMeta={sourceMeta}
             isProcessing={isProcessing} isUploading={upload.isUploading} isDownloading={isDownloading}
             hasProcessableSource={Boolean(project.original_image_url)} noCredits={noCredits} resultUrl={resultUrl}
             onRun={onRun} onDownload={handleDownload}
             onReplace={upload.chooseFile} onNewImage={() => router.push("/bg-remover")}
             previewSurface={previewSurface} onPreviewSurfaceChange={setPreviewSurface}
+            onClose={closeSettings} closeButtonRef={closeButtonRef}
             outputRows={[
               ["Resolution", resolution ? `${resolution.width} × ${resolution.height}` : "Reading image…"],
               ["Format", "Lossless PNG"], ["Background", "Transparent"], ["Subject", "Preserved"],
             ]}
-          />
+          /> : <ImageToolSettingsToggle title="Background Removal Settings" onOpen={openSettings} />}
         </main>
       </StudioShell>
       <LoginModal show={showLogin} onClose={() => setShowLogin(false)} supabase={supabase} />

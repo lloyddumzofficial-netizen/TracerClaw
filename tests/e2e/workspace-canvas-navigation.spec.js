@@ -43,6 +43,10 @@ test("Pattern Workspace keeps the shared production tools with pattern-specific 
   await expect(page.getByText("AI Retrace Settings", { exact: true })).toBeVisible();
   await expect(page.getByText("Crop to the exact artwork boundary before retracing.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Export as SVG/i })).toBeEnabled();
+  await page.getByRole("button", { name: "Close panel", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Export as SVG/i })).toBeHidden();
+  await page.getByRole("button", { name: "Open AI Trace Settings" }).click();
+  await expect(page.getByRole("button", { name: "Close panel", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: /Download All/i })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Palette Preview/i })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Before.*After Compare/i })).toBeEnabled();

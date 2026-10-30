@@ -12,16 +12,6 @@ import {
 } from "@/lib/workspaceCanvasNavigation";
 import WorkspaceZoomControls from "./WorkspaceZoomControls";
 
-// Each stage owns a slice of the bar. Progress eases toward the slice ceiling so
-// it keeps moving for as long as the stage runs, then the next stage picks up
-// where it left off. Previously these were three hardcoded numbers, so the bar
-// sat frozen at 34% / 67% / 92% and read as broken.
-const STAGE_RANGE = {
-  step1: [2, 34],
-  step2: [34, 67],
-  step3: [67, 96],
-};
-
 const STAGE_LABELS = ["Artwork cleanup", "Detail pass", "Vector output"];
 
 const MIN_ZOOM = 0.25;
@@ -654,7 +644,6 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
           detail={stepMeta.detail}
           stageIndex={layerState}
           stageLabels={stageLabels}
-          progressRange={STAGE_RANGE[traceState]}
         />
       );
     }

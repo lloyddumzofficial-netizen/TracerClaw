@@ -88,6 +88,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
   onOpenPalettePreview,
   onOpenCrop,
   onOpenTopUp,
+  onClose,
+  closeButtonRef,
 }) {
   const [vectorColors, setVectorColors] = useState("auto");
   const [svgEngine, setSvgEngine] = useState("standard");
@@ -395,8 +397,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
             color: "#fff", letterSpacing: "1px", textTransform: "uppercase",
           }}>{isPatternWorkspace ? "AI Retrace Settings" : "AI Trace Settings"}</span>
         </div>
-        <button style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", display: "flex" }}
-          onClick={() => { }} aria-label="Close panel">
+        <button ref={closeButtonRef} type="button" style={{ background: "none", border: "none", cursor: "pointer", padding: "5px", display: "flex", minWidth: 28, minHeight: 28 }}
+          onClick={onClose} aria-label="Close panel" aria-expanded="true">
           <X size={14} color="#71717a" />
         </button>
       </div>
@@ -500,6 +502,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
               : null}
           {traceButtonLabel}
         </button>
+
+        {noCredits && !hasSvg && <p role="status" style={{ margin: "6px 0", color: "#929591", fontSize: 11, lineHeight: 1.4 }}>
+          Requires {creditCost} Claw{creditCost === 1 ? "" : "s"}. Your balance: {userCredits} Claw{userCredits === 1 ? "" : "s"}.
+        </p>}
 
         <div className="pp-warn" style={{ marginBottom: "6px" }}>
           <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>

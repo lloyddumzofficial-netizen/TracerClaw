@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { Suspense, useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
@@ -9,7 +10,12 @@ import { useAppRouter } from "@/hooks/useAppRouter";
 import { analytics } from "@/lib/analytics";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
-import { UPSCALE_FACTOR, UPSCALE_LIMIT_MESSAGE, getUpscalePlan, parseUpscaleJobMarker } from "@/lib/standaloneUpscale";
+import { UPSCALE_FACTOR, UPSCALE_LIMIT_MESSAGE, getUpscalePlan } from "@/lib/standaloneUpscale";
+import { readUpscaleAttempt, saveUpscaleAttempt, resolveUpscaleAttempt, restoreUpscaleProject } from "@/lib/upscaleAttempt";
+import useUpscaleProject from "@/hooks/useUpscaleProject";
+import useSettingsPanel from "@/hooks/useSettingsPanel";
+import ImageToolSettingsToggle from "@/components/image-tools/ImageToolSettingsToggle";
+import LogoLoader from "@/components/ui/LogoLoader";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
 import UpscaleSplitWorkspace from "@/components/upscale/UpscaleSplitWorkspace";
@@ -74,18 +80,19 @@ async function uploadImageThroughServer({ token, file }) {
 // only paid action that revealed its price only after the user had committed.
 const UPSCALE_CREDIT_COST = 1;
 
-// Marker format is fal:<model-slug>:<requestId>. Matched generically so jobs
-// queued under an older upscaler model still resume after a model swap.
-const getPendingUpscaleRequestId = (project) => {
-  return parseUpscaleJobMarker(project?.ai_prompt)?.requestId || null;
-};
-
 export default function UpscalePage() {
+  return <Suspense fallback={<div className={styles.loadingScreen} role="status"><LogoLoader size={48} color="#F4F4F1" /></div>}><UpscaleStudio /></Suspense>;
+}
+
+function UpscaleStudio() {
   const router = useAppRouter();
+  const requestedProjectId = useSearchParams().get("projectId");
   const fileInputRef = useRef(null);
   const isProcessingRef = useRef(false);
-  const upscaleRequestKeyRef = useRef(null);
+  const upscaleAttemptRef = useRef(null);
+  const restoredUserRef = useRef(null);
   const activePollsRef = useRef(new Map());
+  const operationRef = useRef(0);
   const supabase = createClient();
   const isMobileDevice = useIsMobileDevice();
 
@@ -98,14 +105,27 @@ export default function UpscalePage() {
   const [user, setUser] = useState(null);
   const [credits, setCredits] = useState(0);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-  const [recentUpscales, setRecentUpscales] = useState([]);
   const [activeProjectName, setActiveProjectName] = useState(null);
   const [sourceMeta, setSourceMeta] = useState(null);
   const [upscaleProfile, setUpscaleProfile] = useState("photo");
+  const { settingsOpen, closeSettings, openSettings, closeButtonRef } = useSettingsPanel();
+  const [processingStatus, setProcessingStatus] = useState("Enhancing image");
+  const { project: requestedProject, error: projectError } = useUpscaleProject(supabase, user?.id, requestedProjectId);
 
-  const noCredits = credits < UPSCALE_CREDIT_COST;
+  const noCredits = credits < UPSCALE_CREDIT_COST && !upscaleAttemptRef.current;
 
   const [uploadComparePosition, setUploadComparePosition] = useState(50);
+
+  useEffect(() => {
+    if (!requestedProjectId) return;
+    operationRef.current++;
+    upscaleAttemptRef.current = null;
+    isProcessingRef.current = false;
+    setIsProcessing(false);
+    setPreviewImage(null);
+    setUpscaledImage(null);
+    setUpscaleError(null);
+  }, [requestedProjectId]);
 
   useEffect(() => {
     if (!previewImage) {
@@ -147,7 +167,6 @@ export default function UpscalePage() {
         setUser(session.user);
         analytics.authSession(session.user, { source: "upscale" });
         fetchCredits(session.user.id);
-        fetchRecentUpscales(session.user.id);
       } else {
         router.push("/");
       }
@@ -160,20 +179,9 @@ export default function UpscalePage() {
     if (data) setCredits(data.credits);
   };
 
-  const fetchRecentUpscales = async (userId) => {
-    const retentionCutoff = new Date(Date.now() - (3 * 24 * 60 * 60 * 1000)).toISOString();
-    const { data } = await supabase
-      .from("projects")
-      .select("id, name, created_at, original_image_url, generated_image_url, ai_prompt")
-      .eq("user_id", userId)
-      .eq("trace_type", "upscale")
-      .gte("created_at", retentionCutoff)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setRecentUpscales(data);
-  };
   useEffect(() => {
     const checkPendingImage = () => {
+      if (requestedProjectId) return;
       const pendingUrl = sessionStorage.getItem("pendingMobileImage");
       if (pendingUrl && user) {
         sessionStorage.removeItem("pendingMobileImage");
@@ -184,14 +192,15 @@ export default function UpscalePage() {
         setUpscaledImage(null);
         setUpscaleError(null);
         setActiveProjectName("Mobile upload");
-        upscaleRequestKeyRef.current = null;
+        upscaleAttemptRef.current = null;
+        saveUpscaleAttempt(user.id, null);
       }
     };
     checkPendingImage();
     const handleEvent = () => checkPendingImage();
     window.addEventListener("mobileImageRouted", handleEvent);
     return () => window.removeEventListener("mobileImageRouted", handleEvent);
-  }, [user]);
+  }, [user, requestedProjectId]);
 
   const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
   const handleDrop = (e) => {
@@ -200,7 +209,7 @@ export default function UpscalePage() {
   };
 
   const handleFileSelected = (file) => {
-    if (!file) return;
+    if (!file || isProcessingRef.current) return;
     const maxUploadBytes = resolveImageUploadLimit();
     if (file.size > maxUploadBytes) {
       toast.error(`File is too large! Maximum allowed size is ${formatUploadLimit(maxUploadBytes)}.`);
@@ -208,6 +217,7 @@ export default function UpscalePage() {
     }
     if (previewImage?.startsWith("blob:")) URL.revokeObjectURL(previewImage);
     const objUrl = URL.createObjectURL(file);
+    operationRef.current++;
     setPreviewImage(objUrl);
     setSelectedFile(file);
     setSourceMeta(null);
@@ -215,10 +225,14 @@ export default function UpscalePage() {
     setUpscaledImage(null);
     setUpscaleError(null);
     setActiveProjectName(file.name);
-    upscaleRequestKeyRef.current = null;
+    setUpscaleProfile(current => current || "photo");
+    if (requestedProjectId) router.replace("/upscale", { scroll: false });
+    upscaleAttemptRef.current = null;
+    saveUpscaleAttempt(user?.id, null);
   };
 
   const resetWorkspace = () => {
+    operationRef.current++;
     if (previewImage?.startsWith("blob:")) URL.revokeObjectURL(previewImage);
     setPreviewImage(null);
     setSelectedFile(null);
@@ -226,7 +240,10 @@ export default function UpscalePage() {
     setUpscaledImage(null);
     setUpscaleError(null);
     setActiveProjectName(null);
-    upscaleRequestKeyRef.current = null;
+    setUpscaleProfile("photo");
+    upscaleAttemptRef.current = null;
+    saveUpscaleAttempt(user?.id, null);
+    if (requestedProjectId) router.replace("/upscale", { scroll: false });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -276,19 +293,23 @@ export default function UpscalePage() {
       const deadline = Date.now() + UPSCALE_POLL_MAX_MS;
 
       for (let attempt = 0; attempt < maxAttempts && Date.now() < deadline; attempt++) {
-        const statusRes = await fetch(`/api/upscale?requestId=${encodeURIComponent(requestId)}&projectId=${encodeURIComponent(projectId)}`, {
+        const params = new URLSearchParams({ projectId });
+        if (requestId) params.set("requestId", requestId);
+        const statusRes = await fetch(`/api/upscale?${params}`, {
           headers: { "Authorization": `Bearer ${token}` },
           cache: "no-store",
         });
         const statusData = await safeJson(statusRes, "Failed to check upscale status");
-        if (!statusRes.ok) throw new Error(statusData.error || "Failed to check upscale status");
+        if (!statusRes.ok) {
+          const error = new Error(statusData.error || "Failed to check upscale status");
+          error.attemptFinished = statusData.refunded === true;
+          throw error;
+        }
 
         if (statusData.status === "COMPLETED" && statusData.upscaledUrl) {
-          setRecentUpscales(prev => prev.map(item => (
-            item.id === projectId ? { ...item, generated_image_url: statusData.upscaledUrl } : item
-          )));
           return statusData.upscaledUrl;
         }
+        if (upscaleAttemptRef.current?.projectId === projectId) setProcessingStatus(statusData.status === "IN_QUEUE" ? "Queued" : "Enhancing image");
 
         const remainingMs = deadline - Date.now();
         if (attempt < maxAttempts - 1 && remainingMs > 0) {
@@ -307,17 +328,6 @@ export default function UpscalePage() {
     }
   }, []);
 
-  const resumePendingUpscale = useCallback(async (item, { showToast = false, maxAttempts = 1 } = {}) => {
-    const requestId = getPendingUpscaleRequestId(item);
-    if (!requestId || !user) return null;
-    const sessionRes = await supabase.auth.getSession();
-    const token = sessionRes.data.session?.access_token;
-    if (!token) throw new Error("Unauthorized");
-    const upscaledUrl = await pollUpscaleJob({ requestId, projectId: item.id, token, maxAttempts });
-    if (upscaledUrl && showToast) toast.success("Upscale is ready to download.");
-    return upscaledUrl;
-  }, [pollUpscaleJob, supabase, user]);
-
   const handleUpscale = async () => {
     if (isProcessingRef.current) return;
     if (!selectedFile && !selectedUrl) return;
@@ -333,18 +343,24 @@ export default function UpscalePage() {
       setShowTopUpModal(true);
       return;
     }
+    if (requestedProjectId && !upscaleAttemptRef.current) {
+      restoredUserRef.current = `${user.id}:saved`;
+      router.replace("/upscale", { scroll: false });
+    }
     isProcessingRef.current = true;
+    const operationId = ++operationRef.current;
     setIsProcessing(true);
     setUpscaledImage(null);
     setUpscaleError(null);
+    setProcessingStatus(upscaleAttemptRef.current?.projectId ? "Checking saved job" : "Uploading source");
 
     try {
-      const requestKey = upscaleRequestKeyRef.current || crypto.randomUUID();
-      upscaleRequestKeyRef.current = requestKey;
-      let finalUrl = selectedUrl;
+      let attempt = upscaleAttemptRef.current;
+      if (attempt) setUpscaleProfile(attempt.profile);
+      let finalUrl = attempt?.imageUrl || selectedUrl;
 
       // If it's a raw file, we must upload to S3 first
-      if (selectedFile) {
+      if (!attempt && selectedFile) {
         finalUrl = await uploadToS3(selectedFile);
       } else if (selectedUrl && selectedUrl.startsWith("blob:")) {
         // Unlikely, but if it's a blob url without file reference
@@ -357,37 +373,37 @@ export default function UpscalePage() {
       const token = sessionRes.data.session?.access_token;
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch("/api/upscale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ imageUrl: finalUrl, idempotencyKey: requestKey, profile: upscaleProfile }),
-      });
-
-      const data = await safeJson(res, "Failed to process image");
-      if (!res.ok) throw new Error(data.error || "Failed to process image");
-
-      let upscaledUrl = data.upscaledUrl;
-      if (!upscaledUrl && data.requestId && data.projectId) {
-        upscaledUrl = await pollUpscaleJob({ requestId: data.requestId, projectId: data.projectId, token });
-      }
-
-      if (!upscaledUrl) {
-        throw new Error("Upscale is taking too long. Please try again.");
-      }
+      if (operationRef.current !== operationId) return;
+      attempt ||= { requestKey: crypto.randomUUID(), imageUrl: finalUrl, profile: upscaleProfile, name: activeProjectName, createdAt: Date.now() };
+      upscaleAttemptRef.current = attempt;
+      const save = next => { if (operationRef.current === operationId) saveUpscaleAttempt(user.id, next); };
+      save(attempt); // Persist before POST: its response may be lost.
+      setProcessingStatus(attempt.projectId ? "Checking saved job" : "Submitting request");
+      const upscaledUrl = await resolveUpscaleAttempt({ attempt, token, poll: pollUpscaleJob, onUpdate: save });
+      if (operationRef.current !== operationId) return;
+      attempt.upscaledUrl = upscaledUrl;
+      save(attempt);
 
       setUpscaledImage(upscaledUrl);
-      toast.success("Image upscaled successfully! (1 Claw deducted)");
+      toast.success("Upscale complete. Your PNG is ready to download.");
       fetchCredits(user.id);
-      fetchRecentUpscales(user.id);
 
     } catch (err) {
-      upscaleRequestKeyRef.current = null;
+      if (operationRef.current !== operationId) return;
+      if (err.attemptFinished) {
+        upscaleAttemptRef.current = null;
+        setUpscaleProfile(current => current || "photo");
+        saveUpscaleAttempt(user.id, null);
+        fetchCredits(user.id);
+      }
       setUpscaleError(err.message || "The upscale could not be completed.");
       analytics.error(err, { area: "upscale_processing" });
       toast.error(err.message || "An error occurred");
     } finally {
-      isProcessingRef.current = false;
-      setIsProcessing(false);
+      if (operationRef.current === operationId) {
+        isProcessingRef.current = false;
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -410,21 +426,68 @@ export default function UpscalePage() {
   };
 
   useEffect(() => {
-    if (!user || recentUpscales.length === 0) return;
-    const pendingItems = recentUpscales
-      .filter(item => !item.generated_image_url && getPendingUpscaleRequestId(item))
-      .slice(0, 5);
-    if (pendingItems.length === 0) return;
-
+    if (!user || (requestedProjectId && requestedProject?.id !== requestedProjectId)) return;
+    const restorationKey = `${user.id}:${requestedProjectId || "saved"}`;
+    if (restoredUserRef.current === restorationKey) return;
+    restoredUserRef.current = restorationKey;
+    const saved = readUpscaleAttempt(user.id);
+    const attempt = requestedProjectId ? restoreUpscaleProject(requestedProject, saved) : saved;
+    if (!attempt || (!requestedProjectId && (upscaleAttemptRef.current || previewImage || sessionStorage.getItem("pendingMobileImage")))) return;
+    upscaleAttemptRef.current = attempt;
+    const operationId = ++operationRef.current;
+    setUpscaledImage(null);
+    isProcessingRef.current = false;
+    setIsProcessing(false);
+    setSelectedFile(null);
+    setSelectedUrl(attempt.imageUrl);
+    setPreviewImage(attempt.imageUrl);
+    setActiveProjectName(attempt.name || "Uploaded artwork");
+    setUpscaleProfile(attempt.profile);
+    setUpscaleError(null);
+    if (requestedProject?.refunded || requestedProject?.generated_image_url === "REFUNDED") {
+      upscaleAttemptRef.current = null;
+      setUpscaleProfile("photo");
+      setUpscaleError("This generation failed and was refunded. You can choose an image type and start a new generation.");
+      return;
+    }
+    if (attempt.upscaledUrl) {
+      saveUpscaleAttempt(user.id, attempt);
+      setUpscaledImage(attempt.upscaledUrl);
+      return;
+    }
+    isProcessingRef.current = true;
+    setIsProcessing(true);
+    setProcessingStatus("Checking saved job");
     let cancelled = false;
+    const isCurrent = () => !cancelled && operationRef.current === operationId;
     (async () => {
-      for (const item of pendingItems) {
-        if (cancelled) return;
-        try { await resumePendingUpscale(item, { maxAttempts: 1 }); } catch {}
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Unauthorized");
+        const url = await resolveUpscaleAttempt({ attempt, token: session.access_token, poll: pollUpscaleJob,
+          onUpdate: next => { if (isCurrent()) saveUpscaleAttempt(user.id, next); } });
+        if (!isCurrent()) return;
+        attempt.upscaledUrl = url;
+        saveUpscaleAttempt(user.id, attempt);
+        setUpscaledImage(url);
+      } catch (error) {
+        if (!isCurrent()) return;
+        if (error.attemptFinished) {
+          upscaleAttemptRef.current = null;
+          setUpscaleProfile(current => current || "photo");
+          saveUpscaleAttempt(user.id, null);
+        }
+        setUpscaleError(error.message);
+      } finally {
+        if (isCurrent()) {
+          isProcessingRef.current = false;
+          setIsProcessing(false);
+        }
+        fetchCredits(user.id);
       }
     })();
     return () => { cancelled = true; };
-  }, [recentUpscales, resumePendingUpscale, user]);
+  }, [user, requestedProjectId, requestedProject, pollUpscaleJob, supabase]);
 
   if (isMobileDevice !== false) {
     return <DesktopRequiredNotice />;
@@ -449,7 +512,7 @@ export default function UpscalePage() {
             <small>Your image is ready for download.</small>
           </>
         ) : (
-          <span>{isProcessing ? "Generating 4× upscale..." : previewImage ? "Ready to upscale" : "Waiting for image"}</span>
+          <span>{isProcessing ? `${processingStatus}…` : previewImage ? "Ready to upscale" : "Waiting for image"}</span>
         )}
       >
 
@@ -467,11 +530,17 @@ export default function UpscalePage() {
 
 
         <main
-          className={previewImage ? styles.workspaceLayout : "main-workspace upscale-studio is-empty-state"}
+          className={previewImage ? `${styles.workspaceLayout} ${!settingsOpen ? styles.settingsCollapsedLayout : ""}` : "main-workspace upscale-studio is-empty-state"}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
-          {previewImage ? (
+          {!previewImage && requestedProjectId ? (
+            <section className="canvas-area upscale-canvas" aria-label="Open saved upscale">
+              <div className={styles.outputPlaceholder} role={projectError ? "alert" : "status"}>
+                {projectError ? <><strong>Could not open this upscale</strong><p>{projectError}</p><button type="button" onClick={resetWorkspace}>Choose another image</button><button type="button" onClick={() => router.push("/")}>Back to projects</button></> : <><LogoLoader size={48} color="#F4F4F1" /><p>Opening saved upscale…</p></>}
+              </div>
+            </section>
+          ) : previewImage ? (
             <>
               <UpscaleSplitWorkspace
                 sourceUrl={previewImage}
@@ -481,8 +550,9 @@ export default function UpscalePage() {
                 onRun={handleUpscale}
                 canRun={hasProcessableSource && !isProcessing}
                 noCredits={noCredits}
+                processingStatus={processingStatus}
               />
-              <UpscalePropertiesPanel
+              {settingsOpen ? <UpscalePropertiesPanel
                 profile={upscaleProfile}
                 onProfileChange={setUpscaleProfile}
                 fileName={activeFileName}
@@ -495,7 +565,10 @@ export default function UpscalePage() {
                 onDownload={() => upscaledImage && handleDownload(upscaledImage)}
                 onReplace={() => fileInputRef.current?.click()}
                 onNewImage={resetWorkspace}
-              />
+                processingStatus={processingStatus}
+                onClose={closeSettings}
+                closeButtonRef={closeButtonRef}
+              /> : <ImageToolSettingsToggle title="Image Upscale Settings" onOpen={openSettings} />}
             </>
           ) : (
             <section className="canvas-area upscale-canvas" aria-label="Choose artwork to upscale">

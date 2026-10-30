@@ -16,6 +16,7 @@ import { analytics } from "@/lib/analytics";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
+import { getProjectWorkspacePath } from "@/lib/projectNavigation";
 
 import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight, Gift } from "lucide-react";
 
@@ -1436,10 +1437,7 @@ export default function StartScreen() {
                   setEditValue={setEditValue}
                   openMenuId={openMenuId}
                   setOpenMenuId={setOpenMenuId}
-                  onNavigate={(proj) => {
-                    if (proj.trace_type === "bg_remover") router.push(`/bg-remover/${proj.id}`);
-                    else router.push(`/workspace/${proj.id}`);
-                  }}
+                  onNavigate={(proj) => router.push(getProjectWorkspacePath(proj))}
                   onStartEditing={(e, proj) => { e.stopPropagation(); setOpenMenuId(null); setEditingId(proj.id); setEditValue(proj.name); }}
                   onCancelEditing={(e) => { e.stopPropagation(); setEditingId(null); }}
                   onSaveRename={saveRename}

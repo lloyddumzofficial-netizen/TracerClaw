@@ -1,0 +1,31 @@
+.elapsed {
+  font-size: 11px !important;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.indeterminate > i {
+  width: 35% !important;
+  animation: processingSweep 1.8s ease-in-out infinite !important;
+}
+
+.slowNotice {
+  color: #929591 !important;
+  font-size: 11px !important;
+  margin-top: 5px !important;
+}
+
+@keyframes processingSweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indeterminate > i {
+    animation: none !important;
+    transform: none;
+    width: 100% !important;
+    opacity: .4;
+  }
+}

@@ -74,7 +74,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
     let hasSavedExtract = Boolean(project.generated_image_url && project.generated_image_url !== "REFUNDED");
 
     if (userCredits !== null && userCredits < creditCost) {
-      onNoCredits?.();
+      onNoCredits?.(creditCost);
       return;
     }
 
@@ -144,7 +144,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         }
         if (msg === "INSUFFICIENT_CREDITS") {
           setUserCredits(0);
-          onNoCredits?.();
+          onNoCredits?.(creditCost);
           setTraceState("idle");
           return;
         }
@@ -322,7 +322,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
       const displayMsg = reachedStep3
         ? error.message
         : isTimeout
-        ? "The AI engine timed out before finishing. Try a tighter crop or simpler image; any claw charged for a fully failed run is restored automatically."
+        ? "We could not confirm completion before the request timed out. Your saved work is still available. Check your balance and resume from this project."
         : error.message;
 
       if (!isTimeout && !isExpectedTraceError(error) && !error.step3Retryable) {

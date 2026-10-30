@@ -31,6 +31,7 @@ export default function ImageToolSplitWorkspace({
   onRun,
   canRun,
   noCredits,
+  processingStatus,
 }) {
   const [zoom, setZoom] = useState(1);
   const [aspectRatio, setAspectRatio] = useState(null);
@@ -74,7 +75,7 @@ export default function ImageToolSplitWorkspace({
     <section className={styles.splitWorkspace} aria-label={tool.workspaceLabel}>
       <div className={styles.stageToolbar}>
         <div className={styles.stageTools}>
-          <span className={styles.sourceState}><i aria-hidden="true" /> {isProcessing ? "Processing" : resultUrl ? "Output ready" : "Source ready"}</span>
+          <span className={styles.sourceState}><i aria-hidden="true" /> {isProcessing ? processingStatus || "Processing" : resultUrl ? "Output ready" : "Source ready"}</span>
           <WorkspaceZoomControls
             zoom={zoom}
             min={MIN_ZOOM}
@@ -115,10 +116,9 @@ export default function ImageToolSplitWorkspace({
               <WorkspaceProcessingLoader
                 previewUrl={sourceUrl}
                 label={tool.loadingTitle}
-                detail={tool.loadingDetail}
+                detail={processingStatus || tool.loadingDetail}
                 stageCount={1}
                 stageLabels={[tool.modeName]}
-                progressRange={[4, 96]}
                 className={styles.outputLoader}
               />
             ) : (

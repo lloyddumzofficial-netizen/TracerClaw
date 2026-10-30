@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
-import { uploadToR2 } from "@/lib/cloudflare";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import {
   DEFAULT_MAX_IMAGE_BYTES,
-  DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
   fetchWithSSRFProtection,
-  getAllowedProviderHosts,
   getAllowedStorageHosts,
   isOwnedStorageUrl,
   normalizeUserImageUrl,
@@ -14,6 +11,7 @@ import {
 } from "@/lib/ssrf";
 import { logger } from "@/lib/logger";
 import { UPSCALE_ENDPOINT, UPSCALE_FACTOR, UPSCALE_LIMIT_MESSAGE, getUpscalePlan, getUpscaleSettings, buildUpscaleJobMarker, parseUpscaleJobMarker } from "@/lib/standaloneUpscale";
+import { readUpscaleJob, settleUpscaleJob, upscaleJobSnapshot } from "@/server/upscale/jobs";
 
 export const runtime = 'nodejs';
 // 60s, not 30s: the completed result is now downloaded from the provider and
@@ -22,16 +20,6 @@ export const maxDuration = 60;
 
 function isAiGenerationConfigured() {
   return Boolean(process.env.FAL_KEY);
-}
-
-/**
- * Resolve which fal endpoint a stored job belongs to. Jobs queued before the
- * model swap carry `fal:aura-sr:<id>` and must keep resolving to aura-sr, or
- * every in-flight upscale at deploy time would fail its status lookup.
- */
-function resolveJobEndpoint(aiPrompt, requestId) {
-  const job = parseUpscaleJobMarker(aiPrompt);
-  return job?.requestId === requestId ? job.endpoint : null;
 }
 
 async function getAuthenticatedUser(request) {
@@ -49,66 +37,11 @@ async function getAuthenticatedUser(request) {
   return { user };
 }
 
-/**
- * Move a finished provider image into our own bucket.
- *
- * fal.media URLs are temporary. Storing one directly — which is what this route
- * used to do — means the user's paid upscale becomes a dead link once the
- * provider expires it, with no recovery path and no refund eligibility (the
- * project counts as delivered). Every other pipeline step already persists to
- * R2; this keeps standalone upscale results in line.
- *
- * Best-effort on purpose: if the copy fails we fall back to the provider URL
- * rather than failing a run the user has already paid for. /api/proxy still
- * allows provider hosts, so that fallback keeps working exactly as before.
- */
-async function persistUpscaleToR2(providerUrl, projectId) {
-  try {
-    const { response, buffer } = await fetchWithSSRFProtection(providerUrl, {
-      allowedHosts: getAllowedProviderHosts(),
-      maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
-      allowedContentTypes: ['image/', 'application/octet-stream'],
-    });
-    if (!response.ok) throw new Error(`Provider returned ${response.status}`);
-
-    let contentType = response.headers.get('content-type')?.split(';')[0] || 'image/png';
-
-    const ext = contentType === 'image/jpeg' ? 'jpg' : (contentType.split('/')[1] || 'png');
-    return await uploadToR2(buffer, `projects/${projectId}/upscaled_${Date.now()}.${ext}`, contentType);
-  } catch (err) {
-    console.error(`[Upscale] Could not persist result to R2 for project ${projectId}, keeping provider URL:`, err.message);
-    return null;
-  }
-}
-
-async function refundQueuedUpscale(projectId, userId) {
-  const { data: project } = await adminSupabase
-    .from('projects')
-    .select('credit_deducted, refunded, generated_image_url')
-    .eq('id', projectId)
-    .eq('user_id', userId)
-    .single();
-
-  if (!project?.credit_deducted || project.refunded || project.generated_image_url) {
-    return false;
-  }
-
-  const { data: refundRows, error: refundErr } = await adminSupabase
-    .rpc('refund_project_credit', {
-      target_user_id: userId,
-      target_project_id: projectId,
-      refund_action: 'Refund (Upscale Error)',
-      failed_step_value: 'upscale',
-      mark_generated_refunded: true,
-    });
-  const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
-  return !refundErr && refund?.status === 'refunded';
-}
-
 export async function POST(request) {
   let userId;
   let projectId;
   let creditDeducted = false;
+  let queuedRequestId;
   try {
     const { user, error: authResponse } = await getAuthenticatedUser(request);
     if (authResponse) return authResponse;
@@ -207,7 +140,9 @@ export async function POST(request) {
     }
     projectId = claim.project_id;
     if (claim.status === 'already_claimed') {
-      return NextResponse.json({ success: true, status: "ALREADY_IN_PROGRESS", projectId });
+      const project = await readUpscaleJob(adminSupabase, projectId, userId);
+      if (!project) throw new Error("Upscale request not found");
+      return NextResponse.json({ success: true, projectId, ...upscaleJobSnapshot(project) });
     }
 
     creditDeducted = true;
@@ -228,16 +163,17 @@ export async function POST(request) {
     if (!queued?.request_id) {
       throw new Error("Upscaler failed to queue the request.");
     }
+    queuedRequestId = queued.request_id;
 
-    const { error: markerErr } = await adminSupabase
-      .from('projects')
-      .update({ ai_prompt: buildUpscaleJobMarker(queued.request_id) })
-      .eq('id', projectId)
-      .eq('user_id', userId)
-      .eq('client_request_id', requestKey);
-
-    if (markerErr) {
-      throw new Error("Failed to save upscale request.");
+    // A brief DB failure after provider submission must not trigger a second
+    // submission/refund while the paid job is running.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error: markerErr } = await adminSupabase.from('projects')
+        .update({ ai_prompt: buildUpscaleJobMarker(queuedRequestId) })
+        .eq('id', projectId).eq('user_id', userId).eq('client_request_id', requestKey);
+      if (!markerErr) break;
+      if (attempt === 2) throw new Error("Failed to save upscale request.");
+      await new Promise(resolve => setTimeout(resolve, 150 * (attempt + 1)));
     }
 
     return NextResponse.json({
@@ -259,7 +195,7 @@ export async function POST(request) {
   } catch (error) {
     console.error(`[Upscale API Error]:`, error.message);
     let didRefund = false;
-    if (creditDeducted && userId) {
+    if (creditDeducted && userId && !queuedRequestId) {
       // Check the result — this used to be fire-and-forget, so a failed transfer
       // silently left the user out of pocket while the message claimed a refund.
       if (projectId) {
@@ -283,17 +219,14 @@ export async function POST(request) {
           ? 'AI processing failed. Your claw has been refunded.'
           : 'AI processing failed. Please try again.')
       : (error.message || 'Failed to process upscale');
-    return NextResponse.json({ error: safeMessage }, { status: 500 });
+    return NextResponse.json({ error: safeMessage, projectId, refunded: didRefund, retryable: !didRefund }, { status: 500 });
   }
 }
 
 export async function GET(request) {
-  let userId;
-  let projectId;
   try {
     const { user, error: authResponse } = await getAuthenticatedUser(request);
     if (authResponse) return authResponse;
-    userId = user.id;
 
     // The client polls this endpoint up to 120 times per job at 3s intervals,
     // and each call costs an auth round trip, a DB read and a provider status
@@ -310,80 +243,33 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const requestId = searchParams.get('requestId');
-    projectId = searchParams.get('projectId');
-    if (!requestId || !projectId) {
-      return NextResponse.json({ error: "Missing requestId or projectId" }, { status: 400 });
+    const projectId = searchParams.get('projectId');
+    if (!projectId) {
+      return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
     }
 
-    const { data: project, error: projectErr } = await adminSupabase
-      .from('projects')
-      .select('id, user_id, ai_prompt, generated_image_url, refunded')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .single();
+    const project = await readUpscaleJob(adminSupabase, projectId, user.id);
 
     // Resolve the endpoint from the stored marker rather than assuming the
     // current model: jobs queued before the model swap are still in flight and
     // must keep resolving to the model they were submitted to.
-    const jobEndpoint = projectErr || !project ? null : resolveJobEndpoint(project.ai_prompt, requestId);
-    if (!jobEndpoint) {
+    const job = parseUpscaleJobMarker(project?.ai_prompt);
+    if (!project || (requestId && job?.requestId !== requestId)) {
       return NextResponse.json({ error: "Upscale request not found" }, { status: 404 });
     }
 
-    if (project.generated_image_url && project.generated_image_url !== 'REFUNDED') {
-      return NextResponse.json({ success: true, status: "COMPLETED", upscaledUrl: project.generated_image_url });
+    let snapshot = upscaleJobSnapshot(project);
+    if (snapshot.status === "IN_QUEUE" && job) {
+      if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
+      const { fal } = await import("@fal-ai/client");
+      snapshot = await settleUpscaleJob({ db: adminSupabase, fal, project });
     }
-
-    if (project.refunded || project.generated_image_url === 'REFUNDED') {
-      return NextResponse.json({ error: "Upscale failed and was refunded" }, { status: 500 });
+    if (snapshot.status === "FAILED") {
+      return NextResponse.json({ error: "Upscale failed and was refunded", ...snapshot }, { status: 500 });
     }
-
-    if (!process.env.FAL_KEY) throw new Error("FAL_KEY missing");
-    const { fal } = await import("@fal-ai/client");
-    const status = await fal.queue.status(jobEndpoint, { requestId, logs: true });
-
-    if (status.status !== "COMPLETED") {
-      if (status.status === "FAILED") {
-        const didRefund = await refundQueuedUpscale(projectId, user.id);
-        return NextResponse.json({
-          error: didRefund
-            ? "AI processing failed. Your claw has been refunded."
-            : "AI processing failed. Please try again.",
-        }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, status: status.status, logs: status.logs || [] });
-    }
-
-    const result = await fal.queue.result(jobEndpoint, { requestId });
-    const providerUrl = result?.data?.image?.url;
-    if (!providerUrl) {
-      const didRefund = await refundQueuedUpscale(projectId, user.id);
-      return NextResponse.json({
-        error: didRefund
-          ? "AI processing failed. Your claw has been refunded."
-          : "AI processing failed. Please try again.",
-      }, { status: 500 });
-    }
-
-    const upscaledUrl = (await persistUpscaleToR2(providerUrl, projectId)) || providerUrl;
-
-    await adminSupabase
-      .from('projects')
-      .update({ generated_image_url: upscaledUrl })
-      .eq('id', projectId)
-      .eq('user_id', user.id);
-
-    return NextResponse.json({ success: true, status: "COMPLETED", upscaledUrl });
+    return NextResponse.json({ success: true, projectId, ...snapshot });
   } catch (error) {
     logger.error("[Upscale Poll Error]", error);
-    if (projectId && userId && (error.name === "ValidationError" || error.message === "Unprocessable Entity")) {
-      const didRefund = await refundQueuedUpscale(projectId, userId);
-      return NextResponse.json({
-        error: didRefund
-          ? "AI processing failed. Your claw has been refunded."
-          : "AI processing failed. Please try again.",
-      }, { status: 500 });
-    }
-    return NextResponse.json({ error: error.message || "Failed to check upscale status" }, { status: 500 });
+    return NextResponse.json({ error: "Unable to check or save the upscale yet. Please retry shortly.", retryable: true }, { status: 503 });
   }
 }

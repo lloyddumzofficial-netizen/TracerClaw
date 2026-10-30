@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { deleteFromR2, deleteR2Prefix, s3Client, bucketName, uploadToR2 } from '@/lib/cloudflare';
+import { deleteFromR2, deleteR2Prefix, s3Client, bucketName } from '@/lib/cloudflare';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
-import {
-  DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
-  fetchWithSSRFProtection,
-  getAllowedProviderHosts,
-} from '@/lib/ssrf';
+import { parseUpscaleJobMarker } from '@/lib/standaloneUpscale';
+import { refundUpscaleJob, settleUpscaleJob } from '@/server/upscale/jobs';
 import { logger } from '@/lib/logger';
 import { getRecoverableAttemptOutput } from '@/server/billing/recoverAttemptOutput';
 
@@ -22,10 +19,7 @@ const UPSCALE_RECONCILE_LIMIT = 20;
 const GENERATION_RECONCILE_LIMIT = 20;
 const GENERATION_STALE_MINUTES = 15;
 const MOCKUP_QUEUE_STALE_MINUTES = 20;
-// A queued upscale finishes in seconds to a couple of minutes. Anything still
-// unresolved after this long was abandoned by the client and will never be
-// reconciled, because nothing but the browser poll ever checks it.
-// The endpoint is resolved per job from its stored marker, not hardcoded here.
+// Let browser polling handle fresh jobs; reconcile abandoned work after 30 min.
 const UPSCALE_STALE_MINUTES = 30;
 
 const adminSupabase = createClient(
@@ -33,25 +27,14 @@ const adminSupabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-/**
- * Settle standalone upscales that the client abandoned.
- *
- * /api/upscale deducts a claw, submits to the fal queue and returns
- * immediately; completion is only ever recorded by the browser polling
- * /api/upscale?requestId=... So if the user closes the tab, the claw is spent,
- * generated_image_url stays null, no failure is stamped and no refund path ever
- * fires — the claw is silently lost. Nothing server-side reconciled these.
- *
- * Marking a stale job refunded also makes it terminal: the GET handler treats
- * refunded / 'REFUNDED' as failed, so a late completion cannot also be
- * delivered on top of the refund.
- */
+// Recover durable outputs or refund terminal failures using the same settlement
+// rules as /api/upscale. Transient outages leave jobs available for the next run.
 async function reconcileAbandonedUpscales(results) {
   const staleBefore = new Date(Date.now() - UPSCALE_STALE_MINUTES * 60_000).toISOString();
 
   const { data: stale, error: staleErr } = await adminSupabase
     .from('projects')
-    .select('id, user_id, ai_prompt, credit_deducted, refunded')
+    .select('id, user_id, created_at, ai_prompt, credit_deducted, refunded, generated_image_url')
     .eq('trace_type', 'upscale')
     .is('generated_image_url', null)
     .eq('refunded', false)
@@ -69,72 +52,20 @@ async function reconcileAbandonedUpscales(results) {
   const { fal } = await import('@fal-ai/client');
 
   for (const project of stale) {
-    // Marker format is fal:<model-slug>:<requestId>. Resolve the endpoint from
-    // the marker so jobs queued under an older upscaler model still settle
-    // correctly after a model swap.
-    const marker = String(project.ai_prompt || '').match(/^fal:([a-z0-9.-]+):(.+)$/i);
-    if (!marker) continue;
-    const jobEndpoint = `fal-ai/${marker[1]}`;
-    const requestId = marker[2];
-
     try {
-      let recoveredUrl = null;
-      try {
-        const status = await fal.queue.status(jobEndpoint, { requestId });
-        if (status.status === 'COMPLETED') {
-          const result = await fal.queue.result(jobEndpoint, { requestId });
-          const providerUrl = result?.data?.image?.url;
-          if (providerUrl) {
-            const { response, buffer } = await fetchWithSSRFProtection(providerUrl, {
-              allowedHosts: getAllowedProviderHosts(),
-              maxBytes: DEFAULT_MAX_UPSCALED_IMAGE_BYTES,
-              allowedContentTypes: ['image/', 'application/octet-stream'],
-            });
-            if (response.ok) {
-              const contentType = response.headers.get('content-type')?.split(';')[0] || 'image/png';
-              const ext = contentType === 'image/jpeg' ? 'jpg' : (contentType.split('/')[1] || 'png');
-              recoveredUrl = await uploadToR2(
-                buffer,
-                `projects/${project.id}/upscaled_${Date.now()}.${ext}`,
-                contentType
-              );
-            }
-          }
-        }
-      } catch (statusErr) {
-        // Expired or unknown request id — treat as failed and refund below.
-        console.warn(`[Cron] Upscale status lookup failed for ${project.id}:`, statusErr.message);
-      }
-
-      if (recoveredUrl) {
-        await adminSupabase
-          .from('projects')
-          .update({ generated_image_url: recoveredUrl })
-          .eq('id', project.id)
-          .is('generated_image_url', null);
+      // Share parsing and settlement with browser polling, including Topaz's
+      // slash-containing endpoint and supported legacy ESRGAN/Aura jobs.
+      const job = parseUpscaleJobMarker(project.ai_prompt);
+      const snapshot = job
+        ? await settleUpscaleJob({ db: adminSupabase, fal, project, refundAction: 'Refund (Abandoned Upscale)' })
+        : { refunded: project.credit_deducted && await refundUpscaleJob(adminSupabase, project, 'Refund (Unsubmitted Upscale)') };
+      if (snapshot.status === 'COMPLETED') {
         results.upscalesRecovered++;
         logger.info('[Cron] Recovered abandoned upscale', { projectId: project.id });
-        continue;
+      } else if (snapshot.refunded) {
+        results.upscalesRefunded++;
+        logger.info('[Cron] Refunded abandoned upscale', { projectId: project.id });
       }
-
-      if (!project.credit_deducted) continue;
-
-      const { data: refundRows, error: refundErr } = await adminSupabase
-        .rpc('refund_project_credit', {
-          target_user_id: project.user_id,
-          target_project_id: project.id,
-          refund_action: 'Refund (Abandoned Upscale)',
-          failed_step_value: 'upscale',
-          mark_generated_refunded: true,
-        });
-      const refund = Array.isArray(refundRows) ? refundRows[0] : refundRows;
-      if (refundErr || refund?.status !== 'refunded') {
-        console.error(`[Cron] refund_project_credit FAILED for abandoned upscale ${project.id} — left for retry.`, refundErr || refund);
-        continue;
-      }
-
-      results.upscalesRefunded++;
-      logger.info('[Cron] Refunded abandoned upscale', { projectId: project.id });
     } catch (err) {
       console.error(`[Cron] Upscale reconciliation error for ${project.id}:`, err);
     }

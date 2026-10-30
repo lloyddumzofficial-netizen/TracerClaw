@@ -424,6 +424,60 @@ describe("paid AI operation charge boundaries", () => {
     expect(fal.queue.submit).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [{ ai_prompt: "fal:topaz/upscale/image/precision:existing-job" }, { status: "IN_QUEUE", requestId: "existing-job" }],
+    [{ generated_image_url: "https://storage.example/result.png" }, { status: "COMPLETED", upscaledUrl: "https://storage.example/result.png" }],
+    [{ refunded: true, generated_image_url: "REFUNDED" }, { status: "FAILED", refunded: true }],
+    [{ ai_prompt: null }, { status: "IN_QUEUE" }],
+  ])("Upscale repeats return the existing job snapshot without resubmitting: %j", async (project, snapshot) => {
+    adminSupabase.rpc.mockResolvedValue({ data: [{ status: "already_claimed", project_id: "project-1" }] });
+    adminSupabase.from.mockReturnValue(mockQuery({ data: { id: "project-1", ...project }, error: null }));
+    const { POST } = await import("@/app/api/upscale/route.js");
+    const { fal } = await import("@fal-ai/client");
+    const response = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "same-request" }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ projectId: "project-1", ...snapshot });
+    expect(fal.queue.submit).not.toHaveBeenCalled();
+    expect(adminSupabase.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("Upscale status recovers a pending project without requiring the lost queue ID", async () => {
+    adminSupabase.from.mockReturnValue(mockQuery({ data: { id: "project-1", ai_prompt: "fal:topaz/upscale/image/precision:job-1" }, error: null }));
+    const { fal } = await import("@fal-ai/client");
+    fal.queue.status.mockResolvedValue({ status: "IN_PROGRESS" });
+    const { GET } = await import("@/app/api/upscale/route.js");
+    const response = await GET(new Request("http://localhost/api/upscale?projectId=project-1", { headers: { authorization: "Bearer test-token" } }));
+    expect(response.status).toBe(200);
+    expect(fal.queue.status).toHaveBeenCalledWith("topaz/upscale/image/precision", { requestId: "job-1", logs: true });
+  });
+
+  it("does not refund or resubmit a queued job when saving its marker fails", async () => {
+    adminSupabase.rpc.mockResolvedValue({ data: [{ status: "claimed", project_id: "project-1" }] });
+    const query = mockQuery({ data: {}, error: null });
+    query.then = resolve => resolve({ error: new Error("Database unavailable") });
+    adminSupabase.from.mockReturnValue(query);
+    const { fal } = await import("@fal-ai/client");
+    fal.queue.submit.mockResolvedValue({ request_id: "queued-job" });
+    const { POST } = await import("@/app/api/upscale/route.js");
+    const response = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "same-request" }));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({ projectId: "project-1", refunded: false, retryable: true });
+    expect(adminSupabase.rpc).toHaveBeenCalledTimes(1);
+    expect(fal.queue.submit).toHaveBeenCalledTimes(1);
+    expect(query.update).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects malformed and animated upscale sources before claiming a credit", async () => {
+    const { POST } = await import("@/app/api/upscale/route.js");
+    sharpInstance.metadata.mockRejectedValueOnce(new Error("Invalid image"));
+    const invalid = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "invalid" }));
+    expect(invalid.status).toBe(400);
+    sharpInstance.metadata.mockResolvedValueOnce({ width: 100, height: 100, pages: 2 });
+    const animated = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "animated" }));
+    expect(animated.status).toBe(400);
+    expect(adminSupabase.rpc).not.toHaveBeenCalled();
+  });
+
   it("Upscale rejects unapproved provider models before charging", async () => {
     const { POST } = await import("@/app/api/upscale/route.js");
     const res = await POST(jsonRequest({ imageUrl: "https://storage.example/users/user-1/source.png", idempotencyKey: "bad-model", profile: "Faces" }));

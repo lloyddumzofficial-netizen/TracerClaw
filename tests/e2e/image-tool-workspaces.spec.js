@@ -62,6 +62,10 @@ test("background remover uses the shared onboarding, split workspace, processing
   const panel = page.getByRole("complementary", { name: "Background Removal Settings", exact: true });
   await expect(panel.getByText("Cora", { exact: true })).toBeVisible();
   await expect(panel.getByRole("button", { name: "Download Transparent PNG" })).toBeDisabled();
+  await panel.getByRole("button", { name: "Close settings panel" }).click();
+  await expect(panel).toHaveCount(0);
+  await page.getByRole("button", { name: "Open Background Removal Settings" }).click();
+  await expect(panel.getByRole("button", { name: "Close settings panel" })).toBeFocused();
   await expect(page.getByText("1. Remove Background", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Remove background", exact: true }).click();
   await expect(page.getByText("Stage 1 of 1", { exact: false })).toBeVisible();
@@ -172,6 +176,280 @@ test("oversized upscale sources are blocked before uploading or charging", async
   await expect(panel.getByRole("button", { name: "Run precision upscale", exact: true })).toBeDisabled();
   expect(fixture.requests.storage).toBe(0);
   expect(fixture.requests.uploads).toHaveLength(0);
+});
+
+test("recent upscale projects open the correct saved result without another generation", async ({ page }) => {
+  const fixture = await setup(page);
+  const saved = { id: "saved-upscale", name: "Saved client logo", trace_type: "upscale", original_image_url: `${assetHost}/source.png`, generated_image_url: `${assetHost}/cutout.png`, ai_prompt: "fal:topaz/upscale/image/precision:saved-job", client_request_id: "saved-request", created_at: new Date().toISOString() };
+  await page.addInitScript(() => {
+    localStorage.setItem("ai_disclaimer_seen", "1");
+    localStorage.setItem("claw-agents-promo-seen-v1", String(Date.now()));
+    localStorage.setItem("onboarding_seen", "1");
+  });
+  await page.route("**/rest/v1/projects*", route => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.has("id")) {
+      expect(url.searchParams.get("user_id")).toBe(`eq.${user.id}`);
+      expect(url.searchParams.get("trace_type")).toBe("eq.upscale");
+      return route.fulfill({ json: saved });
+    }
+    return route.fulfill({ json: [saved] });
+  });
+  let submissions = 0;
+  await page.route("**/api/upscale", route => { submissions++; return route.abort(); });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Saved client logo/ }).click();
+  await expect(page).toHaveURL(/\/upscale\?projectId=saved-upscale$/);
+  await expect(page.getByRole("heading", { name: "UPSCALE STUDIO", exact: true })).toBeVisible();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Download Upscaled PNG" })).toBeEnabled();
+  await page.getByRole("button", { name: "Close settings panel" }).click();
+  await page.getByRole("button", { name: "Open Image Upscale Settings" }).click();
+  await expect(page.getByRole("button", { name: "Download Upscaled PNG" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Close settings panel" })).toBeFocused();
+  const downloaded = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download Upscaled PNG" }).click();
+  expect((await downloaded).suggestedFilename()).toContain("upscaled_");
+  expect(submissions).toBe(0);
+  expect(fixture.requests.storage).toBe(0);
+  await page.getByRole("button", { name: /New Image/i }).click();
+  await expect(page).toHaveURL(/\/upscale$/);
+  await expect(page.getByRole("button", { name: "Browse image" })).toBeVisible();
+});
+
+test("a missing saved upscale offers recovery without starting a generation", async ({ page }) => {
+  await setup(page);
+  await page.route("**/rest/v1/projects*", route => route.fulfill({ json: null }));
+  await page.goto("/upscale?projectId=expired-project");
+  await expect(page.getByRole("alert").filter({ hasText: "unavailable or has expired" })).toBeVisible();
+  await page.getByRole("button", { name: "Choose another image" }).click();
+  await expect(page).toHaveURL(/\/upscale$/);
+  await expect(page.getByRole("button", { name: "Browse image" })).toBeVisible();
+});
+
+test("opening another saved project cannot display an older job's late result", async ({ page }) => {
+  await setup(page, { credits: 0 });
+  const base = { trace_type: "upscale", original_image_url: `${assetHost}/source.png`, created_at: new Date().toISOString(), refunded: false };
+  let finish;
+  let requested;
+  let returned = false;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const started = new Promise(resolve => { requested = resolve; });
+  let submissions = 0;
+  await page.route("**/api/upscale", route => { submissions++; return route.abort(); });
+  await page.route("**/rest/v1/projects*", route => {
+    const id = new URL(route.request().url()).searchParams.get("id")?.replace("eq.", "");
+    return route.fulfill({ json: { ...base, id, name: id, ai_prompt: `fal:topaz/upscale/image/precision:${id}`, generated_image_url: id === "ready-project" ? `${assetHost}/cutout.png` : null } });
+  });
+  await page.route("**/api/upscale?*", async route => {
+    requested();
+    await pending;
+    await route.fulfill({ json: { status: "COMPLETED", upscaledUrl: `${assetHost}/source.png` } });
+    returned = true;
+  });
+  await page.goto("/upscale?projectId=pending-project");
+  await started;
+  await page.evaluate(() => window.history.pushState(null, "", "/upscale?projectId=ready-project"));
+  const result = page.getByAltText("Upscaled artwork", { exact: true });
+  await expect(result).toHaveAttribute("src", `${assetHost}/cutout.png`);
+  finish();
+  await expect.poll(() => returned).toBe(true);
+  await expect(result).toHaveAttribute("src", `${assetHost}/cutout.png`);
+  await expect(page.getByRole("button", { name: "Download Upscaled PNG" })).toBeEnabled();
+  expect(submissions).toBe(0);
+});
+
+test("a refunded historical job allows choosing a profile for a fresh generation", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = await sharp(fixture.source).resize({ width: 1000 }).png().toBuffer();
+  await page.route(`${assetHost}/source.png`, route => route.fulfill({ contentType: "image/png", body: source }));
+  await page.route("**/rest/v1/projects*", route => route.fulfill({ json: {
+    id: "old-paid-project", name: "Historical artwork", original_image_url: `${assetHost}/source.png`,
+    generated_image_url: null, ai_prompt: "fal:topaz/upscale/image/precision:old-job", created_at: new Date().toISOString(),
+  } }));
+  await page.route("**/api/upscale?*", route => route.fulfill({ status: 500, json: { error: "This generation failed and was refunded.", refunded: true } }));
+  let submitted;
+  await page.route("**/api/upscale", route => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ json: { projectId: "new-project", status: "COMPLETED", upscaledUrl: `${assetHost}/cutout.png` } });
+  });
+  await page.goto("/upscale?projectId=old-paid-project");
+  const profile = page.getByRole("combobox", { name: "Image type" });
+  await expect(profile).toBeEnabled();
+  await profile.selectOption("logo");
+  await page.getByRole("button", { name: "Try upscale again", exact: true }).click();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/upscale$/);
+  expect(submitted.profile).toBe("logo");
+  expect(submitted.idempotencyKey).not.toBe("restored-old-paid-project");
+});
+
+test("queued upscale progress reports elapsed time and handles a longer wait without a fake percentage", async ({ page }) => {
+  const fixture = await setup(page);
+  await page.clock.install();
+  let finish;
+  const completed = new Promise(resolve => { finish = resolve; });
+  let polls = 0;
+  await page.route("**/api/upscale", route => route.fulfill({ json: { projectId: "queued-project", requestId: "queued-job" } }));
+  await page.route("**/api/upscale?*", async route => {
+    polls++;
+    if (polls === 1) return route.fulfill({ json: { status: "IN_QUEUE" } });
+    await completed;
+    await route.fulfill({ json: { status: "COMPLETED", upscaledUrl: `${assetHost}/cutout.png` } });
+  });
+  await page.goto("/upscale");
+  const source = await sharp(fixture.source).resize({ width: 1000 }).png().toBuffer();
+  await page.locator('input[type="file"]').setInputFiles({ name: "source.png", mimeType: "image/png", buffer: source });
+  await page.getByRole("button", { name: "Run precision upscale", exact: true }).last().click();
+  await expect(page.getByText("Queued", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
+  await expect(page.locator(".processing-layer-header")).not.toContainText("%");
+  await page.clock.fastForward(46000);
+  await expect(page.getByText("Taking longer than usual. Your source is still available.")).toBeVisible();
+  await expect(page.locator(".processing-layer-header")).toContainText("elapsed");
+  await page.screenshot({ path: "scratch/ux-upscale-queued.png" });
+  finish();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+});
+
+test("workspace chooser supports keyboard selection, trapped focus and Escape", async ({ page }) => {
+  await setup(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("ai_disclaimer_seen", "1");
+    localStorage.setItem("claw-agents-promo-seen-v1", String(Date.now()));
+    localStorage.setItem("onboarding_seen", "1");
+  });
+  await page.route("**/rest/v1/projects*", route => route.fulfill({ json: [] }));
+  await page.goto("/");
+  const trigger = page.getByRole("button", { name: "New Project", exact: true }).first();
+  await trigger.click();
+  const chooser = page.getByRole("dialog", { name: "Choose a workspace" });
+  await expect(chooser.getByRole("button", { name: "Garment Extract", exact: true })).toBeFocused();
+  await chooser.screenshot({ path: "scratch/workspace-monochrome-icons.png" });
+  await page.keyboard.press("Tab");
+  await expect(chooser.getByRole("button", { name: "Logo Vectorizer", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  const details = page.getByRole("dialog", { name: "New project details" });
+  await expect(details.locator('input[type="text"]')).toBeFocused();
+  await details.getByRole("button", { name: "Cancel", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(details.getByRole("button", { name: "Close workspace chooser" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(details).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test("Claw messages show the required amount and actual balance for Precision SVG", async ({ page }) => {
+  await setup(page, { credits: 1 });
+  await page.addInitScript(() => localStorage.setItem("desaynclaw_crop_guide_dismissed", "1"));
+  const project = { id: "credit-ui-project", name: "Client logo", trace_type: "logo", original_image_url: `${assetHost}/crop_source.png`, generated_image_url: null, upscaled_image_url: null, svg_url: null };
+  await page.route("**/rest/v1/projects*", route => route.fulfill({ json: project }));
+  await page.route("**/api/integrations/status", route => route.fulfill({ json: { googleDrive: { connected: false } } }));
+  await page.goto("/workspace/credit-ui-project");
+  await page.getByRole("button", { name: "Close crop modal" }).click();
+  await page.getByRole("button", { name: /Precision SVG/ }).click();
+  await expect(page.getByText("Requires 2 Claws. Your balance: 1 Claw.", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "scratch/ux-claw-balance.png" });
+});
+
+test("a server-rejected charge uses an accurate credit dialog and supports Escape", async ({ page }) => {
+  await setup(page, { credits: 2 });
+  await page.addInitScript(() => localStorage.setItem("desaynclaw_crop_guide_dismissed", "1"));
+  const project = { id: "credit-dialog-project", name: "Client logo", trace_type: "logo", original_image_url: `${assetHost}/crop_source.png`, generated_image_url: null, upscaled_image_url: null, svg_url: null };
+  await page.route("**/rest/v1/projects*", route => route.fulfill({ json: project }));
+  await page.route("**/api/integrations/status", route => route.fulfill({ json: { googleDrive: { connected: false } } }));
+  await page.route("**/api/trace", route => route.fulfill({ status: 403, json: { error: "INSUFFICIENT_CREDITS" } }));
+  await page.goto("/workspace/credit-dialog-project");
+  await page.getByRole("button", { name: "Close crop modal" }).click();
+  await page.getByRole("button", { name: /Precision SVG/ }).click();
+  const run = page.getByRole("button", { name: /Run Auto-Trace/ });
+  await run.click();
+  const dialog = page.getByRole("dialog", { name: "More Claws needed" });
+  await expect(dialog).toContainText("This action requires 2 Claws. Your balance is 0 Claws.");
+  await expect(dialog).not.toContainText("0 Traces Remaining");
+  await expect(dialog.getByRole("button", { name: "Close", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+});
+
+test("an uncertain upscale POST retries the same paid attempt and restores its download after reload", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = await sharp(fixture.source).resize({ width: 1000 }).png().toBuffer();
+  await page.route(`${assetHost}/source.png`, route => route.fulfill({ contentType: "image/png", body: source }));
+  const submissions = [];
+  await page.route("**/api/upscale", route => {
+    submissions.push(route.request().postDataJSON());
+    return submissions.length === 1 ? route.abort("failed")
+      : route.fulfill({ json: { success: true, status: "IN_QUEUE", projectId: "recovered-job", requestId: "same-provider-job" } });
+  });
+  await page.route("**/api/upscale?*", route => route.fulfill({ json: { status: "COMPLETED", upscaledUrl: `${assetHost}/cutout.png` } }));
+  await page.goto("/upscale");
+  await page.locator('input[type="file"]').setInputFiles({ name: "source.png", mimeType: "image/png", buffer: source });
+  await page.getByRole("button", { name: "Run precision upscale", exact: true }).last().click();
+  await page.getByRole("button", { name: "Try upscale again", exact: true }).click();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+  expect(submissions).toHaveLength(2);
+  expect(submissions[0]).toEqual(submissions[1]);
+  expect(fixture.requests.storage).toBe(1);
+  await page.reload();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Download Upscaled PNG" })).toBeEnabled();
+  expect(submissions).toHaveLength(2);
+  await page.getByRole("button", { name: /New Image/i }).click();
+  await expect(page.getByRole("button", { name: "Browse image" })).toBeVisible();
+});
+
+test("a stored pending paid upscale resumes even with zero remaining credits", async ({ page }) => {
+  const fixture = await setup(page, { credits: 0 });
+  let submissions = 0;
+  let polls = 0;
+  await page.addInitScript(({ assetHost, userId }) => {
+    sessionStorage.setItem(`desaynclaw:upscale-attempt:${userId}`, JSON.stringify({
+      requestKey: "saved-paid-attempt", imageUrl: `${assetHost}/source.png`, profile: "artwork", name: "Restored source.png", projectId: "pending-project", createdAt: Date.now(),
+    }));
+  }, { assetHost, userId: user.id });
+  const source = await sharp(fixture.source).resize({ width: 1000 }).png().toBuffer();
+  await page.route(`${assetHost}/source.png`, route => route.fulfill({ contentType: "image/png", body: source }));
+  await page.route("**/api/upscale", route => { submissions++; return route.abort(); });
+  await page.route("**/api/upscale?*", route => {
+    polls++;
+    expect(new URL(route.request().url()).searchParams.get("projectId")).toBe("pending-project");
+    return route.fulfill({ json: { status: "COMPLETED", upscaledUrl: `${assetHost}/cutout.png` } });
+  });
+  await page.goto("/upscale");
+  await expect(page.getByAltText("Original uploaded artwork", { exact: true })).toBeVisible();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Image type" })).toHaveValue("artwork");
+  await expect(page.getByRole("button", { name: "Download Upscaled PNG" })).toBeEnabled();
+  expect(submissions).toBe(0);
+  expect(polls).toBe(1);
+});
+
+test("reload recovers a paid project after a transient status failure without another submission", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = await sharp(fixture.source).resize({ width: 1000 }).png().toBuffer();
+  await page.route(`${assetHost}/source.png`, route => route.fulfill({ contentType: "image/png", body: source }));
+  let submissions = 0;
+  let polls = 0;
+  await page.route("**/api/upscale", route => {
+    submissions++;
+    return route.fulfill({ json: { projectId: "paid-project", requestId: "paid-job" } });
+  });
+  await page.route("**/api/upscale?*", route => {
+    polls++;
+    return polls === 1 ? route.fulfill({ status: 503, json: { error: "Storage temporarily unavailable", retryable: true } })
+      : route.fulfill({ json: { status: "COMPLETED", upscaledUrl: `${assetHost}/cutout.png` } });
+  });
+  await page.goto("/upscale");
+  await page.locator('input[type="file"]').setInputFiles({ name: "source.png", mimeType: "image/png", buffer: source });
+  await page.getByRole("button", { name: "Run precision upscale", exact: true }).last().click();
+  await expect(page.getByRole("button", { name: "Try upscale again", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByAltText("Upscaled artwork", { exact: true })).toBeVisible();
+  expect(submissions).toBe(1);
+  expect(polls).toBe(2);
+  expect(fixture.requests.storage).toBe(1);
 });
 
 test("replacement uses the upload flow and insufficient credits open the existing top-up UI", async ({ page }) => {

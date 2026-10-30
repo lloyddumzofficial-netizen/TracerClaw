@@ -23,6 +23,8 @@ import CropModal from "@/components/workspace/CropModal";
 import CompareModal from "@/components/workspace/CompareModal";
 import PalettePreviewModal from "@/components/workspace/PalettePreviewModal";
 import NoCreditsModal from "@/components/workspace/NoCreditsModal";
+import ImageToolSettingsToggle from "@/components/image-tools/ImageToolSettingsToggle";
+import useSettingsPanel from "@/hooks/useSettingsPanel";
 import ShortcutsModal from "@/components/workspace/ShortcutsModal";
 import WorkspaceCommandBar from "@/components/workspace/WorkspaceCommandBar";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
@@ -79,6 +81,8 @@ export default function Workspace() {
   const [, setPaletteNudgeQueued] = useState(false);
   const paletteNudgeRef = useRef(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+  const [requiredCredits, setRequiredCredits] = useState(1);
+  const { settingsOpen, closeSettings, openSettings, closeButtonRef } = useSettingsPanel();
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isSavingCrop, setIsSavingCrop] = useState(false);
@@ -94,7 +98,7 @@ export default function Workspace() {
     userCredits,
     setUserCredits,
     supabase,
-    onNoCredits: () => setShowNoCreditsModal(true),
+    onNoCredits: (cost) => { setRequiredCredits(cost); setShowNoCreditsModal(true); },
   });
 
   // ─── Data Fetching ────────────────────────────────────────────────────────
@@ -452,6 +456,7 @@ export default function Workspace() {
         </div>
 
         {/* Right Properties Panel */}
+        <div style={{ display: settingsOpen ? "contents" : "none" }}>
         <PropertiesPanel
           project={project}
           traceState={traceState}
@@ -466,7 +471,11 @@ export default function Workspace() {
           onOpenPalettePreview={() => setShowPalettePreview(true)}
           onOpenCrop={() => setShowCropModal(true)}
           onOpenTopUp={() => setShowTopUpModal(true)}
+          onClose={closeSettings}
+          closeButtonRef={closeButtonRef}
         />
+        </div>
+        {!settingsOpen && <ImageToolSettingsToggle title="AI Trace Settings" onOpen={openSettings} />}
       </main>
 
       {showPaletteNudge && project?.svg_url && (
@@ -536,6 +545,8 @@ export default function Workspace() {
 
       <NoCreditsModal
         show={showNoCreditsModal}
+        credits={userCredits}
+        requiredCredits={requiredCredits}
         onClose={() => setShowNoCreditsModal(false)}
         onTopUp={() => setShowTopUpModal(true)}
       />

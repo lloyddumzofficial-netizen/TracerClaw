@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { CheckCircle2, Download, ImageIcon, Loader2, Plus, RefreshCw, ShieldCheck, Sparkles, X } from "lucide-react";
 import styles from "./image-tool.module.css";
+import useElapsedTime, { formatElapsedTime } from "@/hooks/useElapsedTime";
 
 export default function ImageToolPropertiesPanel({
   tool,
@@ -22,12 +23,16 @@ export default function ImageToolPropertiesPanel({
   onDownload,
   onReplace,
   onNewImage,
+  onClose,
+  closeButtonRef,
+  processingStatus,
 }) {
+  const elapsed = useElapsedTime(isProcessing);
   const outputResolution = sourceMeta
     ? `${sourceMeta.outputWidth} × ${sourceMeta.outputHeight}`
     : "Pending source";
   const actionLabel = isProcessing
-    ? tool.processingLabel
+    ? processingStatus || tool.processingLabel
     : resultUrl
       ? tool.completeLabel
       : noCredits
@@ -41,7 +46,7 @@ export default function ImageToolPropertiesPanel({
     <aside className={styles.propertiesPanel} aria-label={tool.settingsTitle}>
       <header className={styles.propertiesHeader}>
         <div><Sparkles size={14} /><span>{tool.settingsTitle}</span></div>
-        <button type="button" aria-label="Close settings panel"><X size={14} /></button>
+        {onClose && <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close settings panel" aria-expanded="true"><X size={14} /></button>}
       </header>
 
       <div className={styles.propertiesScroll}>
@@ -70,7 +75,7 @@ export default function ImageToolPropertiesPanel({
                 </>
               )}
             </div>
-            <span className={styles.modeCost}>1</span>
+            <span className={styles.modeCost} title="1 Claw per new generation">1 Claw</span>
           </div>
           <p className={styles.sidebarDescription}>{tool.modeDescription}</p>
         </section>
@@ -104,8 +109,8 @@ export default function ImageToolPropertiesPanel({
         <section className={`${styles.sidebarSection} ${styles.outputSection}`}>
           <span className={styles.sidebarLabel}>Output Details</span>
           <div className={styles.processReadout}>
-            <div><span>{isProcessing ? "Processing" : resultUrl ? "Complete" : "Estimate"}</span><strong>{isProcessing ? "Working…" : resultUrl ? "Ready" : "10 – 30 sec"}</strong></div>
-            <div className={styles.stageRail}><i className={isProcessing || resultUrl ? styles.activeRail : ""} /></div>
+            <div><span>{isProcessing ? processingStatus || "Processing" : resultUrl ? "Complete" : "Processing time"}</span><strong>{isProcessing ? `${formatElapsedTime(elapsed)} elapsed` : resultUrl ? "Ready" : "Varies by image"}</strong></div>
+            <div className={styles.stageRail}><i className={isProcessing ? styles.busyRail : resultUrl ? styles.activeRail : ""} /></div>
             <small>{tool.modeName}</small>
           </div>
           <div className={styles.detailRows}>

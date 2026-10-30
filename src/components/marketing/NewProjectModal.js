@@ -1,9 +1,18 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
-import { Shirt, X, Scissors, ChevronLeft, ArrowRight, Camera } from "lucide-react";
+import { Shirt, X, ChevronLeft, ArrowRight } from "lucide-react";
+import useDialogFocus from "@/hooks/useDialogFocus";
+import modalStyles from "./NewProjectModal.module.css";
+import WorkspaceCategoryArtwork from "./WorkspaceCategoryArtwork";
+
+function activateOnKeyboard(event, activate) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    activate();
+  }
+}
 
 /* ─── SVG Icons ─────────────────────────────────────────────── */
 const LogoIcon = ({ size = 38 }) => (
@@ -25,8 +34,13 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
   const active = current === value;
   return (
     <div
-      className={`new-project-trace-option${active ? " is-active" : ""}`}
+      className={`new-project-trace-option ${modalStyles.keyboardOption}${active ? " is-active" : ""}`}
       onClick={() => onChange(value)}
+      role="button"
+      tabIndex={0}
+      aria-label={title}
+      aria-pressed={active}
+      onKeyDown={event => activateOnKeyboard(event, () => onChange(value))}
       style={{
         display: "flex", alignItems: "flex-start", gap: "13px",
         padding: "13px 16px",
@@ -69,113 +83,29 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
 }
 
 /* ─── Category card (step 1) ────────────────────────────────── */
-function CategoryCard({ onClick, icon, agentName, title, description, badge, thumbnail, thumbnailContent, thumbnailFit = "cover", thumbnailPosition = "center" }) {
-  const [hovered, setHovered] = useState(false);
+function CategoryCard({ onClick, artwork, agentName, title, description, badge }) {
   return (
     <div
-      className="new-project-category-card"
+      className={`${modalStyles.categoryCard} ${modalStyles.keyboardOption}`}
+      data-workspace-card
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: "relative",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", gap: 16,
-        padding: "28px 20px 28px",
-        border: hovered ? "1.5px solid rgba(255,255,255,0.38)" : "1.5px solid #282828",
-        borderRadius: 0, cursor: "pointer",
-        background: hovered
-          ? "linear-gradient(160deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.018) 100%)"
-          : "linear-gradient(160deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%)",
-        transition: "all 0.22s ease",
-        textAlign: "center",
-        aspectRatio: "auto",
-        boxShadow: hovered
-          ? "0 0 0 1px rgba(255,255,255,0.07) inset, 0 8px 32px rgba(0,0,0,0.4)"
-          : "0 2px 12px rgba(0,0,0,0.2)",
-        transform: hovered ? "translateY(-3px)" : "translateY(0)",
-        overflow: "hidden",
-      }}
+      role="button"
+      tabIndex={0}
+      aria-label={title}
+      onKeyDown={event => activateOnKeyboard(event, onClick)}
     >
-      <div className={`new-project-category-thumbnail${thumbnailFit === "contain" ? " is-contain" : ""}`} aria-hidden="true">
-        {thumbnailContent || (
-          <Image
-            src={thumbnail}
-            alt=""
-            fill
-            sizes="(max-width: 820px) 45vw, 245px"
-            style={{ objectPosition: thumbnailPosition }}
-          />
-        )}
+      {badge && <span className={modalStyles.badge}>{badge}</span>}
+      <div className={modalStyles.artwork}>
+        <WorkspaceCategoryArtwork variant={artwork} />
       </div>
-      <div className="new-project-category-fade" aria-hidden="true" />
-
-      {/* Radial glow blob on hover */}
-      <div className="new-project-category-glow" style={{
-        position: "absolute", top: "38%", left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: 120, height: 120,
-        background: "radial-gradient(circle, rgba(255,255,255,0.11) 0%, transparent 70%)",
-        pointerEvents: "none", borderRadius: "50%",
-        opacity: hovered ? 1 : 0,
-        transition: "opacity 0.25s ease",
-      }} />
-
-      {badge && (
-        <div className="new-project-category-badge" style={{
-          position: "absolute", top: 10, right: 10,
-          background: "linear-gradient(180deg, #fff 0%, #eceef1 52%, #c5c8cf 100%)",
-          color: "#000", fontSize: "9px", fontWeight: 800,
-          padding: "3px 7px", borderRadius: 5,
-          letterSpacing: "0.8px",
-          boxShadow: "0 5px 14px rgba(0,0,0,0.34), inset 0 1px 0 #fff",
-        }}>
-          <span className="new-project-category-badge-dot" aria-hidden="true" />
-          {badge}
-        </div>
-      )}
-
-      {/* Icon */}
-      <div className="new-project-category-icon" style={{
-        color: "rgba(242,242,238,0.82)",
-        opacity: hovered ? 1 : 0.8,
-        transition: "all 0.22s ease",
-        transform: hovered ? "scale(1.1)" : "scale(1)",
-        filter: hovered ? "drop-shadow(0 5px 14px rgba(255,255,255,0.14))" : "none",
-      }}>
-        {icon}
+      <div className={modalStyles.cardCopy}>
+        <span className={modalStyles.agentLabel}>{agentName}</span>
+        <h3 className={modalStyles.cardTitle}>{title}</h3>
+        <p className={modalStyles.cardDescription}>{description}</p>
       </div>
-
-      {/* Text */}
-      <div className="new-project-category-copy">
-        <span className="new-project-category-agent">{agentName}</span>
-        <p className="new-project-category-title" style={{
-          margin: "0 0 6px 0",
-          color: hovered ? "#fff" : "#ddd",
-          fontSize: "14px", fontWeight: 700,
-          letterSpacing: "-0.2px",
-          transition: "color 0.22s",
-        }}>
-          {title}
-        </p>
-        <p className="new-project-category-description" style={{
-          margin: 0, fontSize: "11px",
-          color: hovered ? "#888" : "#555",
-          lineHeight: 1.65, transition: "color 0.22s",
-          maxWidth: 160,
-        }}>
-          {description}
-        </p>
-      </div>
-
-      {/* Arrow cue */}
-      <div className="new-project-category-arrow" style={{
-        position: "absolute",
-        transition: "all 0.22s ease",
-      }}>
-        <span>Open workspace</span>
-        <ArrowRight size={13} strokeWidth={2.2} />
-      </div>
+      <span className={modalStyles.cardAction} aria-hidden="true">
+        Open workspace <ArrowRight size={13} strokeWidth={2} />
+      </span>
     </div>
   );
 }
@@ -197,6 +127,7 @@ const NewProjectModal = memo(function NewProjectModal({
   const [step, setStep] = useState("category");
   const [category, setCategory] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const dialogRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -215,8 +146,6 @@ const NewProjectModal = memo(function NewProjectModal({
     }
     setStep("details");
   }, [initialCategory, setTraceType, show]);
-
-  if (!show || !mounted) return null;
 
   const handleCategorySelect = (cat) => {
     setCategory(cat);
@@ -252,6 +181,14 @@ const NewProjectModal = memo(function NewProjectModal({
     onClose();
   };
 
+  useDialogFocus(show && mounted, dialogRef, handleClose);
+  useEffect(() => {
+    if (!show || !mounted) return;
+    const selector = step === "details" ? "input:not([disabled])" : "[data-workspace-card]";
+    dialogRef.current?.querySelector(selector)?.focus({ preventScroll: true });
+  }, [show, mounted, step]);
+  if (!show || !mounted) return null;
+
   return createPortal(
     <div
       className="modal-overlay"
@@ -270,6 +207,11 @@ const NewProjectModal = memo(function NewProjectModal({
     >
       <div
         className="modal-content new-project-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={step === "category" ? "Choose a workspace" : "New project details"}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: step === "category" ? 1280 : 480,
@@ -286,6 +228,8 @@ const NewProjectModal = memo(function NewProjectModal({
         {/* Close button */}
         <button
           onClick={handleClose}
+          type="button"
+          aria-label="Close workspace chooser"
           style={{
             position: "absolute", top: 14, right: 14,
             background: "none", border: "1.5px solid transparent",
@@ -322,55 +266,40 @@ const NewProjectModal = memo(function NewProjectModal({
             <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 13 }}>
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
-                icon={<Shirt size={38} strokeWidth={1.2} />}
+                artwork="garment"
                 agentName="Panel Agent"
                 title="Garment Extract"
                 description="Extract clean production artwork from garment mockups."
-                thumbnail="/tool-agent-cutouts/yellow-v2/01-garment-agent.png"
-                thumbnailFit="contain"
-                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("logo")}
-                icon={<LogoIcon size={38} />}
+                artwork="logo"
                 agentName="Vector Agent"
                 title="Logo Vectorizer"
                 description="Convert logos and wordmarks into accurate editable vectors."
-                thumbnail="/tool-agent-cutouts/yellow-v2/02-logo-agent.png"
-                thumbnailFit="contain"
-                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("pattern")}
-                icon={<PatternIcon size={38} />}
+                artwork="pattern"
                 agentName="Motif Agent"
                 title="Pattern Rebuilder"
                 description="Reconstruct flat patterns as clean, editable SVG files."
-                thumbnail="/tool-agent-cutouts/yellow-v2/03-pattern-agent.png"
-                thumbnailFit="contain"
-                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("bg_remover")}
-                icon={<Scissors size={38} strokeWidth={1.2} />}
+                artwork="bg_remover"
                 agentName="Cutout Agent"
                 title="Background Remover"
                 description="Create clean transparent cutouts for products and graphics."
                 badge="AI"
-                thumbnail="/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png"
-                thumbnailFit="contain"
-                thumbnailPosition="center top"
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("mockup_studio")}
-                icon={<Camera size={38} strokeWidth={1.2} />}
+                artwork="mockup_studio"
                 agentName="Form Agent"
                 title="Mockup Studio"
                 description="Build polished garment previews from production panels."
                 badge="NEW"
-                thumbnail="/tool-agent-cutouts/yellow-v2/05-mockup-agent.png"
-                thumbnailFit="contain"
-                thumbnailPosition="center top"
               />
             </div>
 

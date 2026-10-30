@@ -1,4 +1,4 @@
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { execSync } from 'node:child_process';
 import { getSecurityHeaders } from './src/lib/securityHeaders.mjs';
 
