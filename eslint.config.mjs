@@ -21,6 +21,7 @@ export default [
       "node_modules/**",
       ".next/**",
       "scripts/**",
+      "scratch/**",
       "tests/**",
       "coverage/**",
       "test-results/**",

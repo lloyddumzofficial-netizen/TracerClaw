@@ -2,7 +2,8 @@
 
 import { memo, useState, useRef, useCallback, useEffect } from "react";
 import { ArrowRight, CheckCircle2, Crosshair, Info, Loader2, Maximize, Minus, Plus, RotateCcw, ScanLine, X, XCircle } from "lucide-react";
-import ReactCrop, { convertToPixelCrop } from "react-image-crop";
+import { convertToPixelCrop } from "react-image-crop";
+import CropSelectionCanvas from "./CropSelectionCanvas";
 import LogoCropGuide from "./LogoCropGuide";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
@@ -126,7 +127,7 @@ const CropModal = memo(function CropModal({
   onCropApplied,
   onLoginRequired,
 }) {
-  const [crop, setCrop] = useState();
+  const [cropResetVersion, setCropResetVersion] = useState(0);
   const [completedCrop, setCompletedCrop] = useState(null);
   const [cropError, setCropError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -141,7 +142,7 @@ const CropModal = memo(function CropModal({
   useEffect(() => {
     if (show) {
       setCropZoom(DEFAULT_CROP_ZOOM);
-      setCrop(undefined);
+      setCropResetVersion(version => version + 1);
       setCompletedCrop(null);
       setCropError("");
       setImageSize(null);
@@ -153,6 +154,29 @@ const CropModal = memo(function CropModal({
       }
     }
   }, [show]);
+
+  const handleResetSelection = useCallback(() => {
+    setCropResetVersion(version => version + 1);
+    setCompletedCrop(null);
+    setCropError("");
+  }, []);
+
+  const handleCropStart = useCallback(() => {
+    setCompletedCrop(null);
+    setCropError("");
+  }, []);
+
+  const handleCropComplete = useCallback((pixelCrop, percentCrop) => {
+    setCompletedCrop(percentCrop);
+    setCropError("");
+  }, []);
+
+  const handleImageLoad = useCallback(event => {
+    const image = event.currentTarget;
+    setImageSize(previous => previous?.width === image.naturalWidth && previous?.height === image.naturalHeight
+      ? previous
+      : { width: image.naturalWidth, height: image.naturalHeight });
+  }, []);
 
   const dismissCropGuideIntro = useCallback(() => {
     if (dontShowCropGuideAgain) {
@@ -426,7 +450,7 @@ const CropModal = memo(function CropModal({
               <div className="crop-toolbar-right">
                 <span>{cropSizeLabel}</span>
                 <div className="crop-zoom-controls" aria-label="Crop zoom controls">
-                  <button type="button" onClick={() => { setCrop(undefined); setCompletedCrop(null); setCropError(""); }} aria-label="Reset selection">
+                  <button type="button" onClick={handleResetSelection} aria-label="Reset selection">
                     <RotateCcw size={12} />
                   </button>
                   <button type="button" onClick={() => setZoomKeepingCenter(z => z - CROP_ZOOM_STEP)} aria-label="Zoom out" disabled={cropZoom <= MIN_CROP_ZOOM}>
@@ -452,41 +476,17 @@ const CropModal = memo(function CropModal({
                   marginTop: `${surfaceOffsetY}px`,
                 }}
               >
-                <ReactCrop
-                  crop={crop}
-                  onChange={(pixelCrop, percentCrop) => {
-                    setCrop(percentCrop);
-                    setCompletedCrop(null);
-                    setCropError("");
-                  }}
-                  onComplete={(pixelCrop, percentCrop) => setCompletedCrop(percentCrop)}
-                  onDragStart={() => setCompletedCrop(null)}
-                  ruleOfThirds
-                  className="designer-crop"
-                  style={{ width: displayWidth ? `${displayWidth}px` : "auto" }}
-                >
-                  <img
-                    ref={imgRef}
-                    src={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
-                    alt="Crop source"
-                    className="crop-source-image"
-                    width={displayWidth || 1}
-                    height={displayHeight || 1}
-                    style={{
-                      width: displayWidth ? `${displayWidth}px` : "1px",
-                      height: displayHeight ? `${displayHeight}px` : "1px",
-                      opacity: imageSize ? 1 : 0,
-                    }}
-                    crossOrigin="anonymous"
-                    onLoad={e => {
-                      imgRef.current = e.currentTarget;
-                      setImageSize({
-                        width: e.currentTarget.naturalWidth,
-                        height: e.currentTarget.naturalHeight,
-                      });
-                    }}
-                  />
-                </ReactCrop>
+                <CropSelectionCanvas
+                  imageRef={imgRef}
+                  sourceUrl={`/api/proxy?url=${encodeURIComponent(project.original_image_url)}`}
+                  displayWidth={displayWidth}
+                  displayHeight={displayHeight}
+                  imageReady={Boolean(imageSize)}
+                  resetVersion={cropResetVersion}
+                  onImageLoad={handleImageLoad}
+                  onCropStart={handleCropStart}
+                  onCropComplete={handleCropComplete}
+                />
               </div>
             </div>
           </div>
@@ -562,7 +562,7 @@ const CropModal = memo(function CropModal({
             type="button"
             className="crop-secondary-action crop-reset-action"
             disabled={isSaving}
-            onClick={() => { setCrop(undefined); setCompletedCrop(null); setCropError(""); setZoomKeepingCenter(DEFAULT_CROP_ZOOM); }}
+            onClick={() => { handleResetSelection(); setZoomKeepingCenter(DEFAULT_CROP_ZOOM); }}
           >
             <RotateCcw size={13} />
             Reset

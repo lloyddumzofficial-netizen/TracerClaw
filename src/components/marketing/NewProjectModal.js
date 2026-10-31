@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { Shirt, X, ChevronLeft, ArrowRight } from "lucide-react";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import modalStyles from "./NewProjectModal.module.css";
-import WorkspaceCategoryArtwork from "./WorkspaceCategoryArtwork";
 
 function activateOnKeyboard(event, activate) {
   if (event.key === "Enter" || event.key === " ") {
@@ -95,9 +94,7 @@ function CategoryCard({ onClick, artwork, agentName, title, description, badge }
       onKeyDown={event => activateOnKeyboard(event, onClick)}
     >
       {badge && <span className={modalStyles.badge} data-badge={badge.toLowerCase()}>{badge}</span>}
-      <div className={modalStyles.artwork}>
-        <WorkspaceCategoryArtwork variant={artwork} />
-      </div>
+      <div className={modalStyles.artwork} aria-hidden="true" />
       <div className={modalStyles.cardCopy}>
         <span className={modalStyles.agentLabel}>{agentName}</span>
         <h3 className={modalStyles.cardTitle}>{title}</h3>
@@ -219,10 +216,10 @@ const NewProjectModal = memo(function NewProjectModal({
           transition: "max-width 0.32s cubic-bezier(0.4,0,0.2,1)",
           width: "calc(100vw - 32px)",
           padding: "26px 26px 24px",
-          background: "linear-gradient(160deg, #1e1e1e 0%, #151515 100%)",
-          border: "1px solid #282828",
+          background: "#111213",
+          border: "1px solid #343638",
           borderRadius: 0,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03) inset",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
         }}
       >
         {/* Close button */}
@@ -255,10 +252,10 @@ const NewProjectModal = memo(function NewProjectModal({
         {step === "category" && (
           <>
             <div style={{ marginBottom: 22 }}>
-              <h2 style={{ margin: "0 0 5px 0", fontSize: "19px", fontWeight: 700, letterSpacing: "-0.4px", color: "#fff" }}>
+              <h2 style={{ margin: "0 0 5px 0", fontSize: "21px", fontWeight: 700, letterSpacing: "-0.6px", color: "#f4f4f1" }}>
                 What are you creating?
               </h2>
-              <p style={{ margin: 0, color: "#4a4a4a", fontSize: "12.5px" }}>
+              <p style={{ margin: 0, color: "#929591", fontSize: "12.5px" }}>
                 Choose a workspace to get started.
               </p>
             </div>

@@ -5496,7 +5496,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
 
 .designer-crop .ReactCrop__crop-selection {
   border: 1px solid rgba(214, 188, 86, 0.9);
-  box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.32);
 }
 
 .designer-crop .ReactCrop__drag-handle {
@@ -6013,9 +6013,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
 
 .designer-crop .ReactCrop__crop-selection {
   border-color: rgba(255, 215, 0, 0.95);
-  box-shadow:
-    0 0 0 9999em rgba(0, 0, 0, 0.48),
-    0 0 24px rgba(255, 215, 0, 0.18);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.32);
 }
 
 .designer-crop .ReactCrop__drag-handle {
@@ -9633,10 +9631,21 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
 
 .designer-crop .ReactCrop__crop-selection {
   border: 1px solid rgba(245, 246, 248, .94) !important;
-  box-shadow:
-    0 0 0 9999em rgba(0, 0, 0, .54),
-    0 0 0 1px rgba(0, 0, 0, .32),
-    0 0 24px rgba(255, 255, 255, .07) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .32) !important;
+  animation: none !important;
+  background-image: none !important;
+}
+
+/* ReactCrop already supplies a bounded image mask. Match the previous dimming
+   without rasterizing a page-sized spread shadow on every pointer move. */
+.designer-crop .ReactCrop__crop-mask > rect {
+  fill-opacity: .77;
+}
+
+.designer-crop .ReactCrop__crop-selection,
+.designer-crop .ReactCrop__drag-handle {
+  filter: none;
+  transition: none;
 }
 
 .designer-crop .ReactCrop__drag-handle {
