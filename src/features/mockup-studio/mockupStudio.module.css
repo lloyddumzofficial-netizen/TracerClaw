@@ -337,7 +337,7 @@
 .processingPanel>p{margin-bottom:0;color:#858585;font-size:9.5px}
 
 @keyframes normalLoaderSpin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.normalSpinner,.processingPanel header>span>i{animation-duration:1.6s}}
+@media(prefers-reduced-motion:reduce){.spin,.normalSpinner,.processingPanel header>span>i{animation-duration:1.8s!important;animation-iteration-count:infinite!important}}
 
 /* --- PROFESSIONAL MINIMAL REDESIGN FOR SETUP PANEL --- */
 .setupPanel {

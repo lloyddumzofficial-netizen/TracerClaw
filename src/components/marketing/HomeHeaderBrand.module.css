@@ -1,0 +1,19 @@
+.brand:global(.home-topbar-brand) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 240ms ease, visibility 0s linear 240ms;
+}
+
+.brand:global(.home-topbar-brand)[data-visible="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 240ms ease, visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand:global(.home-topbar-brand) {
+    transition: none;
+  }
+}

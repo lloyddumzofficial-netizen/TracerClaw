@@ -284,7 +284,7 @@ export default function AdminDashboard() {
             title="Manually refresh dashboard"
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px 24px", borderRadius: "4px", fontSize: "16px", background: 'transparent', color: isRefreshing ? '#888' : '#aaa', borderColor: '#555', opacity: isRefreshing ? 0.7 : 1 }}
           >
-            <RefreshCw size={16} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : undefined} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           <button className="start-btn" onClick={handleLogout} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px 24px", borderRadius: "4px", fontSize: "16px" }}>

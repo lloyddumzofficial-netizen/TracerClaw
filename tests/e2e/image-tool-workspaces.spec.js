@@ -340,6 +340,40 @@ test("workspace chooser supports keyboard selection, trapped focus and Escape", 
   await expect(trigger).toBeFocused();
 });
 
+for (const { width, motion } of [
+  { width: 1440, motion: "no-preference" },
+  { width: 1440, motion: "reduce" },
+  { width: 390, motion: "no-preference" },
+]) {
+  test(`header logo appears after the hero scrolls away and returns to the top (${width}, ${motion})`, async ({ page }) => {
+    await setup(page);
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ reducedMotion: motion });
+    await page.addInitScript(() => {
+      localStorage.setItem("ai_disclaimer_seen", "1");
+      localStorage.setItem("claw-agents-promo-seen-v1", String(Date.now()));
+      localStorage.setItem("onboarding_seen", "1");
+    });
+    await page.route("**/rest/v1/projects*", route => route.fulfill({ json: [] }));
+    await page.goto("/");
+    const heroLogo = page.locator(".home-hero-shell").getByAltText("DesaynClaw Logo", { exact: true });
+    const headerLogo = page.locator(".home-topbar-brand");
+    await expect(heroLogo).toBeInViewport();
+    await expect(headerLogo).toBeHidden();
+    await expect(headerLogo).toHaveAttribute("tabindex", "-1");
+    const creditsX = (await page.locator(".home-credit-pill").boundingBox()).x;
+    await page.locator("#workspace-tools").scrollIntoViewIfNeeded();
+    await expect(heroLogo).not.toBeInViewport();
+    await expect(headerLogo).toBeVisible();
+    await expect(headerLogo).toHaveCSS("opacity", "1");
+    expect((await page.locator(".home-credit-pill").boundingBox()).x).toBeCloseTo(creditsX, 0);
+    await headerLogo.click();
+    await expect(heroLogo).toBeInViewport();
+    await expect(headerLogo).toBeHidden();
+    await expect(heroLogo).toBeFocused();
+  });
+}
+
 test("Claw messages show the required amount and actual balance for Precision SVG", async ({ page }) => {
   await setup(page, { credits: 1 });
   await page.addInitScript(() => localStorage.setItem("desaynclaw_crop_guide_dismissed", "1"));

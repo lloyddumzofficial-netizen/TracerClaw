@@ -1,0 +1,102 @@
+.hero:global(.guest-landing-hero) {
+  min-height: 0;
+  padding: clamp(184px, 21vh, 216px) 24px 0;
+  overflow: visible;
+}
+
+.hero:global(.guest-landing-hero)::before {
+  bottom: auto;
+  height: calc(100% + 180px);
+  pointer-events: none;
+}
+
+.hero:global(.guest-landing-hero)::after {
+  display: none;
+}
+
+.hero:global(.guest-landing-hero) h1 {
+  max-width: 1120px;
+  margin: 12px 0 24px;
+  font-size: clamp(3.5rem, 5.8vw, 5.6rem);
+  line-height: 1.04;
+}
+
+.hero :global(.guest-landing-description) {
+  max-width: 610px;
+  color: #929591;
+  font-size: 15px;
+}
+
+.hero :global(.guest-landing-community) {
+  margin-top: 20px;
+}
+
+.hero :global(.guest-landing-avatars) img {
+  width: 28px;
+  height: 28px;
+}
+
+.hero :global(.guest-landing-community-copy) strong {
+  font-size: 11px;
+}
+
+.demo {
+  scroll-margin-top: 96px;
+}
+
+.sampleHeader:global(.guest-landing-example-copy) {
+  display: block;
+  margin: 0 auto 24px;
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  text-align: left;
+}
+
+.sampleHeader .sampleEyebrow {
+  margin: 0 0 10px;
+  color: #929591;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: .015em;
+}
+
+.sampleSection .sampleHeader h2 {
+  max-width: none;
+  margin: 0;
+  color: #f4f4f1;
+  font-size: clamp(27px, 2.5vw, 32px);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -.025em;
+}
+
+.sampleGrid:global(.guest-landing-example-grid) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trust :global(.guest-trust-marquee.software-compatibility-marquee) {
+  width: min(calc(100% - 48px), 1040px) !important;
+  margin: 32px auto 56px !important;
+}
+
+@media (max-width: 760px) {
+  .sampleGrid:global(.guest-landing-example-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero:global(.guest-landing-hero) {
+    padding: 174px 20px 0;
+  }
+
+  .hero:global(.guest-landing-hero) h1 {
+    margin-top: 12px;
+    font-size: clamp(2.7rem, 10vw, 4.5rem);
+  }
+
+  .hero :global(.guest-landing-description) {
+    width: 100%;
+    font-size: 13px;
+  }
+
+  .trust :global(.guest-trust-marquee.software-compatibility-marquee) { margin: 24px auto 36px !important; }
+}

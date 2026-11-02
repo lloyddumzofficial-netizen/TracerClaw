@@ -556,6 +556,7 @@
   }
 
   .spinner {
-    animation: none;
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
   }
 }

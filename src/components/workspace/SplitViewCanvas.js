@@ -644,6 +644,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
           detail={stepMeta.detail}
           stageIndex={layerState}
           stageLabels={stageLabels}
+          showEstimatedProgress
         />
       );
     }

@@ -1,0 +1,27 @@
+.thumbnail {
+  flex: 0 0 auto;
+  width: 142px;
+  height: 147px;
+  background-image: url("/workspace-card-thumbnails.png");
+  background-repeat: no-repeat;
+  background-size: 847px 282px;
+  background-position: var(--thumbnail-x, -35px) -73px;
+  pointer-events: none;
+}
+
+.thumbnail[data-tool-thumbnail="logo"] { --thumbnail-x: -194px; }
+.thumbnail[data-tool-thumbnail="bg_remover"] { --thumbnail-x: -512px; }
+
+.thumbnail[data-tool-thumbnail="pattern"],
+.thumbnail[data-tool-thumbnail="mockup_studio"] {
+  background-size: 142px 147px;
+  background-position: center;
+}
+
+.thumbnail[data-tool-thumbnail="pattern"] {
+  background-image: url("/icons/workspace/pattern-rebuilder.svg");
+}
+
+.thumbnail[data-tool-thumbnail="mockup_studio"] {
+  background-image: url("/icons/workspace/mockup-studio.svg");
+}

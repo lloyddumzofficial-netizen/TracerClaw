@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Shirt, X, ChevronLeft, ArrowRight } from "lucide-react";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import modalStyles from "./NewProjectModal.module.css";
+import WorkspaceToolThumbnail from "./WorkspaceToolThumbnail";
 
 function activateOnKeyboard(event, activate) {
   if (event.key === "Enter" || event.key === " ") {
@@ -82,7 +83,7 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
 }
 
 /* ─── Category card (step 1) ────────────────────────────────── */
-function CategoryCard({ onClick, artwork, agentName, title, description, badge }) {
+function CategoryCard({ onClick, artwork, title, description, badge }) {
   return (
     <div
       className={`${modalStyles.categoryCard} ${modalStyles.keyboardOption}`}
@@ -94,9 +95,8 @@ function CategoryCard({ onClick, artwork, agentName, title, description, badge }
       onKeyDown={event => activateOnKeyboard(event, onClick)}
     >
       {badge && <span className={modalStyles.badge} data-badge={badge.toLowerCase()}>{badge}</span>}
-      <div className={modalStyles.artwork} aria-hidden="true" />
+      <WorkspaceToolThumbnail tool={artwork} className={modalStyles.artwork} />
       <div className={modalStyles.cardCopy}>
-        <span className={modalStyles.agentLabel}>{agentName}</span>
         <h3 className={modalStyles.cardTitle}>{title}</h3>
         <p className={modalStyles.cardDescription}>{description}</p>
       </div>
@@ -203,7 +203,7 @@ const NewProjectModal = memo(function NewProjectModal({
       }}
     >
       <div
-        className="modal-content new-project-modal"
+        className={`modal-content new-project-modal ${modalStyles.dialog}`}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -251,11 +251,11 @@ const NewProjectModal = memo(function NewProjectModal({
         {/* ── STEP 1: Category ─────────────────────────────── */}
         {step === "category" && (
           <>
-            <div style={{ marginBottom: 22 }}>
-              <h2 style={{ margin: "0 0 5px 0", fontSize: "21px", fontWeight: 700, letterSpacing: "-0.6px", color: "#f4f4f1" }}>
+            <div className={modalStyles.chooserHeader}>
+              <h2>
                 What are you creating?
               </h2>
-              <p style={{ margin: 0, color: "#929591", fontSize: "12.5px" }}>
+              <p>
                 Choose a workspace to get started.
               </p>
             </div>
@@ -264,28 +264,24 @@ const NewProjectModal = memo(function NewProjectModal({
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 artwork="garment"
-                agentName="Panel Agent"
                 title="Garment Extract"
                 description="Extract clean production artwork from garment mockups."
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("logo")}
                 artwork="logo"
-                agentName="Vector Agent"
                 title="Logo Vectorizer"
                 description="Convert logos and wordmarks into accurate editable vectors."
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("pattern")}
                 artwork="pattern"
-                agentName="Motif Agent"
                 title="Pattern Rebuilder"
                 description="Reconstruct flat patterns as clean, editable SVG files."
               />
               <CategoryCard
                 onClick={() => handleCategorySelect("bg_remover")}
                 artwork="bg_remover"
-                agentName="Cutout Agent"
                 title="Background Remover"
                 description="Create clean transparent cutouts for products and graphics."
                 badge="AI"
@@ -293,7 +289,6 @@ const NewProjectModal = memo(function NewProjectModal({
               <CategoryCard
                 onClick={() => handleCategorySelect("mockup_studio")}
                 artwork="mockup_studio"
-                agentName="Form Agent"
                 title="Mockup Studio"
                 description="Build polished garment previews from production panels."
                 badge="NEW"

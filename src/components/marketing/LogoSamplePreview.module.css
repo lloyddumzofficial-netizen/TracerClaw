@@ -1,0 +1,17 @@
+.sample {
+  width: 100%;
+  max-width: 560px;
+  aspect-ratio: 1;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #2c2e30;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.sample img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

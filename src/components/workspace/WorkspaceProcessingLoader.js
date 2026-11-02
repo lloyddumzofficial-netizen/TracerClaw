@@ -3,6 +3,7 @@
 import { CheckCircle2 } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 import useElapsedTime, { formatElapsedTime } from "@/hooks/useElapsedTime";
+import { estimateProcessingProgress } from "@/lib/processingProgress";
 import styles from "./WorkspaceProcessingLoader.module.css";
 
 export default function WorkspaceProcessingLoader({
@@ -12,9 +13,11 @@ export default function WorkspaceProcessingLoader({
   stageIndex = 0,
   stageCount = 3,
   stageLabels = [],
+  showEstimatedProgress = false,
   className = "",
 }) {
   const elapsed = useElapsedTime(true, stageIndex);
+  const estimatedProgress = estimateProcessingProgress(elapsed, stageIndex);
 
   return (
     <div className={`processing-blueprint-stage ${className}`.trim()} role="status" aria-live="polite">
@@ -51,20 +54,23 @@ export default function WorkspaceProcessingLoader({
             {label}
           </span>
           <strong>
-            <span className={styles.elapsed} aria-hidden="true">{formatElapsedTime(elapsed)} elapsed</span>
+            {showEstimatedProgress
+              ? <span className={styles.percentage} aria-hidden="true">{estimatedProgress}%<small>est.</small></span>
+              : <span className={styles.elapsed} aria-hidden="true">{formatElapsedTime(elapsed)} elapsed</span>}
             <em>Stage {stageIndex + 1} of {stageCount}</em>
           </strong>
         </div>
         <div
-          className={`processing-progress-track ${styles.indeterminate}`}
+          className={`processing-progress-track ${showEstimatedProgress ? styles.determinate : styles.indeterminate}`}
           role="progressbar"
+          {...(showEstimatedProgress ? { "aria-valuenow": estimatedProgress, "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuetext": `${estimatedProgress}% estimated; waiting for ${label} to finish` } : {})}
           aria-label={`${label}: ${detail}`}
         >
-          <i />
+          <i style={showEstimatedProgress ? { width: `${estimatedProgress}%` } : undefined} />
         </div>
         <p>{detail}</p>
         {elapsed >= 45 && <p className={styles.slowNotice}>Taking longer than usual. Your source is still available.</p>}
-        <div className="processing-layer-stack">
+          <div className={`processing-layer-stack ${styles.stageStack}`}>
           {stageLabels.map((stageLabel, index) => {
             const state = index < stageIndex ? "is-done" : index === stageIndex ? "is-active" : "is-pending";
             return (

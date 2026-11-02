@@ -20,6 +20,8 @@ export default function BeforeAfterSlider({
   rasterAlt = "Original artwork",
   vectorAlt = "Extracted artwork",
   imageLoading = "lazy",
+  rasterStyle,
+  vectorStyle,
 }) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const vectorIsRaster = /\.(?:png|jpe?g|webp|gif|avif)(?:[?#]|$)/i.test(vectorUrl || "");
@@ -56,7 +58,8 @@ export default function BeforeAfterSlider({
             style={{ 
               position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit,
               objectPosition: objectPosition,
-              imageRendering: pixelateRaster ? 'pixelated' : 'auto'
+              imageRendering: pixelateRaster ? 'pixelated' : 'auto',
+              ...rasterStyle,
             }} 
           />
           <span className="ba-slider-label ba-slider-label-right">{rightLabel}</span>
@@ -76,14 +79,14 @@ export default function BeforeAfterSlider({
                 loading={imageLoading}
                 decoding="async"
                 draggable="false"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition }}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition, ...vectorStyle }}
               />
             ) : (
               <SafeInlineSVG
                 url={vectorUrl}
                 imageAlt={vectorAlt}
                 imageLoading={imageLoading}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition }}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: objectFit, objectPosition: objectPosition, ...vectorStyle }}
                 fallbackToImage
               />
             )}

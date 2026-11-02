@@ -1,0 +1,38 @@
+.preview {
+  width: 100%;
+  min-width: 0;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.choices button {
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid #2c2e30;
+  border-radius: 6px;
+  background: #101112;
+  color: #929591;
+  font: 500 11px/1.4 var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.choices button:hover {
+  border-color: #696c6e;
+  color: #f4f4f1;
+}
+
+.choices button[aria-pressed="true"] {
+  border-color: #f4f4f1;
+  background: #f4f4f1;
+  color: #08090a;
+}
+
+.choices button:focus-visible {
+  outline: 2px solid #f4f4f1;
+  outline-offset: 3px;
+}

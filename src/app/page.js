@@ -26,6 +26,9 @@ import "./home.css";
 // ─── Components ───────────────────────────────────────────────────────────────
 import LoginModal from "@/components/marketing/LoginModal";
 import NewProjectModal from "@/components/marketing/NewProjectModal";
+import WorkspaceToolThumbnail from "@/components/marketing/WorkspaceToolThumbnail";
+import toolsShelfStyles from "@/components/marketing/DesktopToolsShelf.module.css";
+import logoSampleStyles from "@/components/marketing/LogoSamplePreview.module.css";
 import OnboardingModal from "@/components/marketing/OnboardingModal";
 import RecentProjects from "@/components/marketing/RecentProjects";
 import EduSection from "@/components/marketing/EduSection";
@@ -35,6 +38,8 @@ import LogoLoader from "@/components/ui/LogoLoader";
 import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
 import GuestHomepageHero, { GuestHomepageConversionSections, GuestHomepageSampleSection } from "@/components/marketing/GuestHomepageHero";
+import GarmentSamplePreview from "@/components/marketing/GarmentSamplePreview";
+import HomeHeaderBrand from "@/components/marketing/HomeHeaderBrand";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 import HomepageTutorialSection from "@/components/marketing/HomepageTutorialSection";
 import ReferralModal from "@/components/marketing/ReferralModal";
@@ -151,38 +156,33 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockup
   const trackRef = useRef(null);
   const tools = [
     {
-      agent: "Panel Agent",
       title: "Garment Extract",
       description: "Extract clean production artwork from garment mockups.",
-      image: "/tool-agent-cutouts/yellow-v2/01-garment-agent.png",
+      tool: "garment",
       onClick: onGarment,
     },
     {
-      agent: "Vector Agent",
       title: "Logo Vectorizer",
       description: "Convert logos and wordmarks into accurate editable vectors.",
-      image: "/tool-agent-cutouts/yellow-v2/02-logo-agent.png",
+      tool: "logo",
       onClick: onLogo,
     },
     {
-      agent: "Motif Agent",
       title: "Pattern Rebuilder",
       description: "Reconstruct flat patterns as clean, editable SVG files.",
-      image: "/tool-agent-cutouts/yellow-v2/03-pattern-agent.png",
+      tool: "pattern",
       onClick: onPattern,
     },
     {
-      agent: "Cutout Agent",
       title: "Background Remover",
       description: "Create clean transparent cutouts for products and graphics.",
-      image: "/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png",
+      tool: "bg_remover",
       onClick: onBgRemover,
     },
     {
-      agent: "Form Agent",
       title: "Mockup Studio",
       description: "Build polished garment previews from production panels.",
-      image: "/tool-agent-cutouts/yellow-v2/05-mockup-agent.png",
+      tool: "mockup_studio",
       onClick: onMockupStudio,
     },
   ];
@@ -195,7 +195,7 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockup
   };
 
   return (
-    <section id="workspace-tools" className="desktop-tools-shelf" aria-labelledby="desktop-tools-title">
+    <section id="workspace-tools" className={`desktop-tools-shelf ${toolsShelfStyles.shelf}`} aria-labelledby="desktop-tools-title">
       <header className="desktop-tools-heading">
         <div className="desktop-tools-heading-copy">
           <span className="desktop-tools-kicker">DesaynClaw workspaces</span>
@@ -213,19 +213,9 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockup
 
       <div className="desktop-tools-track" ref={trackRef} role="list">
         {tools.map((tool) => (
-          <article className="desktop-tool-card" key={tool.title} role="listitem">
-            <div className="desktop-tool-visual">
-              <Image
-                src={tool.image}
-                alt=""
-                fill
-                sizes="(max-width: 700px) 82vw, (max-width: 1100px) 44vw, 260px"
-                loading="lazy"
-              />
-            </div>
-            <div className="desktop-tool-card-shade" />
-            <div className="desktop-tool-card-copy">
-              <span className="desktop-tool-agent-name">{tool.agent}</span>
+          <article className={toolsShelfStyles.card} key={tool.title} role="listitem">
+            <WorkspaceToolThumbnail tool={tool.tool} className={toolsShelfStyles.artwork} />
+            <div className={toolsShelfStyles.copy}>
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
               <button type="button" onClick={tool.onClick}>
@@ -493,6 +483,7 @@ export default function StartScreen() {
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
   const homeRootRef = useRef(null);
+  const heroLogoRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
   const dodoReturnHandledRef = useRef(false);
 
@@ -1204,9 +1195,7 @@ export default function StartScreen() {
       {user && <header className="home-topbar">
 
         <div className="home-topbar-inner">
-          <button className="home-topbar-brand" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Return to the top of your workspace">
-            <img src="/nav bar logo.png" alt="DesaynClaw" />
-          </button>
+          <HomeHeaderBrand heroLogoRef={heroLogoRef} scrollRootRef={homeRootRef} />
 
           {/* Right: Auth & Credits */}
           <div className="home-account-actions">
@@ -1306,7 +1295,7 @@ export default function StartScreen() {
             {/* LOGO AND UPLOAD BOX (ALWAYS VISIBLE) */}
             <div className="hero-left" style={{ margin: "0" }}>
               <div className="start-logo" style={{ marginBottom: "30px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-                <img src="/logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
+                <img ref={heroLogoRef} tabIndex={-1} src="/logo.png" alt="DesaynClaw Logo" style={{ width: "350px", maxWidth: "100%", height: "auto", margin: 0 }} />
 
                 {/* Refined byline */}
                 <div className="hero-byline" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
@@ -1585,19 +1574,8 @@ export default function StartScreen() {
               Try Garment Extract
             </button>
           </div>
-          <div className="tool-showcase-media">
-            <figure className="tool-agent-showcase is-maya">
-              <div className="tool-agent-showcase-label is-left">
-                <strong>Maya</strong>
-                <span>Panel Agent</span>
-              </div>
-              <Image
-                src="/tool-agent-cutouts/yellow-v2/01-garment-agent.png"
-                alt="Maya, the DesaynClaw Panel Agent"
-                fill
-                sizes="(max-width: 760px) 92vw, 540px"
-              />
-            </figure>
+          <div className="tool-showcase-media tool-extraction-preview">
+            <GarmentSamplePreview />
           </div>
         </section>
 
@@ -1619,16 +1597,13 @@ export default function StartScreen() {
             </button>
           </div>
           <div className="tool-showcase-media">
-            <figure className="tool-agent-showcase is-victor">
-              <div className="tool-agent-showcase-label is-right">
-                <strong>Victor</strong>
-                <span>Vector Agent</span>
-              </div>
+            <figure className={logoSampleStyles.sample} aria-label="Logo Vectorizer sample artwork">
               <Image
-                src="/tool-agent-cutouts/yellow-v2/02-logo-agent.png"
-                alt="Victor, the DesaynClaw Vector Agent"
-                fill
-                sizes="(max-width: 760px) 92vw, 540px"
+                src="/samples/logo_workspace/ART_CREATION_SAMPLE/ORIGINAL.webp"
+                alt="Colorful ART logo with a hand holding a paintbrush and the words The Joy of Creation"
+                width={800}
+                height={800}
+                unoptimized
               />
             </figure>
           </div>
@@ -1652,17 +1627,17 @@ export default function StartScreen() {
             </button>
           </div>
           <div className="tool-showcase-media">
-            <figure className="tool-agent-showcase is-tess">
-              <div className="tool-agent-showcase-label is-left">
-                <strong>Tess</strong>
-                <span>Motif Agent</span>
-              </div>
+            <figure className="tool-pattern-example">
               <Image
-                src="/tool-agent-cutouts/yellow-v2/03-pattern-agent.png"
-                alt="Tess, the DesaynClaw Motif Agent"
+                src="/workspace-thumbnails/preview-v1/03-pattern-workspace.webp"
+                alt="Interlocking cream, charcoal, and gold geometric pattern illustration"
                 fill
                 sizes="(max-width: 760px) 92vw, 540px"
               />
+              <figcaption>
+                <strong>Pattern preview</strong>
+                <span>Illustrative example</span>
+              </figcaption>
             </figure>
           </div>
         </section>
@@ -1684,19 +1659,18 @@ export default function StartScreen() {
               Try Background Remover
             </button>
           </div>
-          <div className="tool-showcase-media">
-            <figure className="tool-agent-showcase is-cora">
-              <div className="tool-agent-showcase-label is-right">
-                <strong>Cora</strong>
-                <span>Cutout Agent</span>
-              </div>
-              <Image
-                src="/tool-agent-cutouts/yellow-v2/04-bg-remover-agent.png"
-                alt="Cora, the DesaynClaw Cutout Agent"
-                fill
-                sizes="(max-width: 760px) 92vw, 540px"
-              />
-            </figure>
+          <div className="tool-showcase-media tool-extraction-preview tool-cutout-preview">
+            <BeforeAfterSlider
+              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
+              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.png"
+              rasterAlt="Original fashion portrait with its studio background"
+              vectorAlt="Transparent portrait cutout with the background removed"
+              aspectRatio="1 / 1"
+              showCheckerboard
+              leftLabel="Transparent cutout"
+              rightLabel="Original photo"
+              description=""
+            />
           </div>
         </section>
 

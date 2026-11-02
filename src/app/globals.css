@@ -2232,6 +2232,17 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   animation: spin 1s linear infinite;
 }
 
+/* Functional loading feedback must outlive a pending request. Keep it small
+   and slower in reduced-motion mode, without restoring decorative motion.
+   The root specificity also covers workspace/palette reduced-motion resets. */
+@media (prefers-reduced-motion: reduce) {
+  :root :is(.animate-spin, .pp-spin, .crop-saving-spinner, .node-spinner, .lucide-loader-circle, .lucide-loader),
+  :root .node-spinner::before {
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
 .placeholder-node {
   display: flex;
   align-items: center;
