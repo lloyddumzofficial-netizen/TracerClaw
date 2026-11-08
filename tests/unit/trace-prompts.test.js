@@ -9,16 +9,18 @@ import {
 } from "@/lib/tracePrompts";
 
 describe("trace prompt source fidelity", () => {
-  it("only appends neckline guidance to garment system prompts without removing existing instructions", () => {
+  it("only appends garment guidance without removing existing instructions", () => {
     const digest = value => createHash("sha256").update(value).digest("hex");
     const baseline = {
       ERASE_LOGOS: {
         promptHash: "926c15ffe889fd90e98c86bc783a28e62f06919a445c3de34511e1da632d21dd",
+        promptLength: 31561,
         systemHash: "9159235fd4ce03cf882355f28d247065f4709151390702136e6f32b41d0b997a",
         systemLength: 1985,
       },
       PRESERVE_LOGOS: {
         promptHash: "d25ee7246d05c8bd5460dce1a7b09321e3b02e88963386035526936b6e2db015",
+        promptLength: 28551,
         systemHash: "07bcf885bd5f2d843f4db42ccdcfaed749470aade4deabb7fd6222a44bedf3f7",
         systemLength: 2080,
       },
@@ -26,7 +28,7 @@ describe("trace prompt source fidelity", () => {
     const appendices = [];
     for (const [mode, original] of Object.entries(baseline)) {
       const system = buildNanoBananaSystemPrompt(mode);
-      expect(digest(buildNanoBananaPrompt(mode))).toBe(original.promptHash);
+      expect(digest(buildNanoBananaPrompt(mode).slice(0, original.promptLength))).toBe(original.promptHash);
       expect(digest(system.slice(0, original.systemLength))).toBe(original.systemHash);
       const appendix = system.slice(original.systemLength);
       expect(appendix).toMatch(/^\n\n== NECKLINE REPAIR/);
@@ -39,6 +41,24 @@ describe("trace prompt source fidelity", () => {
     }
     expect(appendices[0]).toBe(appendices[1]);
     expect(buildNanoBananaSystemPrompt(undefined)).toBe(buildNanoBananaSystemPrompt("PRESERVE_LOGOS"));
+  });
+
+  it.each(["ERASE_LOGOS", "PRESERVE_LOGOS"])("ends %s with an uncut sando print contract while preserving the current system prompt", mode => {
+    const prompt = buildNanoBananaPrompt(mode);
+    const length = mode === "ERASE_LOGOS" ? 31561 : 28551;
+    const addition = prompt.slice(length);
+    expect(addition).toMatch(/^\n\n== REQUIRED DELIVERABLE: UNCUT RECTANGULAR TORSO PRINT/);
+    expect(addition).toContain("sando, sleeveless basketball jersey");
+    expect(addition).toContain("both complete armhole curves");
+    expect(addition).toContain("inner neck tape and its label lettering");
+    expect(addition).toContain("Close the neck gap and BOTH armhole gaps");
+    expect(addition).toContain("Do not erase genuine white print");
+    expect(addition).toContain("NOT a repeating tile");
+    expect(addition.endsWith("Return one image only.")).toBe(true);
+    const systemHash = mode === "ERASE_LOGOS"
+      ? "cd5ea7edc72b48a2ecb4ed2261839779e0fefbd7026bc508bd7288894fb195ea"
+      : "9750ffc951a89478244036d563b45800aab2f7152820547823bf4f13a972228c";
+    expect(createHash("sha256").update(buildNanoBananaSystemPrompt(mode)).digest("hex")).toBe(systemHash);
   });
 
   it("keeps unrelated logo and flat-pattern prompts byte-for-byte unchanged", () => {

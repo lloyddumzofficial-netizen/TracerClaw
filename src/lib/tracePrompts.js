@@ -67,6 +67,19 @@ Preserve genuine gray, black, white, or similarly colored print INSIDE the torso
 
 Unwrap the retained torso artwork into the existing full-bleed rectangle. At former exterior gaps use only the conservative torso missing-zone rules: nearest proven torso base field, with pattern continuation only where two-sided evidence proves it. Never preserve the curved shirt silhouette, leave transparent or white margins, or keep a separate border of backdrop pixels. Finish by auditing all four edges: every retained edge motif must belong to the torso, not the surrounding scene.`;
 
+// Place the output contract after the full garment request as well as keeping
+// the existing system rules. This distinguishes uncut print from a clean mockup.
+const GARMENT_UNCUT_OUTPUT_CONTRACT = `== REQUIRED DELIVERABLE: UNCUT RECTANGULAR TORSO PRINT ==
+Deliver the printed torso artwork BEFORE the fabric was cut and sewn into clothing. This applies to a sando, sleeveless basketball jersey, tank top, singlet, vest, or sleeved shirt, on either the selected front or back. A clean vector-style drawing of the assembled jersey is NOT the deliverable.
+
+For a sleeveless jersey, the curved sides near the shoulders are ARMHOLE CUTOUTS, not sleeve artwork or printed borders. Remove both complete armhole curves, their ribbed binding, piping, stitching and outlines, together with the neckline, neck band, inner neck tape and its label lettering. Do not retain their shapes even when they are the same color as the torso. Do not import artwork from the reverse side visible through the neck opening.
+
+Close the neck gap and BOTH armhole gaps all the way to the rectangular top and side edges using the nearest proven torso base field. Continue genuine torso pattern only where the existing two-sided evidence rule proves it; otherwise keep that local base field plain. The former openings must have no white backdrop, transparent hole, black outline, crescent, V-band, shoulder-strap silhouette or flat collar-shaped patch. If a bright torso sits on a white photo backdrop, the gaps become the established torso field, not white photo-background islands. Follow the source palette, not a fixed replacement color.
+
+Keep the observed torso illustration, printed curves, palette, proportions and relative layout under the selected keep/remove mode. Do not enlarge, stretch, crop away or move a mascot or chest design to cover a hole. Do not erase genuine white print inside the torso. Fill only construction-related gaps conservatively, without inventing or tiling new motifs.
+
+FINAL SHAPE CHECK: inspect the top-left armhole, top-center neckline and top-right armhole. All three must be integrated into one continuous full-bleed rectangular artwork canvas. If the result still reads as a wearable tank top with shoulder straps or a neck opening, it is a failed extraction. Here seamless means one continuous torso print panel, NOT a repeating tile. Return one image only.`;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — the single most-violated requirement: output a full-bleed flat
 // panel, never a garment silhouette.
@@ -519,9 +532,11 @@ export function resolveTracePromptMode(traceType, aiPrompt) {
 
 export function buildNanoBananaPrompt(aiPrompt) {
   // Own-property check only — never resolve inherited keys like "constructor".
-  return Object.hasOwn(TRACE_PROMPTS, aiPrompt ?? "")
+  const prompt = Object.hasOwn(TRACE_PROMPTS, aiPrompt ?? "")
     ? TRACE_PROMPTS[aiPrompt]
     : TRACE_PROMPTS.DEFAULT;
+  if (isLogoPrompt(aiPrompt) || isPatternPrompt(aiPrompt)) return prompt;
+  return `${prompt}\n\n${GARMENT_UNCUT_OUTPUT_CONTRACT}`;
 }
 
 export function buildNanoBananaSystemPrompt(aiPrompt) {
