@@ -9,6 +9,38 @@ import {
 } from "@/lib/tracePrompts";
 
 describe("trace prompt source fidelity", () => {
+  it("only appends neckline guidance to garment system prompts without removing existing instructions", () => {
+    const digest = value => createHash("sha256").update(value).digest("hex");
+    const baseline = {
+      ERASE_LOGOS: {
+        promptHash: "926c15ffe889fd90e98c86bc783a28e62f06919a445c3de34511e1da632d21dd",
+        systemHash: "9159235fd4ce03cf882355f28d247065f4709151390702136e6f32b41d0b997a",
+        systemLength: 1985,
+      },
+      PRESERVE_LOGOS: {
+        promptHash: "d25ee7246d05c8bd5460dce1a7b09321e3b02e88963386035526936b6e2db015",
+        systemHash: "07bcf885bd5f2d843f4db42ccdcfaed749470aade4deabb7fd6222a44bedf3f7",
+        systemLength: 2080,
+      },
+    };
+    const appendices = [];
+    for (const [mode, original] of Object.entries(baseline)) {
+      const system = buildNanoBananaSystemPrompt(mode);
+      expect(digest(buildNanoBananaPrompt(mode))).toBe(original.promptHash);
+      expect(digest(system.slice(0, original.systemLength))).toBe(original.systemHash);
+      const appendix = system.slice(original.systemLength);
+      expect(appendix).toMatch(/^\n\n== NECKLINE REPAIR/);
+      expect(appendix).toContain("Remove the entire collar AND the area inside its opening");
+      expect(appendix).toContain("nearest proven TORSO base field");
+      expect(appendix).toContain("two-sided visible-evidence rule");
+      expect(appendix).toContain("Genuine printed curves");
+      expect(appendix).toContain("do not crop, zoom, move, stretch, recolor, or redesign");
+      appendices.push(appendix);
+    }
+    expect(appendices[0]).toBe(appendices[1]);
+    expect(buildNanoBananaSystemPrompt(undefined)).toBe(buildNanoBananaSystemPrompt("PRESERVE_LOGOS"));
+  });
+
   it("keeps unrelated logo and flat-pattern prompts byte-for-byte unchanged", () => {
     const digest = (value) => createHash("sha256").update(value).digest("hex");
     const expected = {
@@ -20,6 +52,22 @@ describe("trace prompt source fidelity", () => {
       expect(digest(buildNanoBananaPrompt(mode))).toBe(promptHash);
       expect(digest(buildNanoBananaSystemPrompt(mode))).toBe(systemHash);
     }
+  });
+
+  it.each([
+    ["ERASE_LOGOS", 4042, "e3d1ea6426cfe93612bb4d9309782df1d436305f7be4b5bebecfc1eb82f2d721"],
+    ["PRESERVE_LOGOS", 4137, "cc39ac8c755749abeed534526a362eac722dfaa7b0e480c07e9296f9d670ffd1"],
+  ])("adds backdrop exclusion without changing the existing %s instructions", (mode, length, hash) => {
+    const system = buildNanoBananaSystemPrompt(mode);
+    expect(createHash("sha256").update(system.slice(0, length)).digest("hex")).toBe(hash);
+    const addition = system.slice(length);
+    expect(addition).toMatch(/^\n\n== TORSO OWNERSHIP/);
+    expect(addition).toContain("not by color similarity");
+    expect(addition).toContain("not a garment mask");
+    expect(addition).toContain("Do not copy external side strips");
+    expect(addition).toContain("Preserve genuine gray, black, white");
+    expect(addition).toContain("Do not remove a color globally");
+    expect(addition).toContain("two-sided evidence");
   });
 
   it.each(["ERASE_LOGOS", "PRESERVE_LOGOS"])(

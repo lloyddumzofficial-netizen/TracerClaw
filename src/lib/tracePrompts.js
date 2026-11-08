@@ -41,6 +41,32 @@ Six invariants override every other consideration:
 
 When uncertain, delete the unproven decorative shape and restore the nearest proven torso base field. Accuracy is more important than visual balance or decoration.`;
 
+// Additive clarification for garment modes only. The existing prompt strings
+// above remain intact; this makes the physical-neckline repair explicit.
+const GARMENT_NECKLINE_REPAIR = `== NECKLINE REPAIR — REMOVE THE PHYSICAL OPENING, NOT JUST ITS OUTLINE ==
+Before copying any color near the upper center, distinguish torso PRINT from collar ribbing, binding, neck tape, the inside of the neck opening, exposed back fabric, skin, mannequin, exterior backdrop, and their shadows. Those physical regions are excluded evidence, even when they appear as a clean solid color.
+
+Remove the entire collar AND the area inside its opening from the artwork reconstruction. Do not merely smooth the collar, erase its seam, or replace the opening with a solid patch that preserves its shape. A flat brown or black U-shaped bowl, semicircle, oval, V-shaped wedge, dark neck hole, or pale cutout left by the physical neckline is still a neckline and is a failed output.
+
+Reconstruct that missing upper-center region with the nearest proven TORSO base field sampled immediately below and beside the collar, outside the binding and its shadow. Blend the repair seamlessly into that same torso field, with no surviving curved collar boundary, rim, outline, shadow, or color island. For example, a light cream torso with a dark brown collar needs the established light torso field in the former neck opening, not a brown semicircle. Follow the actual source colors; this example is not a fixed output palette.
+
+Continue a printed stripe or pattern through this region only under the existing two-sided visible-evidence rule. Otherwise use the local torso base field and invent no motif. Genuine printed curves, arches, text, logos, and illustrations on the torso remain governed by the selected keep/remove mode; do not erase them merely because they are curved.
+
+The top edge must be a straight, full-width edge of one continuous rectangular print file, not a garment neckline. Repair only the missing construction regions; do not crop, zoom, move, stretch, recolor, or redesign visible torso artwork to hide the collar. Before output, inspect the upper center: if a collar-shaped fill or neck-opening contour survives, repair it again using torso evidence.`;
+
+// Classify region ownership before applying the existing artwork-copy rules.
+// Similar colors on either side of a garment edge do not establish ownership.
+const GARMENT_BOUNDARY_OWNERSHIP = `== TORSO OWNERSHIP — EXCLUDE THE SCENE EVEN WHEN IT BLENDS WITH THE PRINT ==
+Before copying shapes or applying the selected keep/remove mode, trace the selected torso's actual physical boundary: shoulders, armholes, side seams, and hem. The rectangular crop is only a viewing window, not a garment mask. A narrow strip inside the crop can still be outside the torso.
+
+Classify by physical surface ownership, not by color similarity or visual style. Use seam continuity, fabric edges, overlap and occlusion, and the way the torso sits in front of the scene. A gray or black backdrop with similar line art, texture, or colors does not become torso print merely because it touches or appears to continue the design. Sleeve artwork, another garment panel, and scenery visible behind the torso remain excluded.
+
+Do not copy external side strips, wedges beside the waist, slivers below the hem, or scenery above the shoulders into the flat file. Do not sample them for missing-zone repairs or treat their illustrations and outlines as extra torso motifs. Apply 'keep everything' and source identity locks only to artwork proven to be on the selected torso.
+
+Preserve genuine gray, black, white, or similarly colored print INSIDE the torso, including all retained illustration details and artwork reaching a seam. Do not remove a color globally, shrink the torso mask inward, or erase a printed edge just because it resembles the backdrop. If ownership is unclear, use the nearest clearly visible torso surface as evidence and do not import unproven exterior detail.
+
+Unwrap the retained torso artwork into the existing full-bleed rectangle. At former exterior gaps use only the conservative torso missing-zone rules: nearest proven torso base field, with pattern continuation only where two-sided evidence proves it. Never preserve the curved shirt silhouette, leave transparent or white margins, or keep a separate border of backdrop pixels. Finish by auditing all four edges: every retained edge motif must belong to the torso, not the surrounding scene.`;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED BLOCK — the single most-violated requirement: output a full-bleed flat
 // panel, never a garment silhouette.
@@ -504,14 +530,14 @@ export function buildNanoBananaSystemPrompt(aiPrompt) {
   }
 
   if (isPatternOnlyPrompt(aiPrompt)) {
-    return CLEAN_PATTERN_SYSTEM_PROMPT;
+    return `${CLEAN_PATTERN_SYSTEM_PROMPT}\n\n${GARMENT_NECKLINE_REPAIR}\n\n${GARMENT_BOUNDARY_OWNERSHIP}`;
   }
 
   if (isPatternPrompt(aiPrompt)) {
     return PATTERN_SYSTEM_PROMPT;
   }
 
-  return GARMENT_SYSTEM_PROMPT;
+  return `${GARMENT_SYSTEM_PROMPT}\n\n${GARMENT_NECKLINE_REPAIR}\n\n${GARMENT_BOUNDARY_OWNERSHIP}`;
 }
 
 /**

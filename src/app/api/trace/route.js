@@ -13,6 +13,7 @@ import {
 import { upscaleLogoDeterministically } from "@/server/logoProcessing";
 import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
 import { getRecoverableAttemptOutput } from "@/server/billing/recoverAttemptOutput";
+import { getTraceProviderFailure } from "@/lib/traceProviderErrors";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -20,6 +21,10 @@ export const runtime = 'nodejs';
 export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is safe
 
 const AI_PROVIDER_UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE";
+const AI_CONTENT_BLOCKED = "AI_CONTENT_BLOCKED";
+// Garment Workspace trial: keep all other workspaces on the established
+// Nano Banana Pro model while evaluating Google's newer edit endpoint.
+const GARMENT_FLAT_EXTRACTION_MODEL = "fal-ai/nano-banana-2/edit";
 
 function isAiGenerationConfigured() {
   return Boolean(process.env.FAL_KEY);
@@ -43,6 +48,19 @@ function isAiProviderError(error) {
 }
 
 function getClientTraceError(error, didRefund) {
+  if (error?.code === AI_CONTENT_BLOCKED) {
+    return {
+      status: 422,
+      body: {
+        error: "The AI model's content checker rejected this generation."
+          + (didRefund ? " Your claw has been refunded automatically." : "")
+          + " Repeating the same request may fail again. Please contact support if you believe this is a mistake.",
+        code: AI_CONTENT_BLOCKED,
+        retryable: false,
+        refunded: didRefund,
+      },
+    };
+  }
   if (isAiProviderError(error)) {
     return {
       status: 503,
@@ -277,6 +295,13 @@ export async function POST(request) {
       const prompt = buildNanoBananaPrompt(promptMode);
       const systemPrompt = buildNanoBananaSystemPrompt(promptMode);
       const nanoBananaTuning = getNanoBananaInputTuning(promptMode);
+      const isGarmentFlatExtraction = project.trace_type === "mockup";
+      const flatExtractionModel = isGarmentFlatExtraction
+        ? GARMENT_FLAT_EXTRACTION_MODEL
+        : NANO_BANANA_EDIT_MODEL;
+      const flatExtractionTuning = isGarmentFlatExtraction
+        ? { ...nanoBananaTuning, resolution: "1K" }
+        : nanoBananaTuning;
 
       let generatedImageBuffer;
       let generatedMimeType = "image/png";
@@ -293,13 +318,13 @@ export async function POST(request) {
 
         logger.debug("[fal.ai Input ready]", { projectId });
 
-        // ── Step 1: Extract flat design directly using nano-banana-pro/edit ──
+        // ── Step 1: Extract flat design using the workspace's configured edit model ──
         // Feed original source image directly — no pre-upscale step.
         // Flow: Extract → Upscale (step 2) → Vectorize (step 3)
-        logger.info(`[API Step 1] Restoring source with ${NANO_BANANA_EDIT_MODEL}`, {
+        logger.info(`[API Step 1] Restoring source with ${flatExtractionModel}`, {
           projectId,
           traceType: project.trace_type,
-          resolution: nanoBananaTuning.resolution,
+          resolution: flatExtractionTuning.resolution,
         });
 
         // fal.subscribe polls the queue with no timeout of its own. Left
@@ -308,13 +333,13 @@ export async function POST(request) {
         // charged with no server-side refund. Bound it with headroom for the
         // download, resize and R2 upload that still have to happen after this.
         const FAL_BUDGET_MS = 85_000;
-        const result = await fal.subscribe(NANO_BANANA_EDIT_MODEL, {
+        const result = await fal.subscribe(flatExtractionModel, {
             input: {
               image_urls: [finalImageUrl],
               prompt: prompt,
               system_prompt: systemPrompt,
               aspect_ratio: targetAspectRatio,
-              ...nanoBananaTuning,
+              ...flatExtractionTuning,
             },
             logs: true,
             abortSignal: AbortSignal.timeout(FAL_BUDGET_MS),
@@ -341,7 +366,7 @@ export async function POST(request) {
 
         generatedImageBuffer = generatedBuffer;
         generatedMimeType = result.data.images[0].content_type || "image/jpeg";
-        geminiThinking = "Generated via fal.ai Nano Banana Pro Edit";
+        geminiThinking = `Generated via fal.ai ${flatExtractionModel}`;
 
         // ── Re-registration: restore the source aspect ratio ──
         // fal only accepts a fixed enum of aspect ratios, so `targetAspectRatio` is the
@@ -389,12 +414,15 @@ export async function POST(request) {
         }
 
       } catch (err) {
+        const failure = getTraceProviderFailure(err);
         logger.error("[fal.ai] Generation failed", {
           message: String(err?.message || "Unknown provider error").slice(0, 300),
           status: err?.status || err?.statusCode || null,
+          model: flatExtractionModel,
+          ...failure,
         });
         const providerError = new Error(err?.message || "Failed to generate image with fal.ai");
-        providerError.code = AI_PROVIDER_UNAVAILABLE;
+        providerError.code = failure.contentBlocked ? AI_CONTENT_BLOCKED : AI_PROVIDER_UNAVAILABLE;
         providerError.status = getProviderStatus(err);
         throw providerError;
       }

@@ -183,7 +183,6 @@ test("recent upscale projects open the correct saved result without another gene
   const saved = { id: "saved-upscale", name: "Saved client logo", trace_type: "upscale", original_image_url: `${assetHost}/source.png`, generated_image_url: `${assetHost}/cutout.png`, ai_prompt: "fal:topaz/upscale/image/precision:saved-job", client_request_id: "saved-request", created_at: new Date().toISOString() };
   await page.addInitScript(() => {
     localStorage.setItem("ai_disclaimer_seen", "1");
-    localStorage.setItem("claw-agents-promo-seen-v1", String(Date.now()));
     localStorage.setItem("onboarding_seen", "1");
   });
   await page.route("**/rest/v1/projects*", route => {
@@ -316,7 +315,6 @@ test("workspace chooser supports keyboard selection, trapped focus and Escape", 
   await setup(page);
   await page.addInitScript(() => {
     localStorage.setItem("ai_disclaimer_seen", "1");
-    localStorage.setItem("claw-agents-promo-seen-v1", String(Date.now()));
     localStorage.setItem("onboarding_seen", "1");
   });
   await page.route("**/rest/v1/projects*", route => route.fulfill({ json: [] }));
@@ -351,7 +349,6 @@ for (const { width, motion } of [
     await page.emulateMedia({ reducedMotion: motion });
     await page.addInitScript(() => {
       localStorage.setItem("ai_disclaimer_seen", "1");
-      localStorage.setItem("claw-agents-promo-seen-v1", String(Date.now()));
       localStorage.setItem("onboarding_seen", "1");
     });
     await page.route("**/rest/v1/projects*", route => route.fulfill({ json: [] }));

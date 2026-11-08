@@ -45,7 +45,6 @@ import HomepageTutorialSection from "@/components/marketing/HomepageTutorialSect
 import ReferralModal from "@/components/marketing/ReferralModal";
 import ReferralPromptController from "@/components/marketing/ReferralPromptController";
 import ClawRewardNotice from "@/components/shared/ClawRewardNotice";
-import PromoModal from "@/components/marketing/PromoModal";
 import { markReferralPromptSeen } from "@/lib/referralPrompt";
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
@@ -511,7 +510,6 @@ export default function StartScreen() {
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
-  const [showPromoModal, setShowPromoModal] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   const openReferralModal = useCallback(() => {
@@ -1259,7 +1257,7 @@ export default function StartScreen() {
         </div>
       </header>}
 
-      {showDriveAnnouncement && !showReferralModal && !showPromoModal && (
+      {showDriveAnnouncement && !showReferralModal && (
         <section className="home-announcement-banner" aria-label="Google Drive integration announcement">
           <div className="home-announcement-inner">
             <div className="home-announcement-icon" aria-hidden="true">
@@ -1830,19 +1828,6 @@ export default function StartScreen() {
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
 
         {/* ─── Modals ────────────────────────────────────────────────────────── */}
-        <PromoModal
-          enabled={!showModal && !showLoginModal && !showTopUpModal && !showReferralModal}
-          onVisibilityChange={setShowPromoModal}
-          onChooseAgent={() => {
-            if (!user) {
-              setShowLoginModal(true);
-              return;
-            }
-            setInitialProjectCategory(null);
-            setShowModal(true);
-          }}
-        />
-
         <NewProjectModal
           show={showModal}
           projectName={modalProjectName} setProjectName={setModalProjectName}

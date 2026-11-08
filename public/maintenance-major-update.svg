@@ -1,0 +1,38 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="surface" x1="96" y1="72" x2="984" y2="1008" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111315"/>
+      <stop offset="1" stop-color="#08090A"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="184" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F4F1"/>
+      <stop offset="1" stop-color="#E9C646"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" stroke="#F4F4F1" stroke-opacity=".045"/>
+    </pattern>
+  </defs>
+
+  <rect width="1080" height="1080" fill="#08090A"/>
+  <rect x="32" y="32" width="1016" height="1016" rx="28" fill="url(#surface)" stroke="#F4F4F1" stroke-opacity=".16" stroke-width="2"/>
+  <rect x="32" y="32" width="1016" height="1016" rx="28" fill="url(#grid)"/>
+
+  <g font-family="Manrope, Arial, sans-serif">
+    <text x="92" y="126" fill="#F4F4F1" font-size="25" font-weight="800" letter-spacing="5">DESAYNCLAW</text>
+    <circle cx="968" cy="116" r="7" fill="#E9C646"/>
+    <text x="92" y="186" fill="#929591" font-size="17" font-weight="700" letter-spacing="3">SERVICE NOTICE</text>
+    <rect x="92" y="222" width="184" height="4" rx="2" fill="url(#accent)"/>
+
+    <text x="92" y="420" fill="#F4F4F1" font-size="106" font-weight="800" letter-spacing="-4">Major</text>
+    <text x="92" y="526" fill="#F4F4F1" font-size="106" font-weight="800" letter-spacing="-4">update.</text>
+
+    <text x="92" y="624" fill="#F4F4F1" font-size="31" font-weight="600">We’re improving the DesaynClaw experience.</text>
+    <text x="92" y="671" fill="#929591" font-size="25" font-weight="500">Our AI-powered tools are temporarily unavailable</text>
+    <text x="92" y="708" fill="#929591" font-size="25" font-weight="500">while we complete essential improvements.</text>
+
+    <line x1="92" y1="870" x2="988" y2="870" stroke="#F4F4F1" stroke-opacity=".15"/>
+    <circle cx="104" cy="926" r="8" fill="#E9C646"/>
+    <text x="132" y="935" fill="#F4F4F1" font-size="22" font-weight="700">Thank you for your patience.</text>
+    <text x="92" y="988" fill="#929591" font-size="18" font-weight="600" letter-spacing="1.5">DESAYNCLAW.COM</text>
+  </g>
+</svg>
