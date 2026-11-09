@@ -49,6 +49,28 @@ async function drawCrop(page) {
   return page.locator(".designer-crop .ReactCrop__crop-selection");
 }
 
+test("logo crop guide stays fixed with both examples visible", async ({ page }) => {
+  await setupCrop(page, "logo");
+  const panel = page.locator(".is-logo-workspace .crop-guide-panel");
+  await expect(panel.getByRole("heading", { name: "Crop the logo, not the jersey." })).toBeVisible();
+  for (const height of [900, 768, 650]) {
+    await page.setViewportSize({ width: 1366, height });
+    await expect.poll(() => panel.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+    const before = await panel.boundingBox();
+    await panel.hover();
+    await page.mouse.wheel(0, 800);
+    await expect.poll(() => panel.evaluate(el => el.scrollTop)).toBe(0);
+    await page.mouse.wheel(0, -800);
+    await expect.poll(() => panel.evaluate(el => el.scrollTop)).toBe(0);
+    for (const example of await panel.locator("figure").all()) {
+      const bounds = await example.boundingBox();
+      expect(bounds.y).toBeGreaterThanOrEqual(before.y);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(before.y + before.height + 1);
+    }
+    await page.screenshot({ path: `test-results/logo-guide-fixed-${height}.png` });
+  }
+});
+
 async function selectionInSourcePixels(page) {
   const source = await page.getByAltText("Crop source", { exact: true }).boundingBox();
   const selection = await page.locator(".designer-crop .ReactCrop__crop-selection").boundingBox();

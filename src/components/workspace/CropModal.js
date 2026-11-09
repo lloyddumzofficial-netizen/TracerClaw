@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, Crosshair, Info, Loader2, Maximize, Minus, Pl
 import { convertToPixelCrop } from "react-image-crop";
 import CropSelectionCanvas from "./CropSelectionCanvas";
 import LogoCropGuide from "./LogoCropGuide";
+import logoGuideStyles from "./LogoCropGuide.module.css";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
@@ -365,7 +366,7 @@ const CropModal = memo(function CropModal({
 
   return (
     <div className="modal-overlay crop-workspace-overlay" translate="no">
-      <div className={`crop-workspace-modal ${isPatternMode ? "is-pattern-workspace" : isLogoMode ? "is-logo-workspace" : "is-garment-workspace"}`}>
+      <div className={`crop-workspace-modal ${isPatternMode ? "is-pattern-workspace" : isLogoMode ? `is-logo-workspace ${logoGuideStyles.workspace}` : "is-garment-workspace"}`}>
         {showCropGuideIntro && (
           <div className="crop-intro-layer" role="dialog" aria-modal="true" aria-labelledby="crop-intro-title">
             <div className="crop-intro-card">
@@ -491,7 +492,7 @@ const CropModal = memo(function CropModal({
             </div>
           </div>
 
-          <aside className={`crop-guide-panel ${!isPatternMode && !isLogoMode ? "is-garment-guide" : ""}`}>
+          <aside className={`crop-guide-panel ${isLogoMode ? logoGuideStyles.panel : !isPatternMode ? "is-garment-guide" : ""}`}>
             <div className="crop-guide-header">
               <span>Guide</span>
               <strong>{isLogoMode ? "Logo Mode" : isPatternMode ? "Pattern Workspace" : "Garment Mode"}</strong>
