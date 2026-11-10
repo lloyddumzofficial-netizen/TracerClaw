@@ -3929,17 +3929,17 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   left: 0;
   top: 0;
   z-index: 40;
-  width: 344px;
+  width: 264px;
   max-width: calc(100vw - 24px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px 8px;
-  padding: 16px;
+  gap: 8px 6px;
+  padding: 10px;
   background: #101112;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 10px;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   opacity: 0;
   visibility: hidden;
@@ -3963,31 +3963,42 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
    even when the card is clamped against a viewport edge. */
 .palette-ready-nudge::before,
 .palette-ready-nudge::after {
-  display: none;
+  content: "";
+  position: absolute;
+  top: var(--nudge-arrow-y, 50%);
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border: 9px solid transparent;
+  pointer-events: none;
 }
 
 .palette-ready-nudge[data-arrow="right"]::before {
   right: -9px;
-  border-left: 9px solid rgba(255, 255, 255, 0.13);
+  border-left-color: rgba(255, 255, 255, 0.24);
+  border-right: 0;
 }
 
 .palette-ready-nudge[data-arrow="right"]::after {
   right: -8px;
   border-top-width: 8px;
   border-bottom-width: 8px;
-  border-left: 8px solid rgba(20, 20, 20, 0.97);
+  border-left: 8px solid #101112;
+  border-right: 0;
 }
 
 .palette-ready-nudge[data-arrow="left"]::before {
   left: -9px;
-  border-right: 9px solid rgba(255, 255, 255, 0.13);
+  border-right-color: rgba(255, 255, 255, 0.24);
+  border-left: 0;
 }
 
 .palette-ready-nudge[data-arrow="left"]::after {
   left: -8px;
   border-top-width: 8px;
   border-bottom-width: 8px;
-  border-right: 8px solid rgba(20, 20, 20, 0.97);
+  border-right: 8px solid #101112;
+  border-left: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4010,14 +4021,14 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .palette-ready-nudge .palette-ready-icon {
   position: relative;
-  width: 34px;
-  height: 36px;
-  flex: 0 0 34px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
@@ -4034,7 +4045,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
 
 .palette-ready-nudge strong {
   color: #F4F4F1;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.4;
   font-weight: 650;
   letter-spacing: 0;
@@ -4043,7 +4054,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
 .palette-ready-nudge span {
   margin-top: 2px;
   color: #929591;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1.5;
 }
 
@@ -4062,9 +4073,10 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   grid-column: 1 / -1;
   grid-row: 2;
   justify-self: start;
-  gap: 10px;
-  margin-left: 46px;
-  padding: 0 12px;
+  height: 26px;
+  gap: 6px;
+  margin-left: 36px;
+  padding: 0 9px;
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.05px;
@@ -4096,7 +4108,8 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   grid-column: 3;
   grid-row: 1;
   align-self: start;
-  width: 28px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border-color: transparent;
   background: transparent;
@@ -4108,6 +4121,11 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   background: rgba(255, 255, 255, 0.06);
   border-color: transparent;
   color: rgba(255, 255, 255, 0.86);
+}
+
+.workspace-properties-panel .pp-sec[data-palette-nudge-target="true"] {
+  border-color: rgba(244, 244, 241, .65) !important;
+  background: rgba(244, 244, 241, .07) !important;
 }
 
 .palette-side-head {

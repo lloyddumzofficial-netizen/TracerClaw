@@ -9,6 +9,7 @@ import {
   ChevronDown,
   AlertCircle,
   Download,
+  ImagePlus,
   Palette,
   SplitSquareHorizontal,
   CheckCircle2
@@ -16,6 +17,8 @@ import {
 import GoogleDriveMark from "./integrations/GoogleDriveMark";
 import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integrations/clientApi";
 import { getTraceResumePlan } from "@/lib/traceResume";
+import { isCompleteDesignProject } from "@/lib/artworkEdits";
+import aiOutlineStyles from "@/components/ui/AiOutlineButton.module.css";
 
 const GOOGLE_DRIVE_RECONNECT_REQUIRED = "GOOGLE_DRIVE_RECONNECT_REQUIRED";
 
@@ -78,6 +81,9 @@ const PropertiesPanel = memo(function PropertiesPanel({
   project,
   traceState,
   isSavingCrop,
+  isEditingArtwork = false,
+  artworkEditingEnabled = false,
+  onOpenArtworkEditor,
   userCredits,
   consoleRef,
   onExecuteTrace,
@@ -111,7 +117,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const creditCost = svgEngine === "precision" ? precisionCreditCost : standardCreditCost;
   const noCredits = userCredits !== null && userCredits < creditCost;
   const isCropped = project?.original_image_url?.includes("crop") || project?.generated_image_url || project?.upscaled_image_url;
-  const isBusy = traceState !== "idle" || isSavingCrop;
+  const isBusy = traceState !== "idle" || isSavingCrop || isEditingArtwork;
   const hasSvg = Boolean(project?.svg_url);          // ← permanent gate: SVG already exists
   const canUsePaletteStudio = hasSvg;
   const isLogoWorkspace = project?.trace_type === "logo";
@@ -240,7 +246,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 : `${isPatternWorkspace ? "Run Pattern Retrace" : "Run Auto-Trace"}  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
   return (
-    <aside className="workspace-properties-panel" style={{
+    <aside className={`workspace-properties-panel${isCompleteDesignProject(project) ? " has-artwork-editor" : ""}`} style={{
       width: "280px",
       background: "#161616",
       borderLeft: "1px solid #222",
@@ -479,6 +485,14 @@ const PropertiesPanel = memo(function PropertiesPanel({
             : "Precision is best for logos, marks, and clean artwork that needs tighter SVG paths."}
         </p>
       </div>
+
+      {isCompleteDesignProject(project) && <div className="pp-section pp-edit-section" style={{ padding: "4px 14px 10px", flexShrink: 0 }}>
+        <button className={`pp-svg-btn ${aiOutlineStyles.outline}`} onClick={onOpenArtworkEditor}
+          disabled={isBusy || !artworkEditingEnabled || !project?.generated_image_url || project.generated_image_url === "REFUNDED"}
+          title={!project?.generated_image_url || project.generated_image_url === "REFUNDED" ? "Available after flat extraction finishes" : !artworkEditingEnabled ? "Artwork editing is not enabled for this account yet" : isBusy ? "Wait for processing to finish" : "Select areas and edit your extracted artwork"}>
+          <span className={`pp-edit-artwork-label ${aiOutlineStyles.label}`}><ImagePlus size={16} /> Edit artwork</span>
+        </button>
+      </div>}
 
       {/* ── ACTIONS ──────────────────────────────────────── */}
       <div className="pp-section pp-actions-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>

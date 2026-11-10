@@ -1,0 +1,75 @@
+@property --edit-ai-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+button.outline.outline {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.label {
+  position: absolute;
+  inset: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Beat the existing workspace export skin without relying on CSS load order. */
+button.outline.outline:not(:disabled) {
+  /* A distinct travelling colour arc reads as motion even on a wide button.
+     The silver resting edge keeps the treatment restrained. */
+  --edit-ai-outline: conic-gradient(from var(--edit-ai-angle), #d5d9e2 0deg 170deg, #6597fa 210deg, #a36af0 245deg, #ee91cf 280deg, #f6cf96 310deg, #ffffff 335deg, #d5d9e2 360deg);
+  color: #090a0b !important;
+  border-color: transparent !important;
+  background: var(--edit-ai-outline) !important;
+  background-size: 100% 100% !important;
+  box-shadow: none !important;
+  /* Scoped override: global reduced-motion rules otherwise finish this hue-only
+     animation in .01ms. The user explicitly requests a continuously moving ring. */
+  animation: aiOutlineOrbit 2.4s linear infinite !important;
+  animation-play-state: running !important;
+}
+
+.outline:not(:disabled) .label {
+  background: linear-gradient(180deg, #ffffff, #e2e3e4);
+  color: #090a0b;
+}
+
+.outline:not(:disabled)::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -2px;
+  border-radius: inherit;
+  background: var(--edit-ai-outline);
+  background-size: 100% 100%;
+  filter: blur(4px);
+  opacity: .2;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.outline:not(:disabled):hover::before { opacity: .28; }
+
+@keyframes aiOutlineOrbit {
+  from { --edit-ai-angle: 0deg; }
+  to { --edit-ai-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.outline.outline:not(:disabled) {
+    /* Colour shifts only; slow it down instead of freezing the requested ring. */
+    animation-duration: 4s !important;
+  }
+}
+
+/* Keep decoration out of the pointer-driven drawing budget. */
+:global([data-artwork-drawing="true"]) button.outline.outline:not(:disabled) { animation-play-state: paused !important; }
+:global([data-artwork-drawing="true"]) .outline::before { visibility: hidden; }

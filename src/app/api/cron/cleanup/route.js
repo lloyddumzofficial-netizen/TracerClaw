@@ -6,6 +6,7 @@ import { parseUpscaleJobMarker } from '@/lib/standaloneUpscale';
 import { refundUpscaleJob, settleUpscaleJob } from '@/server/upscale/jobs';
 import { logger } from '@/lib/logger';
 import { getRecoverableAttemptOutput } from '@/server/billing/recoverAttemptOutput';
+import { reconcileArtworkEdits } from '@/server/artworkEdits/service';
 
 // Ensure this route doesn't run at the Edge since it uses AWS SDK heavily
 export const runtime = 'nodejs';
@@ -78,6 +79,7 @@ async function reconcileGenerationAttempts(results) {
     .from('generation_attempts')
     .select('id, user_id, project_id, operation, created_at')
     .eq('status', 'processing')
+    .neq('operation', 'artwork_edit')
     .lt('created_at', staleBefore)
     .order('created_at', { ascending: true })
     .limit(GENERATION_RECONCILE_LIMIT);
@@ -315,6 +317,7 @@ export async function GET(request) {
     // ─── 5. Refund serverless runs interrupted before their catch block ──────
     try {
       await reconcileGenerationAttempts(results);
+      await reconcileArtworkEdits();
     } catch (generationErr) {
       console.warn('[Cron] Generation reconciliation failed (non-fatal):', generationErr.message);
     }

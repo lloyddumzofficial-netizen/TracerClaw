@@ -14,6 +14,7 @@ import { upscaleLogoDeterministically } from "@/server/logoProcessing";
 import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
 import { getRecoverableAttemptOutput } from "@/server/billing/recoverAttemptOutput";
 import { getTraceProviderFailure } from "@/lib/traceProviderErrors";
+import { guardArtworkRevision } from "@/server/artworkEdits/revision";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
 // Edge runtime on Vercel has a hard 30s cap which causes all Gemini generations to fail.
@@ -535,7 +536,7 @@ export async function POST(request) {
           upscaledArtwork.mimeType,
         );
 
-        const { error: upscaleSaveError } = await adminSupabase
+        const { error: upscaleSaveError } = await guardArtworkRevision(adminSupabase
           .from('projects')
           .update({
             upscaled_image_url: persistedUpscaledUrl,
@@ -544,7 +545,7 @@ export async function POST(request) {
             zip_generated_at: null,
           })
           .eq('id', projectId)
-          .eq('user_id', user.id);
+          .eq('user_id', user.id), project).select('id').single();
         if (upscaleSaveError) {
           logger.error("[API Step 2] Failed to record deterministic artwork upscale", {
             projectId,
@@ -643,7 +644,7 @@ export async function POST(request) {
         persistedMimeType,
       );
 
-      const { error: upscaleSaveError } = await adminSupabase
+      const { error: upscaleSaveError } = await guardArtworkRevision(adminSupabase
         .from('projects')
         .update({
           upscaled_image_url: persistedUpscaledUrl,
@@ -652,7 +653,7 @@ export async function POST(request) {
           zip_generated_at: null,
         })
         .eq('id', projectId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id), project).select('id').single();
       if (upscaleSaveError) {
         logger.error("[API Step 2] Failed to record persisted upscale", {
           projectId,

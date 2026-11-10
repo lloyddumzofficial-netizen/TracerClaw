@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guardArtworkRevision } from "@/server/artworkEdits/revision";
 import { uploadToR2 } from "@/lib/cloudflare";
 import { adminSupabase } from "@/lib/supabase";
 import { fetchWithRetry } from "@/lib/fetchWithRetry";
@@ -355,7 +356,7 @@ export async function POST(request) {
     const cfSvgFileName = `projects/${projectId}/vector_${Date.now()}.svg`;
     const finalSvgUrl = await uploadToR2(svgBuffer, cfSvgFileName, "image/svg+xml");
 
-    const { data: savedProject, error: saveError } = await adminSupabase
+    const { data: savedProject, error: saveError } = await guardArtworkRevision(adminSupabase
       .from('projects')
       .update({
         svg_url: finalSvgUrl,
@@ -364,7 +365,7 @@ export async function POST(request) {
         zip_generated_at: null
       })
       .eq('id', projectId)
-      .eq('user_id', user.id)
+      .eq('user_id', user.id), project)
       .select('id')
       .single();
     if (saveError || !savedProject) throw new Error('Failed to save SVG to project');

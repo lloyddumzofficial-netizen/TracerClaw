@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Shirt, X, ChevronLeft, ArrowRight } from "lucide-react";
+import { Shirt, Sparkles, X, ChevronLeft, ArrowRight } from "lucide-react";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import modalStyles from "./NewProjectModal.module.css";
 import WorkspaceToolThumbnail from "./WorkspaceToolThumbnail";
@@ -30,7 +30,7 @@ const PatternIcon = ({ size = 38 }) => (
 );
 
 /* ─── Radio option card (details step) ─────────────────────── */
-function TraceOptionCard({ value, current, onChange, title, description }) {
+function TraceOptionCard({ value, current, onChange, title, description, badge, featureNote }) {
   const active = current === value;
   return (
     <div
@@ -74,9 +74,13 @@ function TraceOptionCard({ value, current, onChange, title, description }) {
         transition: "all 0.18s ease",
         boxShadow: active ? "0 0 0 3px rgba(255,255,255,0.04)" : "none",
       }} />
-      <div>
-        <p style={{ margin: "0 0 3px 0", color: active ? "#fff" : "#bbb", fontSize: "13px", fontWeight: 600, transition: "color 0.18s" }}>{title}</p>
+      <div className={modalStyles.traceOptionCopy}>
+        <div className={modalStyles.traceOptionTitle}>
+          <p style={{ margin: "0 0 3px 0", color: active ? "#fff" : "#bbb", fontSize: "13px", fontWeight: 600, transition: "color 0.18s" }}>{title}</p>
+          {badge && <span className={modalStyles.featureBadge}><Sparkles size={10} aria-hidden="true" />{badge}</span>}
+        </div>
         <p style={{ margin: 0, fontSize: "11.5px", color: "#666", lineHeight: 1.6 }}>{description}</p>
+        {featureNote && <p className={modalStyles.featureNote}>{featureNote}</p>}
       </div>
     </div>
   );
@@ -374,6 +378,8 @@ const NewProjectModal = memo(function NewProjectModal({
                     onChange={setTraceType}
                     title="Keep Complete Design"
                     description="Best for customer mockups. Keeps names, numbers, logos, text, badges, and all visible artwork."
+                    badge="NEW · Edit artwork"
+                    featureNote="Edit selected areas after extraction."
                   />
                 </div>
               </div>

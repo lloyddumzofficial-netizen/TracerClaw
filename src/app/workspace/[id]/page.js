@@ -15,6 +15,8 @@ import { ArrowUpRight, CheckCircle2, Palette, X } from "lucide-react";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "@/hooks/useTraceExecution";
+import useArtworkEdits from "@/hooks/useArtworkEdits";
+import { isCompleteDesignProject } from "@/lib/artworkEdits";
 
 // ─── Components ───────────────────────────────────────────────────────────────
 import SplitViewCanvas from "@/components/workspace/SplitViewCanvas";
@@ -40,6 +42,7 @@ import "./garment-workspace.css";
 const supabase = createClient();
 
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
+const ArtworkEditor = dynamic(() => import("@/components/workspace/artwork-editor/ArtworkEditor"), { ssr: false });
 
 function clearDriveExportStatus(project) {
   return {
@@ -86,6 +89,15 @@ export default function Workspace() {
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isSavingCrop, setIsSavingCrop] = useState(false);
+  const [showArtworkEditor, setShowArtworkEditor] = useState(false);
+  const refreshEditCredits = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    const { data } = await supabase.from("profiles").select("credits").eq("id", session.user.id).single();
+    if (data) setUserCredits(data.credits);
+  }, []);
+  const artworkEditing = useArtworkEdits({ project, supabase, onProject: setProject, onCreditsChanged: refreshEditCredits });
+  const closeArtworkEditor = useCallback(() => setShowArtworkEditor(false), []);
 
   // ─── Hooks ────────────────────────────────────────────────────────────────
   const {
@@ -327,11 +339,14 @@ export default function Workspace() {
 
       const a = anchor.getBoundingClientRect();
       const n = nudge.getBoundingClientRect();
+      if (!a.width || !a.height) { nudge.dataset.ready = "false"; return; }
+      anchor.dataset.paletteNudgeTarget = "true";
 
       const { left, top, side, arrowY } = computeNudgePlacement({
         anchor: { left: a.left, right: a.right, top: a.top, height: a.height },
         nudge: { width: n.width, height: n.height },
         viewport: { width: window.innerWidth, height: window.innerHeight },
+        gap: 10,
       });
 
       nudge.style.left = `${left}px`;
@@ -353,12 +368,14 @@ export default function Workspace() {
     const anchor = document.querySelector('[data-palette-preview-anchor="true"]');
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
     if (observer && anchor) observer.observe(anchor);
+    if (observer && paletteNudgeRef.current) observer.observe(paletteNudgeRef.current);
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, true);
       observer?.disconnect();
+      if (anchor) delete anchor.dataset.paletteNudgeTarget;
     };
   }, [showPaletteNudge, project?.svg_url]);
 
@@ -389,7 +406,7 @@ export default function Workspace() {
   }, []);
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  const isBusy = traceState !== "idle" || isSavingCrop;
+  const isBusy = traceState !== "idle" || isSavingCrop || artworkEditing.busy;
   const hasProject = !!project;
   const hasSvg = !!project?.svg_url;
   const workspaceTitle = getWorkspaceTitle(project?.trace_type);
@@ -461,6 +478,9 @@ export default function Workspace() {
           project={project}
           traceState={traceState}
           isSavingCrop={isSavingCrop}
+          isEditingArtwork={artworkEditing.busy}
+          artworkEditingEnabled={artworkEditing.enabled}
+          onOpenArtworkEditor={async () => { if (await artworkEditing.prepareOpen()) setShowArtworkEditor(true); else logToConsole("[Error] Could not refresh the artwork editor. Please try opening it again.", "error"); }}
           userCredits={userCredits}
           consoleRef={consoleRef}
           onExecuteTrace={onExecuteTrace}
@@ -478,15 +498,17 @@ export default function Workspace() {
         {!settingsOpen && <ImageToolSettingsToggle title="AI Trace Settings" onOpen={openSettings} />}
       </main>
 
+      {showArtworkEditor && artworkEditing.enabled && isCompleteDesignProject(project) && project?.generated_image_url && <ArtworkEditor key={`${project.id}:${project.artwork_revision || 0}:${project.generated_image_url}`} project={project} userId={user?.id} editing={artworkEditing} onClose={closeArtworkEditor} />}
+
       {showPaletteNudge && project?.svg_url && (
         <div className="palette-ready-nudge" ref={paletteNudgeRef} role="status" aria-live="polite">
           <div className="palette-ready-copy">
             <span className="palette-ready-icon" aria-hidden="true">
-              <Palette size={17} />
+              <Palette size={14} />
             </span>
             <div>
               <strong>Your SVG palette is ready</strong>
-              <span>Refine colors and merge matching paths.</span>
+              <span>Refine colors and merge paths.</span>
             </div>
           </div>
           <button
