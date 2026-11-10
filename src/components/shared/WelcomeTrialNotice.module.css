@@ -1,0 +1,6 @@
+.notice { position: fixed; bottom: 24px; left: 24px; z-index: 90; width: min(340px, calc(100vw - 48px)); padding: 18px; border: 1px solid #303234; border-radius: 12px; background: #08090a; color: #f4f4f1; font-family: inherit; }
+.notice strong { display: block; padding-right: 18px; font-size: 13px; font-weight: 650; }
+.notice p { color: #929591; font-size: 12px; line-height: 1.6; margin: 8px 0 12px; }
+.close { position: absolute; right: 12px; top: 10px; border: 0; background: transparent; color: #929591; font-size: 20px; cursor: pointer; }
+.retry { border: 1px solid #ddd; border-radius: 7px; padding: 8px 12px; background: #f4f4f1; color: #08090a; font: inherit; font-size: 12px; cursor: pointer; }
+.retry:focus-visible, .close:focus-visible { outline: 2px solid #f4f4f1; outline-offset: 3px; }

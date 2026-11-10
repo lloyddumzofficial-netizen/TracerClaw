@@ -14078,3 +14078,10 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
     min-height: 380px;
   }
 }
+/* Scoped copy beneath the Google action; preserve the existing auth layout. */
+.login-auth-form .login-trial-copy {
+  margin: 8px 0 0;
+  color: #929591;
+  font-size: 11px;
+  line-height: 1.55;
+}

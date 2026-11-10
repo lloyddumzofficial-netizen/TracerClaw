@@ -9,6 +9,7 @@ import GuestPricingSection from "@/components/marketing/GuestPricingSection";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
 import { GARMENT_SAMPLES } from "@/lib/garmentSamples";
 import heroStyles from "./GuestHomepageHero.module.css";
+import HeroHorizon from "./HeroHorizon";
 
 export function GuestHomepageSampleSection() {
   return (
@@ -94,6 +95,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
       </header>
 
       <section className={`guest-landing-hero ${heroStyles.hero}`} aria-labelledby="guest-landing-heading">
+        <HeroHorizon />
         <h1 id="guest-landing-heading"><span className="guest-landing-title-mark">AI-generated<span className="guest-landing-title-handles" aria-hidden="true" /></span><span className="guest-landing-title-question"> artwork?</span><br /><em>Turn it into <span className="guest-landing-output-mark">editable flat design</span>.</em></h1>
         <p className="guest-landing-description">
           Extract artwork from garments and logos, refine the details, and deliver clean files your production team can actually use.
@@ -104,9 +106,11 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
           </button>
           <a className="guest-landing-secondary" href="#hero-product-demo">See a real example <ArrowUpRight size={15} aria-hidden="true" /></a>
         </div>
-        <p className="guest-landing-access-note">Free account required to save your work.</p>
-        {hasCommunityProof && (
-          <div className="guest-landing-community" aria-label={totalUsers > 0 ? `Trusted by ${totalUsers.toLocaleString()} DesaynClaw creatives` : "Real DesaynClaw community members"}>
+          {/* Reserve the proof row during SSR and loading: the horizon is
+              bottom-anchored and must not move when live stats arrive. */}
+          <div className={`guest-landing-community${hasCommunityProof ? "" : ` ${heroStyles.communityPending}`}`}
+            aria-hidden={!hasCommunityProof}
+            aria-label={totalUsers > 0 ? `Trusted by ${totalUsers.toLocaleString()} DesaynClaw creatives` : "Real DesaynClaw community members"}>
             {avatars.length > 0 && (
               <div className="guest-landing-avatars" aria-label="Recent DesaynClaw members">
                 {avatars.map((avatarUrl, index) => (
@@ -129,7 +133,6 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
               )}
             </div>
           </div>
-        )}
       </section>
 
       <div className={heroStyles.trust}><HomeTrustMarquee guest /></div>

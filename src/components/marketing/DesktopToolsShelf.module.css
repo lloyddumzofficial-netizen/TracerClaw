@@ -7,7 +7,7 @@
   border-radius: 12px;
   background: #101112;
   color: #f4f4f1;
-  transition: border-color 220ms ease, background-color 220ms ease;
+  transition: border-color 220ms ease, background-color 220ms ease, translate 220ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .artwork {
@@ -65,6 +65,12 @@
     border-color: #696c6e;
     background: #141516;
   }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .card:hover { translate: 0 -3px; }
+  .copy button svg { transition: translate 180ms cubic-bezier(.22, 1, .36, 1); }
+  .copy button:hover svg { translate: 2px -1px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,6 +26,14 @@ export async function GET(request) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  try {
+    const cleanup = await adminSupabase.rpc("cleanup_welcome_trial_intents");
+    if (cleanup?.error) logger.warn("[Welcome trial] Proof cleanup unavailable");
+  } catch {
+    // Retention runs even while the trial flag is off; an undeployed migration
+    // or transient cleanup failure must not interrupt referral settlement.
+    logger.warn("[Welcome trial] Proof cleanup unavailable");
+  }
   if (!referralsEnabled()) return NextResponse.json({ status: "disabled", processed: 0 });
   try {
     getReferralSecret();

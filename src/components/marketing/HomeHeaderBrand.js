@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./HomeHeaderBrand.module.css";
 
-export default function HomeHeaderBrand({ heroLogoRef, scrollRootRef }) {
+export default function HomeHeaderBrand({ heroLogoRef, scrollRootRef, onReturnTop }) {
   const buttonRef = useRef(null);
   const [visible, setVisible] = useState(false);
 
@@ -36,8 +36,11 @@ export default function HomeHeaderBrand({ heroLogoRef, scrollRootRef }) {
 
   const returnToTop = () => {
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
-    scrollRootRef.current?.scrollTo({ top: 0, behavior });
-    window.scrollTo({ top: 0, behavior });
+    if (onReturnTop) onReturnTop();
+    else {
+      scrollRootRef.current?.scrollTo({ top: 0, behavior });
+      window.scrollTo({ top: 0, behavior });
+    }
     // The return control becomes hidden again at the hero. Move focus to the
     // visible logo instead of leaving keyboard focus on a disappearing button.
     heroLogoRef.current?.focus({ preventScroll: true });

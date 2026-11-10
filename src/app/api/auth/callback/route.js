@@ -3,8 +3,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { sendEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
+import { processWelcomeTrial } from '@/server/welcomeTrial'
+import { cookieValue, TRIAL_INTENT_COOKIE, welcomeTrialEnabled } from '@/server/welcomeTrial/security'
 import {
   REFERRAL_COOKIE,
+  REFERRAL_DEVICE_COOKIE,
+  REFERRAL_DEVICE_MAX_AGE,
   bindReferralFromAuthCallback,
   referralCookieOptions,
 } from '@/server/referrals'
@@ -85,9 +89,15 @@ export async function GET(request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       let referralHandled = false
+      let trialGranted = false
       try {
-        const referralResult = await bindReferralFromAuthCallback(request, data?.session?.user)
-        referralHandled = referralResult.handled
+        const trialResult = welcomeTrialEnabled() ? await processWelcomeTrial(request, data?.session) : null
+        const referralResult = trialResult || await bindReferralFromAuthCallback(request, data?.session?.user)
+        referralHandled = trialResult ? trialResult.referralHandled : referralResult.handled
+        trialGranted = trialResult?.reason === 'awarded'
+        if (trialResult) {
+          logger.info('[Welcome trial] Callback decision', { userId: data?.session?.user?.id, status: trialResult.status, reason: trialResult.reason })
+        }
         if (referralHandled) {
           logger.info('[auth callback] Referral processed', {
             userId: data?.session?.user?.id,
@@ -111,6 +121,11 @@ export async function GET(request) {
       }
 
       const response = NextResponse.redirect(resolveSafeRedirect(next, origin))
+      response.headers.set('Cache-Control', 'no-store')
+      response.cookies.set(TRIAL_INTENT_COOKIE, '', referralCookieOptions(0))
+      if (trialGranted) {
+        response.cookies.set(REFERRAL_DEVICE_COOKIE, cookieValue(request, REFERRAL_DEVICE_COOKIE), referralCookieOptions(REFERRAL_DEVICE_MAX_AGE))
+      }
       if (referralHandled) {
         response.cookies.set(REFERRAL_COOKIE, '', referralCookieOptions(0))
       }

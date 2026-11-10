@@ -44,6 +44,7 @@ changes; the root-level SQL files are historical references.
 34. `034_lifetime_referral_reward_cap.sql`
 35. `035_version_payment_catalog.sql`
 36. `036_artwork_edits.sql` — Optional selective garment editing, independent billing, versioned Apply/Restore. Deploy before enabling `ARTWORK_EDITS_MODE`.
+37. `037_google_welcome_trial.sql` — Unified Google welcome/referral invitee trial, atomic daily budget, and durable abuse-prevention receipts. Deploy disabled, backfill, then activate using `docs/google-welcome-trial.md`.
 
 Run `npm run migrations:check` before every deployment. It verifies that the
 ordered migration files are sequential and that this manifest contains every

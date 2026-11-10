@@ -158,20 +158,21 @@ export function getOrCreateDevice(request) {
   return { deviceId, cookieValue: createDeviceCookie(deviceId) };
 }
 
-export async function bindReferralFromAuthCallback(request, user) {
+export async function bindReferralFromAuthCallback(request, user, { verifiedIdentity } = {}) {
   if (!referralsEnabled() || !user?.id || !user?.email) return { handled: false, status: "disabled" };
   const referral = readReferralCookie(requestCookie(request, REFERRAL_COOKIE));
   const deviceId = readDeviceCookie(requestCookie(request, REFERRAL_DEVICE_COOKIE));
   if (!referral || !deviceId) return { handled: false, status: "missing_cookie" };
 
-  const domain = normalizeEmailDomain(user.email);
-  const provider = user.app_metadata?.provider || user.app_metadata?.providers?.[0] || "email";
+  const email = verifiedIdentity?.email || user.email;
+  const domain = normalizeEmailDomain(email);
+  const provider = verifiedIdentity ? "google" : user.app_metadata?.provider || user.app_metadata?.providers?.[0] || "email";
   const disposableEmail = isDisposableEmailDomain(domain);
   const providerEligible = isReferralRewardProviderEligible(provider);
   const { data, error } = await adminSupabase.rpc("bind_referral_and_grant_trial", {
     target_code_hash: hashReferralCode(referral.code),
     target_invitee_user_id: user.id,
-    target_invitee_email: user.email,
+    target_invitee_email: email,
     target_email_domain: domain,
     target_auth_provider: provider,
     target_device_hash: hashDeviceId(deviceId),

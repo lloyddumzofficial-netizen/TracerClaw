@@ -15,6 +15,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
+  const [trialEnabled, setTrialEnabled] = useState(false);
   const turnstileRef = useRef(null);
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -25,7 +26,15 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
   }, [onClose]);
 
   // Use the production key by default; localhost switches to Cloudflare's dummy testing key below.
-  const [turnstileSiteKey, setTurnstileSiteKey] = useState('0x4AAAAAAD26TJ8T3jCD57hp');
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAD26TJ8T3jCD57hp');
+
+  useEffect(() => {
+    if (!show) return undefined;
+    const controller = new AbortController();
+    fetch('/api/welcome-trial', { cache: 'no-store', signal: controller.signal })
+      .then(response => response.json()).then(result => setTrialEnabled(result.enabled === true)).catch(() => {});
+    return () => controller.abort();
+  }, [show]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
@@ -116,14 +125,17 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
     }
     setIsLoadingGoogle(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { 
-          redirectTo: `${window.location.origin}/api/auth/callback`,
-          captchaToken: turnstileToken
-        }
+      const response = await fetch('/api/auth/google/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captchaToken: turnstileToken }),
       });
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok || !result.url) throw new Error('Google sign-in unavailable');
+      if (trialEnabled && result.trialVerification !== 'ready') {
+        toast.info('Google sign-in will continue. Free trial verification is temporarily unavailable.');
+      }
+      window.location.assign(result.url);
     } catch (err) {
       analytics.error(err, { area: "google_login" });
       toast.error("Google login failed. Please try again.");
@@ -283,6 +295,10 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
                     {isLoadingGoogle ? "Connecting..." : "Continue with Google"}
                   </button>
 
+                  {trialEnabled && (
+                    <p className="login-trial-copy">New eligible Google users receive 1 free Claw. Limited daily availability. Email sign-in does not include the free trial.</p>
+                  )}
+
                   <div className="login-turnstile-shell">
                     <Turnstile
                       ref={turnstileRef}
@@ -296,6 +312,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
                         toast.error("This browser cannot load the security check.");
                       }}
                       options={{
+                        action: 'desaynclaw_login',
                         theme: "dark",
                         size: "normal",
                         appearance: "always",

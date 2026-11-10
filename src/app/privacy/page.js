@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
           <h1 id="privacy-title">Your artwork stays yours.</h1>
           <p>A clear explanation of how DesaynClaw processes, protects, retains, and removes your files and account information.</p>
           <div className="privacy-meta">
-            <span>Last updated October 15, 2026</span><i aria-hidden="true" /><span>Written for people, not lawyers</span>
+            <span>Last updated November 10, 2026</span><i aria-hidden="true" /><span>Written for people, not lawyers</span>
           </div>
         </section>
 
@@ -111,6 +111,7 @@ export default function PrivacyPolicy() {
 
             <PolicySection number="02" id="retention" title="Retention and deletion">
               <p>Original uploads, processed outputs, and vector files are kept in your project history for no longer than three days. Our scheduled cleanup system then permanently removes them from cloud storage. You may manually delete a project earlier when that control is available.</p>
+              <p>To prevent repeat free-trial claims, we retain a minimal trial receipt and keyed hashes of the Google account identifier and normalized email after account deletion. These records are used only for trial eligibility and fraud prevention, not advertising. Trial browser identifiers are retained for up to 90 days; short-lived verification records are removed after expiry. This is separate from the three-day artwork retention period.</p>
             </PolicySection>
 
             <PolicySection number="03" id="ownership" title="Ownership and permitted use">

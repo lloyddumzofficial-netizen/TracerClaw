@@ -1,0 +1,72 @@
+:global(.guest-landing-hero) > .atmosphere {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 -150px;
+  pointer-events: none;
+  user-select: none;
+  background:
+    radial-gradient(ellipse 47% 88% at -9% 38%, rgba(255, 230, 144, .39), rgba(246, 201, 56, .17) 42%, transparent 79%),
+    radial-gradient(ellipse 47% 91% at 109% 52%, rgba(255, 211, 16, .43), rgba(229, 177, 0, .19) 45%, transparent 81%);
+  mask-image: linear-gradient(to bottom, #000, #000 72%, transparent 100%);
+}
+
+.atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    var(--surface-grain-subtle, none),
+    linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
+  background-size: 180px 180px, 64px 64px, 64px 64px;
+  background-position: center, center 8px, center 8px;
+  background-blend-mode: soft-light, normal, normal;
+}
+
+:global(.guest-landing-hero) > .horizon {
+  position: absolute;
+  z-index: 0;
+  inset: auto 0 -301px;
+  height: 480px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 67%, transparent);
+}
+
+.horizon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 68%, rgba(255, 207, 96, .065), transparent 65%);
+}
+
+.arc {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@media (max-width: 760px) {
+  :global(.guest-landing-hero) > .atmosphere {
+    opacity: .85;
+    background:
+      radial-gradient(ellipse 72% 80% at -26% 35%, rgba(255, 230, 144, .3), transparent 76%),
+      radial-gradient(ellipse 70% 82% at 126% 58%, rgba(255, 211, 16, .34), transparent 78%);
+  }
+
+  :global(.guest-landing-hero) > .horizon {
+    /* Stacked CTAs and proof need more clearance than the desktop composition. */
+    bottom: -332px;
+    height: 340px;
+  }
+
+  .arc { left: -35%; width: 170%; }
+
+  .atmosphere::after {
+    background-size: 180px 180px, 56px 56px, 56px 56px;
+  }
+}

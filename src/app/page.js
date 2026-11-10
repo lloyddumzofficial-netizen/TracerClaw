@@ -3,6 +3,8 @@
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAppRouter } from "@/hooks/useAppRouter";
+import useHomepageMotion from "@/hooks/useHomepageMotion";
+import motionStyles from "@/components/marketing/HomepageMotion.module.css";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +13,7 @@ import laptopPreview from "../../public/LAPTOP.jpg";
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/ui/Toast";
+import WelcomeTrialNotice from "@/components/shared/WelcomeTrialNotice";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { analytics } from "@/lib/analytics";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
@@ -567,76 +570,12 @@ export default function StartScreen() {
     setShowDriveAnnouncement(localStorage.getItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY) !== "1");
   }, []);
 
-  useEffect(() => {
-    const root = homeRootRef.current;
-    if (!root?.classList.contains("has-guest-home")) return undefined;
-
-    const sectionSelector = [
-      ".home-content-frame > .workflow-preview-section",
-      ".home-content-frame > .desktop-tools-shelf",
-      ".home-content-frame .guest-landing-example",
-      ".home-content-frame > .edu-demo-section",
-      ".home-content-frame > .edu-cards-section",
-      ".home-content-frame > .how-it-works-section",
-      ".home-content-frame > .homepage-tutorial-section",
-      ".home-content-frame > .product-features-section",
-      ".home-content-frame > .tool-showcase-section",
-      ".home-content-frame > .great-for-section",
-      ".home-content-frame > .testimonial-showcase",
-      ".home-content-frame #pricing",
-      ".home-content-frame #faq",
-    ].join(",");
-
-    const sections = Array.from(root.querySelectorAll(sectionSelector));
-    sections.forEach((section) => {
-      section.classList.add("home-scroll-reveal");
-      Array.from(section.children).forEach((piece, index) => {
-        piece.classList.add("home-reveal-piece");
-        piece.style.setProperty("--home-reveal-order", String(Math.min(index, 3)));
-      });
-    });
-
-    root.classList.add("home-motion-ready");
-
-    if (!("IntersectionObserver" in window)) {
-      sections.forEach((section) => section.classList.add("is-revealed"));
-      return () => {
-        root.classList.remove("home-motion-ready");
-        sections.forEach((section) => {
-          section.classList.remove("home-scroll-reveal", "is-revealed");
-          Array.from(section.children).forEach((piece) => {
-            piece.classList.remove("home-reveal-piece");
-            piece.style.removeProperty("--home-reveal-order");
-          });
-        });
-      };
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-revealed");
-        observer.unobserve(entry.target);
-      });
-    }, {
-      threshold: 0.12,
-      rootMargin: "0px 0px -8% 0px",
-    });
-
-    sections.forEach((section) => observer.observe(section));
-
-    return () => {
-      observer.disconnect();
-      root.classList.remove("home-motion-ready");
-      sections.forEach((section) => {
-        section.classList.remove("home-scroll-reveal", "is-revealed");
-        Array.from(section.children).forEach((piece) => {
-          piece.classList.remove("home-reveal-piece");
-          piece.style.removeProperty("--home-reveal-order");
-        });
-      });
-    };
-  }, [user]);
+  const scrollToHomeSection = useHomepageMotion({
+    rootRef: homeRootRef,
+    view: user ? "member" : "guest",
+    blocked: Boolean(showModal || showTopUpModal || showLoginModal || showReferralModal
+      || showOnboarding || showQrModal || projectToDelete || isUploading || isDraggingGlobal),
+  });
 
   const dismissDriveAnnouncement = () => {
     localStorage.setItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY, "1");
@@ -1165,7 +1104,7 @@ export default function StartScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div ref={homeRootRef} id="start" className={`start-screen-container${user ? "" : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
+    <div ref={homeRootRef} id="start" className={`start-screen-container ${motionStyles.root}${user ? "" : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
       {user && <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
         DesaynClaw AI Vector Tracer and Sublimation Design Extractor
       </h1>}
@@ -1193,7 +1132,7 @@ export default function StartScreen() {
       {user && <header className="home-topbar">
 
         <div className="home-topbar-inner">
-          <HomeHeaderBrand heroLogoRef={heroLogoRef} scrollRootRef={homeRootRef} />
+          <HomeHeaderBrand heroLogoRef={heroLogoRef} scrollRootRef={homeRootRef} onReturnTop={() => scrollToHomeSection(0)} />
 
           {/* Right: Auth & Credits */}
           <div className="home-account-actions">
@@ -1202,7 +1141,7 @@ export default function StartScreen() {
                 <button
                   className="home-tutorial-button"
                   type="button"
-                  onClick={() => document.getElementById("how-desaynclaw-works")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  onClick={() => scrollToHomeSection("how-desaynclaw-works")}
                   aria-label="Scroll to the DesaynClaw tutorial"
                 >
                   <Play size={13} fill="currentColor" aria-hidden="true" /> Tutorial <span>5 min</span>
@@ -1910,6 +1849,10 @@ export default function StartScreen() {
             setShowTopUpModal(true);
           }}
         />
+
+        <WelcomeTrialNotice user={user} supabase={supabase} onBalanceChange={setCredits}
+          onGoogleSignIn={() => setShowLoginModal(true)}
+          blocked={Boolean(showReferralModal || showModal || showTopUpModal || showLoginModal || showOnboarding || showQrModal || isUploading)} />
 
         {/* Delete Confirmation Modal */}
         {projectToDelete && (

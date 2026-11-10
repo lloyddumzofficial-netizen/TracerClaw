@@ -65,6 +65,10 @@ export const OPTIONAL_ENV = [
   "SENTRY_AUTH_TOKEN",
   "REFERRALS_ENABLED",
   "REFERRAL_SECURITY_SECRET",
+  "GOOGLE_WELCOME_TRIAL_ENABLED",
+  "TURNSTILE_SECRET_KEY",
+  "TURNSTILE_ALLOWED_HOSTNAMES",
+  "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
   "LOG_LEVEL",
 ];
 
@@ -137,6 +141,27 @@ export function checkReferralReadiness() {
   if (!process.env.UPSTASH_REDIS_REST_URL) missing.push("UPSTASH_REDIS_REST_URL");
   if (!process.env.UPSTASH_REDIS_REST_TOKEN) missing.push("UPSTASH_REDIS_REST_TOKEN");
   return { ok: missing.length === 0, enabled: true, missing };
+}
+
+export async function checkWelcomeTrialReadiness() {
+  if (process.env.GOOGLE_WELCOME_TRIAL_ENABLED !== "true") return { ok: true, enabled: false };
+  const required = ["TURNSTILE_SECRET_KEY", "TURNSTILE_ALLOWED_HOSTNAMES", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
+  const missing = required.filter(name => !process.env[name]);
+  if ((process.env.REFERRAL_SECURITY_SECRET || "").length < 32) missing.push("REFERRAL_SECURITY_SECRET (minimum 32 characters)");
+  if (missing.length) return { ok: false, enabled: true, missing };
+  const { data, error } = await adminSupabase.from("welcome_trial_campaign")
+    .select("enabled, launched_at, backfill_completed_at, secret_check").eq("id", true).single();
+  // This module is also imported by Edge instrumentation: use Web Crypto,
+  // keeping the callback/backfill HMAC namespace without a node:crypto import.
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(process.env.REFERRAL_SECURITY_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("welcome-trial:config:v1"));
+  const secretCheck = [...new Uint8Array(signature)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  return {
+    enabled: true,
+    ok: !error && Boolean(data?.enabled && data.launched_at && data.backfill_completed_at
+      && data.secret_check === secretCheck),
+  };
 }
 
 export async function checkAiProvider() {
@@ -279,11 +304,12 @@ export function buildInfo() {
 
 /** Run the complete dependency-readiness suite used by deploy and cron checks. */
 export async function runDeepHealthChecks() {
-  const [database, schema, rls, aiProvider] = await Promise.all([
+  const [database, schema, rls, aiProvider, welcomeTrial] = await Promise.all([
     checkDatabase(),
     checkSchema(),
     checkRlsEnforced(),
     checkAiProvider(),
+    checkWelcomeTrialReadiness(),
   ]);
   const checks = {
     env: checkEnv(),
@@ -293,6 +319,7 @@ export async function runDeepHealthChecks() {
     capabilities: checkCapabilities(),
     referrals: checkReferralReadiness(),
     aiProvider,
+    welcomeTrial,
   };
   const failed = Object.entries(checks)
     .filter(([, value]) => value && value.ok === false)

@@ -1,0 +1,38 @@
+.root {
+  --home-motion-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+.root [data-home-reveal] > [data-home-reveal-piece] {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition: opacity 480ms var(--home-motion-ease), transform 480ms var(--home-motion-ease);
+  transition-delay: calc(var(--home-reveal-order, 0) * 60ms);
+}
+
+.root [data-home-revealed] > [data-home-reveal-piece],
+.root [data-home-reveal]:focus-within > [data-home-reveal-piece] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .root :is(:global(.guest-landing-primary), :global(.guest-landing-secondary), :global(.guest-landing-nav-cta)) svg {
+    transition: translate 180ms var(--home-motion-ease);
+  }
+
+  .root :is(:global(.guest-landing-primary), :global(.guest-landing-secondary), :global(.guest-landing-nav-cta)):hover svg {
+    translate: 2px -1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root [data-home-reveal] > [data-home-reveal-piece] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .root :global(.marquee-content) {
+    animation-play-state: paused !important;
+  }
+}
