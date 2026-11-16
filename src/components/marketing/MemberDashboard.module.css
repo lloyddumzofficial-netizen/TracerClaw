@@ -96,7 +96,15 @@
 }
 .root.root :global(.recent-privacy-note > div) { display: grid; gap: 4px; }
 .root.root :global(.recent-privacy-note p) { white-space: normal; font-size: 10px; line-height: 1.5; }
-.root.root :global(.recent-grid) { gap: 12px !important; }
+.root.root :global(.recent-grid) {
+  gap: 12px !important;
+  scrollbar-gutter: stable;
+}
+.root.root[data-home-smooth="true"] :global(.recent-grid) {
+  /* The page controller takes over at the boundary; native scroll chaining
+     must not apply the same gesture to the page before that handoff. */
+  overscroll-behavior-y: contain;
+}
 .root.root :global(.recent-card) { border: 1px solid #333333 !important; border-radius: 10px !important; background: #1b1b1b !important; }
 .root.root :global(.recent-card):hover { border-color: #727272 !important; }
 .root.root :global(.start-btn):focus-visible,

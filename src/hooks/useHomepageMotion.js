@@ -25,10 +25,17 @@ const REVEAL_SECTIONS = [
 // Only real nested scrolling surfaces bypass page smoothing. Images, videos,
 // buttons and comparison ranges stay in the same wheel gesture as page content.
 const NATIVE_SURFACES = '[data-home-native-scroll], [role="dialog"], [aria-modal="true"], .modal-content, select, iframe';
-const ownsNativeScroll = node => node instanceof Element && (
-  node.matches(NATIVE_SURFACES) ||
-  (node.matches('.recent-grid, textarea') && node.scrollHeight > node.clientHeight + 1)
-);
+const ownsNativeScroll = (node, deltaY = 0) => {
+  if (!(node instanceof Element)) return false;
+  if (node.matches(NATIVE_SURFACES)) return true;
+  if (node.matches('textarea')) return node.scrollHeight > node.clientHeight + 1;
+  if (!node.matches('.recent-grid')) return false;
+  const limit = node.scrollHeight - node.clientHeight;
+  if (limit <= 1) return false;
+  // At the list boundary the page controller owns the next wheel event.
+  // Returning every event to native scrolling caused abrupt scroll chaining.
+  return !deltaY || (deltaY < 0 ? node.scrollTop > 1 : node.scrollTop < limit - 1);
+};
 
 export default function useHomepageMotion({ rootRef, view, blocked }) {
   const controllerRef = useRef(null);
@@ -70,6 +77,7 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
     let privacyBlocked = !localStorage.getItem("ai_disclaimer_seen");
     let restoreScrollBehavior;
     let wheelDirection = 0;
+    let nativeWheelDelta = 0;
 
     const cancelFrame = () => { cancelAnimationFrame(frame); frame = 0; };
     const tick = (time) => {
@@ -121,8 +129,19 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
           respectReducedMotion: false,
           syncTouch: false, anchors: false,
           virtualScroll: ({ deltaY, event }) => {
+            nativeWheelDelta = deltaY;
             if (event.type !== "wheel" || event.ctrlKey || lenis?.isStopped) return true;
-            if (event.composedPath().some(ownsNativeScroll)) return true;
+            if (event.composedPath().some(node => ownsNativeScroll(node, deltaY))) {
+              // A native child must never race the page's outstanding inertia.
+              // Freeze at the actual visible position, discarding only the
+              // pending page target; leave this wheel event to the child.
+              if (lenis?.isScrolling === "smooth") {
+                lenis.scrollTo(lenis.actualScroll, { immediate: true, force: true });
+                cancelFrame();
+              }
+              wheelDirection = 0;
+              return true;
+            }
             const direction = Math.sign(deltaY);
             if (direction && wheelDirection && direction !== wheelDirection && lenis?.isScrolling === "smooth") {
               // Discard only outstanding inertia when the user reverses direction.
@@ -132,7 +151,7 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
             if (direction) wheelDirection = direction;
             return true;
           },
-          prevent: ownsNativeScroll,
+          prevent: node => ownsNativeScroll(node, nativeWheelDelta),
         });
         const html = document.documentElement;
         const value = html.style.getPropertyValue("scroll-behavior");
