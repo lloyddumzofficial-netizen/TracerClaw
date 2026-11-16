@@ -15,6 +15,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+:where(button, input, select, textarea) {
+  font-family: inherit;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -6367,13 +6371,8 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   content: "";
   position: absolute;
   inset: 0;
-  background-image:
-    var(--login-grain),
-    linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
-  background-size: 180px 180px, 56px 56px, 56px 56px;
-  background-blend-mode: soft-light, normal, normal;
-  opacity: .72;
+  background-image: none;
+  opacity: 1;
   pointer-events: none;
 }
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { memo, useState, useRef, useCallback, useEffect } from "react";
-import { ArrowRight, CheckCircle2, Crosshair, Info, Loader2, Maximize, Minus, Plus, RotateCcw, ScanLine, X, XCircle } from "lucide-react";
+import { memo, useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import { ArrowRight, CheckCircle2, Crosshair, Hand, Info, Loader2, Maximize, Minus, Plus, RotateCcw, ScanLine, X, XCircle } from "lucide-react";
 import { convertToPixelCrop } from "react-image-crop";
 import CropSelectionCanvas from "./CropSelectionCanvas";
 import LogoCropGuide from "./LogoCropGuide";
 import logoGuideStyles from "./LogoCropGuide.module.css";
+import viewportStyles from "./CropViewport.module.css";
 import "react-image-crop/dist/ReactCrop.css";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import { safeJson } from "@/lib/safeJson";
@@ -16,9 +17,8 @@ import { safeJson } from "@/lib/safeJson";
 const DEFAULT_CROP_ZOOM = 0.9;
 const MIN_CROP_ZOOM = 0.35;
 const MAX_CROP_ZOOM = 4;
-const CROP_ZOOM_STEP = 0.25;
-const WHEEL_ZOOM_STEP = 0.1;
-const CROP_STAGE_PADDING = 18;
+const CROP_ZOOM_FACTOR = 1.25;
+const CROP_STAGE_PADDING = 24;
 const CROP_GUIDE_STORAGE_KEY = "desaynclaw_crop_guide_dismissed";
 
 async function uploadCropThroughServer({ token, blob, fileName }) {
@@ -137,12 +137,25 @@ const CropModal = memo(function CropModal({
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [showCropGuideIntro, setShowCropGuideIntro] = useState(false);
   const [dontShowCropGuideAgain, setDontShowCropGuideAgain] = useState(false);
+  const [cropTool, setCropTool] = useState("crop");
+  const [spaceHeld, setSpaceHeld] = useState(false);
   const imgRef = useRef(null);
   const stageRef = useRef(null);
+  const zoomRef = useRef(DEFAULT_CROP_ZOOM);
+  const pendingAnchor = useRef(null);
+  const panGesture = useRef(null);
+  const wheelFrame = useRef(null);
+  const wheelDelta = useRef(0);
+  const wheelPoint = useRef(null);
 
   useEffect(() => {
     if (show) {
       setCropZoom(DEFAULT_CROP_ZOOM);
+      zoomRef.current = DEFAULT_CROP_ZOOM;
+      pendingAnchor.current = null;
+      panGesture.current = null;
+      setCropTool("crop");
+      setSpaceHeld(false);
       setCropResetVersion(version => version + 1);
       setCompletedCrop(null);
       setCropError("");
@@ -219,14 +232,16 @@ const CropModal = memo(function CropModal({
   const displayHeight = imageSize ? Math.max(1, Math.round(imageSize.height * fitScale * cropZoom)) : undefined;
   const surfaceOffsetX = displayWidth && stageSize.width ? Math.max(0, Math.round((stageSize.width - displayWidth - CROP_STAGE_PADDING * 2) / 2)) : 0;
   const surfaceOffsetY = displayHeight && stageSize.height ? Math.max(0, Math.round((stageSize.height - displayHeight - CROP_STAGE_PADDING * 2) / 2)) : 0;
+  const maxZoom = Math.max(MAX_CROP_ZOOM, 4 / fitScale);
+  const isPanTool = cropTool === "hand" || spaceHeld;
 
   const setZoomKeepingPoint = useCallback((nextZoom, anchorPoint) => {
     const stage = stageRef.current;
-    const previousZoom = cropZoom;
+    const previousZoom = zoomRef.current;
     const zoomValue = clamp(
       typeof nextZoom === "function" ? nextZoom(previousZoom) : nextZoom,
       MIN_CROP_ZOOM,
-      MAX_CROP_ZOOM
+      maxZoom
     );
 
     if (!stage || Math.abs(zoomValue - previousZoom) < 0.001) {
@@ -235,19 +250,31 @@ const CropModal = memo(function CropModal({
     }
 
     const stageRect = stage.getBoundingClientRect();
-    const anchorX = anchorPoint ? anchorPoint.clientX - stageRect.left : stage.clientWidth / 2;
-    const anchorY = anchorPoint ? anchorPoint.clientY - stageRect.top : stage.clientHeight / 2;
-    const contentX = stage.scrollLeft + anchorX;
-    const contentY = stage.scrollTop + anchorY;
-    const relativeX = stage.scrollWidth > 0 ? contentX / stage.scrollWidth : 0.5;
-    const relativeY = stage.scrollHeight > 0 ? contentY / stage.scrollHeight : 0.5;
-
+    const imageRect = imgRef.current?.getBoundingClientRect();
+    const clientX = anchorPoint?.clientX ?? stageRect.left + stage.clientWidth / 2;
+    const clientY = anchorPoint?.clientY ?? stageRect.top + stage.clientHeight / 2;
+    if (imageRect?.width && imageRect?.height) {
+      pendingAnchor.current = {
+        x: clamp((clientX - imageRect.left) / imageRect.width, 0, 1),
+        y: clamp((clientY - imageRect.top) / imageRect.height, 0, 1), clientX, clientY,
+      };
+    }
+    zoomRef.current = zoomValue;
     setCropZoom(zoomValue);
-    requestAnimationFrame(() => {
-      stage.scrollLeft = relativeX * stage.scrollWidth - anchorX;
-      stage.scrollTop = relativeY * stage.scrollHeight - anchorY;
-    });
-  }, [cropZoom]);
+  }, [maxZoom]);
+
+  // Apply scroll correction after React lays out the resized image, before
+  // paint. Anchor to image coordinates, never to changing scrollbar extents.
+  useLayoutEffect(() => {
+    const anchor = pendingAnchor.current;
+    const stage = stageRef.current;
+    const image = imgRef.current;
+    if (!anchor || !stage || !image) return;
+    const rect = image.getBoundingClientRect();
+    stage.scrollLeft += rect.left + rect.width * anchor.x - anchor.clientX;
+    stage.scrollTop += rect.top + rect.height * anchor.y - anchor.clientY;
+    pendingAnchor.current = null;
+  }, [displayWidth, displayHeight]);
 
   const setZoomKeepingCenter = useCallback((nextZoom) => {
     setZoomKeepingPoint(nextZoom);
@@ -260,15 +287,74 @@ const CropModal = memo(function CropModal({
     const handleWheel = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      setZoomKeepingPoint(
-        z => z + (e.deltaY > 0 ? -WHEEL_ZOOM_STEP : WHEEL_ZOOM_STEP),
-        { clientX: e.clientX, clientY: e.clientY }
-      );
+      if (isSaving || !e.deltaY) return;
+      // Accumulate trackpad events instead of dropping them or treating each
+      // tiny delta as a full mouse-wheel notch. One layout update per frame.
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? stage.clientHeight : 1;
+      wheelDelta.current += e.deltaY * unit;
+      wheelPoint.current = { clientX: e.clientX, clientY: e.clientY };
+      if (wheelFrame.current !== null) return;
+      wheelFrame.current = requestAnimationFrame(() => {
+        wheelFrame.current = null;
+        const delta = clamp(wheelDelta.current, -400, 400);
+        wheelDelta.current = 0;
+        setZoomKeepingPoint(z => z * Math.exp(-delta * 0.002), wheelPoint.current);
+      });
     };
 
     stage.addEventListener("wheel", handleWheel, { passive: false, capture: true });
-    return () => stage.removeEventListener("wheel", handleWheel, true);
-  }, [setZoomKeepingPoint, show]);
+    return () => {
+      stage.removeEventListener("wheel", handleWheel, true);
+      if (wheelFrame.current !== null) cancelAnimationFrame(wheelFrame.current);
+      wheelFrame.current = null;
+      wheelDelta.current = 0;
+    };
+  }, [setZoomKeepingPoint, show, isSaving]);
+
+  useEffect(() => {
+    if (!show) return;
+    const onKeyDown = event => {
+      if (event.target.closest?.('input, textarea, select, button, [contenteditable="true"]') || event.ctrlKey || event.metaKey || event.altKey || showCropGuideIntro || isSaving) return;
+      if (event.code === "Space") { event.preventDefault(); setSpaceHeld(true); }
+      if (event.key.toLowerCase() === "h") setCropTool("hand");
+      if (event.key.toLowerCase() === "c") setCropTool("crop");
+      if (event.key === "+" || event.key === "=") { event.preventDefault(); setZoomKeepingCenter(z => z * CROP_ZOOM_FACTOR); }
+      if (event.key === "-") { event.preventDefault(); setZoomKeepingCenter(z => z / CROP_ZOOM_FACTOR); }
+      if (event.key === "0") { event.preventDefault(); setZoomKeepingCenter(1); }
+      if (event.key === "1") { event.preventDefault(); setZoomKeepingCenter(1 / fitScale); }
+    };
+    const release = () => { setSpaceHeld(false); panGesture.current = null; stageRef.current?.removeAttribute("data-panning"); };
+    const onKeyUp = event => { if (event.code === "Space") release(); };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", release);
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); window.removeEventListener("blur", release); };
+  }, [show, showCropGuideIntro, isSaving, fitScale, setZoomKeepingCenter]);
+
+  const handlePanStart = event => {
+    if (isSaving || !(event.button === 1 || (event.button === 0 && isPanTool))) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const stage = stageRef.current;
+    stage.setPointerCapture(event.pointerId);
+    stage.dataset.panning = "true";
+    panGesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, left: stage.scrollLeft, top: stage.scrollTop };
+  };
+  const handlePanMove = event => {
+    const pan = panGesture.current;
+    if (!pan || event.pointerId !== pan.id) return;
+    event.preventDefault();
+    event.stopPropagation();
+    stageRef.current.scrollLeft = pan.left - (event.clientX - pan.x);
+    stageRef.current.scrollTop = pan.top - (event.clientY - pan.y);
+  };
+  const handlePanEnd = event => {
+    const stage = stageRef.current;
+    if (panGesture.current?.id !== event.pointerId) return;
+    panGesture.current = null;
+    stage.removeAttribute("data-panning");
+    if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
+  };
 
   const handleApply = useCallback(async () => {
     if (isSaving) return;
@@ -440,7 +526,7 @@ const CropModal = memo(function CropModal({
 
         <div className="crop-workspace-body">
           <div className="crop-canvas-panel">
-            <div className="crop-canvas-toolbar">
+            <div className={`crop-canvas-toolbar ${viewportStyles.toolbar}`}>
               <div className="crop-source-meta">
                 <ScanLine size={14} />
                 <div>
@@ -450,24 +536,34 @@ const CropModal = memo(function CropModal({
               </div>
               <div className="crop-toolbar-right">
                 <span>{cropSizeLabel}</span>
-                <div className="crop-zoom-controls" aria-label="Crop zoom controls">
-                  <button type="button" onClick={handleResetSelection} aria-label="Reset selection">
+                <div className={viewportStyles.tools} role="group" aria-label="Crop canvas tools">
+                  <button type="button" onClick={() => setCropTool("crop")} aria-label="Crop tool" aria-pressed={cropTool === "crop"} title="Crop (C)"><Crosshair size={15} /></button>
+                  <button type="button" onClick={() => setCropTool("hand")} aria-label="Pan tool" aria-pressed={cropTool === "hand"} title="Hand (H) · Hold Space to pan"><Hand size={15} /></button>
+                </div>
+                <div className={`crop-zoom-controls ${viewportStyles.controls}`} role="group" aria-label="Crop zoom controls">
+                  <button type="button" onClick={handleResetSelection} aria-label="Reset selection" title="Clear crop selection">
                     <RotateCcw size={12} />
                   </button>
-                  <button type="button" onClick={() => setZoomKeepingCenter(z => z - CROP_ZOOM_STEP)} aria-label="Zoom out" disabled={cropZoom <= MIN_CROP_ZOOM}>
+                  <button type="button" onClick={() => setZoomKeepingCenter(z => z / CROP_ZOOM_FACTOR)} aria-label="Zoom out" title="Zoom out (−)" disabled={cropZoom <= MIN_CROP_ZOOM}>
                     <Minus size={12} />
                   </button>
-                  <strong>{Math.round(cropZoom * 100)}%</strong>
-                  <button type="button" onClick={() => setZoomKeepingCenter(z => z + CROP_ZOOM_STEP)} aria-label="Zoom in" disabled={cropZoom >= MAX_CROP_ZOOM}>
+                  <button type="button" className={viewportStyles.percentage} onClick={() => setZoomKeepingCenter(1 / fitScale)} aria-label="Actual size, 100 percent" title="Actual pixels (1)"><strong>{Math.round(fitScale * cropZoom * 100)}%</strong></button>
+                  <button type="button" onClick={() => setZoomKeepingCenter(z => z * CROP_ZOOM_FACTOR)} aria-label="Zoom in" title="Zoom in (+)" disabled={cropZoom >= maxZoom}>
                     <Plus size={12} />
                   </button>
-                  <button type="button" onClick={() => setZoomKeepingCenter(DEFAULT_CROP_ZOOM)} aria-label="Fit image">
+                  <button type="button" className={viewportStyles.fit} onClick={() => setZoomKeepingCenter(1)} aria-label="Fit image" title="Fit image (0)">
                     <Maximize size={12} />
+                    <span>Fit</span>
                   </button>
                 </div>
               </div>
             </div>
-            <div className={`crop-canvas-stage ${isSaving ? "is-saving" : ""}`} ref={stageRef}>
+            <div className={`crop-canvas-stage ${viewportStyles.stage} ${isSaving ? "is-saving" : ""}`} ref={stageRef}
+              tabIndex={0} aria-label="Crop canvas. Scroll to zoom. Hold Space and drag to pan."
+              data-tool={isPanTool ? "hand" : "crop"}
+              onPointerDownCapture={handlePanStart} onPointerMoveCapture={handlePanMove}
+              onPointerUpCapture={handlePanEnd} onPointerCancel={handlePanEnd} onLostPointerCapture={handlePanEnd}
+              onAuxClick={event => { if (event.button === 1) event.preventDefault(); }}>
               <div
                 className="crop-zoom-surface"
                 style={{
@@ -553,7 +649,7 @@ const CropModal = memo(function CropModal({
           <div className="crop-tip-block">
             <Info size={17} />
             <div>
-              <span>{isPatternMode ? "Frame the exact flat artwork. Scroll to zoom." : isLogoMode ? "Frame the complete logo. Scroll to zoom." : "Frame the printable area. Scroll to zoom."}</span>
+              <span>Scroll to zoom · Space + drag to pan · 0 to fit · 1 for actual size</span>
             </div>
           </div>
           {project?.generated_image_url && (

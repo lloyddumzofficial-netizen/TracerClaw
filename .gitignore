@@ -17,6 +17,11 @@
 # next.js
 /.next/
 /out/
+/output/
+
+# Local Photoshop source templates; the website uses exported PNG assets.
+/public/FEATURES/*.psb
+/public/FEATURES/*.psd
 
 # production
 /build

@@ -1,0 +1,73 @@
+.section { width: min(100%, 1120px); margin: auto; color: #f4f4f4; }
+.heading { max-width: 650px; margin-bottom: 32px; }
+.heading > span { color: #b8b8b8; font-size: 12px; font-weight: 500; }
+.heading h2 { margin: 12px 0; font-size: clamp(28px, 3vw, 38px); line-height: 1.25; font-weight: 500; letter-spacing: -.03em; text-wrap: balance; }
+.heading p { color: #b8b8b8; font-size: 14px; line-height: 1.75; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.card { overflow: hidden; min-width: 0; border: 1px solid var(--marketing-glass-border); border-radius: 18px; background: var(--marketing-glass-surface); box-shadow: var(--marketing-glass-highlight); }
+.community, .workflow { grid-column: span 3; }
+.controls { grid-column: span 4; }
+.files { grid-column: span 2; }
+.visual { position: relative; height: 250px; overflow: hidden; background-image: radial-gradient(circle, #ffffff14 .6px, transparent .8px); background-size: 13px 13px; }
+.visual::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 60%, #101010 100%); }
+.copy { position: relative; padding: 18px 24px 26px; }
+.copy h3 { font-size: 17px; font-weight: 600; line-height: 1.5; letter-spacing: -.02em; margin: 0 0 9px; }
+.copy p { font-size: 13px; line-height: 1.8; color: #b8b8b8; margin: 0; max-width: 530px; }
+.communityVisual { display: grid; place-items: center; }
+.orbit { display: grid; grid-template-columns: repeat(5, 54px); gap: 17px; transform: rotate(-8deg); mask-image: radial-gradient(ellipse, #000 55%, transparent 100%); }
+.avatar, .brand { display: grid; place-items: center; width: 54px; height: 54px; border: 1px solid #424242; border-radius: 50%; background: #242424; color: #ccc; font-size: 13px; font-weight: 600; }
+.avatar:nth-child(3n) { background: #303128; color: #deded1; }
+.avatar:nth-child(3n + 1) { background: #23282c; }
+.avatar { overflow: hidden; border-radius: 50%; clip-path: circle(50%); }
+.avatar img { display: block; width: 100%; height: 100%; aspect-ratio: 1; border-radius: 50%; clip-path: circle(50%); object-fit: cover; }
+.brand { background: #292713; transform: scale(1.26); border-color: #69602e; box-shadow: 0 0 0 8px #fbe75009, 0 0 34px #fbe75016; }
+.workflowVisual { display: grid; place-items: center; padding-top: 20px; }
+.backSheet { position: absolute; top: 60px; width: 75%; height: 160px; border: 1px solid #383838; background: #1c1c1c; border-radius: 12px; transform: rotate(-9deg); }
+.stepSheet { position: relative; width: min(76%, 320px); padding: 16px; border: 1px solid #333; border-radius: 12px; background: #1c1c1c; transform: rotate(3deg); }
+.sheetTitle { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 11px; }
+.sheetTitle > span, .fileHeader > span { color: #aaa; font-size: 9px; margin-left: auto; }
+.step { display: flex; align-items: center; gap: 10px; border: 1px solid #414141; background: #282828; border-radius: 7px; padding: 10px; margin-top: 7px; color: #e0e0e0; font-size: 11px; }
+.step > :last-child { margin-left: auto; color: #b6bdac; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #fbe750; }
+.controlsVisual { padding: 24px 28px 0; }
+.wideSetting { display: flex; align-items: center; justify-content: space-between; border: 1px solid #414141; border-radius: 10px; background: #202020; padding: 17px; }
+.wideSetting span { display: flex; align-items: center; gap: 10px; }
+.wideSetting strong { font-size: 12px; font-weight: 500; }
+.wideSetting > svg { color: #a7af9c; }
+.settingsGrid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; margin-top: 12px; }
+.settingsList { display: grid; align-content: start; gap: 8px; }
+.settingsList > div { display: flex; align-items: center; gap: 9px; padding: 13px 12px; background: #202020; border: 1px solid #383838; border-radius: 8px; color: #d0d0d0; font-size: 10px; }
+.artworkSheet { padding: 16px; border: 1px solid #414141; background: #202020; border-radius: 9px; }
+.artworkSheet > svg { color: #bcbcae; }
+.artworkSheet strong { display: block; font-size: 12px; font-weight: 500; margin-top: 10px; }
+.artworkSheet p { color: #b5b5b5; line-height: 1.6; font-size: 10px; margin-top: 8px; }
+.swatches { display: flex; gap: 5px; margin-top: 12px; }
+.swatches i { width: 15px; height: 15px; border-radius: 50%; background: #e3e3d9; }
+.swatches i:nth-child(2) { background: #c8b656; }.swatches i:nth-child(3) { background: #77786a; }.swatches i:nth-child(4) { background: #303030; }
+.filesVisual { padding: 24px 16px 0; }
+.fileSheet { border: 1px solid #414141; border-radius: 11px; padding: 15px; background: #1c1c1c; transform: rotate(-3deg); }
+.fileHeader { display: flex; align-items: center; gap: 8px; font-size: 11px; padding-bottom: 15px; border-bottom: 1px solid #292929; }
+.fileRow { display: flex; align-items: center; gap: 9px; padding: 14px 0; border-bottom: 1px solid #242424; }
+.fileRow > svg { color: #b5b5b5; flex-shrink: 0; }
+.fileRow > svg:last-child { margin-left: auto; }
+.fileRow strong { font-weight: 500; font-size: 10px; display: block; }
+.fileRow small { font-size: 9px; color: #aaa; display: block; margin-top: 4px; }
+.exportLabel { display: flex; align-items: center; justify-content: center; gap: 7px; padding-top: 14px; color: #b8b8b8; font-size: 9px; }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .community, .workflow, .controls, .files { grid-column: span 1; }
+  .controlsVisual { padding-inline: 16px; }
+  .settingsGrid { grid-template-columns: 1fr; }
+  .artworkSheet { display: none; }
+  .orbit { gap: 10px; grid-template-columns: repeat(5, 44px); }
+  .avatar, .brand { width: 44px; height: 44px; }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; gap: 18px; }
+  .visual { height: 230px; }
+  .copy { padding: 16px 22px 24px; }
+  .copy h3 { font-size: 16px; }
+  .settingsGrid { grid-template-columns: 1.1fr 1fr; }
+  .artworkSheet { display: block; }
+  .settingsList > div { font-size: 9px; padding: 12px 9px; }
+}

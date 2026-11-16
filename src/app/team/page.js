@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight, Code2, ImageIcon, Palette, Scissors, ShieldCheck, Sparkles } from "lucide-react";
-import "./team.css";
+import "./team-refined.css";
 
 export const metadata = {
   title: "Team",
@@ -45,6 +45,15 @@ const teamMembers = [
     tags: ["Content", "Marketing"],
     tone: "gold",
   },
+  {
+    name: "Mary Dumadaug",
+    role: "Content & Marketing",
+    focus: "Helps create content and marketing materials that introduce DesaynClaw and explain its tools to designers and print shops.",
+    image: "/Team/MARY-DUMADAUG-CONTENT-MARKETING.png",
+    imageClass: "portrait-mary",
+    tags: ["Content", "Marketing"],
+    tone: "graphite",
+  },
 ];
 
 export default function TeamPage() {
@@ -52,7 +61,7 @@ export default function TeamPage() {
     <main className="team-page">
       <header className="team-nav">
         <Link href="/" className="team-logo-link" aria-label="Back to DesaynClaw homepage">
-          <Image src="/desaynclaw-hero-logo.png" alt="DesaynClaw" width={188} height={40} priority />
+          <Image src="/nav bar logo.png" alt="DesaynClaw" width={188} height={40} priority />
         </Link>
         <Link href="/" className="team-home-link">
           Return home <ArrowUpRight size={14} />
@@ -62,15 +71,15 @@ export default function TeamPage() {
       <section className="team-hero" aria-labelledby="team-title">
         <div className="team-kicker">
           <span><i aria-hidden="true" /> The people behind the product</span>
-          <small>Independent production team · 04 members</small>
+          <small>Independent production team · {String(teamMembers.length).padStart(2, "0")} members</small>
         </div>
         <div className="team-hero-grid">
           <div>
-            <h1 id="team-title">Small team.<br /><em>Serious tools.</em></h1>
+            <h1 id="team-title">The people behind DesaynClaw.</h1>
           </div>
           <div className="team-hero-copy">
             <p>
-              DesaynClaw is designed and operated by a focused team with experience around design and apparel production. We turn recurring cleanup work—raster artwork, jersey mockups, logos, and difficult client files—into software that print shops can depend on.
+              We bring product development, design, and community support together to make artwork preparation simpler for designers and print shops.
             </p>
             <div className="team-proof-row" aria-label="DesaynClaw team focus">
               <span>AI production tools</span>
@@ -86,14 +95,14 @@ export default function TeamPage() {
         </div>
         <div className="team-card-grid">
           {teamMembers.map((member, index) => (
-            <article className={`team-card${index === 0 ? " is-lead" : ""}`} key={member.name}>
+            <article className={`team-card${index === 0 ? " is-founder" : ""}`} key={member.name}>
               <div className={`team-portrait tone-${member.tone}`}>
                 <Image
                   className={member.imageClass}
                   src={member.image}
                   alt={`${member.name} - ${member.role}`}
                   fill
-                  sizes={index === 0 ? "(max-width: 820px) 100vw, 52vw" : "(max-width: 820px) 42vw, 190px"}
+                  sizes="(max-width: 600px) 90vw, (max-width: 1000px) 45vw, 270px"
                   priority={index === 0}
                 />
                 <span className="team-member-number">{String(index + 1).padStart(2, "0")}</span>

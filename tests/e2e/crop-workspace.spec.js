@@ -52,7 +52,9 @@ async function drawCrop(page) {
 test("logo crop guide stays fixed with both examples visible", async ({ page }) => {
   await setupCrop(page, "logo");
   const panel = page.locator(".is-logo-workspace .crop-guide-panel");
-  await expect(panel.getByRole("heading", { name: "Crop the logo, not the jersey." })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Frame the complete logo." })).toBeVisible();
+  await expect(panel.getByRole('img', { name: /Correct crop:.*lion logo/ })).toBeVisible();
+  await expect(panel.getByRole('img', { name: /Wrong crop:.*lion logo/ })).toBeVisible();
   for (const height of [900, 768, 650]) {
     await page.setViewportSize({ width: 1366, height });
     await expect.poll(() => panel.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
@@ -82,13 +84,63 @@ async function selectionInSourcePixels(page) {
   };
 }
 
+for (const mode of ["mockup", "logo", "pattern"]) {
+  test(`${mode} uses cursor-anchored zoom and pans without moving the crop`, async ({ page }) => {
+    await setupCrop(page, mode);
+    await drawCrop(page);
+    const initial = await selectionInSourcePixels(page);
+    const modal = page.locator(".crop-workspace-modal");
+    const stage = page.locator(".crop-canvas-stage");
+    await modal.getByRole("button", { name: "Actual size, 100 percent" }).click();
+    await expect(modal.locator(".crop-zoom-controls strong")).toHaveText("100%");
+    const bounds = await stage.boundingBox();
+    const point = { x: bounds.x + bounds.width * .5, y: bounds.y + bounds.height * .45 };
+    const sourcePoint = async () => {
+      const image = await page.getByAltText("Crop source", { exact: true }).boundingBox();
+      return { x: (point.x - image.x) / image.width, y: (point.y - image.y) / image.height, width: image.width };
+    };
+    const before = await sourcePoint();
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.wheel(0, -160);
+    await expect.poll(async () => (await sourcePoint()).width).toBeGreaterThan(before.width * 1.2);
+    const after = await sourcePoint();
+    expect(Math.abs(before.x - after.x) * sourceWidth).toBeLessThan(3);
+    expect(Math.abs(before.y - after.y) * sourceHeight).toBeLessThan(3);
+    await modal.getByRole("button", { name: "Pan tool", exact: true }).click();
+    const startScroll = await stage.evaluate(el => ({ x: el.scrollLeft, y: el.scrollTop }));
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.down();
+    await page.mouse.move(point.x + 55, point.y + 40, { steps: 10 });
+    await page.mouse.up();
+    const endScroll = await stage.evaluate(el => ({ x: el.scrollLeft, y: el.scrollTop }));
+    expect(startScroll.x - endScroll.x).toBeCloseTo(55, 0);
+    expect(startScroll.y - endScroll.y).toBeCloseTo(40, 0);
+    const panned = await selectionInSourcePixels(page);
+    for (const key of ["x", "y", "width", "height"]) expect(Math.abs(panned[key] - initial[key])).toBeLessThan(1);
+    await modal.getByRole("button", { name: "Crop tool", exact: true }).click();
+    await stage.focus();
+    await page.keyboard.down("Space");
+    await expect(stage).toHaveAttribute("data-tool", "hand");
+    await page.keyboard.up("Space");
+    await expect(stage).toHaveAttribute("data-tool", "crop");
+    await page.keyboard.press("0");
+    const fitted = await page.getByAltText("Crop source", { exact: true }).boundingBox();
+    expect(fitted.width).toBeLessThan(bounds.width);
+    expect(fitted.height).toBeLessThan(bounds.height);
+    await page.screenshot({ path: `test-results/crop-navigation-${mode}.png` });
+  });
+}
+
 for (const mode of ["standard", "logo", "pattern"]) {
   test(`${mode} crop keeps its source geometry through drag, resize, zoom and reset`, async ({ page }) => {
     await setupCrop(page, mode);
     const selection = await drawCrop(page);
     const initial = await selectionInSourcePixels(page);
     await page.locator(".crop-workspace-modal").getByRole("button", { name: "Zoom in", exact: true }).click();
-    await expect(page.locator(".crop-zoom-controls strong")).toHaveText("115%");
+    await expect.poll(async () => {
+      const box = await page.getByAltText("Crop source", { exact: true }).boundingBox();
+      return page.locator(".crop-zoom-controls strong").textContent().then(text => text === `${Math.round(box.width / sourceWidth * 100)}%`);
+    }).toBe(true);
     const zoomed = await selectionInSourcePixels(page);
     for (const key of ["x", "y", "width", "height"]) expect(Math.abs(zoomed[key] - initial[key])).toBeLessThan(1);
 
@@ -120,7 +172,8 @@ for (const mode of ["standard", "logo", "pattern"]) {
     await drawCrop(page);
     await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(selection).toHaveCount(0);
-    await expect(page.locator(".crop-zoom-controls strong")).toHaveText("90%");
+    const resetSource = await page.getByAltText("Crop source", { exact: true }).boundingBox();
+    await expect(page.locator(".crop-zoom-controls strong")).toHaveText(`${Math.round(resetSource.width / sourceWidth * 100)}%`);
   });
 }
 

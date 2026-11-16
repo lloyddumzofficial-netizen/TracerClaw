@@ -17,6 +17,9 @@ for (const width of [1440, 390]) {
     const horizon = page.locator('[data-hero-horizon]');
     await expect(horizon).toBeAttached();
     await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => [...document.fonts].some(font =>
+      font.family.replaceAll('"', '') === 'Manrope' && font.status === 'loaded'
+    ))).toBe(true);
     const measure = () => horizon.evaluate(element => ({
       top: element.getBoundingClientRect().top,
       height: element.parentElement.getBoundingClientRect().height,
@@ -26,6 +29,10 @@ for (const width of [1440, 390]) {
     await expect(page.locator('.guest-landing-community')).toHaveAttribute('aria-hidden', 'true');
     release();
     await expect(page.locator('.guest-landing-community')).toHaveAttribute('aria-hidden', 'false');
+    await expect(page.locator('.guest-landing-community')).toHaveCount(1);
+    const proof = await page.locator('.guest-landing-community').boundingBox();
+    const actions = await page.locator('.guest-landing-actions').boundingBox();
+    expect(proof.y - (actions.y + actions.height)).toBeGreaterThanOrEqual(27);
     await expect.poll(async () => (await measure()).top).toBeCloseTo(before.top, 1);
     const after = await measure();
     expect(after.height).toBeCloseTo(before.height, 1);

@@ -492,6 +492,13 @@ test("replacement uses the upload flow and insufficient credits open the existin
   await panel.getByRole("button", { name: "Get more Claws", exact: true }).click();
   expect(removeRequests).toBe(0);
   await expect(page.getByRole("heading", { name: "Plans & Pricing", exact: true })).toBeVisible();
+  await page.locator('.top-up-modal').screenshot({ path: 'scratch/topup-pricing-consistent.png' });
+  await expect(page.getByLabel('Display currency')).toBeVisible();
+  await page.getByRole('tab', { name: 'Activity', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Claw History', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+  await page.locator('.top-up-plan-card').filter({ has: page.getByRole('heading', { name: 'Basic', exact: true }) }).getByRole('button', { name: 'Select Plan', exact: true }).click();
+  await expect(page.locator('.top-up-payment-hero')).toBeVisible();
   await page.getByRole("button", { name: "Close top-up plans", exact: true }).click();
   await page.goto("/bg-remover/bg-ui-test");
   const chooser = page.waitForEvent("filechooser");

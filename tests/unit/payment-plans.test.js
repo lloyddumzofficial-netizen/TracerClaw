@@ -18,9 +18,9 @@ describe("payment catalogs", () => {
 
   it("publishes the approved international Dodo prices without Mini", () => {
     expect(Object.fromEntries(Object.entries(DODO_CREDIT_PLANS).map(([key, plan]) => [key, plan.amount]))).toEqual({
-      basic: 599,
-      starter: 1099,
-      pro: 2999,
+      basic: 279,
+      starter: 499,
+      pro: 1549,
     });
     expect(DODO_CREDIT_PLANS.tingi).toBeUndefined();
     expect(Object.values(DODO_CREDIT_PLANS).every((plan) => plan.currency === "USD")).toBe(true);
@@ -28,7 +28,7 @@ describe("payment catalogs", () => {
 
   it("resolves provider-specific offers server-side", () => {
     expect(getPaymentOffer("paymongo", "basic")).toEqual(expect.objectContaining({ amount: 15900, currency: "PHP", credits: 5 }));
-    expect(getPaymentOffer("dodo", "basic")).toEqual(expect.objectContaining({ amount: 599, currency: "USD", credits: 5 }));
+    expect(getPaymentOffer("dodo", "basic")).toEqual(expect.objectContaining({ amount: 279, currency: "USD", credits: 5 }));
     expect(getPaymentOffer("dodo", "tingi")).toBeNull();
   });
 });

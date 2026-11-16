@@ -1422,3 +1422,65 @@
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
 }
+
+/* Homepage-aligned neutral surfaces and flat actions for the purchase dialog. */
+.modal-overlay .top-up-modal {
+  border-radius: 18px !important;
+  border-color: #303030 !important;
+  background: #0b0b0b !important;
+  font-family: var(--font-manrope), sans-serif;
+}
+.modal-overlay .top-up-modal .top-up-modal-header,
+.modal-overlay .top-up-modal .top-up-modal-body,
+.modal-overlay .top-up-modal .top-up-pricing-hero { background: #0b0b0b !important; }
+.modal-overlay .top-up-modal .top-up-pricing-hero::before { display: none; }
+.modal-overlay .top-up-modal .top-up-pricing-title-row h2,
+.modal-overlay .top-up-modal .top-up-payment-hero h2,
+.modal-overlay .top-up-modal .top-up-qrph-header h2 {
+  background: none !important;
+  -webkit-text-fill-color: #f4f4f4 !important;
+  color: #f4f4f4 !important;
+  font-weight: 500 !important;
+  letter-spacing: -.035em !important;
+  line-height: 1.2 !important;
+}
+.modal-overlay .top-up-modal .top-up-pricing-title-row h2 { font-size: clamp(30px, 3.5vw, 44px) !important; }
+.modal-overlay .top-up-modal .top-up-pricing-kicker { color: #fbe750 !important; }
+.modal-overlay .top-up-modal .top-up-modal-tabs { border-radius: 999px !important; background: #171717 !important; }
+.modal-overlay .top-up-modal .top-up-tab-button { border-radius: 999px !important; }
+.modal-overlay .top-up-modal .top-up-tab-button[aria-selected="true"] { background: #303030 !important; color: #fff !important; }
+.modal-overlay .top-up-modal .top-up-tab-button[aria-selected="true"] svg { color: #fbe750 !important; }
+.modal-overlay .top-up-modal .top-up-pricing-table { gap: 20px !important; }
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-card {
+  border: 1px solid #303030 !important;
+  border-radius: 16px !important;
+  background: #111 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-card:hover { border-color: #555 !important; }
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-card-featured { border-color: #756c28 !important; background: #111 !important; }
+.modal-overlay .top-up-modal .top-up-plan-card-featured .top-up-plan-topline small { background: #fbe750 !important; color: #111 !important; border-color: transparent !important; }
+.modal-overlay .top-up-modal .top-up-plan-price strong { color: #f4f4f4 !important; background: none !important; -webkit-text-fill-color: #f4f4f4 !important; }
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-button {
+  min-height: 44px !important;
+  border: 1px solid transparent !important;
+  border-radius: 999px !important;
+  background: #f4f4f4 !important;
+  color: #111 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-button:hover { background: #fff !important; transform: none !important; }
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-button-featured { background: #ffe600 !important; }
+.modal-overlay .top-up-modal .top-up-pricing-table .top-up-plan-button-featured:hover { background: #fff13d !important; }
+.modal-overlay .top-up-modal .top-up-plan-button:focus-visible,
+.modal-overlay .top-up-modal .top-up-tab-button:focus-visible { outline: 2px solid #fbe750 !important; outline-offset: 3px; }
+.modal-overlay .top-up-modal .top-up-currency-row select { border-color: #3a3a3a !important; border-radius: 10px !important; background: #191919 !important; font-weight: 500 !important; }
+@media (max-width: 560px) {
+  .modal-overlay .top-up-modal { border-radius: 14px !important; }
+  .modal-overlay .top-up-modal .top-up-pricing-table { gap: 16px !important; }
+}
+.modal-overlay .top-up-modal .top-up-plan-card-featured .top-up-plan-name > span { background: #fbe750 !important; color: #111 !important; border-color: transparent !important; }
+.modal-overlay .top-up-modal .top-up-plan-card-featured .top-up-plan-topline small { background: transparent !important; color: #a0a0a0 !important; }

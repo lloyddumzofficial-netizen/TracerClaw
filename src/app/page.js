@@ -8,7 +8,6 @@ import motionStyles from "@/components/marketing/HomepageMotion.module.css";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import laptopPreview from "../../public/LAPTOP.jpg";
 
 // ─── Data & Auth ──────────────────────────────────────────────────────────────
 import { createClient } from "@/utils/supabase/client";
@@ -25,6 +24,8 @@ import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./home.css";
+import actionStyles from "@/components/marketing/HomepageAction.module.css";
+import dashboardStyles from "@/components/marketing/MemberDashboard.module.css";
 
 // ─── Components ───────────────────────────────────────────────────────────────
 import LoginModal from "@/components/marketing/LoginModal";
@@ -40,7 +41,10 @@ import FAQSection from "@/components/marketing/FAQSection";
 import LogoLoader from "@/components/ui/LogoLoader";
 import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
-import GuestHomepageHero, { GuestHomepageConversionSections, GuestHomepageSampleSection } from "@/components/marketing/GuestHomepageHero";
+import GuestHomepageHero, { GuestHomepageConversionSections } from "@/components/marketing/GuestHomepageHero";
+import WorkspaceFeatureGrid from "@/components/marketing/WorkspaceFeatureGrid";
+import ProductionOverview from "@/components/marketing/ProductionOverview";
+import MovingArtworkGallery from "@/components/marketing/MovingArtworkGallery";
 import GarmentSamplePreview from "@/components/marketing/GarmentSamplePreview";
 import HomeHeaderBrand from "@/components/marketing/HomeHeaderBrand";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
@@ -53,7 +57,6 @@ import { markReferralPromptSeen } from "@/lib/referralPrompt";
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 const PUBLIC_STATS_CACHE_KEY = "desaynclaw-public-stats-v2";
-const DRIVE_ANNOUNCEMENT_DISMISS_KEY = "desaynclaw-drive-announcement-v1";
 
 async function uploadFileToPresignedUrl(uploadUrl, file) {
   let lastError;
@@ -123,37 +126,6 @@ async function uploadImageToStorage({ token, file, purpose }) {
   }
 }
 
-function HomepageWorkflowPreview({ onStart }) {
-  return (
-    <section className="workflow-preview-section" aria-label="DesaynClaw output preview">
-      <div className="workflow-preview-copy">
-        <h2>
-          Clean production files
-          <em>from rough artwork.</em>
-        </h2>
-        <p>
-          See the full handoff after upload: cropped artwork, vector controls,
-          transparent assets, and export-ready files built for real print shop work.
-        </p>
-        <button className="workflow-preview-cta" type="button" onClick={onStart}>
-          Start designing
-          <span><ArrowUpRight size={16} aria-hidden="true" /></span>
-        </button>
-      </div>
-
-      <div className="workflow-mockup" aria-hidden="true">
-        <Image
-          className="workflow-standalone-image"
-          src={laptopPreview}
-          alt=""
-          sizes="(max-width: 980px) 100vw, 720px"
-          loading="lazy"
-        />
-      </div>
-    </section>
-  );
-}
-
 function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockupStudio }) {
   const trackRef = useRef(null);
   const tools = [
@@ -220,7 +192,7 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockup
             <div className={toolsShelfStyles.copy}>
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
-              <button type="button" onClick={tool.onClick}>
+              <button className={`${actionStyles.action} ${actionStyles.compact}`} type="button" onClick={tool.onClick}>
                 Open workspace
                 <ArrowUpRight size={15} strokeWidth={1.8} />
               </button>
@@ -512,7 +484,6 @@ export default function StartScreen() {
   const [unreadReferralRewards, setUnreadReferralRewards] = useState(0);
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showDriveAnnouncement, setShowDriveAnnouncement] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   const openReferralModal = useCallback(() => {
@@ -566,9 +537,6 @@ export default function StartScreen() {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // ─── Initialization ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    setShowDriveAnnouncement(localStorage.getItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY) !== "1");
-  }, []);
 
   const scrollToHomeSection = useHomepageMotion({
     rootRef: homeRootRef,
@@ -577,10 +545,6 @@ export default function StartScreen() {
       || showOnboarding || showQrModal || projectToDelete || isUploading || isDraggingGlobal),
   });
 
-  const dismissDriveAnnouncement = () => {
-    localStorage.setItem(DRIVE_ANNOUNCEMENT_DISMISS_KEY, "1");
-    setShowDriveAnnouncement(false);
-  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1104,7 +1068,7 @@ export default function StartScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div ref={homeRootRef} id="start" className={`start-screen-container ${motionStyles.root}${user ? "" : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
+    <div ref={homeRootRef} id="start" className={`start-screen-container ${motionStyles.root}${user ? ` ${dashboardStyles.root}` : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
       {user && <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
         DesaynClaw AI Vector Tracer and Sublimation Design Extractor
       </h1>}
@@ -1195,28 +1159,6 @@ export default function StartScreen() {
           </div>
         </div>
       </header>}
-
-      {showDriveAnnouncement && !showReferralModal && (
-        <section className="home-announcement-banner" aria-label="Google Drive integration announcement">
-          <div className="home-announcement-inner">
-            <div className="home-announcement-icon" aria-hidden="true">
-              <img src="/Google_Drive_Logo_05.2026.png" alt="" />
-            </div>
-            <p>
-              <span>New</span>
-              Google Drive export is now available — save finished SVG, PNG, and ZIP project files straight to your Drive folder.
-            </p>
-            <button
-              type="button"
-              className="home-announcement-close"
-              onClick={dismissDriveAnnouncement}
-              aria-label="Dismiss announcement"
-            >
-              <X size={13} />
-            </button>
-          </div>
-        </section>
-      )}
 
       {/* FULL WIDTH HERO SECTION */}
       {!user && (
@@ -1408,18 +1350,9 @@ export default function StartScreen() {
 
         {user && <HomeTrustMarquee />}
 
-        {user && (
-          <HomepageWorkflowPreview
-            onStart={(e) => {
-              e?.stopPropagation?.();
-              if (requireDesktopTool()) return;
-              setInitialProjectCategory(null);
-              setShowModal(true);
-            }}
-          />
-        )}
+        <MovingArtworkGallery />
 
-        {user && (
+{user && (
           <DesktopToolsShelf
             onGarment={(e) => {
               e?.stopPropagation?.();
@@ -1452,17 +1385,7 @@ export default function StartScreen() {
           />
         )}
 
-        {!user && (
-          <HomepageWorkflowPreview
-            onStart={(e) => {
-              e?.stopPropagation?.();
-              if (requireDesktopTool()) return;
-              setShowLoginModal(true);
-            }}
-          />
-        )}
-
-        {!user && (
+{!user && (
           <DesktopToolsShelf
             onGarment={(e) => {
               e?.stopPropagation?.();
@@ -1492,10 +1415,12 @@ export default function StartScreen() {
           />
         )}
 
-        {!user && <GuestHomepageSampleSection />}
+
+        {!user && <WorkspaceFeatureGrid />}
+        {!user && <ProductionOverview />}
 
         {/* Maya — Garment Panel Agent */}
-        <section className="tool-showcase-section section-line-accent">
+        <section id="preview" className="tool-showcase-section section-line-accent">
           <div className="tool-showcase-copy">
             <span className="section-kicker">Maya · Panel Agent</span>
             <h2>Extract Clean Garment Artwork</h2>
@@ -1504,7 +1429,7 @@ export default function StartScreen() {
               prepares clean panels your team can refine and send to production.
             </p>
             <button
-              className="tool-showcase-button is-maya-gradient"
+              className={`tool-showcase-button ${actionStyles.action}`}
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory("garment"); setShowModal(true); }}
             >
               <Scan size={18} />
@@ -1526,7 +1451,7 @@ export default function StartScreen() {
               clean across uniforms, merchandise, signage, and large-format production.
             </p>
             <button
-              className="tool-showcase-button is-victor-gradient"
+              className={`tool-showcase-button ${actionStyles.action}`}
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory("logo"); setShowModal(true); }}
             >
               <ImageIcon size={18} />
@@ -1556,7 +1481,7 @@ export default function StartScreen() {
               the original rhythm, spacing, color relationships, and production intent.
             </p>
             <button
-              className="tool-showcase-button is-tess-gradient"
+              className={`tool-showcase-button ${actionStyles.action}`}
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory("pattern"); setShowModal(true); }}
             >
               <Layers size={18} />
@@ -1589,7 +1514,7 @@ export default function StartScreen() {
               products, portraits, and graphics without slow manual tracing.
             </p>
             <button
-              className="tool-showcase-button is-cora-gradient"
+              className={`tool-showcase-button ${actionStyles.action}`}
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push("/bg-remover"); }}
             >
               <Scissors size={18} />
@@ -1621,7 +1546,7 @@ export default function StartScreen() {
               team review form, placement, and presentation before final production.
             </p>
             <button
-              className="tool-showcase-button is-marco-gradient"
+              className={`tool-showcase-button ${actionStyles.action}`}
               onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/mockup-studio'); }}
             >
               <Monitor size={18} />
@@ -1950,8 +1875,8 @@ export default function StartScreen() {
           <span className="prefooter-cta-kicker">Production tools for real artwork</span>
           <h2 id="prefooter-cta-heading">Turn rough artwork into production-ready files.</h2>
           <p>Trace, clean up, remove backgrounds, and upscale client artwork in one focused workspace.</p>
-          <button type="button" onClick={() => { if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory(null); setShowModal(true); }}>
-            Start designing <span><ArrowUpRight size={18} aria-hidden="true" /></span>
+          <button className={actionStyles.action} type="button" onClick={() => { if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory(null); setShowModal(true); }}>
+            Start designing
           </button>
           <small>Private by default <i aria-hidden="true" /> No subscription required <i aria-hidden="true" /> Auto-deleted after 3 days</small>
         </section>

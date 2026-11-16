@@ -1,0 +1,18 @@
+.section { width: min(100%, 1120px); margin: 0 auto; padding: 72px 0; color: #f4f4f1; }
+.header { max-width: 660px; margin-bottom: 32px; }
+.header > span { color: #aaa; font-size: 12px; font-weight: 600; }
+.header h2 { margin: 12px 0; font-size: clamp(26px, 3vw, 38px); font-weight: 500; line-height: 1.25; letter-spacing: -.025em; }
+.header p { margin: 0; color: #929591; font-size: 15px; line-height: 1.6; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.card { min-width: 0; padding: 12px; border: 1px solid var(--marketing-glass-border); border-radius: 16px; background: var(--marketing-glass-surface); box-shadow: var(--marketing-glass-highlight); }
+.preview { overflow: hidden; aspect-ratio: 700 / 460; border: 1px solid #222; border-radius: 10px; background: #101112; }
+.preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.copy { padding: 20px 6px 10px; }
+.copy h3 { margin: 0 0 10px; font-size: 16px; font-weight: 600; line-height: 1.45; letter-spacing: -.015em; }
+.copy p { margin: 0; color: #a4a6a3; font-size: 13px; line-height: 1.65; }
+@media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .section { padding: 48px 0; }
+  .grid { grid-template-columns: 1fr; }
+  .header { margin-bottom: 24px; }
+}

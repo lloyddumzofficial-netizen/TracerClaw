@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope/Manrope-Variable.ttf") format("truetype");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Core workspace palette */
   --bg-app: #262626;
@@ -24,6 +32,9 @@
   --marketing-muted: #9a9a9a;
   --marketing-soft: #686868;
   --marketing-accent: #ffd700;
+  --marketing-glass-surface: linear-gradient(155deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, 0) 48%), rgba(17, 17, 17, .96);
+  --marketing-glass-border: rgba(255, 255, 255, .15);
+  --marketing-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, .06);
 
   /* Shared grid and grain assets */
   --surface-grid-size: 64px;
@@ -32,7 +43,7 @@
   --surface-grain-strong: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.32'/%3E%3C/svg%3E");
   --surface-grain-faint: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23grain)' opacity='.075'/%3E%3C/svg%3E");
 
-  /* Local-safe font stacks */
+  /* Self-hosted Manrope with system fallbacks. */
   --font-manrope: "Manrope", "Segoe UI", Arial, sans-serif;
   --font-space-grotesk: var(--font-manrope), "Segoe UI", Arial, sans-serif;
   --font-inter: var(--font-manrope), "Segoe UI", Arial, sans-serif;

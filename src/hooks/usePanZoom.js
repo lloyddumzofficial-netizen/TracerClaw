@@ -140,6 +140,7 @@ export function usePanZoom({ showCropModal }) {
   // Keyboard shortcuts: F / Space = fit, Escape = 1:1 center
   useEffect(() => {
     const onKey = (e) => {
+      if (showCropModal) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'f' || e.key === 'F' || e.key === ' ') {
         e.preventDefault();
@@ -161,7 +162,7 @@ export function usePanZoom({ showCropModal }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [fitToScreen, applyTransform]);
+  }, [fitToScreen, applyTransform, showCropModal]);
 
   // Attach wheel as non-passive via ref to allow preventDefault
   useEffect(() => {

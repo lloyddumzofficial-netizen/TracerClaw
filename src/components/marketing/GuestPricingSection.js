@@ -1,44 +1,36 @@
 "use client";
 
-import { ArrowUpRight, Check, CreditCard, ExternalLink, QrCode } from "lucide-react";
+import { ArrowUpRight, Check, CreditCard, ExternalLink } from "lucide-react";
 import Image from "next/image";
-import { CREDIT_PLANS } from "@/lib/paymentPlans";
+import { DODO_CREDIT_PLANS } from "@/lib/paymentPlans";
 import styles from "./GuestPricingSection.module.css";
 
 const PLAN_DETAILS = {
-  tingi: {
-    eyebrow: "Quick test",
-    description: "For a small file or a fast production check.",
-    features: ["2 standard traces", "1 precision trace", "QR Ph checkout"],
-  },
   basic: {
     eyebrow: "Occasional work",
     description: "A practical pack for one-off client jobs.",
-    features: ["Up to 5 standard traces", "Up to 2 precision traces", "QR Ph or card"],
+    features: ["Up to 5 standard traces", "Up to 2 precision traces", "Card checkout"],
   },
   starter: {
     eyebrow: "Regular production",
     description: "Built for a steady flow of artwork each week.",
-    features: ["Up to 10 standard traces", "Up to 5 precision traces", "QR Ph or card"],
+    features: ["Up to 10 standard traces", "Up to 5 precision traces", "Card checkout"],
   },
   pro: {
     eyebrow: "Best value",
     description: "The lowest cost per Claw for active production teams.",
-    features: ["Up to 35 standard traces", "Up to 17 precision traces", "QR Ph or card"],
+    features: ["Up to 35 standard traces", "Up to 17 precision traces", "Card checkout"],
     featured: true,
   },
 };
 
-const PRICING_PLANS = Object.values(CREDIT_PLANS).map((plan) => ({
+const PRICING_PLANS = Object.values(DODO_CREDIT_PLANS).map((plan) => ({
   ...plan,
   ...PLAN_DETAILS[plan.key],
-  pricePerClaw: Math.round(plan.amount / 100 / plan.credits),
+  pricePerClaw: (plan.amount / 100 / plan.credits).toFixed(2),
 }));
 
-const DISPLAY_PLANS = [
-  ...PRICING_PLANS.filter((plan) => plan.featured),
-  ...PRICING_PLANS.filter((plan) => !plan.featured),
-];
+const DISPLAY_PLANS = PRICING_PLANS;
 
 export default function GuestPricingSection({ onStart }) {
   return (
@@ -49,6 +41,12 @@ export default function GuestPricingSection({ onStart }) {
         <p>Buy only the Claws you need. Every package is a one-time payment with no recurring commitment.</p>
       </div>
 
+      <aside className={styles.usageNote} aria-label="How Claws are counted">
+        <h3>1 design = 1 Claw</h3>
+        <p>For Standard processing, each separate design or garment panel counts individually: <strong>front design = 1 Claw; back design = 1 Claw.</strong> Front and back together use 2 Claws—not 1 Claw for a complete garment.</p>
+        <small>Precision SVG uses 2 Claws per design. Additional paid actions show their own Claw cost before you run them.</small>
+      </aside>
+
       <div className={styles.grid}>
         {DISPLAY_PLANS.map((plan) => (
           <article className={`${styles.card}${plan.featured ? ` ${styles.featured}` : ""}`} key={plan.key}>
@@ -57,9 +55,6 @@ export default function GuestPricingSection({ onStart }) {
                 <h3>{plan.label}</h3>
                 {plan.featured && <span>Most recommended</span>}
               </div>
-              <button type="button" onClick={onStart} aria-label={`Choose the ${plan.label} package`}>
-                Choose plan <ArrowUpRight size={15} aria-hidden="true" />
-              </button>
             </header>
 
             <div className={styles.cardContent}>
@@ -76,25 +71,28 @@ export default function GuestPricingSection({ onStart }) {
                     <Image src="/Claws/Claws.webp" alt="" width={15} height={15} aria-hidden="true" />
                     Claws
                   </span>
-                  <small>₱{plan.pricePerClaw} each</small>
+                  <small>${plan.pricePerClaw} each</small>
                 </div>
 
                 <p>{plan.description}</p>
               </div>
 
+              <h4 className={styles.included}>What’s included</h4>
               <ul className={styles.features}>
                 {plan.features.map((feature) => (
                   <li key={feature}><Check size={16} aria-hidden="true" /> <span>{feature}</span></li>
                 ))}
               </ul>
             </div>
+            <button className={styles.planAction} type="button" onClick={onStart} aria-label={`Choose the ${plan.label} package`}>
+              Choose {plan.label} <ArrowUpRight size={15} aria-hidden="true" />
+            </button>
           </article>
         ))}
       </div>
 
       <div className={styles.footnote}>
-        <span><QrCode size={14} aria-hidden="true" /> QR Ph for every package</span>
-        <span><CreditCard size={14} aria-hidden="true" /> Card checkout on Basic and above</span>
+        <span><CreditCard size={14} aria-hidden="true" /> Prices in USD · One-time card payment</span>
         <small>Standard SVG uses 1 Claw. Precision SVG uses 2 Claws.</small>
       </div>
 

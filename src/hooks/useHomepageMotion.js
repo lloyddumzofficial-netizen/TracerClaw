@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { NAVIGATION_START_EVENT } from "./useAppRouter";
 
 const REVEAL_SECTIONS = [
-  ".home-content-frame > .workflow-preview-section",
+  ".home-content-frame > section",
+  '.home-content-frame > [aria-labelledby="moving-artwork-heading"]',
+  '.home-content-frame > [aria-labelledby="workspace-features-heading"]',
   ".home-content-frame > .desktop-tools-shelf",
   ".home-content-frame .guest-landing-example",
   ".home-content-frame > .edu-demo-section",
@@ -20,7 +22,13 @@ const REVEAL_SECTIONS = [
 ].join(",");
 
 // Explicit exclusions: no computed-style/overflow scan on each wheel event.
-const NATIVE_SURFACES = '[data-home-native-scroll], [role="dialog"], [aria-modal="true"], .modal-content, .recent-grid, .ba-slider-stage, input, textarea, select, video, iframe';
+// Only real nested scrolling surfaces bypass page smoothing. Images, videos,
+// buttons and comparison ranges stay in the same wheel gesture as page content.
+const NATIVE_SURFACES = '[data-home-native-scroll], [role="dialog"], [aria-modal="true"], .modal-content, select, iframe';
+const ownsNativeScroll = node => node instanceof Element && (
+  node.matches(NATIVE_SURFACES) ||
+  (node.matches('.recent-grid, textarea') && node.scrollHeight > node.clientHeight + 1)
+);
 
 export default function useHomepageMotion({ rootRef, view, blocked }) {
   const controllerRef = useRef(null);
@@ -61,6 +69,7 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
     let dragging = false;
     let privacyBlocked = !localStorage.getItem("ai_disclaimer_seen");
     let restoreScrollBehavior;
+    let wheelDirection = 0;
 
     const cancelFrame = () => { cancelAnimationFrame(frame); frame = 0; };
     const tick = (time) => {
@@ -100,14 +109,30 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
     const configure = async () => {
       const token = ++generation;
       destroy();
-      if (preference.matches || !desktop.matches || navigating) return;
+      if (!desktop.matches || navigating) return;
       try {
         const { default: Lenis } = await import("lenis");
         if (disposed || token !== generation) return;
         lenis = new Lenis({
+          // Short settling avoids a long tail after input has stopped.
           autoRaf: false, smoothWheel: true, lerp: 0.1, wheelMultiplier: 1,
+          // The requested desktop scroll treatment is independent of the
+          // reduced-motion setting used for decorative section reveals.
+          respectReducedMotion: false,
           syncTouch: false, anchors: false,
-          prevent: (node) => node instanceof Element && node.matches(NATIVE_SURFACES),
+          virtualScroll: ({ deltaY, event }) => {
+            if (event.type !== "wheel" || event.ctrlKey || lenis?.isStopped) return true;
+            if (event.composedPath().some(ownsNativeScroll)) return true;
+            const direction = Math.sign(deltaY);
+            if (direction && wheelDirection && direction !== wheelDirection && lenis?.isScrolling === "smooth") {
+              // Discard only outstanding inertia when the user reverses direction.
+              // The new input still travels its full distance from this position.
+              lenis.scrollTo(lenis.animatedScroll, { immediate: true, force: true });
+            }
+            if (direction) wheelDirection = direction;
+            return true;
+          },
+          prevent: ownsNativeScroll,
         });
         const html = document.documentElement;
         const value = html.style.getPropertyValue("scroll-behavior");
@@ -216,12 +241,15 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
     };
     const configure = () => {
       clear();
-      if (preference.matches) return;
       observer = new IntersectionObserver((entries) => {
-        entries.forEach(({ target, isIntersecting }) => {
-          if (!isIntersecting) return;
-          target.dataset.homeRevealed = "true";
-          observer.unobserve(target);
+        entries.forEach(({ target, isIntersecting, boundingClientRect }) => {
+          if (isIntersecting) {
+            target.dataset.homeRevealed = "true";
+          } else if (boundingClientRect.top >= window.innerHeight && !target.contains(document.activeElement)) {
+            // Re-arm only after the section has fully left below the viewport.
+            // Scrolling back up never hides content above the reader.
+            delete target.dataset.homeRevealed;
+          }
         });
       }, { rootMargin: "0px 0px -24px 0px", threshold: 0 });
       // Never hide content already on screen, including restored scroll positions.
@@ -237,7 +265,7 @@ export default function useHomepageMotion({ rootRef, view, blocked }) {
     };
     const onFocus = (event) => {
       const section = event.target.closest?.("[data-home-reveal]");
-      if (section) { section.dataset.homeRevealed = "true"; observer?.unobserve(section); }
+      if (section) section.dataset.homeRevealed = "true";
     };
     configure();
     root.addEventListener("focusin", onFocus);

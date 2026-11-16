@@ -1,0 +1,107 @@
+.root.root:global(.start-screen-container) :global(.home-hero-shell)::before {
+  background-image:
+    radial-gradient(ellipse 50% 68% at 35% 35%, rgba(255, 255, 255, .085), rgba(255, 255, 255, .025) 48%, transparent 80%),
+    radial-gradient(ellipse 38% 55% at 77% 29%, rgba(255, 255, 255, .035), transparent 80%),
+    radial-gradient(circle, rgba(255, 255, 255, .18) .6px, transparent .8px) !important;
+  background-size: auto, auto, 16px 16px !important;
+}
+
+.root.root :global(.hero-copy) {
+  color: #a6a6a6 !important;
+  font-size: 14px !important;
+  line-height: 1.75 !important;
+}
+
+.root.root :global(.hero-action-bar) {
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 16px !important;
+}
+
+.root.root :global(.hero-action-bar .start-btn) {
+  min-height: 38px;
+  height: auto !important;
+  padding: 10px 12px !important;
+  border: 1px solid #343434 !important;
+  border-radius: 8px !important;
+  background: #151515 !important;
+  color: #d8d8d8 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+}
+
+.root.root :global(.hero-action-bar .start-btn):hover {
+  background: #222222 !important;
+  border-color: #646464 !important;
+}
+
+.root.root :global(.hero-upload-box) {
+  padding: 28px !important;
+  border: 1px dashed #484848 !important;
+  border-radius: 16px !important;
+  background: #111111 !important;
+  box-shadow: none !important;
+}
+
+.root.root :global(.hero-upload-box .start-btn) {
+  min-height: 52px;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: #f4f4f4 !important;
+  color: #111 !important;
+  box-shadow: none !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+}
+
+.root.root :global(.hero-upload-box .start-btn):hover {
+  background: #fff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.root.root :global(.recent-projects) {
+  box-sizing: border-box;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.root.root :global(.recent-projects-head) { gap: 16px; margin-bottom: 18px; }
+.root.root :global(.recent-projects h3) {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -.01em !important;
+  text-transform: none !important;
+}
+.root.root :global(.recent-projects-retention) {
+  color: #929292;
+  font: 500 10px/1.4 var(--font-manrope), sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.root.root :global(.recent-projects-search input) {
+  min-height: 38px;
+  background: #191919 !important;
+  border-color: #343434 !important;
+  font-size: 12px !important;
+}
+.root.root :global(.recent-privacy-note) {
+  background: #181818;
+  border-color: #333333;
+  margin-bottom: 18px;
+}
+.root.root :global(.recent-privacy-note > div) { display: grid; gap: 4px; }
+.root.root :global(.recent-privacy-note p) { white-space: normal; font-size: 10px; line-height: 1.5; }
+.root.root :global(.recent-grid) { gap: 12px !important; }
+.root.root :global(.recent-card) { border: 1px solid #333333 !important; border-radius: 10px !important; background: #1b1b1b !important; }
+.root.root :global(.recent-card):hover { border-color: #727272 !important; }
+.root.root :global(.start-btn):focus-visible,
+.root.root :global(.recent-card):focus-visible { outline: 2px solid #fbe750; outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .root.root :global(.hero-upload-box) { padding: 20px !important; }
+}

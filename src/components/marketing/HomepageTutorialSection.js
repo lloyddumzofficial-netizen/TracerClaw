@@ -3,8 +3,8 @@
 import { useRef, useState } from "react";
 import { Clock3, Play } from "lucide-react";
 
-const TUTORIAL_VIDEO_URL =
-  "https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/desaynclaw_video-tutorial/DESAYNCLAW-TUTORIAL.compressed.mp4";
+const DEMO_VIDEO_URL =
+  "https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/MARKETING%20VIDEO%202.mp4";
 
 
 export default function HomepageTutorialSection() {
@@ -23,18 +23,18 @@ export default function HomepageTutorialSection() {
     >
       <header className="homepage-tutorial-heading">
         <div>
-          <h2 id="homepage-tutorial-title">Watch the complete workflow, from upload to export.</h2>
+          <h2 id="homepage-tutorial-title">See the artwork workflow in action.</h2>
         </div>
         <div className="homepage-tutorial-summary">
-          <p>Mike walks through the real DesaynClaw workflow—including Claws, artwork extraction, review, and Google Drive delivery.</p>
-          <span><Clock3 size={13} aria-hidden="true" /> 5-minute product tutorial</span>
+          <p>A quick look at turning garment mockups into flat artwork, reviewing the details, and preparing your files for export.</p>
+          <span><Clock3 size={13} aria-hidden="true" /> 1-minute product demo</span>
         </div>
       </header>
 
       <div className="homepage-tutorial-player" data-playing={isPlaying}>
         <div className="homepage-tutorial-playerbar" aria-hidden="true">
-          <span>DesaynClaw Academy</span>
-          <span>Official walkthrough</span>
+          <span>DesaynClaw Studio</span>
+          <span>Artwork demo</span>
         </div>
         <div className="homepage-tutorial-video-wrap">
           <video
@@ -43,16 +43,16 @@ export default function HomepageTutorialSection() {
             playsInline
             preload="metadata"
             controlsList="nodownload"
-            aria-label="How to use DesaynClaw complete tutorial"
+            aria-label="DesaynClaw artwork workflow demo"
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
           >
-            <source src={TUTORIAL_VIDEO_URL} type="video/mp4" />
+            <source src={DEMO_VIDEO_URL} type="video/mp4" />
             Your browser does not support HTML video.
           </video>
           {!isPlaying && (
-            <button className="homepage-tutorial-play" type="button" onClick={handlePlay} aria-label="Play the DesaynClaw tutorial">
+            <button className="homepage-tutorial-play" type="button" onClick={handlePlay} aria-label="Play the DesaynClaw artwork demo">
               <Play size={28} fill="currentColor" aria-hidden="true" />
             </button>
           )}

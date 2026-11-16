@@ -24,7 +24,7 @@ describe("localized pricing API", () => {
       rate: 1,
       estimated: false,
     }));
-    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 599, currency: "USD" }));
+    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 279, currency: "USD" }));
     expect(body.providers.dodo.plans.tingi).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -83,7 +83,7 @@ describe("localized pricing API", () => {
       rate: 1,
       estimated: false,
     }));
-    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 599, currency: "USD" }));
+    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 279, currency: "USD" }));
     expect(body.providers.dodo.plans.tingi).toBeUndefined();
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { BadgeCheck } from "lucide-react";
+import { Quote, Star, ArrowUpRight } from "lucide-react";
+import styles from "./TestimonialSection.module.css";
 
 const SAMPLE_FEEDBACK = [
   {
@@ -53,45 +54,38 @@ const SAMPLE_FEEDBACK = [
   },
 ];
 
+
+function ReviewCard({ review, featured = false }) {
+  return (
+    <article className={featured ? styles.featured : styles.card}>
+      <Quote className={styles.quote} size={32} fill="currentColor" aria-hidden="true" />
+      <blockquote>{review.feedback_text}</blockquote>
+      <div className={styles.stars} aria-label={review.rating + " out of 5 stars"}>
+        {Array.from({ length: 5 }, (_, index) => <Star key={index} size={13} fill={index < review.rating ? "currentColor" : "none"} aria-hidden="true" />)}
+      </div>
+      <footer className={styles.author}>
+        <span className={styles.avatar} aria-hidden="true">{review.initials}</span>
+        <div><strong>{review.reviewer_name}</strong><span>{review.reviewer_role}</span></div>
+      </footer>
+    </article>
+  );
+}
+
 export default function TestimonialSection() {
   return (
-    <section className="testimonial-showcase" aria-labelledby="testimonial-showcase-title">
-      <div className="testimonial-heading">
-        <h2 id="testimonial-showcase-title">Intuitive, powerful, and fast. See what others say about DesaynClaw.</h2>
-        <p>Read our sample testimonials</p>
-        <div className="testimonial-proof" aria-label="Sample feedback note">
-          <span className="testimonial-proof-icon">
-            <BadgeCheck size={14} />
-          </span>
-          <span>Sample workflow feedback</span>
-        </div>
+    <section className={styles.section} aria-labelledby="testimonial-showcase-title">
+      <div className={styles.top}>
+        <header className={styles.heading}>
+          <span className={styles.eyebrow}>Testimonials</span>
+          <h2 id="testimonial-showcase-title">What creatives say.</h2>
+          <p>From first upload to production handoff, a closer look at the DesaynClaw workflow.</p>
+          <a href="#workspace-tools">Explore workspaces <ArrowUpRight size={15} aria-hidden="true" /></a>
+          <small>Illustrative testimonials · Sample workflow feedback</small>
+        </header>
+        <ReviewCard review={SAMPLE_FEEDBACK[0]} featured />
       </div>
-
-      <div className="testimonial-grid">
-        {SAMPLE_FEEDBACK.map((rev, idx) => (
-          <article className="testimonial-card" key={`${rev.reviewer_name}-${idx}`}>
-            <div className="testimonial-stars" aria-label={`${rev.rating} out of 5 stars`}>
-              {Array.from({ length: 5 }).map((_, starIndex) => (
-                <span className={starIndex < rev.rating ? "is-filled" : ""} key={starIndex}>
-                  ★
-                </span>
-              ))}
-            </div>
-
-            <blockquote>"{rev.feedback_text}"</blockquote>
-
-            <div className="testimonial-author">
-              <span className={`testimonial-avatar tone-${rev.tone}`} aria-hidden="true">
-                {rev.initials}
-              </span>
-              <div className="testimonial-author-copy">
-                <strong>{rev.reviewer_name}</strong>
-                <span>{rev.reviewer_role}</span>
-              </div>
-            </div>
-
-          </article>
-        ))}
+      <div className={styles.grid}>
+        {SAMPLE_FEEDBACK.slice(1, 4).map(review => <ReviewCard key={review.reviewer_name} review={review} />)}
       </div>
     </section>
   );

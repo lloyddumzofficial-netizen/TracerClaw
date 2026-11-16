@@ -1,0 +1,23 @@
+.section { width: min(100%, 1120px); margin: 0 auto; padding: 80px 0; color: #f4f4f4; font-family: var(--font-manrope), sans-serif; }
+.top { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: stretch; margin-bottom: 24px; }
+.heading { padding: 8px 40px 24px 0; align-self: start; }
+.eyebrow { color: #fbe750; font-size: 12px; font-weight: 600; }
+.heading h2 { margin: 16px 0 14px; font-size: clamp(30px, 3.2vw, 42px); font-weight: 500; line-height: 1.2; letter-spacing: -.03em; }
+.heading p { max-width: 410px; margin: 0; color: #a0a0a0; font-size: 14px; line-height: 1.7; }
+.heading a { display: inline-flex; align-items: center; gap: 10px; margin-top: 24px; min-height: 44px; padding: 12px 22px; border: 1px solid #2e2e2e; border-radius: 999px; background: #191919; color: #dedede; font-size: 13px; font-weight: 600; text-decoration: none; }
+.heading a:hover { background: #242424; color: #fff; }
+.heading a:focus-visible { outline: 2px solid #fbe750; outline-offset: 4px; }
+.heading small { display: block; margin-top: 16px; color: #888; font-size: 11px; line-height: 1.6; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.card, .featured { display: flex; flex-direction: column; min-width: 0; min-height: 320px; padding: 26px; border: 1px solid #262626; border-radius: 16px; background: #101010; }
+.featured { background: #191919; min-height: 290px; }
+.quote { color: #383838; flex-shrink: 0; margin-bottom: 24px; }
+.card blockquote, .featured blockquote { margin: 0 0 32px; font-size: 16px; font-weight: 500; line-height: 1.65; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.stars { display: flex; justify-content: flex-end; gap: 2px; color: #ffe600; margin-top: auto; padding-bottom: 24px; }
+.author { display: flex; align-items: center; gap: 12px; }
+.avatar { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border: 1px solid #484848; border-radius: 50%; background: #242424; color: #ddd; font-size: 11px; font-weight: 600; }
+.author > div { display: grid; gap: 5px; }
+.author strong { font-size: 13px; font-weight: 600; }
+.author div > span { color: #969696; font-size: 12px; line-height: 1.4; }
+@media (max-width: 900px) { .top { grid-template-columns: 1fr; } .heading { padding-right: 0; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .section { padding: 56px 0; } .grid { grid-template-columns: 1fr; } .top { gap: 24px; } .card, .featured { min-height: 280px; padding: 24px; } }

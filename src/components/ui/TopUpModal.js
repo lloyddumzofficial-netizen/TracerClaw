@@ -468,6 +468,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <div className="top-up-pricing-title-row">
                   <h2>Plans &amp; Pricing</h2>
                   <p>Choose the production capacity that fits your workflow and pay only when you need more Claws.</p>
+                  <p><strong>1 design = 1 Claw in Standard mode.</strong> Front design: 1 Claw. Back design: 1 Claw. Front + back: 2 Claws. Precision SVG: 2 Claws per design. Additional paid actions show their own cost before processing.</p>
                 </div>
                 <div className="top-up-purchase-mode" aria-label="All packages are one-time purchases">
                   <span className="top-up-purchase-mode-active">One-time packages</span>

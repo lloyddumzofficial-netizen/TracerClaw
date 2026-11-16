@@ -1,0 +1,19 @@
+.toolbar.toolbar { flex-wrap: wrap; gap: 8px; }
+.toolbar .tools { display: flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid #363636; border-radius: 7px; background: #181818; }
+.toolbar .tools button { display: grid; place-items: center; width: 30px; height: 28px; padding: 0; border: 0; border-radius: 4px; color: #aaa; background: transparent; cursor: pointer; }
+.toolbar .tools button[aria-pressed="true"] { color: #fff; background: #353535; box-shadow: inset 0 1px 0 #484848; }
+.toolbar .controls { height: 34px !important; background: #181818 !important; border-color: #363636 !important; border-radius: 7px !important; }
+.toolbar .controls button { height: 32px !important; width: 32px !important; color: #ccc !important; }
+.toolbar .controls .percentage { width: 64px !important; font-variant-numeric: tabular-nums; }
+.toolbar .controls .percentage strong { min-width: 0 !important; font-size: 11px; }
+.toolbar .controls .fit { display: flex; gap: 6px; width: 58px !important; font-size: 11px; }
+.toolbar button:focus-visible, .stage:focus-visible { outline: 2px solid #b5b5b5; outline-offset: -2px; }
+.stage.stage { scroll-behavior: auto !important; overflow-anchor: none; scrollbar-gutter: stable; }
+.stage[data-tool="hand"] { cursor: grab; touch-action: none; }
+.stage[data-tool="hand"] :global(.designer-crop) { pointer-events: none; }
+.stage[data-panning="true"], .stage[data-panning="true"] * { cursor: grabbing !important; user-select: none; }
+.stage img { -webkit-user-drag: none; user-select: none; }
+@media (max-width: 700px) {
+  .toolbar :global(.crop-toolbar-right) { flex-wrap: wrap; gap: 8px; }
+  .toolbar :global(.crop-toolbar-right > span) { display: none; }
+}

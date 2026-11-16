@@ -4181,7 +4181,8 @@
 .guest-landing-hero h1 em {
   display: block;
   margin-top: .3em;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-manrope), sans-serif;
+  font-style: normal;
   font-weight: 400;
   letter-spacing: -.068em;
 }
@@ -4622,7 +4623,8 @@
 }
 
 .guest-landing-example-copy h2 em {
-  font-family: var(--font-display-serif, Georgia, serif);
+  font-family: var(--font-manrope), sans-serif;
+  font-style: normal;
   font-weight: 400;
 }
 
@@ -7902,9 +7904,9 @@
   display: block;
   margin-top: 2px;
   color: rgba(255, 255, 255, 0.47);
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 400;
-  font-style: italic;
+  font-family: var(--font-manrope), sans-serif;
+  font-weight: 500;
+  font-style: normal;
   letter-spacing: -0.045em;
 }
 
@@ -8387,7 +8389,7 @@ html:has(.has-guest-home) {
 .homepage-tutorial-player {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, .14);
+  border: 3px solid #343434;
   border-radius: 13px;
   background: #030404;
   box-shadow: 0 30px 80px rgba(0, 0, 0, .34);
@@ -8609,7 +8611,9 @@ html:has(.has-guest-home) {
 @media (prefers-reduced-motion: reduce) {
   .guest-trust-marquee.software-compatibility-marquee .marquee-content,
   .guest-trust-marquee.software-compatibility-marquee .marquee-content:hover {
-    animation-play-state: paused !important;
+    /* Keep this requested continuous rail moving, at a gentler speed. */
+    animation-duration: 72s !important;
+    animation-play-state: running !important;
   }
 }
 
@@ -9521,23 +9525,14 @@ html:has(.has-guest-home) {
   -webkit-text-fill-color: transparent;
 }
 
-/* Signed-in split surface: texture stays in the workspace hero, never in lower sections. */
+/* Signed-in texture echoes the public hero without its decorative glow. */
 .start-screen-container:not(.has-guest-home) .home-hero-shell::before {
   content: "" !important;
   display: block !important;
-  background-image:
-    var(--home-surface-grain),
-    linear-gradient(rgba(255, 255, 255, .052) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, .052) 1px, transparent 1px) !important;
-  background-size: 180px 180px, 64px 64px, 64px 64px !important;
-  background-position: center, center 8px, center 8px !important;
-  background-blend-mode: soft-light, normal, normal !important;
-}
-
-@media (max-width: 760px) {
-  .start-screen-container:not(.has-guest-home) .home-hero-shell::before {
-    background-size: 180px 180px, 56px 56px, 56px 56px !important;
-  }
+  background-image: repeating-linear-gradient(130deg, rgba(255, 255, 255, .065) 0 1px, transparent 1px 9px) !important;
+  background-size: auto !important;
+  background-position: center top !important;
+  background-blend-mode: normal !important;
 }
 
 /* Tool shelf: show the complete set without carousel controls or horizontal scrolling. */
@@ -9999,4 +9994,27 @@ html:has(.has-guest-home) {
   .desktop-tools-shelf .desktop-tool-card {
     min-height: 370px !important;
   }
+}
+
+/* Section dividers extend across the page, matching the structural rails. */
+.home-content-frame > section {
+  border-color: rgba(255, 255, 255, .18) !important;
+}
+
+.home-content-frame > section[aria-labelledby="moving-artwork-heading"],
+.home-content-frame > section[aria-labelledby="workspace-features-heading"] {
+  position: relative;
+}
+
+.home-content-frame > section[aria-labelledby="moving-artwork-heading"]::after,
+.home-content-frame > section[aria-labelledby="workspace-features-heading"]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  height: 1px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, .18);
+  pointer-events: none;
 }

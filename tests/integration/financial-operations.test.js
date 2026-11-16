@@ -41,7 +41,7 @@ vi.mock("@/server/payments/dodoFulfillment", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ADMIN_EMAIL = "admin@desaynclaw.test";
-  process.env.DODO_PRODUCT_INTL_BASIC_V2 = "prod_basic_v2";
+  process.env.DODO_PRODUCT_INTL_BASIC_V3 = "prod_basic_v3";
   process.env.DODO_PRODUCT_BASIC = "prod_basic";
   process.env.DODO_PAYMENTS_WEBHOOK_SECRET = "test-webhook-secret";
   adminSupabase.auth.getUser.mockResolvedValue({
@@ -192,7 +192,7 @@ describe("Dodo checkout", () => {
     const updateEq = vi.fn(() => ({}));
     const update = vi.fn(() => ({ eq: vi.fn(() => ({ eq: updateEq })) }));
     const insertSingle = vi.fn(async () => ({
-      data: { id: "dodo-local-1", plan: "basic", amount: 599, credits: 5 },
+      data: { id: "dodo-local-1", plan: "basic", amount: 279, credits: 5 },
       error: null,
     }));
     const insert = vi.fn(() => ({ select: () => ({ single: insertSingle }) }));
@@ -213,10 +213,10 @@ describe("Dodo checkout", () => {
       user_id: "user-1",
       plan: "basic",
       credits: 5,
-      amount: 599,
+      amount: 279,
       currency: "USD",
-      provider_product_id: "prod_basic_v2",
-      catalog_version: "dodo_intl_2026_11",
+      provider_product_id: "prod_basic_v3",
+      catalog_version: "dodo_intl_2026_11_v3",
       requested_billing_currency: "USD",
       status: "pending",
     }));

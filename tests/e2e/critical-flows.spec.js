@@ -29,9 +29,13 @@ test("home page exposes sign-in and protected project entry points", async ({ pa
   await page.goto("/");
   await acceptPrivacyNotice(page);
 
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => [...document.fonts].some(font =>
+    font.family.replaceAll('"', '') === 'Manrope' && font.status === 'loaded'
+  ))).toBe(true);
   await expect(page.getByAltText("DesaynClaw Logo").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Start designing" }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "See a real example" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Watch how it works" })).toBeVisible();
 });
 
 test("sign-in modal remains reachable from protected actions", async ({ page }) => {

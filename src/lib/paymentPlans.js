@@ -6,7 +6,7 @@ const PLAN_DEFINITIONS = {
 };
 
 export const PAYMONGO_CATALOG_VERSION = "paymongo_ph_2026_11";
-export const DODO_CATALOG_VERSION = "dodo_intl_2026_11";
+export const DODO_CATALOG_VERSION = "dodo_intl_2026_11_v3";
 
 function withOffer(definition, offer) {
   const major = offer.amount / 100;
@@ -33,24 +33,24 @@ export const PAYMONGO_CREDIT_PLANS = {
 /** International card catalog. Amounts are in US cents. */
 export const DODO_CREDIT_PLANS = {
   basic: withOffer(PLAN_DEFINITIONS.basic, {
-    amount: 599,
+    amount: 279,
     currency: "USD",
     catalogVersion: DODO_CATALOG_VERSION,
-    dodoProductEnv: "DODO_PRODUCT_INTL_BASIC_V2",
+    dodoProductEnv: "DODO_PRODUCT_INTL_BASIC_V3",
     legacyDodoProductEnv: "DODO_PRODUCT_BASIC",
   }),
   starter: withOffer(PLAN_DEFINITIONS.starter, {
-    amount: 1099,
+    amount: 499,
     currency: "USD",
     catalogVersion: DODO_CATALOG_VERSION,
-    dodoProductEnv: "DODO_PRODUCT_INTL_STARTER_V2",
+    dodoProductEnv: "DODO_PRODUCT_INTL_STARTER_V3",
     legacyDodoProductEnv: "DODO_PRODUCT_STARTER",
   }),
   pro: withOffer(PLAN_DEFINITIONS.pro, {
-    amount: 2999,
+    amount: 1549,
     currency: "USD",
     catalogVersion: DODO_CATALOG_VERSION,
-    dodoProductEnv: "DODO_PRODUCT_INTL_PRO_V2",
+    dodoProductEnv: "DODO_PRODUCT_INTL_PRO_V3",
     legacyDodoProductEnv: "DODO_PRODUCT_PRO",
   }),
 };

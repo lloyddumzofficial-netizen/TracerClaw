@@ -14,6 +14,7 @@ import { upscaleLogoDeterministically } from "@/server/logoProcessing";
 import { getFlatExtractMaxBytes } from "@/lib/traceAssetLimits";
 import { getRecoverableAttemptOutput } from "@/server/billing/recoverAttemptOutput";
 import { getTraceProviderFailure } from "@/lib/traceProviderErrors";
+import { getTraceRequestDiagnostics } from "@/server/traceRequestDiagnostics";
 import { guardArtworkRevision } from "@/server/artworkEdits/revision";
 
 // IMPORTANT: Must use Node.js runtime (not edge) so we get real 120s timeouts.
@@ -23,9 +24,9 @@ export const maxDuration = 120; // Vercel Pro plan allows up to 300s; 120s is sa
 
 const AI_PROVIDER_UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE";
 const AI_CONTENT_BLOCKED = "AI_CONTENT_BLOCKED";
-// Garment Workspace trial: keep all other workspaces on the established
-// Nano Banana Pro model while evaluating Google's newer edit endpoint.
-const GARMENT_FLAT_EXTRACTION_MODEL = "fal-ai/nano-banana-2/edit";
+// Garment extraction uses Nano Banana 2.1 Edit at the 1K tier below.
+// Other workspaces retain their existing model and resolution settings.
+const GARMENT_FLAT_EXTRACTION_MODEL = "google/nano-banana-2.1/edit";
 
 function isAiGenerationConfigured() {
   return Boolean(process.env.FAL_KEY);
@@ -55,7 +56,8 @@ function getClientTraceError(error, didRefund) {
       body: {
         error: "The AI model's content checker rejected this generation."
           + (didRefund ? " Your claw has been refunded automatically." : "")
-          + " Repeating the same request may fail again. Please contact support if you believe this is a mistake.",
+          + " Repeating the same request may fail again. Please contact support if you believe this is a mistake."
+          + (error.providerRequestId ? ` Reference: ${error.providerRequestId}.` : ""),
         code: AI_CONTENT_BLOCKED,
         retryable: false,
         refunded: didRefund,
@@ -91,6 +93,7 @@ export async function POST(request) {
   let failedStep = "unknown";
   let generationAttemptId = null;
   let usedIdempotentBilling = false;
+  let stepOnePersisted = false;
   try {
     // ─── Auth: verify caller identity server-side ─────────────────────────────
     const authHeader = request.headers.get('authorization');
@@ -151,6 +154,7 @@ export async function POST(request) {
 
     let sourceUrl;
     let rawSourceBuffer;
+    let sourceMetadata;
     if (step === 1) {
       sourceUrl = normalizeUserImageUrl(croppedImageUrl || project.original_image_url, new URL(request.url).origin);
       if (!isOwnedStorageUrl(sourceUrl, { userId: user.id, projectId }) || !(await validateUrlForSSRF(sourceUrl, { allowedHosts: getAllowedStorageHosts() }))) {
@@ -170,6 +174,19 @@ export async function POST(request) {
       if (!sourceFetch.response.ok) throw new Error("Failed to fetch source image");
       rawSourceBuffer = sourceFetch.buffer;
       sourceUrl = sourceFetch.finalUrl;
+      // Reject unreadable images before claiming credits or calling the model.
+      try {
+        const sharp = (await import('sharp')).default;
+        sourceMetadata = await sharp(rawSourceBuffer).metadata();
+        if (!sourceMetadata?.width || !sourceMetadata?.height) throw new Error('Missing image dimensions');
+      } catch {
+        return NextResponse.json({
+          error: "This image could not be read. Please upload a valid image and crop it again. No Claws were charged.",
+          code: "INVALID_SOURCE_IMAGE",
+          refunded: false,
+          retryable: false,
+        }, { status: 400 });
+      }
     }
 
     // ============================================================
@@ -271,7 +288,7 @@ export async function POST(request) {
 
       // Read image metadata to calculate the closest allowed aspect ratio for fal.ai
       const sharp = (await import('sharp')).default;
-      const metadata = await sharp(rawSourceBuffer).metadata();
+      const metadata = sourceMetadata;
 
       let targetAspectRatio = "auto";
       if (project.trace_type !== "logo" && project.trace_type !== "pattern" && metadata && metadata.width && metadata.height) {
@@ -334,14 +351,19 @@ export async function POST(request) {
         // charged with no server-side refund. Bound it with headroom for the
         // download, resize and R2 upload that still have to happen after this.
         const FAL_BUDGET_MS = 85_000;
+        const providerInput = {
+          image_urls: [finalImageUrl],
+          prompt,
+          system_prompt: systemPrompt,
+          aspect_ratio: targetAspectRatio,
+          ...flatExtractionTuning,
+        };
+        logger.info("[fal.ai] Request diagnostics", {
+          projectId,
+          ...getTraceRequestDiagnostics({ model: flatExtractionModel, input: providerInput, sourceBuffer: rawSourceBuffer }),
+        });
         const result = await fal.subscribe(flatExtractionModel, {
-            input: {
-              image_urls: [finalImageUrl],
-              prompt: prompt,
-              system_prompt: systemPrompt,
-              aspect_ratio: targetAspectRatio,
-              ...flatExtractionTuning,
-            },
+            input: providerInput,
             logs: true,
             abortSignal: AbortSignal.timeout(FAL_BUDGET_MS),
             onQueueUpdate: (update) => {
@@ -352,9 +374,10 @@ export async function POST(request) {
           });
 
         logger.debug("[fal.ai response images]", { count: result?.data?.images?.length ?? 0 });
+        logger.info("[fal.ai] Generation returned", { projectId, requestId: getTraceProviderFailure(result).requestId });
 
-        if (!result || !result.data || !result.data.images || result.data.images.length === 0) {
-          throw new Error("fal.ai did not return a valid image URL. Response: " + JSON.stringify(result));
+        if (typeof result?.data?.images?.[0]?.url !== "string" || !result.data.images[0].url) {
+          throw new Error("fal.ai did not return a valid image URL.");
         }
 
         const outputUrl = result.data.images[0].url;
@@ -364,6 +387,10 @@ export async function POST(request) {
           allowedContentTypes: ['image/'],
         });
         if (!imgRes.ok) throw new Error("Failed to download generated image from fal.ai URL");
+        // A successful HTTP response is not proof of a usable image. Validate
+        // before persistence; otherwise corrupted output can consume a Claw.
+        const genMeta = await sharp(generatedBuffer).metadata();
+        if (!genMeta?.width || !genMeta?.height) throw new Error("The AI provider returned an unreadable image.");
 
         generatedImageBuffer = generatedBuffer;
         generatedMimeType = result.data.images[0].content_type || "image/jpeg";
@@ -377,7 +404,6 @@ export async function POST(request) {
         // rather than down so none of the 2K detail is thrown away.
         if (metadata?.width && metadata?.height) {
           try {
-            const genMeta = await sharp(generatedBuffer).metadata();
             const sourceRatio = metadata.width / metadata.height;
             const generatedRatio = genMeta.width / genMeta.height;
 
@@ -425,6 +451,7 @@ export async function POST(request) {
         const providerError = new Error(err?.message || "Failed to generate image with fal.ai");
         providerError.code = failure.contentBlocked ? AI_CONTENT_BLOCKED : AI_PROVIDER_UNAVAILABLE;
         providerError.status = getProviderStatus(err);
+        providerError.providerRequestId = failure.requestId;
         throw providerError;
       }
 
@@ -457,6 +484,7 @@ export async function POST(request) {
         .select('id')
         .single();
       if (saveError || !savedProject) throw new Error('Failed to save extracted image to project');
+      stepOnePersisted = true;
       await completeGenerationAttempt(generationAttemptId, extractedUrl, generatedMimeType);
 
       return NextResponse.json({
@@ -488,9 +516,9 @@ export async function POST(request) {
       // Mirror the stable fal.ai ESRGAN playground settings, but keep scale
       // adaptive so large garment outputs do not exceed save/upload limits.
       const UPSCALE_MODEL = "RealESRGAN_x4plus";
-      const UPSCALE_TARGET_EDGE = 6000;
-      const UPSCALE_TARGET_PIXELS = 20e6;
-      const UPSCALE_MAX_SCALE = 5;
+      const UPSCALE_TARGET_EDGE = 8192;
+      const UPSCALE_TARGET_PIXELS = 32e6;
+      const UPSCALE_MAX_SCALE = 8;
       let upscaleScale = UPSCALE_MAX_SCALE;
       let stepOneBuffer = null;
       try {
@@ -584,6 +612,7 @@ export async function POST(request) {
           image_url: upscaleInputUrl,
           scale: upscaleScale,
           model: UPSCALE_MODEL,
+          tile: 400,
           face: false,
           output_format: "png",
         },
@@ -712,14 +741,16 @@ export async function POST(request) {
           (current?.generated_image_url && current.generated_image_url !== 'REFUNDED')
         );
 
-        if (usedIdempotentBilling && generationAttemptId && !hasUsableOutput) {
+        // An older output belongs to an older charge. It must not prevent a
+        // refund of this new attempt; only this attempt's saved output does.
+        if (usedIdempotentBilling && generationAttemptId && failedStep === '1' && !stepOnePersisted) {
           const refund = await refundGenerationAttempt({
             userId,
             attemptId: generationAttemptId,
             action: 'Refund (Failed Generation)',
             errorCode: error?.code || 'TRACE_STEP_FAILED',
           });
-          didRefund = refund?.status === 'refunded';
+          didRefund = refund?.status === 'refunded' || refund?.status === 'already_refunded';
         } else if (current?.credit_deducted && !current.refunded && !hasUsableOutput) {
           // Move the money FIRST, then mark it. The old order set refunded=true
           // before the transfer, so a failed transfer left the ledger and the

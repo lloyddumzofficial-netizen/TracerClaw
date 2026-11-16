@@ -1,12 +1,12 @@
 .hero:global(.guest-landing-hero) {
   min-height: 0;
-  padding: clamp(184px, 21vh, 216px) 24px 0;
+  /* Keep the background anchored while community stats load. */
+  padding: clamp(152px, 18vh, 188px) 24px 32px;
   overflow: visible;
 }
 
 .hero:global(.guest-landing-hero)::before {
-  /* Texture now lives over the shared glow in HeroHorizon, so there is one
-     consistent grain/grid layer without reintroducing diagonal spotlights. */
+  /* The decorative background is rendered in HeroHorizon. */
   display: none;
 }
 
@@ -15,20 +15,86 @@
 }
 
 .hero:global(.guest-landing-hero) h1 {
-  max-width: 1120px;
-  margin: 12px 0 24px;
-  font-size: clamp(3.8rem, 6.3vw, 6.1rem);
-  line-height: 1.04;
+  max-width: 1200px;
+  margin: 0 0 28px;
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  font-size: clamp(40px, 4.75vw, 68px);
+  font-weight: 500;
+  font-style: normal;
+  line-height: 1.2;
+  letter-spacing: normal;
+}
+
+.titleLine {
+  display: block;
+}
+
+.navLinks:global(.guest-landing-links) {
+  gap: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.navLinks:global(.guest-landing-links) a {
+  padding: 10px 0;
+  border-radius: 0;
+  background: transparent;
+  color: #aaa;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.navLinks:global(.guest-landing-links) a:global(.is-current) {
+  background: transparent;
+  color: #ffe600;
+}
+
+.navLinks:global(.guest-landing-links) a:hover {
+  background: transparent;
+  color: #fff;
+}
+
+.featureBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 15px 5px 5px;
+  margin-bottom: 24px;
+  border: 1px solid #292929;
+  border-radius: 999px;
+  background: #171717;
+  color: #bcbcbc;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.featureBadge > span {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #ffe600;
+  color: #080808;
+  font-size: 13px;
+}
+
+.titleLine + .titleLine {
+  margin-top: .1em;
 }
 
 .hero :global(.guest-landing-description) {
-  max-width: 610px;
+  max-width: 640px;
   color: #929591;
-  font-size: 15px;
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .hero :global(.guest-landing-community) {
-  margin-top: 48px;
+  margin: 40px 0 0;
   min-height: 44px;
 }
 
@@ -42,6 +108,12 @@
 }
 
 .hero :global(.guest-landing-community-copy) strong {
+  color: #f4f4f1;
+  font-size: 13px;
+}
+
+.hero :global(.guest-landing-review-summary) > span:last-child {
+  color: #929591;
   font-size: 11px;
 }
 
@@ -49,53 +121,140 @@
   scroll-margin-top: 96px;
 }
 
-.sampleHeader:global(.guest-landing-example-copy) {
-  display: block;
-  margin: 0 auto 24px;
-  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
-  text-align: left;
+.hero :global(.guest-landing-actions) {
+  gap: 12px;
+  margin-top: 40px;
 }
 
-.sampleHeader .sampleEyebrow {
-  margin: 0 0 10px;
-  color: #929591;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: .015em;
+.navCta:global(.guest-landing-nav-cta),
+.hero :global(.guest-landing-primary),
+.hero :global(.guest-landing-secondary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  min-width: 210px;
+  padding: 16px 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #ffe600;
+  color: #080808;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  text-shadow: none;
+  box-shadow: none;
+  transition: background-color .18s ease, border-color .18s ease;
 }
 
-.sampleSection .sampleHeader h2 {
-  max-width: none;
-  margin: 0;
-  color: #f4f4f1;
-  font-size: clamp(27px, 2.5vw, 32px);
-  font-weight: 500;
-  line-height: 1.25;
-  letter-spacing: -.025em;
+.navCta:global(.guest-landing-nav-cta) {
+  min-height: 48px;
+  min-width: 150px;
+  padding: 11px 24px;
+  font-size: 14px;
 }
 
-.sampleGrid:global(.guest-landing-example-grid) {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.navCta:global(.guest-landing-nav-cta):hover,
+.hero :global(.guest-landing-primary):hover {
+  background: #fff13d;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Override the older glass CTA treatment within this hero only. */
+.hero :global(.guest-landing-secondary) {
+  background: #191919 !important;
+  border-color: #292929 !important;
+  color: #c5c5c5 !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.hero :global(.guest-landing-secondary)::before {
+  display: none;
+}
+
+.hero :global(.guest-landing-secondary) svg {
+  color: inherit !important;
+}
+
+.hero :global(.guest-landing-secondary):hover {
+  background: #242424 !important;
+  border-color: #444 !important;
+  color: #fff !important;
+  transform: none;
+}
+
+.navCta:focus-visible,
+.hero :global(.guest-landing-primary):focus-visible,
+.hero :global(.guest-landing-secondary):focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
 }
 
 .trust :global(.guest-trust-marquee.software-compatibility-marquee) {
   width: min(calc(100% - 48px), 1040px) !important;
-  margin: 32px auto 56px !important;
+  margin: 20px auto 56px !important;
+}
+
+.trust :global(.guest-trust-marquee.software-compatibility-marquee .marquee-content) {
+  gap: 44px !important;
+}
+
+.trust :global(.guest-trust-marquee.software-compatibility-marquee .software-marquee-item) {
+  min-width: 0 !important;
+  padding: 0 !important;
+  gap: 10px !important;
+  flex-shrink: 0;
+}
+
+.trust :global(.guest-trust-marquee.software-compatibility-marquee .software-logo-shell) {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  flex-basis: 30px !important;
+}
+
+.trust :global(.guest-trust-marquee.software-compatibility-marquee .software-logo) {
+  width: 27px !important;
+  height: 27px !important;
+}
+
+.trust :global(.guest-trust-marquee.software-compatibility-marquee .software-name) {
+  color: #b8bab3 !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {
-  .sampleGrid:global(.guest-landing-example-grid) {
-    grid-template-columns: minmax(0, 1fr);
+  .trust :global(.guest-trust-marquee.software-compatibility-marquee .marquee-content) {
+    gap: 32px !important;
   }
 
+  .trust :global(.guest-trust-marquee.software-compatibility-marquee .software-name) {
+    font-size: 14px !important;
+  }
+  .hero :global(.guest-landing-community) {
+    margin-top: 28px;
+  }
+
+  .hero :global(.guest-landing-actions) {
+    margin-top: 28px;
+  }
+  .navCta:global(.guest-landing-nav-cta) {
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 16px;
+    font-size: 12px;
+  }
   .hero:global(.guest-landing-hero) {
-    padding: 174px 20px 0;
+    padding: 124px 20px 32px;
   }
 
   .hero:global(.guest-landing-hero) h1 {
-    margin-top: 12px;
-    font-size: clamp(2.8rem, 10.4vw, 4.7rem);
+    margin-top: 0;
+    font-size: clamp(34px, 8.8vw, 48px);
   }
 
   .hero :global(.guest-landing-description) {

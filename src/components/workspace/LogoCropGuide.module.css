@@ -1,9 +1,4 @@
 /* Logo-only layout: the examples share the available height without scrolling. */
-@media (min-width: 901px) {
-  .workspace:global(.is-logo-workspace) :global(.crop-workspace-body) {
-    grid-template-columns: minmax(0, 1fr) clamp(304px, 28vw, 370px) !important;
-  }
-}
 
 .workspace .panel:global(.crop-guide-panel) {
   display: grid !important;
@@ -35,7 +30,7 @@
 .exampleHeading strong { color: var(--guide-indicator); }
 .demo { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; margin: 0; overflow: hidden; border: 1px solid #363839; border-radius: 8px; background: #08090a; }
 .example .demo { border-color: var(--guide-indicator-border); }
-.preview { display: block; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+.preview { display: block; width: 100%; height: 100%; min-height: 0; overflow: hidden; object-fit: contain; background: #393939; }
 .demo figcaption { padding: 7px 10px; border-top: 1px solid #252728; color: #929591; font-size: 11px; line-height: 1.4; }
 
 @media (max-height: 740px) {

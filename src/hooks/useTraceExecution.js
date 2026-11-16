@@ -11,7 +11,8 @@ function isTraceTimeoutError(error) {
 }
 
 function isExpectedTraceError(error) {
-  return /temporarily unavailable|session expired|too many requests|INSUFFICIENT_CREDITS|billing verification failed/i.test(error?.message || "");
+  return ["AI_CONTENT_BLOCKED", "INVALID_SOURCE_IMAGE"].includes(error?.code)
+    || /temporarily unavailable|session expired|too many requests|INSUFFICIENT_CREDITS|billing verification failed/i.test(error?.message || "");
 }
 
 function getTraceErrorMessage(response, errData) {
@@ -150,8 +151,9 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         }
         setNodeErrors(prev => ({ ...prev, step1: msg }));
         const stepError = new Error(msg);
+        stepError.code = errData?.code;
         stepError.serverRefunded = Boolean(errData?.refunded);
-        stepError.skipRefund = errData?.code === "BILLING_VERIFICATION_FAILED";
+        stepError.skipRefund = ["BILLING_VERIFICATION_FAILED", "INVALID_SOURCE_IMAGE"].includes(errData?.code);
         throw stepError;
       }
 
@@ -337,7 +339,7 @@ export function useTraceExecution({ project, setProject, userCredits, setUserCre
         });
       } else {
         analytics.tracingFunnelStep({
-          step: "trace_timeout",
+          step: isTimeout ? "trace_timeout" : error.code === "AI_CONTENT_BLOCKED" ? "trace_content_blocked" : "trace_request_rejected",
           project_id: project.id,
           trace_type: project.trace_type,
         });

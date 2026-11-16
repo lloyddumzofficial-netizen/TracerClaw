@@ -1,0 +1,51 @@
+.stage:global(.guest-demo-stage) {
+  max-width: 1280px;
+  margin-top: -30px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 760px) {
+  .stage:global(.guest-demo-stage) {
+    margin-top: -16px;
+  }
+}
+
+.stage :global(.guest-demo-device)::before,
+.stage :global(.guest-demo-device)::after {
+  display: none;
+}
+
+.stage :global(.guest-demo-mac) {
+  padding: 0 !important;
+  border: 3px solid #343434 !important;
+  background: #111 !important;
+  box-shadow: none !important;
+}
+
+.stage :global(.guest-demo-mac)::before {
+  box-shadow: none !important;
+}
+
+.stage :global(.guest-demo-windowbar) {
+  background: #111;
+}
+
+.stage :global(.guest-demo-screen) {
+  padding: 0;
+  border-radius: 0 !important;
+}
+
+.stage :global(.guest-demo-screen video) {
+  object-fit: cover;
+}
+
+.poster {
+  position: absolute;
+  inset: 0;
+  background: #08090a;
+  pointer-events: none;
+}
+
+.poster img {
+  object-fit: cover;
+}

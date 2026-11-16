@@ -8,16 +8,16 @@ const trustItems = [
 ];
 
 const softwareItems = [
-  { label: "Adobe Photoshop", logo: "/brand-logos/adobe-photoshop.svg" },
-  { label: "Adobe Illustrator", logo: "/brand-logos/adobe-illustrator.svg" },
-  { label: "CorelDRAW", logo: "/brand-logos/coreldraw-color.png" },
-  { label: "Figma", logo: "/brand-logos/figma.svg" },
-  { label: "Inkscape", logo: "/brand-logos/inkscape.svg" },
-  { label: "Blender", logo: "/brand-logos/blender.svg" },
-  { label: "GIMP", logo: "/brand-logos/gimp.svg" },
-  { label: "Krita", logo: "/brand-logos/krita.svg" },
-  { label: "Sketch", logo: "/brand-logos/sketch.svg" },
-  { label: "Penpot", logo: "/brand-logos/penpot.svg" },
+  { label: "Adobe Photoshop", logo: "/brand-logos/monochrome/adobe-photoshop.svg" },
+  { label: "Adobe Illustrator", logo: "/brand-logos/monochrome/adobe-illustrator.svg" },
+  { label: "CorelDRAW", logo: "/brand-logos/monochrome/coreldraw.svg" },
+  { label: "Figma", logo: "/brand-logos/monochrome/figma.svg" },
+  { label: "Inkscape", logo: "/brand-logos/monochrome/inkscape.svg" },
+  { label: "Blender", logo: "/brand-logos/monochrome/blender.svg" },
+  { label: "GIMP", logo: "/brand-logos/monochrome/gimp.svg" },
+  { label: "Krita", logo: "/brand-logos/monochrome/krita.svg" },
+  { label: "Sketch", logo: "/brand-logos/monochrome/sketch.svg" },
+  { label: "Penpot", logo: "/brand-logos/monochrome/penpot.svg" },
 ];
 
 const MARQUEE_COPIES = 4;

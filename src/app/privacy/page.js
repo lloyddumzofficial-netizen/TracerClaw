@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   UserRoundCheck,
 } from "lucide-react";
-import "./privacy.css";
+import PolicyNavigation, { PolicyContents } from "@/components/shared/PolicyNavigation";
+import "../policy-pages.css";
 
 const SUMMARY_ITEMS = [
   { icon: Clock3, value: "3 days", label: "Automatic project-file deletion" },
@@ -39,8 +40,8 @@ const FAQ_ITEMS = [
 
 function PolicySection({ number, id, title, children }) {
   return (
-    <section className="privacy-policy-section" id={id}>
-      <div className="privacy-policy-number">{number}</div>
+    <section className="policy-privacy-policy-section" id={id}>
+      <div className="policy-privacy-policy-number">{number}</div>
       <div><h2>{title}</h2>{children}</div>
     </section>
   );
@@ -48,52 +49,53 @@ function PolicySection({ number, id, title, children }) {
 
 export default function PrivacyPolicy() {
   return (
-    <div className="privacy-page">
-      <header className="privacy-topbar">
-        <Link className="privacy-brand" href="/" aria-label="DesaynClaw home">
-          <img src="/logo.png" alt="DesaynClaw" />
+    <div className="policy-privacy-page">
+      <header className="policy-privacy-topbar">
+        <Link className="policy-privacy-brand" href="/" aria-label="DesaynClaw home">
+          <img src="/nav bar logo.png" alt="DesaynClaw" />
         </Link>
-        <Link className="privacy-back" href="/"><ArrowLeft size={15} /> Back to home</Link>
+        <Link className="policy-privacy-back" href="/"><ArrowLeft size={15} /> Back to home</Link>
       </header>
 
       <main>
-        <section className="privacy-hero" aria-labelledby="privacy-title">
-          <div className="privacy-hero-glow" aria-hidden="true" />
-          <div className="privacy-kicker"><ShieldCheck size={14} /> DesaynClaw Privacy Center</div>
-          <h1 id="privacy-title">Your artwork stays yours.</h1>
+        <PolicyNavigation current="privacy" />
+        <section className="policy-privacy-hero" aria-labelledby="privacy-title">
+          <div className="policy-privacy-kicker"><ShieldCheck size={14} /> DesaynClaw Privacy Center</div>
+          <h1 id="privacy-title">Privacy Policy</h1>
           <p>A clear explanation of how DesaynClaw processes, protects, retains, and removes your files and account information.</p>
-          <div className="privacy-meta">
+          <div className="policy-privacy-meta">
             <span>Last updated November 10, 2026</span><i aria-hidden="true" /><span>Written for people, not lawyers</span>
           </div>
         </section>
 
-        <section className="privacy-summary" aria-label="Privacy commitments">
+        <section className="policy-privacy-summary" aria-label="Privacy commitments">
           {SUMMARY_ITEMS.map(({ icon: Icon, value, label }) => (
             <article key={value}>
-              <span className="privacy-summary-icon"><Icon size={18} /></span>
+              <span className="policy-privacy-summary-icon"><Icon size={18} /></span>
               <div><strong>{value}</strong><p>{label}</p></div>
             </article>
           ))}
         </section>
 
-        <section className="privacy-faq" id="frequently-asked-questions">
-          <header className="privacy-section-heading">
+        <section className="policy-privacy-faq" id="frequently-asked-questions">
+          <header className="policy-privacy-section-heading">
             <span>Quick answers</span>
             <h2>Privacy, without the fine-print feeling.</h2>
             <p>The most important answers about your artwork and account data.</p>
           </header>
-          <div className="privacy-faq-grid">
+          <div className="policy-privacy-faq-grid">
             {FAQ_ITEMS.map((item, index) => (
               <article key={item.question}>
-                <span className="privacy-faq-index">0{index + 1}</span>
+                <span className="policy-privacy-faq-index">0{index + 1}</span>
                 <h3>{item.question}</h3><p>{item.answer}</p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="privacy-document-layout" aria-label="Official privacy policy">
-          <article className="privacy-document">
+        <section className="policy-privacy-document-layout" aria-label="Official privacy policy">
+          <PolicyContents items={[["files", "Files & processing"], ["retention", "Retention & deletion"], ["ownership", "Your artwork"], ["account-data", "Account information"], ["payments", "Payments & Claws"], ["providers", "Service providers"], ["choices", "Choices & contact"]]} />
+          <article className="policy-privacy-document">
             <header>
               <span><FileText size={16} /> Official policy</span>
               <h2>Privacy Policy</h2>
@@ -116,7 +118,7 @@ export default function PrivacyPolicy() {
 
             <PolicySection number="03" id="ownership" title="Ownership and permitted use">
               <p>DesaynClaw does not claim ownership of your uploaded files or generated outputs. You retain the rights you hold in that content. You are responsible for having the necessary permission to process client artwork, trademarks, logos, characters, and copyrighted material.</p>
-              <Link className="privacy-inline-link" href="/copyright">Read our Copyright Policy <ArrowUpRight size={14} /></Link>
+              <Link className="policy-privacy-inline-link" href="/copyright">Read our Copyright Policy <ArrowUpRight size={14} /></Link>
             </PolicySection>
 
             <PolicySection number="04" id="account-data" title="Account and technical information">
@@ -125,7 +127,7 @@ export default function PrivacyPolicy() {
 
             <PolicySection number="05" id="payments" title="Payments and Claws">
               <p>We process the purchase and transaction information needed to verify payments, credit Claws, prevent fraud, and provide customer support. Payment providers may process billing details under their own privacy terms.</p>
-              <Link className="privacy-inline-link" href="/refunds">Review Refunds &amp; Payments <ArrowUpRight size={14} /></Link>
+              <Link className="policy-privacy-inline-link" href="/refunds">Review Refunds &amp; Payments <ArrowUpRight size={14} /></Link>
             </PolicySection>
 
             <PolicySection number="06" id="providers" title="Infrastructure and service providers">
@@ -134,7 +136,7 @@ export default function PrivacyPolicy() {
 
             <PolicySection number="07" id="choices" title="Your choices and contact">
               <p>You may delete eligible projects, stop using the service, or request help with account information. Contact us if you have a privacy question, deletion request, or concern about how your information is handled.</p>
-              <a className="privacy-contact" href="https://m.me/105884602605306" target="_blank" rel="noreferrer">
+              <a className="policy-privacy-contact" href="https://m.me/105884602605306" target="_blank" rel="noreferrer">
                 <span><MessageCircle size={17} /> Contact privacy support</span><ArrowUpRight size={16} />
               </a>
             </PolicySection>
@@ -142,7 +144,7 @@ export default function PrivacyPolicy() {
         </section>
       </main>
 
-      <footer className="privacy-footer">
+      <footer className="policy-privacy-footer">
         <img src="/logo.png" alt="DesaynClaw" />
         <p>Private-by-default tools for real production work.</p>
         <nav aria-label="Legal links"><Link href="/terms">Terms</Link><Link href="/refunds">Refunds</Link><Link href="/copyright">Copyright</Link></nav>
