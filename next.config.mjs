@@ -35,6 +35,7 @@ function resolveBuildDirty() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: { agentUpgrade: 'security' },
   outputFileTracingIncludes: {
     '/api/mockups/*/render': ['./public/mockup-studio/templates/**/*'],
   },
