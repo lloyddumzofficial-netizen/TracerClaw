@@ -325,6 +325,8 @@ test("workspace chooser supports keyboard selection, trapped focus and Escape", 
   await expect(chooser.getByRole("button", { name: "Garment Extract", exact: true })).toBeFocused();
   await chooser.screenshot({ path: "scratch/workspace-icons-refined.png" });
   await page.keyboard.press("Tab");
+  await expect(chooser.getByRole("button", { name: "Design Extract", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(chooser.getByRole("button", { name: "Logo Vectorizer", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
   const details = page.getByRole("dialog", { name: "New project details" });
