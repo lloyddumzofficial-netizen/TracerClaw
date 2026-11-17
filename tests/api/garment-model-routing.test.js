@@ -94,7 +94,7 @@ describe("workspace model dispatch", () => {
     const { POST } = await import("@/app/api/trace/route.js");
     const response = await POST(jsonRequest({ projectId: "project-1", step: 1, requestKey: "new-attempt" }));
     expect(response.status).toBe(503);
-    expect(await response.json()).toMatchObject({ code: "AI_PROVIDER_UNAVAILABLE", refunded: true });
+    expect(await response.json()).toMatchObject({ code: "AI_PROVIDER_UNAVAILABLE", refunded: true, error: expect.stringContaining("Please wait a moment before trying again.") });
     expect(mocks.refund).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ attemptId: "attempt-1" }));
     expect(mocks.subscribe).toHaveBeenCalledOnce();
   });
@@ -104,9 +104,23 @@ describe("workspace model dispatch", () => {
     const { POST } = await import("@/app/api/trace/route.js");
     const response = await POST(jsonRequest({ projectId: "project-1", step: 1, requestKey: "moderation-test" }));
     expect(response.status).toBe(422);
-    expect(await response.json()).toMatchObject({ code: "AI_CONTENT_BLOCKED", retryable: false, refunded: true, error: expect.stringContaining("Reference: provider-reference-123") });
+    const body = await response.json();
+    expect(body).toMatchObject({ code: "AI_CONTENT_BLOCKED", retryable: false, refunded: true, error: expect.stringContaining("Reference: provider-reference-123") });
+    expect(body.error).toContain("automated content check");
+    expect(body.error).toContain("Your workspace is still available.");
+    expect(body.error).toContain("has been refunded");
     expect(mocks.refund).toHaveBeenCalledOnce();
     expect(mocks.subscribe).toHaveBeenCalledOnce();
+  });
+  it("does not claim a refund when the refund has not been confirmed", async () => {
+    mocks.from.mockReturnValue(mockQuery({ data: { id: "project-1", user_id: "user-1", trace_type: "mockup", original_image_url: "https://storage.example/source.png" }, error: null }));
+    mocks.subscribe.mockRejectedValue({ status: 422, body: { detail: [{ type: "content_policy_violation" }] } });
+    mocks.refund.mockResolvedValue({ status: "failed" });
+    const { POST } = await import("@/app/api/trace/route.js");
+    const response = await POST(jsonRequest({ projectId: "project-1", step: 1, requestKey: "unconfirmed-refund" }));
+    const body = await response.json();
+    expect(body.refunded).toBe(false);
+    expect(body.error).not.toContain("has been refunded");
   });
   it.each([
     ["mockup", "PRESERVE_LOGOS", "google/nano-banana-2.1/edit", "1K"],

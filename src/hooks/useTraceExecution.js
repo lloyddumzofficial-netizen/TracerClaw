@@ -11,7 +11,7 @@ function isTraceTimeoutError(error) {
 }
 
 function isExpectedTraceError(error) {
-  return ["AI_CONTENT_BLOCKED", "INVALID_SOURCE_IMAGE"].includes(error?.code)
+  return ["AI_CONTENT_BLOCKED", "AI_PROVIDER_UNAVAILABLE", "INVALID_SOURCE_IMAGE"].includes(error?.code)
     || /temporarily unavailable|session expired|too many requests|INSUFFICIENT_CREDITS|billing verification failed/i.test(error?.message || "");
 }
 

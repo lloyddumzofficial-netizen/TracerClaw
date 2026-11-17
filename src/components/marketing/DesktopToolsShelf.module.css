@@ -45,10 +45,10 @@
   gap: 10px;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid #f4f4f1;
+  border: 1px solid #383a3c;
   border-radius: 999px;
-  background: linear-gradient(180deg, #fff 0%, #f0f1ef 52%, #d8dbd9 100%);
-  color: #08090a;
+  background: #202020;
+  color: #f4f4f1;
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
@@ -64,6 +64,10 @@
   .card:hover {
     border-color: #696c6e;
     background: #141516;
+  }
+  .copy button:hover {
+    border-color: #747779;
+    background: #202224;
   }
 }
 

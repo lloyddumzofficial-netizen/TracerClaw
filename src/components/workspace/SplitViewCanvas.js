@@ -653,9 +653,14 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
       return (
         <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#db7777', padding: 24, textAlign: 'center', lineHeight: 1.5 }}>
           <AlertCircle size={32} style={{ marginBottom: '15px' }} />
-          <strong>Processing stopped</strong>
-          <span style={{ color: '#aaa', fontSize: 12, maxWidth: 340, marginTop: 6 }}>{failure}</span>
-          <span style={{ color: '#777', fontSize: 11, marginTop: 12 }}>Your saved work remains available. Use the action on the right to resume.</span>
+          <strong>We couldn't finish this step</strong>
+          <span style={{ color: '#b8b8b8', fontSize: 12, maxWidth: 420, marginTop: 8 }}>{failure}</span>
+          <span style={{ color: '#929292', fontSize: 11, marginTop: 12 }}>
+            {project?.generated_image_url && project.generated_image_url !== 'REFUNDED'
+              ? 'Your saved artwork is still available.'
+              : 'Your source image is still available.'}
+            {' '}Nothing will run again until you choose to continue.
+          </span>
         </div>
       );
     }

@@ -3,7 +3,8 @@ import { loadEnvConfig } from "@next/env";
 
 loadEnvConfig(process.cwd());
 
-test("a refunded model rejection stays in the workspace without a console exception or repeat charge", async ({ page }) => {
+for (const code of ["AI_CONTENT_BLOCKED", "AI_PROVIDER_UNAVAILABLE"]) {
+test(`${code} explains the provider failure without a console exception or automatic retry`, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const user = { id: "moderation-test-user", email: "moderation@example.test", aud: "authenticated", role: "authenticated", app_metadata: {}, user_metadata: {} };
   const reference = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0];
@@ -24,8 +25,11 @@ test("a refunded model rejection stays in the workspace without a console except
   await page.route("**/rejection.test/**", route => route.fulfill({ contentType: "image/svg+xml", body: source }));
   await page.route("**/api/integrations/status", route => route.fulfill({ json: { googleDrive: { connected: false } } }));
   let requests = 0, refundRequests = 0;
-  const message = "The AI model's content checker rejected this generation. Your claw has been refunded automatically.";
-  await page.route("**/api/trace", route => { requests++; return route.fulfill({ status: 422, json: { error: message, code: "AI_CONTENT_BLOCKED", refunded: true, retryable: false } }); });
+  const message = (code === "AI_CONTENT_BLOCKED"
+    ? "The AI provider's automated content check stopped this generation. Your workspace is still available."
+    : "The AI provider couldn't complete this request right now. Your workspace is still available.")
+    + " The Claw used for this attempt has been refunded.";
+  await page.route("**/api/trace", route => { requests++; return route.fulfill({ status: code === "AI_CONTENT_BLOCKED" ? 422 : 503, json: { error: message, code, refunded: true, retryable: false } }); });
   await page.route("**/api/refund", route => { refundRequests++; return route.fulfill({ json: { success: true } }); });
   const exceptions = [];
   page.on("pageerror", error => exceptions.push(error.message));
@@ -35,8 +39,11 @@ test("a refunded model rejection stays in the workspace without a console except
   const run = page.getByRole("button", { name: /Run Auto-Trace/ });
   await run.click();
   await expect(page.getByText(message, { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole('alert').getByText("We couldn't finish this step", { exact: true })).toBeVisible();
+  await expect(page.getByText('Your source image is still available.', { exact: false })).toBeVisible();
   await expect(run).toBeEnabled();
   expect(requests).toBe(1);
   expect(refundRequests).toBe(0);
   expect(exceptions).toEqual([]);
 });
+}

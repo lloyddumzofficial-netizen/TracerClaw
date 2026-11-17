@@ -54,9 +54,9 @@ function getClientTraceError(error, didRefund) {
     return {
       status: 422,
       body: {
-        error: "The AI model's content checker rejected this generation."
-          + (didRefund ? " Your claw has been refunded automatically." : "")
-          + " Repeating the same request may fail again. Please contact support if you believe this is a mistake."
+        error: "The AI provider's automated content check stopped this generation. Your workspace is still available."
+          + (didRefund ? " The Claw used for this attempt has been refunded." : "")
+          + " If this seems incorrect, you can retry manually. The same image may still be declined; contact support if it continues."
           + (error.providerRequestId ? ` Reference: ${error.providerRequestId}.` : ""),
         code: AI_CONTENT_BLOCKED,
         retryable: false,
@@ -68,9 +68,9 @@ function getClientTraceError(error, didRefund) {
     return {
       status: 503,
       body: {
-        error: didRefund
-          ? "AI engine is temporarily unavailable. Your claw has been refunded automatically."
-          : "AI engine is temporarily unavailable. Please try again shortly.",
+        error: "The AI provider couldn't complete this request right now. Your workspace is still available."
+          + (didRefund ? " The Claw used for this attempt has been refunded." : "")
+          + " Please wait a moment before trying again.",
         code: AI_PROVIDER_UNAVAILABLE,
         refunded: didRefund,
       },
