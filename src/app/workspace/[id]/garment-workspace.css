@@ -896,3 +896,128 @@
     padding: 6px 8px !important;
   }
 }
+
+/* Approved brand styling, scoped to the workspace header and toolbar only. */
+.garment-workspace-ui .studio-topbar {
+  height: 52px !important;
+  background: #0a0a0a !important;
+  border-bottom: 1px solid #333333 !important;
+  box-shadow: none !important;
+}
+.garment-workspace-ui .studio-logo-btn { border-color: #333333 !important; }
+.garment-workspace-ui .studio-title-wrap h1 {
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .16em !important;
+}
+.garment-workspace-ui :is(.studio-nav-btn, .studio-ghost-btn) {
+  color: #a3a3a3 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+.garment-workspace-ui :is(.studio-ghost-btn, .studio-credit-pill) {
+  border: 1px solid #333333 !important;
+  border-radius: 7px !important;
+  background: #0a0a0a !important;
+  box-shadow: none !important;
+}
+.garment-workspace-ui .studio-credit-pill span { color: #ffffff !important; }
+.garment-workspace-ui .studio-credit-pill small { color: #a3a3a3 !important; }
+.garment-workspace-ui .garment-stage-toolbar {
+  height: 48px !important;
+  background: #0a0a0a !important;
+  border-bottom-color: #333333 !important;
+}
+.garment-workspace-ui .garment-stage-tools {
+  padding: 0 12px !important;
+  border-right-color: #333333 !important;
+}
+.garment-workspace-ui .workspace-command-bar { gap: 12px !important; }
+.garment-workspace-ui .workspace-command-label {
+  color: #a3a3a3 !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+  letter-spacing: .06em !important;
+}
+.garment-workspace-ui .workspace-command-btn {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding-inline: 10px !important;
+  border-radius: 6px !important;
+  color: #a3a3a3 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+}
+.garment-workspace-ui .workspace-command-btn.is-accent,
+.garment-workspace-ui .workspace-command-btn.is-active:not(:disabled) {
+  color: #ffffff !important;
+  background: #1a1a1a !important;
+  border-color: #333333 !important;
+}
+.garment-workspace-ui .workspace-command-btn.is-accent svg { color: #ffd700; }
+.garment-workspace-ui .workspace-command-btn:disabled { color: #a3a3a3 !important; opacity: .4 !important; }
+.garment-workspace-ui .workspace-zoom {
+  background: #1a1a1a !important;
+  border: 1px solid #333333 !important;
+  border-radius: 7px !important;
+  color: #a3a3a3 !important;
+  box-shadow: none !important;
+}
+.garment-workspace-ui .workspace-zoom-value { color: #ffffff !important; font-size: 11px !important; font-weight: 500 !important; }
+.garment-workspace-ui .workspace-zoom-divider { background: #333333 !important; }
+.garment-workspace-ui .garment-stage-tab {
+  color: #a3a3a3 !important;
+  background: #0a0a0a !important;
+  border-color: #333333 !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: .035em !important;
+  box-shadow: none !important;
+}
+.garment-workspace-ui .garment-stage-tab.is-active { color: #ffffff !important; background: #1a1a1a !important; }
+.garment-workspace-ui .garment-stage-indicator { display: none !important; }
+.garment-workspace-ui :is(.workspace-command-btn, .studio-nav-btn, .studio-ghost-btn, .garment-stage-tab):hover:not(:disabled) {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+}
+.garment-workspace-ui :is(.studio-topbar, .garment-stage-toolbar) button:focus-visible {
+  outline: 2px solid #ffd700 !important;
+  outline-offset: -3px;
+}
+@media (max-width: 1400px) {
+  .garment-workspace-ui .workspace-command-label { display: none; }
+  .garment-workspace-ui .workspace-command-bar { gap: 5px !important; }
+  .garment-workspace-ui .workspace-command-btn { padding-inline: 7px !important; font-size: 10px !important; }
+  .garment-workspace-ui .garment-stage-tools { padding-inline: 8px !important; }
+}
+
+/* Sidebar contrast: approved neutral surfaces and readable text. */
+.studio-shell.garment-workspace-ui .workspace-properties-panel { background: #0a0a0a !important; border-left-color: #333333 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-header { background: #1a1a1a !important; border-bottom-color: #333333 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-section { border-bottom-color: #333333 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-lbl { color: #a3a3a3 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-desc,
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-meta { color: #a3a3a3 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-sel { color: #ffffff !important; background: #1a1a1a !important; border-color: #333333 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card { color: #ffffff !important; background: #0a0a0a !important; border-color: #333333 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card.on { background: #1a1a1a !important; border-color: #ffd700 !important; box-shadow: none !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-plan-title,
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-plan-icon { color: #ffffff !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-sec { background: #1a1a1a !important; border-color: #333333 !important; color: #ffffff !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-sec:disabled,
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-svg-btn:disabled,
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-trace-btn:disabled { color: #ffffff !important; background: #1a1a1a !important; border-color: #333333 !important; opacity: .55 !important; box-shadow: none !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-sec:disabled span { color: #ffffff !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-warn { background: #1a1a1a !important; border-color: #333333 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-warn span { color: #ffffff !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel :is(.pp-card, .pp-sel, .pp-sec):focus-visible { outline: 2px solid #ffd700 !important; outline-offset: 2px; }
+
+/* Workflow tabs use a quiet neutral selection rather than a colored underline. */
+.garment-workspace-ui .garment-stage-tab.is-active { color: #ffffff !important; background: #1a1a1a !important; font-weight: 600 !important; }
+.garment-workspace-ui .garment-stage-toolbar .garment-stage-tab:focus-visible { outline: 1px solid #a3a3a3 !important; outline-offset: -4px; }

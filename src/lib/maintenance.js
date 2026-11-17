@@ -9,13 +9,10 @@ export function isMaintenanceEnabled() {
 }
 
 export function isMaintenancePage(path) {
-  return path === "/" || /^\/(workspace|upscale|bg-remover|mockup-studio|mobile)(\/|$)/.test(path);
+  return path === "/" || /^\/(workspace|upscale|bg-remover|mobile)(\/|$)/.test(path);
 }
 
 export function isPausedGeneration(path, method) {
-  if (path === "/api/cron/mockup-jobs") return true;
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return false;
-  return /^\/api\/(trace|trace-step3|upscale|remove-bg|crop|upload|upload-url|upload-direct|upload-mobile)\/?$/.test(path)
-    || /^\/api\/mockups\/[^/]+\/render\/?$/.test(path)
-    || /^\/api\/mockups\/jobs\/[^/]+\/retry\/?$/.test(path);
+  return /^\/api\/(trace|trace-step3|upscale|remove-bg|crop|upload|upload-url|upload-direct|upload-mobile)\/?$/.test(path);
 }

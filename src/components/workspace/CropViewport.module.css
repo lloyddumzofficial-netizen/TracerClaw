@@ -17,3 +17,12 @@
   .toolbar :global(.crop-toolbar-right) { flex-wrap: wrap; gap: 8px; }
   .toolbar :global(.crop-toolbar-right > span) { display: none; }
 }
+
+/* Match the dotted artwork canvas in both crop workspaces. */
+:global(.is-logo-workspace) .stage.stage,
+:global(.is-garment-workspace) .stage.stage {
+  background-color: #0a0a0a !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, .08) .75px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+  background-position: 0 0 !important;
+}

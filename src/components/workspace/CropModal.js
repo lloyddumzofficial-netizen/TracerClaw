@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, Crosshair, Hand, Info, Loader2, Maximize, Min
 import { convertToPixelCrop } from "react-image-crop";
 import CropSelectionCanvas from "./CropSelectionCanvas";
 import LogoCropGuide from "./LogoCropGuide";
+import CropGuideIntro from "./CropGuideIntro";
 import logoGuideStyles from "./LogoCropGuide.module.css";
 import viewportStyles from "./CropViewport.module.css";
 import "react-image-crop/dist/ReactCrop.css";
@@ -19,7 +20,7 @@ const MIN_CROP_ZOOM = 0.35;
 const MAX_CROP_ZOOM = 4;
 const CROP_ZOOM_FACTOR = 1.25;
 const CROP_STAGE_PADDING = 24;
-const CROP_GUIDE_STORAGE_KEY = "desaynclaw_crop_guide_dismissed";
+
 
 async function uploadCropThroughServer({ token, blob, fileName }) {
   const formData = new FormData();
@@ -135,8 +136,7 @@ const CropModal = memo(function CropModal({
   const [cropZoom, setCropZoom] = useState(DEFAULT_CROP_ZOOM);
   const [imageSize, setImageSize] = useState(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
-  const [showCropGuideIntro, setShowCropGuideIntro] = useState(false);
-  const [dontShowCropGuideAgain, setDontShowCropGuideAgain] = useState(false);
+  const [showCropGuideIntro, setShowCropGuideIntro] = useState(true);
   const [cropTool, setCropTool] = useState("crop");
   const [spaceHeld, setSpaceHeld] = useState(false);
   const imgRef = useRef(null);
@@ -148,7 +148,7 @@ const CropModal = memo(function CropModal({
   const wheelDelta = useRef(0);
   const wheelPoint = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (show) {
       setCropZoom(DEFAULT_CROP_ZOOM);
       zoomRef.current = DEFAULT_CROP_ZOOM;
@@ -160,12 +160,7 @@ const CropModal = memo(function CropModal({
       setCompletedCrop(null);
       setCropError("");
       setImageSize(null);
-      setDontShowCropGuideAgain(false);
-      try {
-        setShowCropGuideIntro(window.localStorage.getItem(CROP_GUIDE_STORAGE_KEY) !== "1");
-      } catch {
-        setShowCropGuideIntro(true);
-      }
+      setShowCropGuideIntro(true);
     }
   }, [show]);
 
@@ -192,16 +187,6 @@ const CropModal = memo(function CropModal({
       : { width: image.naturalWidth, height: image.naturalHeight });
   }, []);
 
-  const dismissCropGuideIntro = useCallback(() => {
-    if (dontShowCropGuideAgain) {
-      try {
-        window.localStorage.setItem(CROP_GUIDE_STORAGE_KEY, "1");
-      } catch {
-        // Non-critical: the guide can still be dismissed for this session.
-      }
-    }
-    setShowCropGuideIntro(false);
-  }, [dontShowCropGuideAgain]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -452,61 +437,8 @@ const CropModal = memo(function CropModal({
 
   return (
     <div className="modal-overlay crop-workspace-overlay" translate="no">
-      <div className={`crop-workspace-modal ${isPatternMode ? "is-pattern-workspace" : isLogoMode ? `is-logo-workspace ${logoGuideStyles.workspace}` : "is-garment-workspace"}`}>
-        {showCropGuideIntro && (
-          <div className="crop-intro-layer" role="dialog" aria-modal="true" aria-labelledby="crop-intro-title">
-            <div className="crop-intro-card">
-              <button type="button" className="crop-intro-close" onClick={dismissCropGuideIntro} aria-label="Close crop reminder">
-                <X size={16} />
-              </button>
-              <div className="crop-intro-heading">
-                <div>
-                  <span className="crop-intro-kicker">Crop source quality</span>
-                  <h3 id="crop-intro-title">{isPatternMode ? "Frame the exact pattern artwork" : "Keep only the printable area"}</h3>
-                </div>
-              </div>
-              <p className="crop-intro-lead">
-                {isPatternMode
-                  ? "The crop becomes the exact retrace canvas. Keep only the flat pattern and exclude scan margins, tables, backgrounds, and unrelated content."
-                  : "The crop becomes the exact source for extraction. Keep it tight to the design/body panel so the output does not include unwanted side space."}
-              </p>
-              <div className="crop-intro-rules">
-                {isPatternMode ? (
-                  <>
-                    <div><span>01</span><p>Frame the complete flat artwork you want to retrace.</p></div>
-                    <div><span>02</span><p>Exclude scanner edges, empty margins, tables, and surrounding objects.</p></div>
-                    <div><span>03</span><p>Keep the original artwork proportions; do not trim intentional edge details.</p></div>
-                  </>
-                ) : (
-                  <>
-                    <div><span>01</span><p>Choose one side only: front or back.</p></div>
-                    <div><span>02</span><p>Do not include sleeves, collar, armholes, shadows, background, or white margins.</p></div>
-                    <div><span>03</span><p>Use the guide videos on the right side of the crop screen if you are unsure.</p></div>
-                  </>
-                )}
-              </div>
-              <div className="crop-intro-warning">
-                {isPatternMode
-                  ? "Only content inside this crop will be retraced. Review every edge before continuing."
-                  : "Wrong crop or extra mockup space is user error and is not refundable."}
-              </div>
-              <div className="crop-intro-footer">
-                <label className="crop-intro-check">
-                  <input
-                    type="checkbox"
-                    checked={dontShowCropGuideAgain}
-                    onChange={e => setDontShowCropGuideAgain(e.target.checked)}
-                  />
-                  Don't show again
-                </label>
-                <button type="button" className="btn-primary crop-intro-action" onClick={dismissCropGuideIntro}>
-                  Start Crop
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+      {showCropGuideIntro && <CropGuideIntro mode={isLogoMode ? "logo" : isPatternMode ? "pattern" : "garment"} onContinue={() => setShowCropGuideIntro(false)} />}
+      <div inert={showCropGuideIntro} className={`crop-workspace-modal ${isPatternMode ? "is-pattern-workspace" : isLogoMode ? `is-logo-workspace ${logoGuideStyles.workspace}` : "is-garment-workspace"}`}>
         <div className="crop-workspace-header">
           <div className="crop-workspace-title">
             <div className="crop-tool-mark">

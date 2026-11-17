@@ -40,9 +40,6 @@ const nextConfig = {
     // Allow a 20 MB image plus multipart headers on the local upload fallback.
     ...(process.env.NODE_ENV === 'development' ? { proxyClientMaxBodySize: '21mb' } : {}),
   },
-  outputFileTracingIncludes: {
-    '/api/mockups/*/render': ['./public/mockup-studio/templates/**/*'],
-  },
   env: {
     BUILD_COMMIT: resolveBuildCommit(),
     // "true" means the deploy was built from a working tree with uncommitted

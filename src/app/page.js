@@ -482,6 +482,12 @@ export default function StartScreen() {
   const [unreadReferralRewards, setUnreadReferralRewards] = useState(0);
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development" && new URLSearchParams(window.location.search).get("onboarding") === "1") {
+      setShowOnboarding(true);
+    }
+  }, []);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   const openReferralModal = useCallback(() => {
@@ -1402,11 +1408,6 @@ export default function StartScreen() {
               if (requireDesktopTool()) return;
               router.push("/bg-remover");
             }}
-            onMockupStudio={(e) => {
-              e?.stopPropagation?.();
-              if (requireDesktopTool()) return;
-              router.push('/mockup-studio');
-            }}
           />
         )}
 
@@ -1428,11 +1429,6 @@ export default function StartScreen() {
               setShowLoginModal(true);
             }}
             onBgRemover={(e) => {
-              e?.stopPropagation?.();
-              if (requireDesktopTool()) return;
-              setShowLoginModal(true);
-            }}
-            onMockupStudio={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
               setShowLoginModal(true);
@@ -1558,39 +1554,6 @@ export default function StartScreen() {
               rightLabel="Original photo"
               description=""
             />
-          </div>
-        </section>
-
-        {/* Marco — Mockup Form Agent */}
-        <section hidden className="tool-showcase-section section-line-accent" style={{ display: "none" }}>
-          <div className="tool-showcase-copy">
-            <span className="section-kicker">Marco · Form Agent</span>
-            <h2>Shape Production-Ready Mockups</h2>
-            <p>
-              Marco turns finished panels into polished garment previews, helping your
-              team review form, placement, and presentation before final production.
-            </p>
-            <button
-              className={`tool-showcase-button ${actionStyles.action}`}
-              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/mockup-studio'); }}
-            >
-              <Monitor size={18} />
-              Try Mockup Studio
-            </button>
-          </div>
-          <div className="tool-showcase-media">
-            <figure className="tool-agent-showcase is-marco">
-              <div className="tool-agent-showcase-label is-left">
-                <strong>Marco</strong>
-                <span>Form Agent</span>
-              </div>
-              <Image
-                src="/tool-agent-cutouts/yellow-v2/05-mockup-agent.png"
-                alt="Marco, the DesaynClaw Form Agent"
-                fill
-                sizes="(max-width: 760px) 92vw, 540px"
-              />
-            </figure>
           </div>
         </section>
 
@@ -1738,10 +1701,6 @@ export default function StartScreen() {
             router.push("/bg-remover");
           }}
           onSelectDesignExtract={() => { if (requireDesktopTool()) return; if (pendingFile) handleDesignExtractUpload(pendingFile); else designFileInputRef.current?.click(); }}
-          onSelectMockupStudio={() => {
-            if (requireDesktopTool()) return;
-            router.push("/mockup-studio");
-          }}
         />
 
         <OnboardingModal

@@ -13,7 +13,7 @@ const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="
   <path fill="#2020e0" d="M768 512h768v512H768z"/>
 </svg>`;
 
-async function setupCrop(page, traceType = "standard") {
+async function setupCrop(page, traceType = "standard", dismissGuide = true) {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const user = { id: "crop-test-user", email: "crop@example.test", aud: "authenticated", role: "authenticated", app_metadata: {}, user_metadata: {} };
   const reference = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0];
@@ -29,6 +29,7 @@ async function setupCrop(page, traceType = "standard") {
     localStorage.setItem("desaynclaw_crop_guide_dismissed", "1");
     document.cookie = `${key}=base64-${value}; path=/; SameSite=Lax`;
   }, { key: `sb-${reference}-auth-token`, value: encode(session) });
+  await page.route("**/api/**", route => route.fulfill({ json: { enabled: false } }));
   await page.route("**/auth/v1/**", route => route.fulfill({ json: user }));
   await page.route("**/rest/v1/**", route => route.fulfill({ json: route.request().url().includes("/projects")
     ? { id: "crop-test", name: "Crop test", trace_type: traceType, original_image_url: "https://crop.test/source.svg", generated_image_url: null }
@@ -36,6 +37,13 @@ async function setupCrop(page, traceType = "standard") {
   await page.route("**/api/proxy?*", route => route.fulfill({ contentType: "image/svg+xml", body: sourceSvg }));
   await page.route("**/crop-guide-*.mp4", route => route.fulfill({ status: 204, body: "" }));
   await page.goto("/workspace/crop-test");
+  const guide = page.getByRole("dialog", { name: /Crop it right|Keep the complete logo|Frame the exact pattern/ });
+  await expect(guide).toBeVisible();
+  if (dismissGuide) {
+    const proceed = guide.getByRole("button", { name: "Continue to crop", exact: true });
+    await expect(proceed).toBeEnabled({ timeout: 10000 });
+    await proceed.click();
+  }
   await expect(page.getByAltText("Crop source", { exact: true })).toBeVisible();
   await expect(page.locator(".crop-source-meta span")).toContainText("1536 x 1024");
 }
@@ -48,6 +56,38 @@ async function drawCrop(page) {
   await page.mouse.up();
   return page.locator(".designer-crop .ReactCrop__crop-selection");
 }
+
+test("crop reminder requires five seconds and appears again on every crop", async ({ page }) => {
+  await setupCrop(page, "standard", false);
+  const guide = page.getByRole("dialog", { name: "Crop it right. Get a cleaner result." });
+  const close = guide.getByRole("button", { name: "Close crop guide and continue to crop" });
+  await expect(guide.getByRole("img", { name: /Wrong crop includes sleeves/ })).toBeVisible();
+  await expect(close).toBeDisabled();
+  await expect(guide.getByRole("checkbox")).toHaveCount(0);
+  await expect(page.locator(".crop-workspace-modal")).toHaveAttribute("inert", "");
+  await page.keyboard.press("Escape");
+  await page.mouse.click(5, 5);
+  await page.keyboard.press("Tab");
+  await expect(guide).toBeVisible();
+  await page.screenshot({ path: "test-results/crop-intro-guide-desktop.png" });
+  await page.waitForTimeout(3500);
+  await expect(close).toBeDisabled();
+  const proceed = guide.getByRole("button", { name: "Continue to crop", exact: true });
+  await expect(proceed).toBeEnabled({ timeout: 10000 });
+  await proceed.click();
+  await expect(guide).toHaveCount(0);
+  await drawCrop(page);
+  await page.getByRole("button", { name: "Close crop modal", exact: true }).click();
+  await page.getByRole("button", { name: "Crop", exact: true }).click();
+  await expect(guide).toBeVisible();
+  await expect(guide.getByRole("button", { name: /Continue in [45]s/ })).toBeDisabled();
+  await expect(close).toBeDisabled();
+  await page.setViewportSize({ width: 900, height: 650 });
+  const bounds = await guide.boundingBox();
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(650);
+  await page.screenshot({ path: "test-results/crop-intro-guide-compact.png" });
+});
 
 test("logo crop guide stays fixed with both examples visible", async ({ page }) => {
   await setupCrop(page, "logo");

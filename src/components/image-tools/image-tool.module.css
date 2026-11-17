@@ -1496,3 +1496,22 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Shared feature sidebar contrast matches the artwork workspaces. */
+.propertiesPanel { background: #0a0a0a; border-left-color: #333333; }
+.propertiesPanel .propertiesHeader { background: #1a1a1a; border-bottom-color: #333333; }
+.propertiesPanel .propertiesHeader :is(span, svg) { color: #ffffff; }
+.propertiesPanel .propertiesHeader button { color: #a3a3a3; }
+.propertiesPanel .sidebarSection { border-bottom-color: #333333; }
+.propertiesPanel :is(.sidebarLabel, .sidebarDescription, .sourceSelector small, .modeCard small, .detailRows span, .processReadout span, .processReadout small) { color: #a3a3a3; }
+.propertiesPanel :is(.sourceSelector, .modeCard) { color: #ffffff; background: #1a1a1a; border-color: #333333; box-shadow: none; }
+.propertiesPanel .modeCard { border-color: #ffd700; }
+.propertiesPanel :is(.sourceSelector strong, .modeCard strong, .selectorIcon, .modeIcon, .detailRows strong, .processReadout strong) { color: #ffffff; }
+.propertiesPanel .sourceSelector button { color: #ffffff; background: #0a0a0a; border-color: #333333; }
+.propertiesPanel .modeCost { color: #000000; background: #ffd700; border-color: #ffd700; box-shadow: none; }
+.propertiesPanel .modeCard select { color: #ffffff; background: #1a1a1a; border-color: #333333; }
+.propertiesPanel .actionGrid button { color: #ffffff; background: #1a1a1a; border-color: #333333; }
+.propertiesPanel :is(.statusAction, .primaryExport, .actionGrid button):disabled { color: #ffffff; background: #1a1a1a; border-color: #333333; box-shadow: none; opacity: .55; }
+.propertiesPanel .detailRows > div { border-top-color: #333333; }
+.propertiesPanel .sidebarFooter { color: #a3a3a3; background: #0a0a0a; border-top-color: #333333; }
+.propertiesPanel :is(button, select):focus-visible { outline: 2px solid #ffd700; outline-offset: 2px; }

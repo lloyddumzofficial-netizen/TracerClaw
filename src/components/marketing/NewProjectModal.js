@@ -123,7 +123,6 @@ const NewProjectModal = memo(function NewProjectModal({
   onClose,
   onSelectImage,
   onSelectBgRemover,
-  onSelectMockupStudio,
   onSelectDesignExtract,
 }) {
   const [step, setStep] = useState("category");
@@ -154,11 +153,6 @@ const NewProjectModal = memo(function NewProjectModal({
     if (cat === "bg_remover") {
       // Skip details step — trigger file upload immediately
       onSelectBgRemover?.();
-      handleClose();
-      return;
-    }
-    if (cat === "mockup_studio") {
-      onSelectMockupStudio?.();
       handleClose();
       return;
     }
@@ -265,7 +259,7 @@ const NewProjectModal = memo(function NewProjectModal({
               </p>
             </div>
 
-            <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 13 }}>
+            <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 13 }}>
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 artwork="garment"

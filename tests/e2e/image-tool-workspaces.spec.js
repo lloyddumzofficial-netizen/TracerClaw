@@ -378,6 +378,7 @@ test("Claw messages show the required amount and actual balance for Precision SV
   await page.route("**/rest/v1/projects*", route => route.fulfill({ json: project }));
   await page.route("**/api/integrations/status", route => route.fulfill({ json: { googleDrive: { connected: false } } }));
   await page.goto("/workspace/credit-ui-project");
+  await page.getByRole("button", { name: "Continue to crop", exact: true }).click({ timeout: 10000 });
   await page.getByRole("button", { name: "Close crop modal" }).click();
   await page.getByRole("button", { name: /Precision SVG/ }).click();
   await expect(page.getByText("Requires 2 Claws. Your balance: 1 Claw.", { exact: true })).toBeVisible();
@@ -392,6 +393,7 @@ test("a server-rejected charge uses an accurate credit dialog and supports Escap
   await page.route("**/api/integrations/status", route => route.fulfill({ json: { googleDrive: { connected: false } } }));
   await page.route("**/api/trace", route => route.fulfill({ status: 403, json: { error: "INSUFFICIENT_CREDITS" } }));
   await page.goto("/workspace/credit-dialog-project");
+  await page.getByRole("button", { name: "Continue to crop", exact: true }).click({ timeout: 10000 });
   await page.getByRole("button", { name: "Close crop modal" }).click();
   await page.getByRole("button", { name: /Precision SVG/ }).click();
   const run = page.getByRole("button", { name: /Run Auto-Trace/ });
