@@ -7,6 +7,8 @@
   background-size: 847px 282px;
   background-position: var(--thumbnail-x, -35px) -73px;
   pointer-events: none;
+  /* Shared charcoal treatment for homepage and workspace picker icons. */
+  filter: invert(1) grayscale(1) brightness(.9) contrast(.75);
 }
 
 .thumbnail[data-tool-thumbnail="logo"] { --thumbnail-x: -194px; }
