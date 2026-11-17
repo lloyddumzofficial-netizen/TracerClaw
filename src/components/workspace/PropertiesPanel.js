@@ -267,7 +267,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
           transition: border-color .15s, color .15s, background .15s;
           border-radius: 0;
         }
-        .pp-mode-options { display: grid; grid-auto-rows: 1fr; gap: 6px; }
+        .pp-mode-options { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 6px; }
         .pp-mode-options .pp-plan-icon { width: 16px; justify-content: center; }
         .pp-mode-options .pp-plan-copy { min-width: 0; align-self: stretch; }
         .workspace-properties-panel .pp-mode-section .pp-mode-options .pp-plan-title {
@@ -283,6 +283,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         }
         .pp-card.on { border-color: #FFD700; color: #e4e4e7; background: rgba(255, 215, 0, 0.04); }
         .pp-card:not(.on):hover { border-color: #555; color: #a1a1aa; }
+
 
         .pp-sec {
           background: transparent; border: 1px solid #333; color: #a1a1aa;
