@@ -59,3 +59,4 @@ scripts with this ordered directory during a fresh setup.
 `setup_refunds.sql` and `setup_increment_credits.sql` are intentionally not part
 of this ordered migration path because the current atomic RPC migrations replace
 that older refund/credit approach.
+`038_design_extract.sql` — Admin-only Design Extract projects and durable layer operations (3-day retention).

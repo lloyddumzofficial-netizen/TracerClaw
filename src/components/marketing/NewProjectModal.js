@@ -124,6 +124,7 @@ const NewProjectModal = memo(function NewProjectModal({
   onSelectImage,
   onSelectBgRemover,
   onSelectMockupStudio,
+  onSelectDesignExtract,
 }) {
   const [step, setStep] = useState("category");
   const [category, setCategory] = useState(null);
@@ -271,6 +272,7 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="Garment Extract"
                 description="Extract clean production artwork from garment mockups."
               />
+              <CategoryCard onClick={() => { onSelectDesignExtract?.(); handleClose(); }} artwork="design_extract" title="Design Extract" description="Separate flat artwork into reusable layers." />
               <CategoryCard
                 onClick={() => handleCategorySelect("logo")}
                 artwork="logo"
@@ -289,13 +291,6 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="Background Remover"
                 description="Create clean transparent cutouts for products and graphics."
                 badge="AI"
-              />
-              <CategoryCard
-                onClick={() => handleCategorySelect("mockup_studio")}
-                artwork="mockup_studio"
-                title="Mockup Studio"
-                description="Build polished garment previews from production panels."
-                badge="NEW"
               />
             </div>
 

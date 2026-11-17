@@ -31,6 +31,7 @@ import ShortcutsModal from "@/components/workspace/ShortcutsModal";
 import WorkspaceCommandBar from "@/components/workspace/WorkspaceCommandBar";
 import DesktopRequiredNotice from "@/components/shared/DesktopRequiredNotice";
 import StudioShell from "@/components/shared/StudioShell";
+import DesignExtractEntry from "@/components/marketing/DesignExtractEntry";
 import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { saveProjectToGoogleDrive } from "@/lib/integrations/clientApi";
@@ -432,6 +433,7 @@ export default function Workspace() {
       <StudioShell
         className="garment-workspace-ui"
         title={workspaceTitle}
+        extraTopActions={<DesignExtractEntry sourceProjectId={projectId} hasResult={Boolean(project?.generated_image_url && project.generated_image_url !== "REFUNDED")} />}
         credits={userCredits}
         onHome={() => router.push("/")}
         onCreditsClick={() => setShowTopUpModal(true)}

@@ -10,6 +10,7 @@ const StudioShell = memo(function StudioShell({
   projectName,
   savedAgo,
   credits,
+  showCredits = true,
   onHome,
   onCreditsClick,
   onShortcuts,
@@ -47,11 +48,11 @@ const StudioShell = memo(function StudioShell({
               <Keyboard size={12} /> Shortcuts
             </button>
           )}
-          <button className="studio-credit-pill" onClick={onCreditsClick} type="button">
+          {showCredits && <button className="studio-credit-pill" onClick={onCreditsClick} type="button">
             <Image src="/Claws/Claws.webp" alt="Claws" width={14} height={14} style={{ objectFit: 'contain' }} />
             <span>{credits ?? "-"}</span>
             <small>Claws</small>
-          </button>
+          </button>}
         </div>
       </header>
 

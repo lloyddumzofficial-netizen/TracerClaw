@@ -107,6 +107,7 @@ const RecentProjects = memo(function RecentProjects({
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}>
+                  {proj.trace_type === "design_extract" && <span className="recent-tool-label">Design Extract</span>}
                   {navigatingId === proj.id && (
                     <div className="recent-opening">
                       <Loader2 size={18} className="animate-spin" />

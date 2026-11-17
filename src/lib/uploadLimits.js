@@ -1,4 +1,5 @@
 export const IMAGE_UPLOAD_MAX_BYTES = 20 * 1024 * 1024;
+export const DESIGN_EXTRACT_UPLOAD_MAX_BYTES = IMAGE_UPLOAD_MAX_BYTES;
 export const STANDARD_IMAGE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 export function formatUploadLimit(bytes) {
@@ -6,7 +7,7 @@ export function formatUploadLimit(bytes) {
 }
 
 export function resolveImageUploadLimit({ purpose } = {}) {
-  return purpose === "bg_remover" ? IMAGE_UPLOAD_MAX_BYTES : STANDARD_IMAGE_UPLOAD_MAX_BYTES;
+  return purpose === "bg_remover" || purpose === "design_extract" ? IMAGE_UPLOAD_MAX_BYTES : STANDARD_IMAGE_UPLOAD_MAX_BYTES;
 }
 
 export function validateImageUploadRequest({ contentType, fileSize, purpose } = {}) {

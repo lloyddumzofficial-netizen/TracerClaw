@@ -35,7 +35,11 @@ function resolveBuildDirty() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { agentUpgrade: 'security' },
+  experimental: {
+    agentUpgrade: 'security',
+    // Allow a 20 MB image plus multipart headers on the local upload fallback.
+    ...(process.env.NODE_ENV === 'development' ? { proxyClientMaxBodySize: '21mb' } : {}),
+  },
   outputFileTracingIncludes: {
     '/api/mockups/*/render': ['./public/mockup-studio/templates/**/*'],
   },

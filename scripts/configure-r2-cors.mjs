@@ -7,6 +7,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://www.desaynclaw.com",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  "http://localhost:3100",
+  "http://127.0.0.1:3100",
 ];
 
 function loadEnvFile(filePath) {

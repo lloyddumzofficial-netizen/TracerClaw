@@ -29,6 +29,7 @@
     "@supabase/supabase-js": "^2.109.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "ag-psd": "^34.2.1",
     "dodopayments": "^2.42.2",
     "dompurify": "^3.4.17",
     "jszip": "^3.10.1",

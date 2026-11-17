@@ -3,6 +3,7 @@
 // ─── React & Routing ──────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAppRouter } from "@/hooks/useAppRouter";
+import { uploadDesignFile } from "@/features/design-extract/upload";
 import useHomepageMotion from "@/hooks/useHomepageMotion";
 import motionStyles from "@/components/marketing/HomepageMotion.module.css";
 import dynamic from "next/dynamic";
@@ -126,7 +127,7 @@ async function uploadImageToStorage({ token, file, purpose }) {
   }
 }
 
-function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockupStudio }) {
+function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesignExtract }) {
   const trackRef = useRef(null);
   const tools = [
     {
@@ -153,13 +154,9 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockup
       tool: "bg_remover",
       onClick: onBgRemover,
     },
-    {
-      title: "Mockup Studio",
-      description: "Build polished garment previews from production panels.",
-      tool: "mockup_studio",
-      onClick: onMockupStudio,
-    },
   ];
+
+  tools.splice(1, 0, { title: "Design Extract", description: "Separate flat artwork into reusable layers.", tool: "design_extract", onClick: onDesignExtract });
 
   const scrollTools = (direction) => {
     trackRef.current?.scrollBy({
@@ -456,6 +453,7 @@ export default function StartScreen() {
   const supabase = useMemo(() => createClient(), []);
   const isMobileDevice = useIsMobileDevice();
   const fileInputRef = useRef(null);
+  const designFileInputRef = useRef(null);
   const homeRootRef = useRef(null);
   const heroLogoRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
@@ -895,7 +893,15 @@ export default function StartScreen() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (!error && data) setRecentProjects(data);
+    let designProjects = [];
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user.id === userId) {
+        const response = await fetch("/api/design-extract", { headers: { Authorization: `Bearer ${session.access_token}` } });
+        if (response.ok) designProjects = (await response.json()).projects || [];
+      }
+    } catch (err) { console.warn("Could not load Design Extract projects", err); }
+    if (!error && data) setRecentProjects([...data, ...designProjects].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50));
     setIsLoadingProjects(false);
   };
 
@@ -924,14 +930,16 @@ export default function StartScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const res = await fetch("/api/project", {
+      const isDesignExtract = recentProjects.find(project => project.id === id)?.trace_type === "design_extract";
+      const res = await fetch(isDesignExtract ? `/api/design-extract/${id}` : "/api/project", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ projectId: id, newName: editValue })
+        body: JSON.stringify({ projectId: id, newName: editValue, ...(isDesignExtract ? { action: "rename" } : {}) })
       });
+      if (!res.ok) { const data = await safeJson(res, "Rename failed"); toast.error(data.error || "Could not rename project"); }
       if (res.ok) setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, name: editValue } : p));
     } catch (err) {
       console.error("Failed to rename", err);
@@ -949,7 +957,7 @@ export default function StartScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const response = await fetch(`/api/project?id=${id}`, {
+      const response = await fetch(projectToDelete.trace_type === "design_extract" ? `/api/design-extract/${id}` : `/api/project?id=${id}`, {
         method: "DELETE",
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
@@ -966,6 +974,23 @@ export default function StartScreen() {
   };
 
   // ─── Upload Logic ───────────────────────────────────────────────────────────
+  const handleDesignExtractUpload = async file => {
+    if (!file || requireDesktopTool()) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > resolveImageUploadLimit({ purpose: "design_extract" })) { toast.error("Use PNG, JPG or WebP up to 20 MB."); return; }
+    setIsUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { handleLogin(); return; }
+      const access = await fetch("/api/design-extract", { headers: { Authorization: `Bearer ${session.access_token}` } });
+      if (!access.ok) { const result = await safeJson(access, "Could not verify Design Extract access"); throw new Error(result.error || "Design Extract is unavailable. Please retry."); }
+      const imageUrl = await uploadDesignFile({ file, token: session.access_token });
+      const response = await fetch("/api/design-extract", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify({ imageUrl }) });
+      const data = await safeJson(response, "Could not create Design Extract project");
+      if (!response.ok) throw new Error(data.error);
+      router.push(`/design-extract/${data.project.id}`);
+    } catch (error) { toast.error(error.message || "Could not upload design"); }
+    finally { setIsUploading(false); }
+  };
   const handleFileUpload = async (file, isBgRemover = false, mobileTraceType = null) => {
     if (!file || !file.type.startsWith("image/")) return;
     if (isMobileDevice) {
@@ -1353,7 +1378,7 @@ export default function StartScreen() {
         <MovingArtworkGallery />
 
 {user && (
-          <DesktopToolsShelf
+          <DesktopToolsShelf onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
             onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
@@ -1386,7 +1411,7 @@ export default function StartScreen() {
         )}
 
 {!user && (
-          <DesktopToolsShelf
+          <DesktopToolsShelf onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
             onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
@@ -1537,7 +1562,7 @@ export default function StartScreen() {
         </section>
 
         {/* Marco — Mockup Form Agent */}
-        <section className="tool-showcase-section section-line-accent">
+        <section hidden className="tool-showcase-section section-line-accent" style={{ display: "none" }}>
           <div className="tool-showcase-copy">
             <span className="section-kicker">Marco · Form Agent</span>
             <h2>Shape Production-Ready Mockups</h2>
@@ -1690,6 +1715,7 @@ export default function StartScreen() {
 
         {/* Hidden File Input — shows type-selector modal before uploading */}
         <input type="file" ref={fileInputRef} onChange={(e) => { if (e.target.files[0]) openModalWithFile(e.target.files[0]); e.target.value = ""; }} accept="image/*" style={{ display: "none" }} />
+        <input type="file" ref={designFileInputRef} aria-label="Upload Design Extract artwork" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={event => { handleDesignExtractUpload(event.target.files?.[0]); event.target.value = ""; }} />
 
         {/* ─── Modals ────────────────────────────────────────────────────────── */}
         <NewProjectModal
@@ -1711,6 +1737,7 @@ export default function StartScreen() {
             if (requireDesktopTool()) return;
             router.push("/bg-remover");
           }}
+          onSelectDesignExtract={() => { if (requireDesktopTool()) return; if (pendingFile) handleDesignExtractUpload(pendingFile); else designFileInputRef.current?.click(); }}
           onSelectMockupStudio={() => {
             if (requireDesktopTool()) return;
             router.push("/mockup-studio");

@@ -27,3 +27,9 @@
 .thumbnail[data-tool-thumbnail="mockup_studio"] {
   background-image: url("/icons/workspace/mockup-studio.svg");
 }
+
+.thumbnail[data-tool-thumbnail="design_extract"] {
+  background-image: url("/icons/workspace/design-extract.svg");
+  background-size: 142px 147px;
+  background-position: center;
+}

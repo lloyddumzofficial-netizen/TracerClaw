@@ -10018,3 +10018,6 @@ html:has(.has-guest-home) {
   background: rgba(255, 255, 255, .18);
   pointer-events: none;
 }
+
+.recent-thumb { position: relative; }
+.recent-tool-label { position: absolute; top: 8px; left: 8px; z-index: 1; padding: 5px 7px; border: 1px solid rgba(255,255,255,.24); border-radius: 5px; background: rgba(13,14,15,.88); color: #f4f4f1; font-size: 9px; font-weight: 600; letter-spacing: .03em; backdrop-filter: blur(8px); }

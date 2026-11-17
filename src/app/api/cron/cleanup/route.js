@@ -7,6 +7,7 @@ import { refundUpscaleJob, settleUpscaleJob } from '@/server/upscale/jobs';
 import { logger } from '@/lib/logger';
 import { getRecoverableAttemptOutput } from '@/server/billing/recoverAttemptOutput';
 import { reconcileArtworkEdits } from '@/server/artworkEdits/service';
+import { maintainDesignExtract } from '@/server/designExtract/maintenance';
 
 // Ensure this route doesn't run at the Edge since it uses AWS SDK heavily
 export const runtime = 'nodejs';
@@ -332,6 +333,7 @@ export async function GET(request) {
     }
 
     logger.info("[Cron] Done", results);
+    try { await maintainDesignExtract(); } catch (error) { console.warn('[Cron] Design Extract maintenance will retry:', error.message); }
     return NextResponse.json({ success: true, ...results });
 
   } catch (error) {
