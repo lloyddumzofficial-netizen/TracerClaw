@@ -267,6 +267,20 @@ const PropertiesPanel = memo(function PropertiesPanel({
           transition: border-color .15s, color .15s, background .15s;
           border-radius: 0;
         }
+        .pp-mode-options { display: grid; grid-auto-rows: 1fr; gap: 6px; }
+        .pp-mode-options .pp-plan-icon { width: 16px; justify-content: center; }
+        .pp-mode-options .pp-plan-copy { min-width: 0; align-self: stretch; }
+        .workspace-properties-panel .pp-mode-section .pp-mode-options .pp-plan-title {
+          font-size: 12px !important; font-weight: 600 !important;
+          line-height: 1.35 !important; letter-spacing: 0 !important;
+          text-transform: none !important; color: #ededed !important;
+          margin-bottom: 3px;
+        }
+        .workspace-properties-panel .pp-mode-section .pp-mode-options .pp-plan-meta {
+          font-size: 10.5px !important; font-weight: 400 !important;
+          line-height: 1.45 !important; letter-spacing: 0 !important;
+          color: #a3a3a3 !important;
+        }
         .pp-card.on { border-color: #FFD700; color: #e4e4e7; background: rgba(255, 215, 0, 0.04); }
         .pp-card:not(.on):hover { border-color: #555; color: #a1a1aa; }
 
@@ -430,7 +444,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       {/* ── SVG MODE ─────────────────────────────────────── */}
       <div className="pp-section pp-mode-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">SVG Mode</span>
-        <div style={{ display: "grid", gap: "6px" }}>
+        <div className="pp-mode-options">
 
           {/* Standard */}
           <button type="button" className={`pp-card${svgEngine === "standard" ? " on" : ""}`}
@@ -438,11 +452,11 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <div className="pp-plan-icon" style={{ color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
               <IconBezier />
             </div>
-            <div style={{ flex: 1, textAlign: "left" }}>
-              <div className="pp-plan-title" style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "standard" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
+            <div className="pp-plan-copy" style={{ flex: 1, textAlign: "left" }}>
+              <div className="pp-plan-title">
                 Standard SVG
               </div>
-              <div className="pp-plan-meta" style={{ fontSize: "9px", color: "#71717a" }}>
+              <div className="pp-plan-meta">
                 {resumeSavedOutput ? "No extra Claws • Resume saved output" : "1 Claw • Includes Palette Studio"}
               </div>
             </div>
@@ -460,11 +474,11 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <div className="pp-plan-icon" style={{ color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
               <Sparkles size={16} />
             </div>
-            <div style={{ flex: 1, textAlign: "left" }}>
-              <div className="pp-plan-title" style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: svgEngine === "precision" ? "#e4e4e7" : "#a1a1aa", marginBottom: "2px" }}>
+            <div className="pp-plan-copy" style={{ flex: 1, textAlign: "left" }}>
+              <div className="pp-plan-title">
                 Precision SVG
               </div>
-              <div className="pp-plan-meta" style={{ fontSize: "9px", color: "#71717a" }}>
+              <div className="pp-plan-meta">
                 {precisionCreditCost} Claw{precisionCreditCost > 1 ? "s" : ""} • Cleaner paths + smoother Palette Studio
               </div>
             </div>
