@@ -31,7 +31,7 @@
 .close:disabled { opacity: .3; cursor: not-allowed; }
 .body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 16px; }
 .visual { margin: 0; overflow: hidden; border: 1px solid #2e3031; border-radius: 12px; background: #080909; }
-.visual img { display: block; width: 100%; height: auto; max-height: min(54dvh, 520px); object-fit: contain; }
+.visual img { display: block; width: 100%; height: auto; }
 .copy { padding: 18px 4px 20px; }
 .copy h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }
 .copy p { margin: 0; color: #a4a7a1; font-size: 12px; line-height: 1.7; }
