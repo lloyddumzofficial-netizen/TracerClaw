@@ -19,5 +19,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/", "/workspace/:path*", "/upscale/:path*", "/bg-remover/:path*", "/mockup-studio/:path*", "/mobile/:path*", "/api/:path*"],
+  matcher: ["/", "/workspace/:path*", "/upscale/:path*", "/bg-remover/:path*", "/mobile/:path*", "/api/:path*"],
 };

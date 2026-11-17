@@ -1,7 +1,7 @@
 # DesaynClaw
 
 DesaynClaw is a Next.js production workspace for AI artwork extraction, image
-upscaling, background removal, SVG vectorization, mockup rendering, and paid
+upscaling, background removal, SVG vectorization, and paid
 Claw credit fulfillment.
 
 ## Local development

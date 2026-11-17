@@ -12,16 +12,11 @@
 .thumbnail[data-tool-thumbnail="logo"] { --thumbnail-x: -194px; }
 .thumbnail[data-tool-thumbnail="bg_remover"] { --thumbnail-x: -512px; }
 
-.thumbnail[data-tool-thumbnail="pattern"],
-.thumbnail[data-tool-thumbnail="mockup_studio"] {
+.thumbnail[data-tool-thumbnail="pattern"] {
   background-size: 142px 147px;
   background-position: center;
 }
 
 .thumbnail[data-tool-thumbnail="pattern"] {
   background-image: url("/icons/workspace/pattern-rebuilder.svg");
-}
-
-.thumbnail[data-tool-thumbnail="mockup_studio"] {
-  background-image: url("/icons/workspace/mockup-studio.svg");
 }

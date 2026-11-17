@@ -2881,12 +2881,6 @@
   --agent-glow: #087b4f;
 }
 
-.tool-agent-showcase.is-marco {
-  --agent-aura: rgba(105, 62, 201, 0.5);
-  --agent-wash: #b09ae7;
-  --agent-glow: #6338bd;
-}
-
 .tool-agent-showcase img {
   z-index: 2;
   object-fit: contain;
@@ -3891,22 +3885,6 @@
 
 .desktop-tool-visual.is-contain img {
   object-fit: contain;
-}
-
-.desktop-tool-visual.is-mockup {
-  background: linear-gradient(145deg, #292b2d, #111213 72%);
-}
-
-.desktop-tool-visual.is-mockup img {
-  inset: 22px 12px 34px !important;
-  width: calc(100% - 24px) !important;
-  height: calc(100% - 56px) !important;
-  filter: brightness(0.9) contrast(1.04);
-}
-
-.desktop-tool-visual.is-mockup-photo img {
-  object-position: center 28%;
-  filter: saturate(.9) contrast(1.04) brightness(.88);
 }
 
 .desktop-tool-card-shade {
@@ -5159,8 +5137,7 @@
 .tool-showcase-button.is-cora-gradient svg,
 .tool-showcase-button.is-victor-gradient svg,
 .tool-showcase-button.is-maya-gradient svg,
-.tool-showcase-button.is-tess-gradient svg,
-.tool-showcase-button.is-marco-gradient svg {
+.tool-showcase-button.is-tess-gradient svg {
   color: currentColor !important;
   stroke: currentColor !important;
 }
@@ -5197,24 +5174,12 @@
   box-shadow: 0 11px 26px rgba(8, 123, 79, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
 }
 
-.has-guest-home .tool-showcase-button.is-marco-gradient,
-.tool-showcase-button.is-marco-gradient {
-  border: 1px solid rgba(132, 99, 203, 0.62) !important;
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 28%, #eee7ff 60%, #b49ce9 100%) !important;
-  color: #171819 !important;
-  box-shadow: 0 11px 26px rgba(99, 56, 189, 0.19), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-}
-
 .tool-showcase-button.is-maya-gradient:hover {
   background: linear-gradient(135deg, #ffffff 0%, #fffbeb 23%, #ffeb9b 58%, #dcb52e 100%) !important;
 }
 
 .tool-showcase-button.is-tess-gradient:hover {
   background: linear-gradient(135deg, #ffffff 0%, #f7fcf9 23%, #c9ead9 58%, #69b991 100%) !important;
-}
-
-.tool-showcase-button.is-marco-gradient:hover {
-  background: linear-gradient(135deg, #ffffff 0%, #fbf9ff 23%, #dfd4fb 58%, #9d82dc 100%) !important;
 }
 
 /* Professional homepage typography: lighter Manrope product UI style. */
@@ -9542,7 +9507,7 @@ html:has(.has-guest-home) {
 
 .desktop-tools-shelf .desktop-tools-track {
   display: grid !important;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   grid-auto-flow: row !important;
   grid-auto-columns: auto !important;
   gap: 14px !important;
@@ -9725,7 +9690,7 @@ html:has(.has-guest-home) {
 
 @media (max-width: 1180px) and (min-width: 821px) {
   .modal-overlay .new-project-modal .new-project-category-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 

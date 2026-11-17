@@ -126,7 +126,7 @@ async function uploadImageToStorage({ token, file, purpose }) {
   }
 }
 
-function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockupStudio }) {
+function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover }) {
   const trackRef = useRef(null);
   const tools = [
     {
@@ -152,12 +152,6 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onMockup
       description: "Create clean transparent cutouts for products and graphics.",
       tool: "bg_remover",
       onClick: onBgRemover,
-    },
-    {
-      title: "Mockup Studio",
-      description: "Build polished garment previews from production panels.",
-      tool: "mockup_studio",
-      onClick: onMockupStudio,
     },
   ];
 
@@ -1377,11 +1371,6 @@ export default function StartScreen() {
               if (requireDesktopTool()) return;
               router.push("/bg-remover");
             }}
-            onMockupStudio={(e) => {
-              e?.stopPropagation?.();
-              if (requireDesktopTool()) return;
-              router.push('/mockup-studio');
-            }}
           />
         )}
 
@@ -1403,11 +1392,6 @@ export default function StartScreen() {
               setShowLoginModal(true);
             }}
             onBgRemover={(e) => {
-              e?.stopPropagation?.();
-              if (requireDesktopTool()) return;
-              setShowLoginModal(true);
-            }}
-            onMockupStudio={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
               setShowLoginModal(true);
@@ -1533,39 +1517,6 @@ export default function StartScreen() {
               rightLabel="Original photo"
               description=""
             />
-          </div>
-        </section>
-
-        {/* Marco — Mockup Form Agent */}
-        <section className="tool-showcase-section section-line-accent">
-          <div className="tool-showcase-copy">
-            <span className="section-kicker">Marco · Form Agent</span>
-            <h2>Shape Production-Ready Mockups</h2>
-            <p>
-              Marco turns finished panels into polished garment previews, helping your
-              team review form, placement, and presentation before final production.
-            </p>
-            <button
-              className={`tool-showcase-button ${actionStyles.action}`}
-              onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/mockup-studio'); }}
-            >
-              <Monitor size={18} />
-              Try Mockup Studio
-            </button>
-          </div>
-          <div className="tool-showcase-media">
-            <figure className="tool-agent-showcase is-marco">
-              <div className="tool-agent-showcase-label is-left">
-                <strong>Marco</strong>
-                <span>Form Agent</span>
-              </div>
-              <Image
-                src="/tool-agent-cutouts/yellow-v2/05-mockup-agent.png"
-                alt="Marco, the DesaynClaw Form Agent"
-                fill
-                sizes="(max-width: 760px) 92vw, 540px"
-              />
-            </figure>
           </div>
         </section>
 
@@ -1710,10 +1661,6 @@ export default function StartScreen() {
           onSelectBgRemover={() => {
             if (requireDesktopTool()) return;
             router.push("/bg-remover");
-          }}
-          onSelectMockupStudio={() => {
-            if (requireDesktopTool()) return;
-            router.push("/mockup-studio");
           }}
         />
 

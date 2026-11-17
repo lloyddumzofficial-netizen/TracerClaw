@@ -1,0 +1,52 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .86);
+  backdrop-filter: blur(12px);
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(600px, 100%);
+  max-height: calc(100dvh - 40px);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #343638;
+  border-radius: 18px;
+  background: #101112;
+  color: #f4f4f1;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .65);
+  font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
+}
+
+.card:focus { outline: none; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; }
+.header > span { display: inline-flex; align-items: center; gap: 9px; color: #c3c5c1; font-size: 12px; font-weight: 600; }
+.close { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #343638; border-radius: 8px; background: transparent; color: #d4d6d1; cursor: pointer; }
+.close:disabled { opacity: .3; cursor: not-allowed; }
+.body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 16px; }
+.visual { margin: 0; overflow: hidden; border: 1px solid #2e3031; border-radius: 12px; background: #080909; }
+.visual img { display: block; width: 100%; height: auto; max-height: min(54dvh, 520px); object-fit: contain; }
+.copy { padding: 18px 4px 20px; }
+.copy h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }
+.copy p { margin: 0; color: #a4a7a1; font-size: 12px; line-height: 1.7; }
+.copy p + p { margin-top: 10px; }
+.logoGuide { max-width: 360px; margin: auto; }
+.footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 15px 20px; border-top: 1px solid #292b2c; background: #141516; }
+.status { display: inline-flex; align-items: center; gap: 7px; color: #a4a7a1; font-size: 11px; font-variant-numeric: tabular-nums; }
+.continue { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 40px; padding: 0 16px; border: 1px solid #f4f4f1; border-radius: 9px; background: linear-gradient(#fff, #dedfdb); color: #101112; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.continue:disabled { border-color: #363839; background: #242627; color: #92958f; cursor: not-allowed; }
+.continue:focus-visible, .close:focus-visible { outline: 2px solid #f6df54; outline-offset: 3px; }
+
+@media (max-width: 480px) {
+  .overlay { padding: 12px; }
+  .card { max-height: calc(100dvh - 24px); border-radius: 14px; }
+  .body { padding: 0 12px; }
+  .footer { padding: 12px 16px; }
+  .continue { flex: 1; }
+}

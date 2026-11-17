@@ -81,7 +81,7 @@ test('content, comparison controls and image cards keep the same scroll behavior
   const targets = [
     '#preview input[type="range"]',
     '.tool-cutout-preview input[type="range"]',
-    '.tool-agent-showcase.is-marco img',
+    'section[aria-labelledby="workspace-features-heading"] img',
     '#workspace-features-heading',
     '#pricing button',
   ];
