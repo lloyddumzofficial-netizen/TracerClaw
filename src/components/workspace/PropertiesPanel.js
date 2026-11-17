@@ -430,7 +430,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       {/* ── SVG MODE ─────────────────────────────────────── */}
       <div className="pp-section pp-mode-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">SVG Mode</span>
-        <div style={{ display: "grid", gap: "6px" }}>
+        <div style={{ display: "grid", gridAutoRows: "1fr", gap: "6px" }}>
 
           {/* Standard */}
           <button type="button" className={`pp-card${svgEngine === "standard" ? " on" : ""}`}

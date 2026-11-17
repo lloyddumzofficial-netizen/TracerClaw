@@ -478,6 +478,12 @@ export default function StartScreen() {
   const [unreadReferralRewards, setUnreadReferralRewards] = useState(0);
   const loginTriggerRef = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development" && new URLSearchParams(window.location.search).get("onboarding") === "1") {
+      setShowOnboarding(true);
+    }
+  }, []);
   const [pendingFile, setPendingFile] = useState(null); // holds file waiting for type selection
 
   const openReferralModal = useCallback(() => {

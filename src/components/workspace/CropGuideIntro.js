@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Crop, Timer, X } from "lucide-react";
+import { ArrowRight, Timer, X } from "lucide-react";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import LogoCropGuide from "./LogoCropGuide";
 import styles from "./CropGuideIntro.module.css";
@@ -40,10 +40,7 @@ export default function CropGuideIntro({ mode, onContinue }) {
   return (
     <div className={styles.overlay}>
       <section className={styles.card} ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="crop-guide-title" aria-describedby="crop-guide-description" tabIndex={-1}>
-        <header className={styles.header}>
-          <span><Crop size={16} aria-hidden="true" /> Before you crop</span>
-          <button type="button" className={styles.close} onClick={continueToCrop} disabled={remaining > 0} aria-label="Close crop guide and continue to crop"><X size={17} /></button>
-        </header>
+        <button type="button" className={styles.close} onClick={continueToCrop} disabled={remaining > 0} aria-label="Close crop guide and continue to crop"><X size={17} /></button>
         <div className={styles.body}>
           {mode === "garment" && !imageFailed && (
             <figure className={styles.visual}>
@@ -52,6 +49,7 @@ export default function CropGuideIntro({ mode, onContinue }) {
           )}
           {mode === "logo" && <div className={styles.logoGuide}><LogoCropGuide /></div>}
           <div className={styles.copy}>
+            <span className={styles.eyebrow}>Before you crop</span>
             <h2 id="crop-guide-title">{title}</h2>
             <p id="crop-guide-description">{description}</p>
             {(mode === "pattern" || imageFailed) && <p>Keep the original proportions and check all four edges before applying your crop.</p>}

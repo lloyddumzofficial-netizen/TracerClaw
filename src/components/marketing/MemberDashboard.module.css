@@ -113,3 +113,25 @@
 @media (max-width: 760px) {
   .root.root :global(.hero-upload-box) { padding: 20px !important; }
 }
+
+/* Gentle contrast pass for the existing member dashboard layout. */
+.root.root :global(.hero-copy) { color: #a3a3a3 !important; }
+.root.root :global(.hero-action-bar .start-btn) { color: #ffffff !important; background: #1a1a1a !important; border-color: #333333 !important; }
+.root.root :global(.hero-action-bar .start-btn):hover { border-color: #a3a3a3 !important; }
+.root.root :global(.hero-upload-box) { background: #1a1a1a !important; border-color: #a3a3a3 !important; }
+.root.root :global(.hero-upload-box label) { color: #ffffff !important; }
+.root.root :global(.hero-upload-box > div:last-child span) { color: #a3a3a3 !important; }
+.root.root :global(.recent-projects h3),
+.root.root :global(.recent-name) { color: #ffffff !important; }
+.root.root :global(.recent-projects-retention),
+.root.root :global(.recent-privacy-note p) { color: #a3a3a3 !important; }
+.root.root :global(.recent-projects-search input) { color: #ffffff !important; background: #1a1a1a !important; border-color: #333333 !important; }
+.root.root :global(.recent-projects-search input)::placeholder { color: #a3a3a3 !important; opacity: 1; }
+.root.root :global(.recent-projects-search > svg),
+.root.root :global(.dots-btn) { color: #a3a3a3 !important; }
+.root.root :global(.recent-privacy-note) { background: #1a1a1a; border-color: #333333; }
+.root.root :global(.recent-card) { background: #1a1a1a !important; }
+.root.root :global(.recent-info) { border-top: 1px solid #333333; }
+.root.root :global(.start-btn):focus-visible,
+.root.root :global(.recent-card):focus-visible,
+.root.root :global(.recent-projects-search input):focus-visible { outline-color: #ffd700; }

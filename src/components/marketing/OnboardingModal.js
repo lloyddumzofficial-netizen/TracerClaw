@@ -1,104 +1,59 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, Download, Layers3, Sparkles, X, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Crop, FileDown, Layers3, Upload, X } from "lucide-react";
+import useDialogFocus from "@/hooks/useDialogFocus";
 import styles from "./OnboardingModal.module.css";
 
 const steps = [
-  {
-    icon: Zap,
-    title: "Upload artwork",
-    copy: "Start from a shirt mockup, sketch, logo, or raster image.",
-  },
-  {
-    icon: Sparkles,
-    title: "Clean extraction",
-    copy: "DesaynClaw prepares cleaner production artwork with AI assistance.",
-  },
-  {
-    icon: Download,
-    title: "Export files",
-    copy: "Save SVG, PNG, ZIP, or send finished exports to Google Drive.",
-  },
+  { icon: Layers3, title: "Welcome to DesaynClaw", copy: "Your artwork, ready for production. Extract garment designs, refine logos, and prepare clean files in one workspace." },
+  { icon: Upload, title: "Start with your artwork", copy: "Choose a workspace and upload your image. Use Garment Extract, Logo Vectorizer, Pattern Rebuilder, or Background Remover." },
+  { icon: Crop, title: "A good crop makes the difference", copy: "For garments, frame one body panel without sleeves or extra margins. For logos, keep the complete mark inside your selection." },
+  { icon: FileDown, title: "Review. Refine. Export.", copy: "Compare your result, refine available settings, and download your finished files. Check the Claw cost before you generate." },
 ];
 
 const OnboardingModal = memo(function OnboardingModal({ show, onClose }) {
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  const [step, setStep] = useState(0);
+  const dialogRef = useRef(null);
+  const headingRef = useRef(null);
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { if (show) setStep(0); }, [show]);
+  useDialogFocus(show && mounted, dialogRef, onClose);
+  useEffect(() => { if (step > 0) headingRef.current?.focus({ preventScroll: true }); }, [step]);
   if (!show || !mounted) return null;
+  const { icon: Icon, title, copy } = steps[step];
+  const last = step === steps.length - 1;
 
   return createPortal(
-    <div
-      className={styles.overlay}
-      onClick={onClose}
-    >
-      <div
-        className={styles.card}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="onboarding-title"
-      >
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label="Close welcome guide"
-        >
-          <X size={17} strokeWidth={1.8} />
-        </button>
-
-        <div className={styles.header}>
-          <div className={styles.headerMark} aria-hidden="true">
-            <Layers3 size={20} strokeWidth={1.7} />
-          </div>
-          <div>
-            <span className={styles.eyebrow}>Welcome to DesaynClaw</span>
-            <h2 id="onboarding-title">Your workspace is ready.</h2>
-            <p>Three simple steps from rough artwork to production-ready files.</p>
-          </div>
+    <div className={styles.overlay} onClick={onClose}>
+      <section className={styles.card} ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-description" tabIndex={-1} onClick={event => event.stopPropagation()}>
+        <div className={styles.preview} aria-hidden="true" data-step={step}>
+          <div className={styles.previewGrid} />
+          <div className={styles.previewMark} key={step}><Icon size={46} strokeWidth={1.25} /></div>
+          <span className={styles.previewCaption}>{["DESAYNCLAW WORKSPACE", "YOUR NEXT PROJECT", "FRAME WHAT MATTERS", "READY FOR PRODUCTION"][step]}</span>
+          {step === 1 && <div className={styles.fileHint}>PNG <span>·</span> JPG <span>·</span> WEBP</div>}
+          {step === 2 && <div className={styles.cropFrame}><i /><i /><i /><i /></div>}
+          {step === 3 && <div className={styles.fileHint}><Check size={12} /> SVG <span>·</span> PNG <span>·</span> ZIP</div>}
         </div>
-
-        <div className={styles.steps}>
-          {steps.map(({ icon: Icon, title, copy }, index) => (
-            <div className={styles.step} key={title}>
-              <span className={styles.stepIndex}>{String(index + 1).padStart(2, "0")}</span>
-              <span className={styles.stepIcon}>
-                <Icon size={15} />
-              </span>
-              <div>
-                <strong>{title}</strong>
-                <p>{copy}</p>
-              </div>
-            </div>
-          ))}
+        <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close welcome guide"><X size={16} /></button>
+        <div className={styles.content}>
+          <h2 ref={headingRef} tabIndex={-1} id="onboarding-title">{title}</h2>
+          <p id="onboarding-description">{copy}</p>
         </div>
-
-        <div className={styles.creditNote}>
-          <div>
-            <span className={styles.creditDot} aria-hidden="true" />
-            <strong>1 Claw</strong>
-            <span>per standard generation</span>
+        <footer className={styles.footer}>
+          <div className={styles.dots} aria-label={`Step ${step + 1} of ${steps.length}`}>
+            {steps.map((item, index) => <button type="button" key={item.title} aria-label={`Go to step ${index + 1}: ${item.title}`} aria-current={index === step ? "step" : undefined} onClick={() => setStep(index)} />)}
           </div>
-          <small>Top up anytime from your balance menu.</small>
-        </div>
-
-        <button
-          className={styles.primaryButton}
-          onClick={onClose}
-        >
-          <span>Enter workspace</span>
-          <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
-        </button>
-      </div>
-    </div>,
-    document.body
+          <div className={styles.actions}>
+            {step > 0 && <button type="button" className={styles.textButton} onClick={() => setStep(value => value - 1)} aria-label="Previous step"><ArrowLeft size={14} /></button>}
+            {!last && <button type="button" className={styles.textButton} onClick={onClose}>Skip</button>}
+            <button type="button" className={styles.primaryButton} onClick={() => last ? onClose() : setStep(value => value + 1)}>{last ? "Get started" : "Next"}<ArrowRight size={15} /></button>
+          </div>
+        </footer>
+      </section>
+    </div>, document.body
   );
 });
-
 export default OnboardingModal;
