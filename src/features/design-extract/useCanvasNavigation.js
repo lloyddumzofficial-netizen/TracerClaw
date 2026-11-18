@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const clampZoom = value => Math.max(.05, Math.min(4, value));
-const isTyping = target => target instanceof Element && Boolean(target.closest("input, textarea, select, button, [contenteditable='true']"));
+const isTyping = target => target instanceof Element && Boolean(target.closest("input, textarea, select, button, summary, [contenteditable='true']"));
 
 export default function useCanvasNavigation(viewport, enabled, layerDrag) {
   const [camera, setCameraState] = useState({ x: 36, y: 54, zoom: .7 });
@@ -45,6 +45,7 @@ export default function useCanvasNavigation(viewport, enabled, layerDrag) {
     const el = viewport.current;
     if (!el || !enabled) return;
     const wheel = event => {
+      if (event.target instanceof Element && event.target.closest("[data-design-inspector]")) return;
       event.preventDefault(); event.stopPropagation();
       if (pan.current || layerDrag.current) return;
       const rect = el.getBoundingClientRect();
@@ -64,7 +65,7 @@ export default function useCanvasNavigation(viewport, enabled, layerDrag) {
   }, [enabled]);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const onPointerDownCapture = event => {
-    if (!enabled || isTyping(event.target)) return;
+    if (!enabled || isTyping(event.target) || event.target.closest("[data-design-inspector]")) return;
     const element = event.target.closest("[data-design-element]");
     if (event.button !== 1 && !(event.button === 0 && (space.current || !element))) {
       if (event.button === 0 && element) setCamera(current.current, false);

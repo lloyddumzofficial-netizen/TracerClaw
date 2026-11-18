@@ -15,11 +15,13 @@ const StudioShell = memo(function StudioShell({
   onCreditsClick,
   onShortcuts,
   commandBar,
+  commandBarPosition = "top",
   statusLeft,
   statusRight,
   extraTopActions,
   children,
 }) {
+  const controls = commandBar && <div className="studio-commandbar-shell" data-position={commandBarPosition}>{commandBar}</div>;
   return (
     <div className={`app-container studio-shell${className ? ` ${className}` : ""}`}>
       <header className="studio-topbar">
@@ -65,13 +67,11 @@ const StudioShell = memo(function StudioShell({
         </div>
       )}
 
-      {commandBar && (
-        <div className="studio-commandbar-shell">
-          {commandBar}
-        </div>
-      )}
+      {commandBarPosition !== "bottom" && controls}
 
       {children}
+
+      {commandBarPosition === "bottom" && controls}
 
       <div className="studio-statusbar">
         <div className="studio-status-left">

@@ -50,6 +50,20 @@ test("Pattern Workspace keeps the shared production tools with pattern-specific 
   await expect(page.getByRole("button", { name: /Download All/i })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Palette Preview/i })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Before.*After Compare/i })).toBeEnabled();
+  for (const height of [1000, 800, 720, 600]) {
+    await page.setViewportSize({ width: 1800, height });
+    await page.evaluate(() => document.fonts.ready);
+    await expect.poll(() => page.locator(".workspace-properties-panel").evaluate(panel => {
+      const bounds = panel.getBoundingClientRect();
+      const content = panel.querySelector(".pp-scroll-region");
+      const controls = [...panel.querySelectorAll("button, select, .pp-agent-card")];
+      return content.scrollHeight <= content.clientHeight + 1 && controls.every(control => {
+        const rect = control.getBoundingClientRect();
+        return !rect.height || rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1;
+      });
+    })).toBe(true);
+    await expect(page.locator(".workspace-properties-panel .pp-scroll-region")).toHaveCSS("overflow-y", "clip");
+  }
 });
 
 test("zoomed portrait artwork pans without resizing either canvas pane", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { requireDesignAdmin, designError } from "@/server/designExtract/access";
-import { ownedProject, snapshot, saveManifest, startOperation, reviewOperation, reconcileSubmission, fail } from "@/server/designExtract/service";
+import { ownedProject, snapshot, saveManifest, startOperation, reviewOperation, reconcileSubmission, recoverOperation, fail } from "@/server/designExtract/service";
 import { renameDesignProject, deleteDesignProject } from "@/server/designExtract/service";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,6 +34,7 @@ export async function POST(request, context) {
     const { id } = await context.params;
     const project = await ownedProject(id, user.id);
     const body = await request.json();
+    if (body.action === "recover") return Response.json({ job: await recoverOperation(project, body.jobId) });
     if (body.action === "reconcile") return Response.json({ job: await reconcileSubmission(project, body.jobId, body.requestId) });
     if (["accept", "reject"].includes(body.action)) {
       if (body.revision !== project.revision) fail("Project changed. Reload before reviewing.", 409);

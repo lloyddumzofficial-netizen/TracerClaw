@@ -19,6 +19,7 @@ import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integratio
 import { getTraceResumePlan } from "@/lib/traceResume";
 import { isCompleteDesignProject } from "@/lib/artworkEdits";
 import aiOutlineStyles from "@/components/ui/AiOutlineButton.module.css";
+import panelStyles from "./PropertiesPanel.module.css";
 
 const GOOGLE_DRIVE_RECONNECT_REQUIRED = "GOOGLE_DRIVE_RECONNECT_REQUIRED";
 
@@ -216,18 +217,18 @@ const PropertiesPanel = memo(function PropertiesPanel({
   };
 
   const driveButtonLabel = driveFolderUrl
-    ? <>Open Drive<br />Folder</>
+    ? "Open Drive folder"
     : downloading === "drive"
-      ? <>Saving to<br />Drive</>
+      ? "Saving to Drive"
       : driveStatusLoading
-        ? <>Checking<br />Drive</>
+        ? "Checking Drive"
         : !driveConfigured
-          ? <>Google Drive<br />Unavailable</>
+          ? "Google Drive unavailable"
           : !driveConnected
             ? driveRequiresReconnect
-              ? <>Reconnect<br />Google Drive</>
-              : <>Connect<br />Google Drive</>
-            : <>Save to<br />Google Drive</>;
+              ? "Reconnect Google Drive"
+              : "Connect Google Drive"
+            : "Save to Google Drive";
 
   const traceButtonLabel = hasSvg
     ? "SVG Generated"
@@ -246,7 +247,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 : `${isPatternWorkspace ? "Run Pattern Retrace" : "Run Auto-Trace"}  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
   return (
-    <aside className={`workspace-properties-panel${isCompleteDesignProject(project) ? " has-artwork-editor" : ""}`} style={{
+    <aside className={`${panelStyles.panel} workspace-properties-panel${isCompleteDesignProject(project) ? " has-artwork-editor" : ""}`} style={{
       width: "280px",
       background: "#161616",
       borderLeft: "1px solid #222",
@@ -537,7 +538,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </p>}
 
         <div className="pp-warn" style={{ marginBottom: "6px" }}>
-          <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
+          <AlertCircle size={14} color="#A3A3A3" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
         </div>
 
         {/* Export as SVG */}
@@ -557,7 +558,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
             onClick={() => handleDownloadClick("all", onDownloadAll)}
             disabled={!project?.original_image_url || !!downloading}>
             {downloading === "all" ? <span className="pp-spin"><Loader2 size={15} /></span> : <IconFileZip />}
-            <span>Download<br />All (ZIP)</span>
+            <span>Download all (ZIP)</span>
           </button>
           <button className="pp-sec"
             onClick={handleDriveClick}
@@ -575,13 +576,14 @@ const PropertiesPanel = memo(function PropertiesPanel({
             disabled={!project?.svg_url}
             title={canUsePaletteStudio ? "Open Palette Studio" : "Generate SVG first"}>
             <Palette size={15} />
-            <span>Palette<br />Preview</span>
+            <span>Palette preview</span>
           </button>
           <button className="pp-sec"
+            aria-label="Before / After Compare"
             onClick={onOpenCompare}
             disabled={!project?.svg_url}>
             <SplitSquareHorizontal size={15} />
-            <span>Before /<br />After Compare</span>
+            <span>Compare results</span>
           </button>
         </div>
         {actionMessage && (

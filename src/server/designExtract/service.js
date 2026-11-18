@@ -8,8 +8,22 @@ import { emptyManifest, acceptLayers, validateEdits, MAX_LAYERS, LAYER_MODEL, SE
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { DESIGN_EXTRACT_UPLOAD_MAX_BYTES } from "@/lib/uploadLimits";
 import { applySourceMask } from "./sourceMask";
+import { advanceEnhancement, enhancementResult } from "./enhancement";
 
-export const fail = (message, status = 400) => { throw Object.assign(new Error(message), { status }); };
+// Qwen's positive prompt is an image caption, not per-layer instructions.
+// Leave it omitted so the provider can caption each actual source image. A
+// generic garment/logo caption would invent content for unrelated designs.
+// Negative conditioning targets reconstruction defects without excluding valid
+// artwork elements (such as text, gradients, white backgrounds or textures).
+const LAYER_NEGATIVE_PROMPT = [
+  "misspelled or altered lettering, changed numbers, deformed logos",
+  "shifted geometry, stretched shapes, warped outlines, misaligned elements",
+  "changed colors, color bleeding, lost fine details, blurred edges",
+  "jagged cutout edges, opaque halos, stray pixels, compression artifacts",
+  "duplicated motifs, added objects, new text, added watermarks",
+].join(", ");
+
+export const fail = (message, status = 400) => { throw Object.assign(new Error(message), { status, designExtractError: true }); };
 function checked(result) { if (result.error) throw result.error; return result.data; }
 export const prefix = project => `users/${project.user_id}/design-extract/${project.id}/`;
 export async function readAsset(url, provider = false) {
@@ -81,7 +95,7 @@ export async function startOperation(project, body) {
   if (kind === "split" && !layer || kind === "segment" && layerId && !layer) fail("Select a valid layer");
   if (kind === "extract" && project.manifest.layers.length) fail("Use Split further on an existing layer");
   if (project.manifest.layers.length + (kind === "split" ? 3 : kind === "segment" ? 1 : 4) > MAX_LAYERS) fail("Maximum 32 layers");
-  const input = kind === "segment" ? { image_url: layer?.url || project.source_url, prompt: "", apply_mask: false, output_format: "png", return_multiple_masks: false } : { image_url: layer?.url || project.source_url, num_layers: 4, output_format: "png", enable_safety_checker: true };
+  const input = kind === "segment" ? { image_url: layer?.url || project.source_url, prompt: "", apply_mask: false, output_format: "png", return_multiple_masks: false } : { image_url: layer?.url || project.source_url, negative_prompt: LAYER_NEGATIVE_PROMPT, num_layers: 4, output_format: "png", enable_safety_checker: true };
   if (kind === "segment") {
     const point = body.point;
     if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.y < 0 || point.x >= (layer?.width || project.manifest.width) || point.y >= (layer?.height || project.manifest.height)) fail("Click inside the source artwork or selected layer");
@@ -89,7 +103,7 @@ export async function startOperation(project, body) {
     input.point_prompts = [{ x: Math.round(point.x), y: Math.round(point.y), label: 1 }];
   }
   const model = kind === "segment" ? SEGMENT_MODEL : LAYER_MODEL;
-  const claim = await db.from("design_extract_jobs").insert({ project_id: project.id, user_id: project.user_id, base_revision: project.revision, idempotency_key: idempotencyKey, kind, layer_id: layerId || null, input, model }).select().single();
+  const claim = await db.from("design_extract_jobs").insert({ project_id: project.id, user_id: project.user_id, base_revision: project.revision, idempotency_key: idempotencyKey, kind, layer_id: layerId || null, input: kind === "segment" ? input : { ...input, _desaynclaw: { enhanceLayers: 1 } }, model }).select().single();
   if (claim.error?.code === "23505") fail("Another operation is active or awaiting review", 409);
   const job = checked(claim);
   try {
@@ -108,6 +122,7 @@ export async function startOperation(project, body) {
 }
 export async function settleOperation(project, job) {
   if (!["queued", "processing", "saving"].includes(job.status) || !job.request_id) return job;
+  if (job.status === "saving" && job.result?.enhancement?.version === 1) return advanceEnhancement(project, job, { readAsset, uploadToR2, prefix });
   try {
     const status = await fal.queue.status(job.model, { requestId: job.request_id, logs: false });
     if (status.status !== "COMPLETED") {
@@ -127,12 +142,15 @@ export async function settleOperation(project, job) {
     const parent = project.manifest.layers.find(layer => layer.id === job.layer_id);
     const sourcePixels = job.kind === "segment" && job.input?.apply_mask === false ? await readAsset(job.input.image_url) : null;
     const layers = [];
+    const warnings = new Set();
+    let nativeWidth, nativeHeight;
     for (const [index, image] of images.entries()) {
       let bytes = await readAsset(image.url, true);
       if (sourcePixels) bytes = await applySourceMask(sourcePixels, bytes);
       const metadata = await sharp(bytes, { limitInputPixels: 24000000 }).metadata();
-      if (!metadata.hasAlpha) fail("Provider returned an opaque layer", 422);
+      if (!metadata.hasAlpha) fail("The AI returned a layer without transparency. Your original artwork is unchanged.", 422);
       const { data: pixels, info } = await sharp(bytes, { limitInputPixels: 24000000 }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      if (index === 0) { nativeWidth = info.width; nativeHeight = info.height; }
       let left = info.width, top = info.height, right = -1, bottom = -1;
       for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) if (pixels[(y * info.width + x) * 4 + 3] > 0) { left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y); }
       if (right < left) continue;
@@ -142,21 +160,47 @@ export async function settleOperation(project, job) {
       const sx = (parent?.width || project.manifest.width) / info.width;
       const sy = (parent?.height || project.manifest.height) / info.height;
       // Keep native output pixels; preserve original canvas alignment through scale.
-      if (Math.abs(sx - sy) / Math.max(sx, sy) > .03) fail("Provider changed the aspect ratio; layers need review", 422);
+      // Model output sizes can differ from the source. Preserve native pixels and
+      // use a uniform contain scale; ask for review instead of discarding valid layers.
+      if (Math.abs(sx - sy) / Math.max(sx, sy) > .03) warnings.add("The AI output has a different aspect ratio from your source. Layers are centered without stretching. Check their alignment before accepting.");
       const scale = Math.min(sx, sy);
       const offsetX = ((parent?.width || project.manifest.width) - info.width * scale) / 2;
       const offsetY = ((parent?.height || project.manifest.height) - info.height * scale) / 2;
       layers.push({ id: `${job.id}-${index}`, url, name: sourcePixels ? "Original artwork cutout" : `Layer ${index + 1}`, extractionMethod: sourcePixels ? "source-pixels" : "ai-reconstruction", width, height, nativeFrame: { width: info.width, height: info.height, left, top }, visible: true, locked: false, composition: { x: offsetX + left * scale, y: offsetY + top * scale, scale }, layout: { x: 300 + index % 4 * 260, y: Math.floor(index / 4) * 300, scale: Math.min(220 / width, 250 / height, 1) } });
     }
     if (!layers.length) fail("No visible elements returned", 422);
-    const result = { layers, nativeWidth: images[0].width, nativeHeight: images[0].height };
+    const result = { layers, nativeWidth, nativeHeight, warnings: [...warnings] };
+    if (job.kind !== "segment" && job.input?._desaynclaw?.enhanceLayers === 1) {
+      // Persist all unenhanced candidates before any paid enhancement call.
+      const initialized = await db.from("design_extract_jobs").update({ result: enhancementResult(result), updated_at: new Date().toISOString() })
+        .eq("id", job.id).eq("status", "saving").is("result", null).select().maybeSingle();
+      if (initialized.error) throw initialized.error;
+      if (initialized.data) return initialized.data;
+      return checked(await db.from("design_extract_jobs").select("*").eq("id", job.id).single());
+    }
     const ready = checked(await db.from("design_extract_jobs").update({ status: "ready", result, updated_at: new Date().toISOString() }).eq("id", job.id).in("status", ["queued", "processing", "saving"]).select().maybeSingle());
     console.info("[Design Extract] Provider operation", { jobId: job.id, model: job.model, requestId: job.request_id, outputCount: layers.length, durationMs: Date.now() - Date.parse(job.created_at) });
     return ready || checked(await db.from("design_extract_jobs").select("*").eq("id", job.id).single());
   } catch (error) {
-    if (error.status === 422 || error.name === "ValidationError") return checked(await db.from("design_extract_jobs").update({ status: "failed", error: "Provider could not produce usable layers", updated_at: new Date().toISOString() }).eq("id", job.id).in("status", ["queued", "processing", "saving"]).select().single());
+    if (error.status === 422 || error.name === "ValidationError") {
+      const message = error.designExtractError ? error.message : "The AI provider could not complete this extraction. Your original artwork is unchanged.";
+      console.warn("[Design Extract] Output validation failed", { jobId: job.id, requestId: job.request_id, reason: message });
+      return checked(await db.from("design_extract_jobs").update({ status: "failed", error: message, updated_at: new Date().toISOString() }).eq("id", job.id).in("status", ["queued", "processing", "saving"]).select().single());
+    }
     throw error;
   }
+}
+export async function recoverOperation(project, jobId) {
+  const job = checked(await db.from("design_extract_jobs").select("*").eq("id", jobId).eq("project_id", project.id).eq("user_id", project.user_id).eq("status", "failed").maybeSingle());
+  if (!job?.request_id) fail("No existing provider result is available to recover.", 404);
+  if (job.base_revision !== project.revision) fail("This project changed after extraction. Reload and review the current project before continuing.", 409);
+  const status = await fal.queue.status(job.model, { requestId: job.request_id, logs: false });
+  if (status.status !== "COMPLETED") fail("The existing provider result is not ready to recover. No new generation was submitted.", 409);
+  const resumed = await db.from("design_extract_jobs").update({ status: "saving", error: null, updated_at: new Date().toISOString() }).eq("id", job.id).eq("status", "failed").select().maybeSingle();
+  if (resumed.error?.code === "23505") fail("Another extraction is active or awaiting review. Finish it before recovering this result.", 409);
+  const current = checked(resumed);
+  if (!current) fail("This extraction changed. Reload before continuing.", 409);
+  return settleOperation(project, current);
 }
 export async function snapshot(project) {
   const jobs = checked(await db.from("design_extract_jobs").select("*").eq("project_id", project.id).order("created_at", { ascending: false }).limit(1));

@@ -37,24 +37,46 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
     if (body.action === "accept") { project = { ...project, revision: project.revision + 1, manifest: { ...project.manifest, layers: structuredClone(elements) } }; job = { ...job, status: "accepted" }; return route.fulfill({ json: { project, job } }); }
     if (body.action === "reject") { job = { ...job, status: "rejected" }; return route.fulfill({ json: { project, job } }); }
     if (body.kind === "segment") { expect(body.point.x).toBeGreaterThanOrEqual(0); expect(body.point.x).toBeLessThan(40); expect(body.point.y).toBeLessThan(60); }
-    submissions++; job = { id: `job-${submissions}`, kind: body.kind, status: "queued" }; return route.fulfill({ json: { job } });
+    submissions++; job = { id: `job-${submissions}`, kind: body.kind, layer_id: body.layerId || null, status: "queued" }; return route.fulfill({ json: { job } });
   });
   const errors = []; page.on("pageerror", error => errors.push(error.message));
   await page.goto("/design-extract/project-1");
   await expect(page.getByRole("button", { name: "Extract layers", exact: true })).toBeVisible();
   await expect(page.getByText(/admin beta/i)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Quick export PSD", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Extract layers", exact: true })).toHaveCSS("background-color", "rgb(255, 215, 0)");
   await expect(page).toHaveURL(/\/design-extract\/project-1/);
   await page.getByRole("button", { name: "Extract layers", exact: true }).click();
   await expect(page.getByText("Waiting for AI", { exact: true })).toBeVisible();
   await expect(page.getByRole("progressbar")).toBeVisible();
+  const progress = page.locator('section[aria-label="Design extraction progress"]');
+  await expect(progress.locator('xpath=..').locator('img[alt="Original flat design"]')).toBeVisible();
+  const progressBounds = await progress.boundingBox();
+  const sourceBounds = await page.getByAltText("Original flat design", { exact: true }).boundingBox();
+  expect(progressBounds.x).toBeCloseTo(sourceBounds.x, 0);
+  expect(progressBounds.y).toBeCloseTo(sourceBounds.y, 0);
+  expect(progressBounds.width).toBeCloseTo(sourceBounds.width, 0);
+  expect(progressBounds.height).toBeCloseTo(sourceBounds.height, 0);
   await expect(page.getByRole("progressbar").locator("span")).toHaveCSS("animation-name", /extractionLoading/);
   await page.locator('section[aria-label="Design extraction progress"]').screenshot({ path: "output/design-extract-loading.png" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(progress.locator('[class*="artworkSweep"]')).toHaveCSS("animation-name", "none");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(page.getByRole("heading", { name: "Review extracted layers" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Inspect generated Subject", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Preview Logo", exact: true }).click();
+  await expect.poll(() => page.locator("[data-design-board]").evaluate(element => new DOMMatrix(getComputedStyle(element).transform).a)).toBeCloseTo(2, 3);
+  await expect(page.getByRole("button", { name: "Inspect generated Logo", exact: true })).toHaveAttribute("aria-pressed", "true");
+  expect(project.manifest.layers).toHaveLength(0);
+  await expect(page.getByRole("button", { name: "Quick export PSD", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Accept layers", exact: true }).click();
   const canvas = page.getByRole("region", { name: "Design canvas", exact: true });
   const board = page.locator("[data-design-board]");
   const camera = () => board.evaluate(element => { const matrix = new DOMMatrix(getComputedStyle(element).transform); return { x: matrix.m41, y: matrix.m42, zoom: matrix.a }; });
   const initialCamera = await camera(), viewport = await canvas.boundingBox();
+  const labelHeight = await page.locator('[class*="elementLabel"]').first().evaluate(element => element.getBoundingClientRect().height);
+  await expect(page.getByRole("button", { name: "Layers extracted", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Quick export PSD", exact: true })).toBeEnabled();
   const pointer = { x: Math.round(viewport.x + viewport.width * .6), y: Math.round(viewport.y + viewport.height * .5) };
   const artworkX = (pointer.x - viewport.x - initialCamera.x) / initialCamera.zoom;
   const artworkY = (pointer.y - viewport.y - initialCamera.y) / initialCamera.zoom;
@@ -62,6 +84,7 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
   await page.mouse.move(pointer.x, pointer.y); await page.mouse.wheel(0, -400);
   await expect.poll(async () => (await camera()).zoom).toBeCloseTo(initialCamera.zoom * Math.exp(.6), 3);
   const zoomed = await camera();
+  expect(await page.locator('[class*="elementLabel"]').first().evaluate(element => element.getBoundingClientRect().height)).toBeCloseTo(labelHeight, 0);
   expect((pointer.x - viewport.x - zoomed.x) / zoomed.zoom).toBeCloseTo(artworkX, 1);
   expect((pointer.y - viewport.y - zoomed.y) / zoomed.zoom).toBeCloseTo(artworkY, 1);
   expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
@@ -101,9 +124,9 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
   const pinnedCamera = await camera();
   expect((movingAnchor.x - pinnedCamera.x) / pinnedCamera.zoom).toBeCloseTo(movingAnchor.worldX, 1);
   expect((movingAnchor.y - pinnedCamera.y) / pinnedCamera.zoom).toBeCloseTo(movingAnchor.worldY, 1);
-  const fittedZoom = await canvas.evaluate(element => Math.max(.05, Math.min(1, (element.clientWidth - 72) / 1400, (element.clientHeight - 108) / 600)));
   await page.getByRole("button", { name: "Fit", exact: true }).click();
-  await expect.poll(async () => (await camera()).zoom).toBeCloseTo(fittedZoom, 3);
+  await expect(page.getByAltText("Original flat design", { exact: true })).toBeInViewport({ ratio: 1 });
+  for (const name of ["Subject", "Logo"]) await expect(page.getByRole("button", { name: `Select ${name}`, exact: true })).toBeInViewport({ ratio: 1 });
   await page.getByRole("button", { name: "Select Subject", exact: true }).click();
   const beforeLayerDrag = await camera();
   subjectBox = await page.getByRole("button", { name: "Select Subject", exact: true }).boundingBox();
@@ -124,13 +147,16 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
   await expect(page.getByLabel("Overview x", { exact: true })).toHaveValue("300");
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(page.getByLabel("Overview x", { exact: true })).toHaveValue("350");
+  await page.getByRole("button", { name: "Refine layer", exact: true }).click();
   await page.getByRole("button", { name: "Split further · AI", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Select Subject", exact: true }).locator('section[aria-label="Design extraction progress"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "Discard result" })).toBeVisible();
   await page.getByRole("button", { name: "Discard result" }).click();
   expect(project.manifest.layers).toHaveLength(2);
   await page.reload();
   await page.getByRole("button", { name: "Select Subject", exact: true }).click();
   await expect(page.getByLabel("Overview x", { exact: true })).toHaveValue("350");
+  await page.getByRole("button", { name: "Refine layer", exact: true }).click();
   await page.getByRole("button", { name: "Extract selected element", exact: true }).click();
   await page.getByRole("button", { name: "Select Subject", exact: true }).click();
   await expect(page.getByRole("button", { name: "Discard result" })).toBeVisible();
@@ -145,7 +171,7 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect.poll(() => project.manifest.layers[0].composition.scale).toBe(1.5);
   await page.screenshot({ path: "output/design-extract-workspace.png", fullPage: true });
-  for (const [name, extension] of [["Download PNG", "png"], ["Download all · ZIP", "zip"], ["Export layered PSD", "psd"]]) {
+  for (const [name, extension] of [["Download PNG", "png"], ["Download all · ZIP", "zip"], ["Export layered PSD", "psd"], ["Quick export PSD", "psd"]]) {
     const waiting = page.waitForEvent("download");
     await page.getByRole("button", { name, exact: true }).click();
     const file = await waiting; expect(file.suggestedFilename()).toMatch(new RegExp(`\\.${extension}$`));
@@ -154,5 +180,26 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
     if (extension === "zip") { const zip = await JSZip.loadAsync(bytes); const manifest = JSON.parse(await zip.file("manifest.json").async("string")); expect(manifest.layers[0].composition.x).toBe(0); expect(Object.keys(zip.files)).toHaveLength(3); }
     if (extension === "psd") { const psd = readPsd(bytes, { skipLayerImageData: true, skipCompositeImageData: true, skipThumbnail: true }); expect(psd.width).toBe(400); expect(psd.children.map(child => child.name)).toEqual(["Original reference", "Subject", "Logo"]); expect(psd.children[0].hidden).toBe(true); expect(psd.children[1].left).toBe(0); expect(psd.children[1].top).toBe(20); expect(psd.children[1].right - psd.children[1].left).toBe(60); expect(psd.children[1].bottom - psd.children[1].top).toBe(90); expect(psd.children[2].hidden).toBe(true); await writeFile("output/design-extract-test.psd", bytes); }
   }
+  // A completed provider result can be recovered without another extraction POST.
+  project = { ...project, manifest: { ...project.manifest, layers: [] } };
+  job = { id: "recoverable-job", status: "failed", kind: "extract", request_id: "existing-provider-request", error: "Provider could not produce usable layers" };
+  let recoveries = 0;
+  const alignmentNotice = "The AI output has a different aspect ratio from your source. Layers are centered without stretching. Check their alignment before accepting.";
+  await page.route("**/api/design-extract/project-1", async route => {
+    if (route.request().method() === "POST" && route.request().postDataJSON().action === "recover") {
+      expect(route.request().postDataJSON()).toEqual({ action: "recover", jobId: job.id });
+      recoveries++; job = { ...job, status: "ready", result: { layers: elements, warnings: [alignmentNotice] } };
+      return route.fulfill({ json: { job } });
+    }
+    return route.fallback();
+  });
+  await page.reload();
+  await expect(page.getByText("Extraction needs attention", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Recover existing result", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Review extracted layers" })).toBeVisible();
+  await expect(page.getByText(alignmentNotice, { exact: true })).toBeVisible();
+  expect(recoveries).toBe(1);
+  await page.getByRole("button", { name: "Accept layers", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Select Subject", exact: true })).toBeVisible();
   expect(submissions).toBe(3); expect(errors).toEqual([]);
 });
