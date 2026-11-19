@@ -15,9 +15,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: `node --max-http-header-size=65536 ./node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port ${PORT}`,
+        command: `node --max-http-header-size=65536 ./node_modules/next/dist/bin/next ${process.env.PLAYWRIGHT_PRODUCTION === "1" ? "start" : "dev"} --hostname 127.0.0.1 --port ${PORT}`,
         url: BASE_URL,
-        reuseExistingServer: true,
+        reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
   projects: [

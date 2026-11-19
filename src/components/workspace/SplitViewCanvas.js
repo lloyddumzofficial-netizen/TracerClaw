@@ -704,9 +704,9 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
 
   // Tab config
   const tabs = [
-    { id: "generated", label: isPatternWorkspace ? "1. PATTERN RETRACE" : "1. FLAT EXTRACT", hasContent: !!project?.generated_image_url },
-    { id: "upscaled",  label: "2. HD UPSCALE",   hasContent: !!project?.upscaled_image_url },
-    { id: "svg",       label: "3. VECTOR SVG",    hasContent: !!project?.svg_url },
+    { id: "generated", label: isPatternWorkspace ? "Pattern Retrace" : "Flat Extract", hasContent: !!project?.generated_image_url },
+    { id: "upscaled",  label: "HD Upscale",   hasContent: !!project?.upscaled_image_url },
+    { id: "svg",       label: "Vector SVG",    hasContent: !!project?.svg_url },
   ];
   const zoomLayerSize = calculateZoomLayerSize(zoomLevel);
   const fittedArtworkLayout = canvasViewport.width > 0 && canvasViewport.height > 0 && artworkAspectRatio
@@ -724,7 +724,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const artworkPadding = fittedArtworkLayout ? 0 : "24px";
 
   return (
-    <div ref={containerRef} className="garment-split-view" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
+    <div ref={containerRef} className="garment-split-view workspace-refined-chrome" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>
 
       {/* ── Stage toolbar ── */}
       <div className="garment-stage-toolbar" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", background: "#161616", borderBottom: "1px solid #222", height: "38px", flexShrink: 0 }}>
@@ -752,28 +752,12 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
               key={tab.id}
               className={`garment-stage-tab${activeTab === tab.id ? " is-active" : ""}${tab.hasContent ? " has-content" : ""}`}
               onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: "0 10px",
-                background: activeTab === tab.id ? "#1a1a1a" : "#161616",
-                border: "none",
-                borderLeft: i > 0 ? "1px solid #333" : "1px solid #333",
-                borderRight: i === tabs.length - 1 ? "1px solid #333" : "none",
-                color: activeTab === tab.id ? "#FFD700" : tab.hasContent ? "#888" : "#444",
-                fontSize: "10px",
-                letterSpacing: "0.5px",
-                textTransform: "uppercase",
-                fontWeight: activeTab === tab.id ? "700" : "600",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                position: "relative",
-                whiteSpace: "nowrap",
-              }}
+              type="button"
+              aria-pressed={activeTab === tab.id}
+              aria-label={`${i + 1}. ${tab.label.toUpperCase()}`}
             >
-              {tab.label}
-              {/* Active indicator line at bottom */}
-              {activeTab === tab.id && (
-                <span className="garment-stage-indicator" style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", background: "#FFD700" }} />
-              )}
+              <span className="workspace-step-number" aria-hidden="true">{i + 1}</span>
+              <span>{tab.label}</span>
             </button>
           ))}
           </div>

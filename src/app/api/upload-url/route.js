@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { requirePrivateDesignStorage, designUploadUrl } from "@/server/designExtract/storage";
 import { NextResponse } from 'next/server';
 import { getUploadUrl } from '@/lib/cloudflare';
 import { adminSupabase } from '@/lib/supabase';
@@ -70,6 +72,11 @@ export async function POST(request) {
     const normalizedName = `${baseName}.${expectedExt}`;
     const fullFileName = `users/${user.id}/${Date.now()}_${normalizedName}`;
 
+    if (purpose === "design_extract") {
+      requirePrivateDesignStorage();
+      const key = `staging/design-extract/${user.id}/${randomUUID()}_${normalizedName}`;
+      return NextResponse.json(await designUploadUrl(key, validation.contentType, validation.fileSize));
+    }
     const urls = await getUploadUrl(fullFileName, validation.contentType, {
       fileSize: validation.fileSize,
       maxBytes: validation.maxBytes,
@@ -78,6 +85,7 @@ export async function POST(request) {
     return NextResponse.json(urls);
 
   } catch (error) {
+    if (error.designExtractError) return NextResponse.json({ error: error.message }, { status: error.status || 503 });
     console.error('Error generating upload URL:', error);
     return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 });
   }

@@ -1,7 +1,7 @@
 /* Garment Workspace — isolated premium UI skin.
    Layout and behavior stay unchanged; only this workspace receives these rules. */
 .garment-workspace-ui {
-  --gw-bg: #090a0b;
+  --gw-bg: var(--dc-bg);
   --gw-panel: #0d0e0f;
   --gw-panel-raised: #111214;
   --gw-line: rgba(255, 255, 255, 0.09);
@@ -316,7 +316,7 @@
 .garment-workspace-ui .workspace-canvas-surface {
   width: 100%;
   min-width: 0;
-  background-color: #0e0f10 !important;
+  background-color: var(--dc-bg) !important;
   background-image: radial-gradient(circle, rgba(255, 255, 255, 0.045) 0 0.75px, transparent 0.9px) !important;
   background-size: 24px 24px !important;
 }
@@ -900,19 +900,19 @@
 /* Approved brand styling, scoped to the workspace header and toolbar only. */
 .garment-workspace-ui .studio-topbar {
   height: 52px !important;
-  background: #0a0a0a !important;
+  background: #111315 !important;
   border-bottom: 1px solid #333333 !important;
   box-shadow: none !important;
 }
 .garment-workspace-ui .studio-logo-btn { border-color: #333333 !important; }
 .garment-workspace-ui .studio-title-wrap h1 {
-  color: #ffffff !important;
+  color: #F4F4F1 !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: .16em !important;
 }
 .garment-workspace-ui :is(.studio-nav-btn, .studio-ghost-btn) {
-  color: #a3a3a3 !important;
+  color: #929591 !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   text-transform: none !important;
@@ -921,11 +921,11 @@
 .garment-workspace-ui :is(.studio-ghost-btn, .studio-credit-pill) {
   border: 1px solid #333333 !important;
   border-radius: 7px !important;
-  background: #0a0a0a !important;
+  background: #111315 !important;
   box-shadow: none !important;
 }
-.garment-workspace-ui .studio-credit-pill span { color: #ffffff !important; }
-.garment-workspace-ui .studio-credit-pill small { color: #a3a3a3 !important; }
+.garment-workspace-ui .studio-credit-pill span { color: #F4F4F1 !important; }
+.garment-workspace-ui .studio-credit-pill small { color: #929591 !important; }
 .garment-workspace-ui .garment-stage-toolbar {
   height: 48px !important;
   background: #0a0a0a !important;
@@ -1021,3 +1021,145 @@
 /* Workflow tabs use a quiet neutral selection rather than a colored underline. */
 .garment-workspace-ui .garment-stage-tab.is-active { color: #ffffff !important; background: #1a1a1a !important; font-weight: 600 !important; }
 .garment-workspace-ui .garment-stage-toolbar .garment-stage-tab:focus-visible { outline: 1px solid #a3a3a3 !important; outline-offset: -4px; }
+
+/* Align SVG mode typography independently of icon and badge height. */
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card {
+  display: grid !important;
+  grid-template-columns: 18px minmax(0, 1fr) 24px;
+  align-items: center !important;
+  column-gap: 10px !important;
+  min-height: 64px !important;
+  padding: 10px 12px !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-plan-copy {
+  display: grid; gap: 4px; min-width: 0; text-align: left;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-title {
+  margin: 0 !important; padding: 0 !important; font-size: 12px !important; line-height: 1.4 !important; font-weight: 600;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-meta {
+  margin: 0 !important; padding: 0 !important; font-size: 11px !important; line-height: 1.5 !important; white-space: normal; color: #929591 !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-plan-icon {
+  width: 18px; height: 18px; align-items: center; justify-content: center;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-plan-cost {
+  width: 24px !important; height: 24px !important; margin: 0 !important; align-self: center; justify-self: end;
+}
+
+/* Quiet, balanced SVG mode cards with cost separated from feature copy. */
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options { display: grid; gap: 8px; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card {
+  grid-template-columns: 18px minmax(0, 1fr) 40px;
+  column-gap: 9px !important;
+  min-height: 78px !important;
+  padding: 12px 10px !important;
+  border-radius: 9px !important;
+  background: #111315 !important;
+  border-color: #333333 !important;
+  box-shadow: none !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card.on { background: #1A1C1E !important; border-color: #929591 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-copy { gap: 5px; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-title { color: #F4F4F1 !important; font-size: 12px !important; line-height: 1.35 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-meta { font-size: 10px !important; line-height: 1.5 !important; color: #929591 !important; text-wrap: pretty; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-icon { color: #929591 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-cost {
+  width: 40px !important; height: 38px !important; flex-direction: column; gap: 2px;
+  background: #111315 !important; color: #F4F4F1 !important;
+  border: 1px solid #333333 !important; border-radius: 6px; box-shadow: none !important;
+  font-size: 12px !important; line-height: 1 !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-plan-cost span { font-size: 8px; font-weight: 400; color: #929591; line-height: 1; }
+
+/* Compact SVG choices keep the sidebar focused on the artwork. */
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card {
+  min-height: 56px !important;
+  padding: 7px 10px !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-copy { gap: 3px; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-cost {
+  height: 30px !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card.on .pp-plan-cost {
+  background: #FFD700 !important; color: #08090A !important;
+  border-color: #FFD700 !important; box-shadow: none !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card.on .pp-plan-cost span { color: #08090A; }
+
+/* Original compact SVG option treatment. */
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options { gap: 6px; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card {
+  grid-template-columns: 16px minmax(0, 1fr) 24px;
+  min-height: 44px !important; padding: 7px 10px !important;
+  border-width: 1px !important; border-radius: 9px !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-copy { gap: 2px; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-title {
+  font-size: 10px !important; line-height: 1.3 !important; font-weight: 500; text-transform: uppercase;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-card .pp-plan-meta { font-size: 10px !important; line-height: 1.35 !important; }
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-plan-cost {
+  width: 24px !important; height: 24px !important; font-size: 11px !important;
+  background: #111315 !important; color: #FFD700 !important; border-color: #333333 !important;
+}
+.studio-shell.garment-workspace-ui .workspace-properties-panel .pp-mode-options .pp-card.on .pp-plan-cost {
+  background: linear-gradient(145deg, #F4F4F1, #FFD700 55%) !important;
+  color: #08090A !important; border-color: #FFD700 !important;
+}
+/* Shared Garment / Logo canvas chrome. Keep preview pixels independent of UI styling. */
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-toolbar {
+  height: 50px !important;
+  background: #111315 !important;
+}
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-tools { padding-inline: 18px !important; gap: 12px; }
+.garment-workspace-ui .workspace-refined-chrome .workspace-command-label { display: none; }
+.garment-workspace-ui .workspace-refined-chrome .workspace-command-bar { gap: 10px !important; }
+.garment-workspace-ui .workspace-refined-chrome .workspace-command-btn {
+  height: 30px !important; min-height: 30px !important;
+  padding-inline: 10px !important; border: 0 !important; border-radius: 6px !important;
+  color: #929591 !important; background: transparent !important;
+}
+.garment-workspace-ui .workspace-refined-chrome .workspace-command-btn.is-accent:not(:disabled) {
+  color: #111315 !important; background: #F4F4F1 !important;
+}
+.garment-workspace-ui .workspace-refined-chrome .workspace-command-btn.is-accent svg { color: inherit; }
+.garment-workspace-ui .workspace-refined-chrome .workspace-command-btn:hover:not(:disabled):not(.is-accent) { background: #1A1C1E !important; color: #F4F4F1 !important; }
+.garment-workspace-ui .workspace-refined-chrome .workspace-zoom { height: 30px; padding: 1px; background: #1A1C1E !important; border: 2px solid #333333 !important; }
+.garment-workspace-ui .workspace-refined-chrome .workspace-zoom-value { min-width: 44px; color: #F4F4F1 !important; font-size: 10px !important; }
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-tabs { padding: 7px 8px; background: #111315 !important; }
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-tab {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 0 8px; min-width: 0; border: 0 !important; border-radius: 7px;
+  color: #929591 !important; background: transparent !important;
+  font-size: 10px !important; font-weight: 500 !important; letter-spacing: 0 !important;
+  text-transform: none; white-space: nowrap; cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-tab:hover { color: #F4F4F1 !important; background: #1A1C1E !important; }
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-tab.is-active { color: #F4F4F1 !important; background: #1A1C1E !important; }
+.workspace-refined-chrome .workspace-step-number {
+  display: inline-flex; flex: 0 0 16px; width: 16px; height: 16px;
+  align-items: center; justify-content: center; border: 1px solid #333333;
+  border-radius: 50%; color: #929591; font-size: 9px; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.workspace-refined-chrome .is-active .workspace-step-number { color: #111315; background: #F4F4F1; border-color: #F4F4F1; }
+.garment-workspace-ui .workspace-refined-chrome .garment-canvas-label {
+  top: 14px !important; left: 14px !important; padding: 5px 8px;
+  border: 2px solid #333333; border-radius: 5px; background: #111315;
+  color: #929591 !important; font-size: 9px !important; line-height: 1.2;
+  font-weight: 500 !important; letter-spacing: .025em !important;
+}
+.garment-workspace-ui .workspace-refined-chrome .garment-stage-toolbar button:focus-visible { outline: 2px solid #F4F4F1 !important; outline-offset: 2px; }
+@media (max-width: 1100px) {
+  .garment-workspace-ui .workspace-refined-chrome .garment-stage-tools { padding-inline: 8px !important; gap: 5px; }
+  .garment-workspace-ui .workspace-refined-chrome .workspace-command-btn { padding-inline: 6px !important; font-size: 10px !important; }
+  .garment-workspace-ui .workspace-refined-chrome .garment-stage-tab { gap: 4px; padding-inline: 4px; font-size: 9px !important; }
+}
+/* Primary handoff from a completed garment into Design Extract. */
+.garment-workspace-ui .studio-topbar .design-extract-entry {
+  background: #F4F4F1 !important; color: #111315 !important;
+  border: 2px solid #F4F4F1 !important; font-weight: 600 !important;
+}
+.garment-workspace-ui .studio-topbar .design-extract-entry:hover:not(:disabled) { background: #F4F4F1 !important; color: #111315 !important; opacity: .92; }
+.garment-workspace-ui .studio-topbar .design-extract-entry:disabled { opacity: .6; cursor: wait; }

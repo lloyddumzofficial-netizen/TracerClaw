@@ -15,19 +15,21 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   }, { key: `sb-${reference}-auth-token`, value: encode(session) });
   const png = await sharp({ create: { width: 60, height: 80, channels: 4, background: "#146c48" } }).png().toBuffer();
   const source = "https://manager.test/design.png";
+  let releaseCreation;
+  const creationGate = new Promise(resolve => { releaseCreation = resolve; });
   let design = { id: "existing-layers", name: "Jersey elements", trace_type: "design_extract", created_at: new Date().toISOString(), original_image_url: source };
   await page.route("**/auth/v1/**", route => route.fulfill({ json: user }));
-  await page.route("**/rest/v1/**", route => route.fulfill({ json: route.request().url().includes("/projects") ? [{ id: "garment-1", name: "Garment artwork", trace_type: "mockup", created_at: new Date().toISOString(), original_image_url: source }] : { credits: 10 } }));
+  await page.route("**/rest/v1/**", route => route.fulfill({ json: route.request().url().includes("/projects") ? [{ id: "garment-1", name: "Garment artwork", trace_type: "mockup", created_at: new Date().toISOString(), original_image_url: source }, { id: "logo-1", name: "Company logo", trace_type: "logo", created_at: new Date().toISOString(), original_image_url: source }] : { credits: 10 } }));
   await page.route("**/api/public-stats", route => route.fulfill({ json: { success: true, totalUsers: 100, reviewCount: 0, avatars: [] } }));
   await page.route("**/api/welcome-trial", route => route.fulfill({ json: { enabled: false } }));
   await page.route("**/api/referrals/status", route => route.fulfill({ json: { enabled: false } }));
   await page.route("**/api/referral-rewards", route => route.fulfill({ json: { notifications: [], balance: 10 } }));
   await page.route("**/api/proxy?*", route => route.fulfill({ body: png, contentType: "image/png" }));
   await page.route("https://manager.test/**", route => route.fulfill({ body: png, contentType: "image/png" }));
-  await page.route("**/api/design-extract**", route => {
+  await page.route("**/api/design-extract**", async route => {
     const url = new URL(route.request().url()), method = route.request().method();
     if (url.pathname === "/api/design-extract") {
-      if (method === "POST") { expect(route.request().postDataJSON().imageUrl).toBe(source); return route.fulfill({ json: { project: { id: "new-layers" } } }); }
+      if (method === "POST") { expect(route.request().postDataJSON().imageUrl).toBe(source); await creationGate; return route.fulfill({ json: { project: { id: "new-layers", revision: 0, source_url: source, manifest: { width: 60, height: 80, layers: [] } } } }); }
       return route.fulfill({ json: { enabled: true, projects: [design] } });
     }
     if (method === "PATCH") { const body = route.request().postDataJSON(); expect(body.action).toBe("rename"); design = { ...design, name: body.newName }; return route.fulfill({ json: { project: design } }); }
@@ -35,9 +37,11 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   });
   await page.route("**/api/upload-url", route => { expect(route.request().postDataJSON().purpose).toBe("design_extract"); return route.fulfill({ json: { uploadUrl: "https://manager.test/upload", publicUrl: source } }); });
   await page.goto("/");
-  await expect(page.locator(".recent-card")).toHaveCount(2);
+  await expect(page.locator(".recent-card")).toHaveCount(3);
   const card = page.locator(".recent-card").filter({ hasText: "Jersey elements" });
   await expect(card.locator(".recent-tool-label")).toHaveText("Design Extract");
+  await expect(page.locator(".recent-card").filter({hasText:"Garment artwork"}).locator(".recent-tool-label")).toHaveText("Garment Extract");
+  await expect(page.locator(".recent-card").filter({hasText:"Company logo"}).locator(".recent-tool-label")).toHaveText("Logo Vectorizer");
   await expect(card.locator(".recent-thumb")).toHaveCSS("background-image", /manager\.test/);
   await card.locator(".dots-btn").click(); await card.getByRole("button", { name: "Rename", exact: true }).click();
   await page.locator(".inline-edit input").fill("Production elements"); await page.locator(".inline-edit input").press("Enter");
@@ -45,9 +49,9 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   await page.screenshot({ path: "output/design-extract-project-manager.png", fullPage: true });
   await page.locator(".recent-card").filter({ hasText: "Production elements" }).click();
   await expect(page).toHaveURL(/\/design-extract\/existing-layers/);
-  await expect(page.getByRole("button", { name: "Extract layers", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Extract elements", exact: true })).toBeVisible();
   await page.goto("/");
-  await expect(page.locator(".recent-card")).toHaveCount(2);
+  await expect(page.locator(".recent-card")).toHaveCount(3);
   await page.getByRole("button", { name: "New Project", exact: true }).first().click();
   const options = page.locator(".new-project-category-grid [data-workspace-card]");
   await expect(options.nth(0)).toHaveAttribute("data-workspace-card", "garment");
@@ -56,15 +60,29 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   await page.screenshot({ path: "output/design-extract-picker.png", fullPage: true });
   const choosing = page.waitForEvent("filechooser");
   await page.locator('.new-project-category-grid [data-workspace-card="design_extract"]').click();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await (await choosing).setFiles({ name: "flat.png", mimeType: "image/png", buffer: png });
+  await expect(page.getByRole("heading", { name: "Opening Design Extract", exact: true })).toBeVisible();
+  const openingRing = page.locator(".workspace-opening-icon > span");
+  const firstFrame = await openingRing.evaluate(el => getComputedStyle(el).transform);
+  await expect.poll(() => openingRing.evaluate(el => getComputedStyle(el).transform)).not.toBe(firstFrame);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reducedFrame = await openingRing.evaluate(el => getComputedStyle(el).transform);
+  await expect.poll(() => openingRing.evaluate(el => getComputedStyle(el).transform)).not.toBe(reducedFrame);
+  const track = page.locator(".workspace-opening-track span");
+  const trackFrame = await track.evaluate(el => getComputedStyle(el).transform);
+  await expect.poll(() => track.evaluate(el => getComputedStyle(el).transform)).not.toBe(trackFrame);
+  await expect(page.locator(".workspace-opening-card")).toHaveCSS("background-color", "rgb(17, 19, 21)");
+  await page.screenshot({ path: "output/design-extract-opening-transition.png" });
+  releaseCreation();
   await expect(page).toHaveURL(/\/design-extract\/new-layers/);
-  await expect(page.getByRole("button", { name: "Extract layers", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Extract elements", exact: true })).toBeVisible();
   await page.goto("/design-extract");
   await expect(page).toHaveURL(/\/#start$/);
   // An unavailable/admin-restricted API must not silently remove the option.
   await page.route("**/api/design-extract", route => route.fulfill({ status: 403, json: { error: "Admin access required" } }));
   await page.reload();
-  await expect(page.locator(".recent-card")).toHaveCount(1);
+  await expect(page.locator(".recent-card")).toHaveCount(2);
   await page.getByRole("button", { name: "New Project", exact: true }).first().click();
   await expect(page.locator('.new-project-category-grid [data-workspace-card]').nth(0)).toHaveAttribute("data-workspace-card", "garment");
   await expect(page.locator('.new-project-category-grid [data-workspace-card]').nth(1)).toHaveAttribute("data-workspace-card", "design_extract");

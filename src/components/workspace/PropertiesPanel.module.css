@@ -1,14 +1,14 @@
 /* Scoped panel polish overrides the shared workspace's legacy control styles. */
 .panel.panel.panel.panel {
-  background: #0a0a0a !important;
-  border-left: 1px solid #333 !important;
+  background: #111315 !important;
+  border-left: 1px solid #333333 !important;
   container-type: size;
 }
 
 .panel.panel.panel.panel :global(.pp-header) {
   min-height: 48px !important;
   padding: 0 16px !important;
-  background: #0a0a0a !important;
+  background: #111315 !important;
   border-bottom: 1px solid #333 !important;
 }
 
@@ -17,7 +17,7 @@
   font-weight: 600 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
-  color: #fff !important;
+  color: #F4F4F1 !important;
 }
 
 .panel.panel.panel.panel :global(.pp-scroll-region) {
@@ -27,7 +27,7 @@
 
 .panel.panel.panel.panel :global(.pp-section) {
   padding: 10px 16px !important;
-  border-bottom: 1px solid #262626 !important;
+  border-bottom: 1px solid #333333 !important;
 }
 
 .panel.panel.panel.panel :global(.pp-lbl) {
@@ -36,22 +36,22 @@
   font-weight: 500 !important;
   letter-spacing: .02em !important;
   text-transform: none !important;
-  color: #a3a3a3 !important;
+  color: #929591 !important;
 }
 
 .panel.panel.panel.panel :global(.pp-sel) {
   min-height: 38px !important;
   font-size: 11px !important;
   font-weight: 500 !important;
-  color: #fff !important;
-  background: #1a1a1a !important;
-  border: 1px solid #333 !important;
+  color: #F4F4F1 !important;
+  background: #1A1C1E !important;
+  border: 2px solid #333333 !important;
   border-radius: 8px !important;
 }
 
 .panel.panel.panel.panel :global(.pp-desc) {
   margin: 8px 0 0 !important;
-  color: #a3a3a3 !important;
+  color: #929591 !important;
   font-size: 10.5px !important;
   line-height: 1.55 !important;
 }
@@ -59,29 +59,33 @@
 .panel.panel.panel.panel :global(.pp-mode-options) { gap: 8px; }
 
 .panel.panel.panel.panel :global(.pp-mode-options .pp-card) {
-  gap: 10px;
+  display: grid !important;
+  grid-template-columns: 16px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px !important;
   padding: 8px 10px !important;
-  background: #0a0a0a !important;
+  background: #111315 !important;
   border: 1px solid #333 !important;
   border-radius: 8px !important;
   box-shadow: none !important;
 }
 
 .panel.panel.panel.panel :global(.pp-mode-options .pp-card.on) {
-  background: #1a1a1a !important;
-  border-color: #737373 !important;
+  background: #1A1C1E !important;
+  border-color: #929591 !important;
 }
 
 .panel.panel.panel.panel :global(.pp-mode-options .pp-card:hover:not(.on)) {
-  background: #141414 !important;
-  border-color: #525252 !important;
+  background: #1A1C1E !important;
+  border-color: #929591 !important;
 }
 
 .panel.panel.panel.panel :global(.pp-plan-cost) {
   width: 24px !important;
   height: 24px !important;
   border-radius: 6px !important;
-  background: #0a0a0a !important;
+  background: #111315 !important;
   border-color: #333 !important;
   box-shadow: none !important;
   font-variant-numeric: tabular-nums;
@@ -89,7 +93,7 @@
 
 .panel.panel.panel.panel :global(.pp-card.on .pp-plan-cost) {
   background: #ffd700 !important;
-  color: #000 !important;
+  color: #08090A !important;
   border-color: #ffd700 !important;
   box-shadow: none !important;
 }
@@ -110,36 +114,40 @@
 .panel.panel.panel.panel :global(.pp-warn) {
   gap: 8px;
   padding: 9px 10px !important;
-  background: #141414 !important;
+  background: #1A1C1E !important;
   border: 1px solid #333 !important;
   border-radius: 8px !important;
 }
 
 .panel.panel.panel.panel :global(.pp-warn span) {
-  color: #a3a3a3 !important;
+  color: #929591 !important;
   font-size: 10.5px !important;
   line-height: 1.5 !important;
 }
 
 .panel.panel.panel.panel :global(.pp-sec) {
-  min-height: 54px !important;
-  gap: 6px !important;
-  padding: 8px 6px !important;
+  min-height: 52px !important;
+  flex-direction: column !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px !important;
+  padding: 6px !important;
   border: 1px solid #333 !important;
   border-radius: 8px !important;
-  background: #1a1a1a !important;
+  background: #1A1C1E !important;
   font-family: inherit;
-  font-size: 10.5px !important;
-  line-height: 1.35 !important;
+  font-size: 9px !important;
+  line-height: 1.25 !important;
   font-weight: 500 !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-  color: #fff !important;
+  text-transform: uppercase !important;
+  letter-spacing: .025em !important;
+  color: #F4F4F1 !important;
 }
 
 
 .panel.panel.panel.panel :global(.pp-sec:disabled) {
-  color: #a3a3a3 !important;
+  color: #929591 !important;
   opacity: .45;
 }
 
@@ -153,11 +161,34 @@
 
 
 .panel.panel.panel.panel :global(.pp-agent-card) {
-  flex: 1 1 160px;
+  flex: 0 1 140px;
   min-height: 90px;
-  max-height: 160px;
-  margin: 8px 16px 12px;
+  max-height: 140px;
+  margin: 8px 14px 12px;
 }
+
+.panel.panel.panel.panel :global(.pp-agent-card-copy) { box-sizing:border-box; width:66%; height:100%; padding:12px; }
+.panel.panel.panel.panel :global(.pp-agent-identity) { margin:0 0 7px; }
+.panel.panel.panel.panel :global(.pp-agent-headline) { margin:0; font-size:16px; line-height:1.12; }
+.panel.panel.panel.panel :global(.pp-agent-card-copy p) { margin:6px 0 0; max-width:100%; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; line-height:1.4; }
+
+/* Match the compact canvas toolbar: neutral controls and restrained emphasis. */
+.panel.panel.panel.panel :global(.pp-header button) { color: #929591; border-radius: 5px; }
+.panel.panel.panel.panel :global(.pp-header button:hover) { background: #1A1C1E !important; }
+.panel.panel.panel.panel :global(.pp-plan-copy) { min-width: 0; display: grid; gap: 3px; }
+.panel.panel.panel.panel :global(.pp-mode-options .pp-plan-title) { color: #F4F4F1 !important; font-size: 11px !important; line-height: 1.3 !important; font-weight: 600 !important; text-transform: none !important; letter-spacing: 0 !important; }
+.panel.panel.panel.panel :global(.pp-mode-options .pp-plan-meta) { color: #929591 !important; font-size: 10px !important; line-height: 1.4 !important; }
+.panel.panel.panel.panel :global(.pp-sel-ico),
+.panel.panel.panel.panel :global(.pp-sel-arr),
+.panel.panel.panel.panel :global(.pp-plan-icon) { color: #929591 !important; }
+.panel.panel.panel.panel :global(.pp-svg-btn:not(:disabled):not([data-ai-outline])),
+.panel.panel.panel.panel :global(.pp-trace-btn:not(:disabled)) { background: #F4F4F1 !important; color: #111315 !important; border: 2px solid #F4F4F1 !important; }
+.panel.panel.panel.panel :global(.pp-sec:hover:not(:disabled)) { background: #111315 !important; border-color: #929591 !important; }
+.panel.panel.panel.panel :global(.pp-sec svg) { flex-shrink: 0; }
+.panel.panel.panel.panel :global(.pp-sec) { min-width: 0; white-space: nowrap; }
+.panel.panel.panel.panel :global(.pp-sec span) { min-width: 0; white-space: nowrap; }
+.panel.panel.panel.panel :global(.pp-sel:focus-visible),
+.panel.panel.panel.panel :global(button:focus-visible) { outline: 2px solid #F4F4F1 !important; outline-offset: 2px; }
 
 @container (max-height: 820px) {
   .panel.panel.panel.panel :global(.pp-header) { min-height: 44px !important; }
@@ -168,8 +199,8 @@
   .panel.panel.panel.panel :global(.pp-sec) { min-height: 44px !important; padding: 6px !important; gap: 4px !important; }
   .panel.panel.panel.panel :global(.pp-agent-card) { min-height: 80px; margin: 6px 14px 10px; }
   .panel.panel.panel.panel :global(.pp-agent-card-copy p) { display: none; }
-  .panel.panel.panel.panel :global(.pp-agent-card-copy) { padding-top: 10px; }
-  .panel.panel.panel.panel :global(.pp-agent-headline) { font-size: 15px; }
+  .panel.panel.panel.panel :global(.pp-agent-card-copy) { padding:8px; }
+  .panel.panel.panel.panel :global(.pp-agent-headline) { font-size: 14px; }
 }
 
 @container (max-height: 740px) {
@@ -185,11 +216,14 @@
   .panel.panel.panel.panel :global(.pp-svg-btn) { min-height: 32px !important; padding-block: 6px !important; }
   .panel.panel.panel.panel :global(.pp-warn) { padding: 6px 8px !important; }
   .panel.panel.panel.panel :global(.pp-warn span) { font-size: 10px !important; line-height: 1.35 !important; }
-  .panel.panel.panel.panel :global(.pp-sec) { flex-direction: row; min-height: 36px !important; padding: 5px !important; font-size: 10px !important; }
+  .panel.panel.panel.panel :global(.pp-sec) { flex-direction:column; min-height:44px !important; padding:5px !important; gap:3px !important; font-size:9px !important; }
   .panel.panel.panel.panel :global(.pp-sec svg) { flex-shrink: 0; width: 14px; height: 14px; }
   .panel.panel.panel.panel :global(.pp-agent-card) { min-height: 64px; max-height: 94px; margin: 4px 12px 8px; }
   .panel.panel.panel.panel :global(.pp-agent-headline) { margin-top: 4px; font-size: 12px; line-height: 1.1; }
   .panel.panel.panel.panel :global(.pp-agent-identity small) { display: none; }
+  .panel.panel.panel.panel :global(.pp-agent-card-copy) { padding:6px; }
+  .panel.panel.panel.panel :global(.pp-agent-identity) { margin-bottom:4px; }
+  .panel.panel.panel.panel :global(.pp-agent-identity > span) { width:20px; height:20px; }
   .panel.panel.panel.panel :global(.pp-agent-portrait) { width: 100px; height: 110px; }
 }
 
@@ -205,10 +239,11 @@
   .panel.panel.panel.panel :global(.pp-trace-btn),
   .panel.panel.panel.panel :global(.pp-svg-btn) { min-height: 30px !important; padding-block: 4px !important; }
   .panel.panel.panel.panel :global(.pp-warn) { padding: 3px 7px !important; }
-  .panel.panel.panel.panel :global(.pp-sec) { min-height: 32px !important; padding: 3px !important; font-size: 9.5px !important; }
+  .panel.panel.panel.panel :global(.pp-sec) { min-height:40px !important; padding:3px !important; font-size:9px !important; }
   .panel.panel.panel.panel :global(.pp-agent-card) { min-height: 44px; max-height: 54px; margin: 2px 12px 4px; }
-  .panel.panel.panel.panel :global(.pp-agent-card-copy) { padding-top: 5px; }
-  .panel.panel.panel.panel :global(.pp-agent-headline) { display: inline; margin: 0; font-size: 10px; }
+  .panel.panel.panel.panel :global(.pp-agent-card-copy) { padding:6px; display:flex; align-items:flex-start; justify-content:center; flex-direction:column; }
+  .panel.panel.panel.panel :global(.pp-agent-identity) { margin:0; }
+  .panel.panel.panel.panel :global(.pp-agent-headline) { display:none; }
   .panel.panel.panel.panel :global(.pp-agent-headline br) { display: none; }
   .panel.panel.panel.panel :global(.pp-agent-portrait) { width: 76px; height: 84px; }
 }

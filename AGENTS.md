@@ -31,19 +31,29 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Use this approved DesaynClaw palette for all new and updated UI. These are the brand colors to follow; do not introduce alternate brand palettes.
 
-| Role | Color |
-| --- | --- |
-| Brand yellow / accent | `#FFD700` |
-| Main background | `#000000` |
-| Panels / cards | `#0A0A0A` |
-| Inputs / secondary surfaces | `#1A1A1A` |
-| Borders / dividers | `#333333` |
-| Primary text | `#FFFFFF` |
-| Secondary text | `#A3A3A3` |
+| Role | Name | Color |
+| --- | --- | --- |
+| Brand yellow / accent | Brand Yellow | `#FFD700` |
+| Main background | Neutral Black | `#0B0B0B` |
+| Secondary background / inputs | Carbon | `#111315` |
+| Panels / cards / subtle shapes | Graphite | `#1A1C1E` |
+| Borders / dividers | Neutral border | `#333333` |
+| Main text | Soft White | `#F4F4F1` |
+| Secondary text | Silver Gray | `#929591` |
+| Warning / error accent | Muted Rose | `#D98484` |
+
+- Never use pure black (`#000000`, `#000`, or equivalent RGB/named colors) for UI surfaces. Use Neutral Black (`#0B0B0B`, shared CSS token `--dc-bg`) for main page and canvas backgrounds. This replaces the previous `#08090A` background; preserve Carbon inputs and Graphite panels for contrast.
+- Use these surface and text colors consistently in workspaces and controls; do not substitute the previous pure-black/white palette.
+- Design Extract uses Carbon (`#111315`) for its continuous canvas surface, including the area behind the floating toolbar, to improve visibility. Keep artwork and transparency previews unchanged.
 
 - Keep the overall UI minimal, professional, and consistent with a Vercel-inspired dark interface.
-- Use yellow for highlights, selected states, and brand details. Preserve the approved `#FFD700` yellow.
+- Use yellow sparingly for brand details and key primary actions. Preserve `#FFD700`; use neutral surface contrast, Soft White text, and subtle borders for routine tabs and selected rows. Avoid yellow stripes and widespread yellow selection states.
 - Keep backgrounds, borders, and text neutral. Do not introduce green, olive, or other colored tints into these surfaces.
+- Use Muted Rose (`#D98484`, CSS token `--dc-warning`) for warning/error icons, headings, and subtle outline accents. Keep warning surfaces Graphite and body text Silver Gray; avoid bright red fills. This semantic accent is an exception to the neutral text/border rule above.
 - Preserve original colors in user artwork, images, logos, and supplied assets. The UI palette must not recolor their content.
 - Preserve the connected, screen-filling workspace layout. Do not add floating main panels, outer gaps, or a new layout without an explicit request.
 - Keep UI changes within the requested scope; do not redesign unrelated components when adjusting colors or spacing.
+
+- Use a consistent 2px border weight for bordered UI controls and cards across DesaynClaw. Keep structural dividers thin and preserve intentionally borderless controls and artwork boundaries.
+- Premium crowns are visual-only indicators for included advanced actions. Use a small 12px outline crown after the label: Brand Yellow on dark buttons; on Soft White buttons, keep the crown Brand Yellow on a small Carbon backing for contrast. No glow, additional charge, or access restriction. Hide crowns during processing and on routine saved-file downloads; use the tooltip “Advanced feature · Included”.
+- Inspector action lists use compact, left-aligned rows rather than stacked white action buttons. New-feature badges use Brand Yellow with Obsidian text, 9px type, and a 3px radius; pair with the crown after the action label. Hide both badges while processing and on saved-file downloads. New badges remain for the current release until explicitly removed; they do not change billing or access.

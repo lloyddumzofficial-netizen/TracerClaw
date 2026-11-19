@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { requirePrivateDesignStorage, uploadDesignAsset } from "@/server/designExtract/storage";
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/cloudflare";
@@ -70,15 +72,19 @@ export async function POST(request) {
       );
     }
 
+    if (purpose === "design_extract") requirePrivateDesignStorage();
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const extension = EXTENSIONS_BY_CONTENT_TYPE[validation.contentType] || "bin";
     const baseName = sanitizeBaseName(file.name);
     const fileName = `users/${auth.user.id}/${Date.now()}_${baseName}.${extension}`;
-    const publicUrl = await uploadToR2(buffer, fileName, validation.contentType);
+    const publicUrl = purpose === "design_extract"
+      ? await uploadDesignAsset(buffer, `staging/design-extract/${auth.user.id}/${randomUUID()}_${baseName}.${extension}`, validation.contentType)
+      : await uploadToR2(buffer, fileName, validation.contentType);
 
     return NextResponse.json({ publicUrl });
   } catch (error) {
+    if (error.designExtractError) return NextResponse.json({ error: error.message }, { status: error.status || 503 });
     logger.error("[Upload Direct] Request failed", error);
     return NextResponse.json({ error: "Failed to upload image to storage." }, { status: 500 });
   }

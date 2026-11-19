@@ -1,0 +1,35 @@
+import {test,expect} from '@playwright/test';
+import {loadEnvConfig} from '@next/env';
+import sharp from 'sharp';
+loadEnvConfig(process.cwd());
+test('account changes discard delayed private project cards',async({page})=>{
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const user = { id: "manager-admin", email: "admin@test.com", app_metadata: {}, user_metadata: {} };
+  const encode = value => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const reference = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0];
+  const session = { access_token: `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 3600 })}.test`, refresh_token: "test", token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, user };
+  await page.addInitScript(({ key, value }) => {
+    localStorage.setItem("cookie_consent", "declined"); localStorage.setItem("ai_disclaimer_seen", "1"); localStorage.setItem("desaynclaw_onboarded", "true");
+    document.cookie = `${key}=base64-${value}; path=/; SameSite=Lax`;
+  }, { key: `sb-${reference}-auth-token`, value: encode(session) });
+  const png = await sharp({ create: { width: 60, height: 80, channels: 4, background: "#146c48" } }).png().toBuffer();
+  const source = "https://manager.test/design.png";
+  const design = { id: "existing-layers", name: "Jersey elements", trace_type: "design_extract", created_at: new Date().toISOString(), original_image_url: source };
+  await page.route("**/auth/v1/**", route => route.fulfill({ json: user }));
+  await page.route("**/rest/v1/**", route => route.fulfill({ json: route.request().url().includes("/projects") ? [{ id: "garment-1", name: "Garment artwork", trace_type: "mockup", created_at: new Date().toISOString(), original_image_url: source }] : { credits: 10 } }));
+  await page.route("**/api/public-stats", route => route.fulfill({ json: { success: true, totalUsers: 100, reviewCount: 0, avatars: [] } }));
+  await page.route("**/api/welcome-trial", route => route.fulfill({ json: { enabled: false } }));
+  await page.route("**/api/referrals/status", route => route.fulfill({ json: { enabled: false } }));
+  await page.route("**/api/referral-rewards", route => route.fulfill({ json: { notifications: [], balance: 10 } }));
+  await page.route("**/api/proxy?*", route => route.fulfill({ body: png, contentType: "image/png" }));
+  await page.route("https://manager.test/**", route => route.fulfill({ body: png, contentType: "image/png" }));
+let release;const gate=new Promise(resolve=>release=resolve);let requested;const started=new Promise(resolve=>requested=resolve);
+await page.route('**/api/design-extract',async route=>{requested();await gate;await route.fulfill({json:{projects:[design]}});});
+await page.goto('/');await started;
+await expect(page.getByRole('button',{name:'Log out',exact:true})).toBeVisible();
+await page.evaluate(({key})=>{const channel=new BroadcastChannel(key);channel.postMessage({event:'SIGNED_OUT',session:null});setTimeout(()=>channel.close(),100);},{key:'sb-'+reference+'-auth-token'});
+await expect(page.getByRole('button',{name:'Log out',exact:true})).toHaveCount(0);
+const returned=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/design-extract');release();await returned;
+await expect(page.locator('.recent-card')).toHaveCount(0);
+await expect(page.getByText('Jersey elements',{exact:true})).toHaveCount(0);
+});

@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAppRouter } from "@/hooks/useAppRouter";
 import { uploadDesignFile } from "@/features/design-extract/upload";
+import { cacheDesignProject, seedDesignPreview, prefetchDesignProject, clearDesignProjects, forgetDesignProject } from "@/features/design-extract/projectClient";
 import useHomepageMotion from "@/hooks/useHomepageMotion";
 import motionStyles from "@/components/marketing/HomepageMotion.module.css";
 import dynamic from "next/dynamic";
@@ -39,7 +40,6 @@ import RecentProjects from "@/components/marketing/RecentProjects";
 import EduSection from "@/components/marketing/EduSection";
 import BeforeAfterSlider from "@/components/marketing/BeforeAfterSlider";
 import FAQSection from "@/components/marketing/FAQSection";
-import LogoLoader from "@/components/ui/LogoLoader";
 import AIDisclaimerModal from "@/components/marketing/AIDisclaimerModal";
 import TestimonialSection from "@/components/marketing/TestimonialSection";
 import GuestHomepageHero, { GuestHomepageConversionSections } from "@/components/marketing/GuestHomepageHero";
@@ -457,6 +457,7 @@ export default function StartScreen() {
   const homeRootRef = useRef(null);
   const heroLogoRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
+  const projectLoadRef = useRef({ generation: 0, owner: null });
   const dodoReturnHandledRef = useRef(false);
 
   const [syncSessionId, setSyncSessionId] = useState("");
@@ -471,6 +472,7 @@ export default function StartScreen() {
 
   // ─── UI State ───────────────────────────────────────────────────────────────
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState("Preparing your workspace");
   const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [initialProjectCategory, setInitialProjectCategory] = useState(null);
@@ -581,8 +583,11 @@ export default function StartScreen() {
   }, []);
 
   useEffect(() => {
+    let live = true;
     const fetchSession = async () => {
+      const generation = projectLoadRef.current.generation;
       const { data: { session } } = await supabase.auth.getSession();
+      if (!live || generation !== projectLoadRef.current.generation) return;
       if (session) {
         setUser(session.user);
         analytics.authSession(session.user, { source: "home" });
@@ -593,6 +598,13 @@ export default function StartScreen() {
       }
     };
     fetchSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const owner = projectLoadRef.current.owner;
+      if (event === 'SIGNED_OUT' || owner && session?.user?.id !== owner) {
+        projectLoadRef.current = { generation: projectLoadRef.current.generation + 1, owner: null };
+        clearDesignProjects(); setRecentProjects([]); setIsLoadingProjects(false); setCredits(0); setUser(null);
+      }
+    });
 
     const handleGlobalDragOver = (e) => {
       e.preventDefault();
@@ -603,6 +615,9 @@ export default function StartScreen() {
     window.addEventListener("dragover", handleGlobalDragOver);
 
     return () => {
+      live = false;
+      projectLoadRef.current.generation++;
+      subscription.unsubscribe();
       window.removeEventListener("dragover", handleGlobalDragOver);
     };
   }, []);
@@ -874,7 +889,7 @@ export default function StartScreen() {
 
   const fetchCredits = async (userId) => {
     const { data } = await supabase.from("profiles").select("credits, created_at").eq("id", userId).single();
-    if (data) {
+    if (data && projectLoadRef.current.owner === userId) {
       setCredits(data.credits);
       const isNew = data.created_at && (Date.now() - new Date(data.created_at).getTime()) < 60000;
       if (isNew && !localStorage.getItem("onboarding_seen")) {
@@ -885,6 +900,9 @@ export default function StartScreen() {
   };
 
   const fetchRecentProjects = async (userId) => {
+    if (!userId) return;
+    const generation = ++projectLoadRef.current.generation;
+    projectLoadRef.current.owner = userId;
     setIsLoadingProjects(true);
 
     // Only fetch projects from the last 3 days since R2 objects are auto-deleted after 3 days
@@ -903,10 +921,12 @@ export default function StartScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user.id === userId) {
-        const response = await fetch("/api/design-extract", { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const response = await fetch("/api/design-extract", { signal: AbortSignal.timeout(20000), headers: { Authorization: `Bearer ${session.access_token}` } });
         if (response.ok) designProjects = (await response.json()).projects || [];
       }
     } catch (err) { console.warn("Could not load Design Extract projects", err); }
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (generation !== projectLoadRef.current.generation || currentSession?.user?.id !== userId) return;
     if (!error && data) setRecentProjects([...data, ...designProjects].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50));
     setIsLoadingProjects(false);
   };
@@ -920,6 +940,9 @@ export default function StartScreen() {
   };
 
   const handleLogout = async () => {
+    projectLoadRef.current = { generation: projectLoadRef.current.generation + 1, owner: null };
+    setRecentProjects([]); setIsLoadingProjects(false);
+    clearDesignProjects();
     await supabase.auth.signOut();
     analytics.reset();
     setUser(null);
@@ -957,6 +980,7 @@ export default function StartScreen() {
   const deleteProject = async () => {
     if (!projectToDelete) return;
     const id = projectToDelete.id;
+    if (projectToDelete.trace_type === "design_extract") forgetDesignProject(id);
     setRecentProjects(prev => prev.filter(p => p.id !== id));
     setProjectToDelete(null);
     setOpenMenuId(null);
@@ -987,15 +1011,20 @@ export default function StartScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { handleLogin(); return; }
+      setUploadStage("Checking workspace access");
       const access = await fetch("/api/design-extract", { headers: { Authorization: `Bearer ${session.access_token}` } });
       if (!access.ok) { const result = await safeJson(access, "Could not verify Design Extract access"); throw new Error(result.error || "Design Extract is unavailable. Please retry."); }
+      setUploadStage("Uploading your artwork");
       const imageUrl = await uploadDesignFile({ file, token: session.access_token });
+      setUploadStage("Opening Design Extract");
       const response = await fetch("/api/design-extract", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify({ imageUrl }) });
       const data = await safeJson(response, "Could not create Design Extract project");
       if (!response.ok) throw new Error(data.error);
+      seedDesignPreview(session.user.id, { id: data.project.id, trace_type: "design_extract", original_image_url: data.project.source_url, width: data.project.manifest?.width, height: data.project.manifest?.height });
+      cacheDesignProject({ project: data.project, job: null });
       router.push(`/design-extract/${data.project.id}`);
     } catch (error) { toast.error(error.message || "Could not upload design"); }
-    finally { setIsUploading(false); }
+    finally { setIsUploading(false); setUploadStage("Preparing your workspace"); }
   };
   const handleFileUpload = async (file, isBgRemover = false, mobileTraceType = null) => {
     if (!file || !file.type.startsWith("image/")) return;
@@ -1336,7 +1365,8 @@ export default function StartScreen() {
                   setEditValue={setEditValue}
                   openMenuId={openMenuId}
                   setOpenMenuId={setOpenMenuId}
-                  onNavigate={(proj) => router.push(getProjectWorkspacePath(proj))}
+                  onNavigate={(proj) => { if (proj.trace_type === "design_extract") seedDesignPreview(user.id, proj); router.push(getProjectWorkspacePath(proj)); }}
+                  onPrefetch={proj => { if (proj.trace_type === "design_extract") { router.prefetch(getProjectWorkspacePath(proj)); prefetchDesignProject(user.id, proj); } }}
                   onStartEditing={(e, proj) => { e.stopPropagation(); setOpenMenuId(null); setEditingId(proj.id); setEditValue(proj.name); }}
                   onCancelEditing={(e) => { e.stopPropagation(); setEditingId(null); }}
                   onSaveRename={saveRename}
@@ -1845,14 +1875,12 @@ export default function StartScreen() {
 
         {/* Uploading Overlay */}
         {isUploading && !showModal && (
-          <div className="modal-overlay" style={{ zIndex: 9999 }}>
-            <div className="modal-content" style={{ maxWidth: "340px", textAlign: "center", padding: "40px 30px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <LogoLoader size={64} color="#FFD700" />
-              <div style={{ fontSize: "16px", color: "#fff", fontWeight: "600", marginBottom: "8px" }}>Preparing Image...</div>
-              <p style={{ color: "#aaa", margin: 0, fontSize: "13px", lineHeight: "1.6" }}>
-                Transferring your photo to the workspace.
-              </p>
-            </div>
+          <div className="modal-overlay workspace-opening-overlay" style={{ zIndex: 9999 }}>
+            <section className="workspace-opening-card" role="status" aria-live="polite" aria-busy="true">
+              <span className="workspace-opening-icon" aria-hidden="true"><span /><Layers size={23} /></span>
+              <div><small>DESAYNCLAW · WORKSPACE</small><h2>{uploadStage}</h2><p>Preparing your artwork for the editor.</p></div>
+              <div className="workspace-opening-track" aria-hidden="true"><span /></div>
+            </section>
           </div>
         )}
 

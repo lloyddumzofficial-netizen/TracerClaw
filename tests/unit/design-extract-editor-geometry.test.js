@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { artworkBounds, frameArtwork, layerBounds } from "@/features/design-extract/editorGeometry";
 const layer = (x, y, width = 100, height = 200, scale = 1) => ({ width, height, visible: true, layout: { x, y, scale }, composition: { x, y, scale } });
 describe("Design Extract artwork framing", () => {
+  it("includes the upload guide when centering and fitting a new document", () => {
+    const guide = { x: 300, y: 0, width: 300, height: 390 };
+    const bounds = artworkBounds([], "layout", { width: 800, height: 1200 }, [guide]);
+    expect(bounds).toEqual({ x: 0, y: 0, width: 600, height: 390 });
+    const camera = frameArtwork(bounds, { width: 1120, height: 650 }, 4);
+    expect(bounds.width * camera.zoom + camera.x).toBeLessThanOrEqual(1072);
+    expect(camera.x).toBeCloseTo((1120 - bounds.width * camera.zoom) / 2);
+    expect(artworkBounds([], "layout", { width: 800, height: 1200 }, [null])).toEqual({ x: 0, y: 0, width: 240, height: 360 });
+  });
   it("frames moved layers with negative coordinates rather than a hardcoded board", () => {
     const bounds = artworkBounds([layer(-300, -120), layer(1600, 900)], "layout", { width: 400, height: 600 });
     expect(bounds).toEqual({ x: -300, y: -120, width: 2000, height: 1220 });

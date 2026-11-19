@@ -1,0 +1,17 @@
+import {beforeEach,afterEach,it,expect,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({auth:vi.fn(),publicSign:vi.fn(),publicUpload:vi.fn(),send:vi.fn(),sign:vi.fn()}));
+vi.mock('@/lib/supabase',()=>({adminSupabase:{auth:{getUser:mocks.auth}}}));
+vi.mock('@/lib/cloudflare',()=>({bucketName:'public-bucket',s3Client:{send:mocks.send},getUploadUrl:mocks.publicSign,uploadToR2:mocks.publicUpload}));
+vi.mock('@aws-sdk/s3-request-presigner',()=>({getSignedUrl:mocks.sign}));
+vi.mock('@/lib/rateLimit',()=>({enforceRateLimit:async()=>({success:true})}));
+vi.mock('@/lib/logger',()=>({logger:{info:vi.fn(),error:vi.fn()}}));
+import {POST as sign} from '@/app/api/upload-url/route';
+import {POST as direct} from '@/app/api/upload-direct/route';
+beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('DESIGN_EXTRACT_PRIVATE_BUCKET','');mocks.auth.mockResolvedValue({data:{user:{id:'owner'}}});mocks.publicSign.mockResolvedValue({uploadUrl:'https://public.invalid/upload'});mocks.publicUpload.mockResolvedValue('https://public.invalid/image.png');mocks.sign.mockResolvedValue('https://signed.invalid/upload');mocks.send.mockResolvedValue({});});
+afterEach(()=>vi.unstubAllEnvs());
+const request=purpose=>new Request('http://localhost/api/upload-url',{method:'POST',headers:{Authorization:'Bearer session','Content-Type':'application/json'},body:JSON.stringify({fileName:'art.png',contentType:'image/png',fileSize:5,purpose})});
+const fileRequest=purpose=>{const form=new FormData();form.set('purpose',purpose);form.set('file',new File(['image'],'art.png',{type:'image/png'}));return new Request('http://localhost/api/upload-direct',{method:'POST',headers:{Authorization:'Bearer session'},body:form});};
+it('denies both Design Extract upload routes without private configuration and performs no public write/sign',async()=>{for(const response of [await sign(request('design_extract')),await direct(fileRequest('design_extract'))]){expect(response.status).toBe(503);expect((await response.json()).error).toContain('Private Design Extract storage');}expect(mocks.publicSign).not.toHaveBeenCalled();expect(mocks.publicUpload).not.toHaveBeenCalled();expect(mocks.send).not.toHaveBeenCalled();expect(mocks.sign).not.toHaveBeenCalled();});
+it('keeps ordinary uploads available without Design Extract configuration',async()=>{expect((await sign(request('standard'))).status).toBe(200);expect((await direct(fileRequest('standard'))).status).toBe(200);expect(mocks.publicSign).toHaveBeenCalledTimes(1);expect(mocks.publicUpload).toHaveBeenCalledTimes(1);});
+it('uses only private staging objects and opaque references when configured',async()=>{vi.stubEnv('DESIGN_EXTRACT_PRIVATE_BUCKET','private-bucket');for(const response of [await sign(request('design_extract')),await direct(fileRequest('design_extract'))]){expect(response.status).toBe(200);expect((await response.json()).publicUrl).toMatch(/^r2-private:\/\/design-extract\/staging\/design-extract\/owner\//);}expect(mocks.send.mock.calls[0][0].input.Bucket).toBe('private-bucket');expect(mocks.publicSign).not.toHaveBeenCalled();expect(mocks.publicUpload).not.toHaveBeenCalled();});
+it('rejects a private bucket misconfigured as the public bucket',async()=>{vi.stubEnv('DESIGN_EXTRACT_PRIVATE_BUCKET','public-bucket');expect((await sign(request('design_extract'))).status).toBe(503);expect((await direct(fileRequest('design_extract'))).status).toBe(503);expect(mocks.publicUpload).not.toHaveBeenCalled();expect(mocks.publicSign).not.toHaveBeenCalled();});

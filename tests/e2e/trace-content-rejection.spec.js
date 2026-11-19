@@ -35,6 +35,7 @@ test(`${code} explains the provider failure without a console exception or autom
   page.on("pageerror", error => exceptions.push(error.message));
   page.on("console", event => { if (event.type() === "error" && event.text().includes("[Trace Error]")) exceptions.push(event.text()); });
   await page.goto("/workspace/moderation-test");
+  await page.getByRole('button', { name: 'Continue to crop', exact: true }).click();
   await page.getByRole("button", { name: "Close crop modal" }).click();
   const run = page.getByRole("button", { name: /Run Auto-Trace/ });
   await run.click();

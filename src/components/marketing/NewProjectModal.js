@@ -259,7 +259,7 @@ const NewProjectModal = memo(function NewProjectModal({
               </p>
             </div>
 
-            <div className="new-project-category-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 13 }}>
+            <div className={"new-project-category-grid " + modalStyles.categoryGrid}>
               <CategoryCard
                 onClick={() => handleCategorySelect("garment")}
                 artwork="garment"

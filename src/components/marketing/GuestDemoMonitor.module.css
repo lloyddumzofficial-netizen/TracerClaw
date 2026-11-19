@@ -42,7 +42,7 @@
 .poster {
   position: absolute;
   inset: 0;
-  background: #08090a;
+  background: var(--dc-bg);
   pointer-events: none;
 }
 

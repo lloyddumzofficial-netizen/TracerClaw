@@ -42,6 +42,7 @@ yarn-error.log*
 scratch-*.log
 .npm-cache/
 .tmp/
+.workflow-data/
 .codex-local/
 scratch/
 

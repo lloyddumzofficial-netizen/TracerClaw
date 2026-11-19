@@ -1,3 +1,4 @@
+:root { --dc-warning: #D98484; }
 * {
   box-sizing: border-box;
   padding: 0;
@@ -1102,7 +1103,7 @@ body .main-workspace.upscale-studio.has-history:not(.is-empty-state) {
     radial-gradient(circle at 28% 26%, rgba(240, 211, 60, .035), transparent 26%),
     linear-gradient(rgba(255, 255, 255, .022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, .022) 1px, transparent 1px),
-    #08090a !important;
+    var(--dc-bg) !important;
   background-size: auto, 48px 48px, 48px 48px, auto !important;
 }
 
@@ -1248,7 +1249,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-inspector-prev
   border-bottom: 1px solid rgba(255, 255, 255, .1) !important;
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, .03), transparent 55%),
-    #08090a !important;
+    var(--dc-bg) !important;
 }
 
 body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-inspector-preview img {
@@ -8202,7 +8203,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
 
 .palette-body {
   grid-template-columns: minmax(0, 1fr) minmax(392px, 430px);
-  background: #070707;
+  background: var(--dc-bg);
 }
 
 .palette-artboard {
@@ -8771,7 +8772,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
 
 /* Main workspace polish: consistent sharp dark studio UI. */
 .studio-shell {
-  background: #090909 !important;
+  background: var(--dc-bg) !important;
   color: #f4f4f4;
 }
 
@@ -9992,7 +9993,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
   display: flex;
   justify-content: center;
   min-height: 0;
-  background-color: #08090a;
+  background-color: var(--dc-bg);
   background-image:
     linear-gradient(rgba(255, 255, 255, .017) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, .017) 1px, transparent 1px);
@@ -13189,7 +13190,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
   grid-template-rows: minmax(0, 1fr);
   gap: 0;
   padding: 0;
-  background: #090a0b !important;
+  background: var(--dc-bg) !important;
 }
 
 .upscale-control-deck,
@@ -13735,7 +13736,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
     radial-gradient(circle at 78% 28%, rgba(238, 210, 74, .045), transparent 25%),
     linear-gradient(rgba(255, 255, 255, .022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, .022) 1px, transparent 1px),
-    #08090a !important;
+    var(--dc-bg) !important;
   background-size: auto, 48px 48px, 48px 48px, auto !important;
 }
 
@@ -14083,4 +14084,13 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-stage-state.is
   color: #929591;
   font-size: 11px;
   line-height: 1.55;
+}
+
+/* Shared control edge weight. Borderless icons remain borderless. */
+:root { --ui-control-border-width: 2px; }
+:root:root body :is(button, input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, textarea),
+:root .studio-shell.garment-workspace-ui :is(button, input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, textarea),
+:root body :is(.recent-card, .new-project-category-card, .pp-card, .studio-credit-pill, .modal-content) {
+  border-width: var(--ui-control-border-width) !important;
+  box-sizing: border-box;
 }

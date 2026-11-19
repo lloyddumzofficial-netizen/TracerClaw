@@ -12,13 +12,16 @@ import globals from "globals";
  *
  * Deliberately narrow: `no-undef` is the rule that catches that bug class.
  * Stylistic rules are left off so this reports real defects only, and the
- * `lint` script is intentionally NOT part of `build` so it can never block a
- * deploy.
+ * `lint` script is part of the release build so undefined runtime identifiers
+ * fail verification before deployment.
  */
 export default [
   {
     ignores: [
       "node_modules/**",
+      ".tmp/**",
+      ".workflow-data/**",
+      "src/app/.well-known/workflow/**",
       ".next/**",
       "scripts/**",
       "scratch/**",

@@ -1,0 +1,4 @@
+import {it,expect} from 'vitest';
+import {validateDesignImage,DESIGN_ASSET_MAX_BYTES,DESIGN_UPLOAD_MAX_BYTES,DESIGN_IMAGE_MAX_PIXELS} from '@/lib/designExtractImagePolicy';
+it('separates upload and internal byte budgets while keeping the decoded budget bounded',()=>{expect(DESIGN_UPLOAD_MAX_BYTES).toBe(20*1024*1024);expect(DESIGN_ASSET_MAX_BYTES).toBe(100*1024*1024);expect(DESIGN_IMAGE_MAX_PIXELS).toBe(24_000_000);expect(()=>validateDesignImage({width:6000,height:4000,depth:'uchar'})).not.toThrow();expect(()=>validateDesignImage({width:6001,height:4000,depth:'uchar'})).toThrow('24 megapixels');});
+it.each([{width:0,height:20},{width:1.5,height:20},{width:NaN,height:20},{width:Infinity,height:20},{width:100,height:-5},{width:100,height:100,depth:'ushort'}])('rejects unsupported native metadata before decoding or charging: %j',metadata=>{expect(()=>validateDesignImage(metadata)).toThrow();});

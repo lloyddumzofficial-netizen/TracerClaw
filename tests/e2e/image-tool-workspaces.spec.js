@@ -320,7 +320,8 @@ test("workspace chooser supports keyboard selection, trapped focus and Escape", 
   await page.route("**/rest/v1/projects*", route => route.fulfill({ json: [] }));
   await page.goto("/");
   const trigger = page.getByRole("button", { name: "New Project", exact: true }).first();
-  await trigger.click();
+  await trigger.focus();
+  await page.keyboard.press('Enter');
   const chooser = page.getByRole("dialog", { name: "Choose a workspace" });
   await expect(chooser.getByRole("button", { name: "Garment Extract", exact: true })).toBeFocused();
   await chooser.screenshot({ path: "scratch/workspace-icons-refined.png" });

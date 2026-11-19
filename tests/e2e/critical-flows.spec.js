@@ -22,7 +22,8 @@ test.beforeEach(async ({ page }) => {
 
 async function acceptPrivacyNotice(page) {
   const consentButton = page.getByRole("button", { name: /I understand.*continue/i });
-  if (await consentButton.isVisible()) await consentButton.click();
+  await expect(consentButton).toBeVisible();
+  await consentButton.click();
 }
 
 test("home page exposes sign-in and protected project entry points", async ({ page }) => {

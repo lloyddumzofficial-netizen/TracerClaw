@@ -247,8 +247,7 @@ test("sidebar edit button has a clockwise rainbow outline and white SVG-style ce
   const sidebar=page.locator(".workspace-properties-panel");
   const button=sidebar.getByRole("button",{name:"Edit artwork",exact:true});
   await expect(button).toBeEnabled();
-  const gradient=await button.evaluate(el=>getComputedStyle(el).backgroundImage);
-  expect(gradient).toContain("conic-gradient");
+  await expect(button).toHaveCSS('background-image', /conic-gradient/);
   const centre=await button.locator('.pp-edit-artwork-label').evaluate(el=>({background:getComputedStyle(el).backgroundImage,color:getComputedStyle(el).color}));
   expect(centre.background).toContain('linear-gradient(rgb(255, 255, 255), rgb(226, 227, 228))');
   expect(centre.color).toBe('rgb(9, 10, 11)');

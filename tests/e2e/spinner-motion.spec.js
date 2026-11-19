@@ -54,6 +54,7 @@ for (const reducedMotion of ["no-preference", "reduce"]) {
       await route.fulfill({ json: { zipUrl: "https://spinner.test/output.zip", fileName: "Spinner-test.zip" } });
     });
     await page.goto("/workspace/spinner-test");
+    await page.getByRole('button', { name: 'Continue to crop', exact: true }).click();
     await page.getByRole("button", { name: "Close crop modal" }).click();
     const button = page.getByRole("button", { name: /Download All \(ZIP\)/i });
     await button.click();

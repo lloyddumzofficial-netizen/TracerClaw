@@ -2,9 +2,11 @@ import { beforeEach, describe, it, expect, vi } from "vitest";
 import sharp from "sharp";
 const mocks = vi.hoisted(() => ({ from: vi.fn(), submit: vi.fn(), status: vi.fn(), result: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({ adminSupabase: { from: mocks.from } }));
-vi.mock("@/server/designExtract/enhancementProvider", () => ({ submitEnhancement: mocks.submit }));
+vi.mock("@/server/designExtract/enhancementProvider", () => ({ submitEnhancement: mocks.submit, ENHANCE_MODEL: "recraft/crisp-upscale", TOPAZ_ENHANCE_MODEL:"topaz/upscale/image/transparent", LEGACY_ENHANCE_MODEL: "fal-ai/esrgan" }));
 vi.mock("@fal-ai/client", () => ({ fal: { queue: { submit: mocks.submit, status: mocks.status, result: mocks.result } } }));
-import { enhancementPlan, restoreEnhancedAlpha, enhancedLayer, enhancementResult, advanceEnhancement } from "@/server/designExtract/enhancement";
+import { enhancementPlan as plan, restoreEnhancedAlpha, enhancedLayer, enhancementResult, advanceEnhancement } from "@/server/designExtract/enhancement";
+const enhancementPlan=(w,h,model="topaz/upscale/image/transparent")=>plan(w,h,model);
+function legacyResult(result){const next=enhancementResult(result);next.enhancement.model="topaz/upscale/image/transparent";next.warnings=[...(result.warnings||[]),...result.layers.filter(l=>!enhancementPlan(l.width,l.height)).map(l=>`${l.name}: Enlargement exceeds safe output limits.`)];next.enhancement.items=next.enhancement.items.map((item,i)=>{const p=enhancementPlan(result.layers[i].width,result.layers[i].height);return {...item,plan:p,status:p?"pending":"skipped"};});return next;}
 const base = { id: "layer-0", name: "Logo", url: "https://r2.test/base.png", width: 2, height: 2,
   nativeFrame: { width: 4, height: 4, left: 1, top: 2 }, composition: { x: 17, y: 23, scale: 1.6 }, layout: { x: 300, y: 0, scale: 1 }, visible: true };
 let state, failReceiptSave;
@@ -25,7 +27,8 @@ async function fixture(count = 1) {
   const source = await sharp(Buffer.from([10,20,30,0, 20,30,40,128, 30,40,50,255, 40,50,60,255]), { raw: { width: 2, height: 2, channels: 4 } }).png().toBuffer();
   const output = await sharp({ create: { width: 8, height: 8, channels: 3, background: { r: 90, g: 120, b: 150 } } }).png().toBuffer();
   const assets = { readAsset: vi.fn(async (url) => url.includes("fal.test") ? output : source), uploadToR2: vi.fn(async (_, key) => `https://r2.test/${key}`), prefix: () => "owner/project/" };
-  state = { id: "job", project_id: "project", status: "saving", result: enhancementResult({ layers: Array.from({ length: count }, (_, i) => ({ ...base, id: `layer-${i}` })), warnings: [] }) };
+  state = { id: "job", project_id: "project", status: "saving", result: legacyResult({ layers: Array.from({ length: count }, (_, i) => ({ ...base, id: `layer-${i}` })), warnings: [] }) };
+  state.result.enhancement.model = "fal-ai/esrgan";
   mocks.submit.mockImplementation(async () => ({ request_id: `paid-${mocks.submit.mock.calls.length}` }));
   mocks.status.mockResolvedValue({ status: "COMPLETED" }); mocks.result.mockResolvedValue({ data: { image: { url: "https://fal.test/enhanced.png" } } });
   return { source, output, assets, step: () => advanceEnhancement({}, structuredClone(state), assets) };
@@ -34,7 +37,8 @@ beforeEach(() => { vi.clearAllMocks(); failReceiptSave = false; database(); });
 describe("bounded, alpha-preserving enhancement", () => {
   it("plans up to 4x without exceeding dimension or pixel limits", () => {
     expect(enhancementPlan(480,832)).toEqual({scale:4,width:1920,height:3328});
-    expect(enhancementPlan(2000,2000)).toEqual({scale:2,width:4000,height:4000});
+    expect(enhancementPlan(2000,2000)).toBeNull();
+    expect(enhancementPlan(2000,2000,"fal-ai/esrgan")).toEqual({scale:2,width:4000,height:4000});
     expect(enhancementPlan(4000,4000)).toBeNull(); expect(enhancementPlan(0,20)).toBeNull();
   });
   it("restores the original resized alpha even when the provider returns an opaque image", async () => {
@@ -52,13 +56,78 @@ describe("bounded, alpha-preserving enhancement", () => {
   });
 });
 describe("durable automatic per-layer processing", () => {
+  it("moves untouched Topaz layers to Recraft without a new fal submission", async () => {
+    const { step, assets } = await fixture();
+    const source = await sharp({ create: { width: 32, height: 32, channels: 4, background: { r: 30, g: 60, b: 90, alpha: .5 } } }).png().toBuffer();
+    const output = await sharp({ create: { width: 128, height: 128, channels: 3, background: { r: 30, g: 60, b: 90 } } }).png().toBuffer();
+    assets.readAsset.mockImplementation(async (_url, provider) => provider ? output : source);
+    state.result = legacyResult({ layers: [{ ...base, width: 32, height: 32 }], warnings: [] });
+    mocks.submit.mockResolvedValue({ image_url: "https://img.recraft.ai/output.png", units: 4 });
+    await step();
+    expect(mocks.submit).not.toHaveBeenCalled();
+    expect(state.result.enhancement.items[0]).toMatchObject({ status: "pending", model: "recraft/crisp-upscale" });
+    await step(); await step(); await step();
+    expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ image_url: expect.any(String) }), "recraft/crisp-upscale");
+    expect(mocks.status).not.toHaveBeenCalled();
+    expect(state.result.layers[0].enhancement.model).toBe("recraft/crisp-upscale");
+    expect(state.status).toBe("ready");
+  });
+  it("finishes a recorded Topaz receipt without starting another upscale", async () => {
+    const { step } = await fixture();
+    state.result.enhancement.model = "topaz/upscale/image/transparent";
+    state.result.enhancement.items[0] = { ...state.result.enhancement.items[0], status: "queued", requestId: "already-paid", startedAt: new Date().toISOString() };
+    await step(); await step();
+    expect(mocks.status).toHaveBeenCalledWith("topaz/upscale/image/transparent", { requestId: "already-paid", logs: false });
+    expect(mocks.submit).not.toHaveBeenCalled();
+    expect(state.status).toBe("ready");
+  });
+  it("keeps unsupported pending Topaz layers without charging another provider", async () => {
+    const { step } = await fixture();
+    state.result.enhancement.model = "topaz/upscale/image/transparent";
+    await step(); await step();
+    expect(state.status).toBe("ready");
+    expect(state.result.enhancement.items[0].status).toBe("skipped");
+    expect(state.result.layers[0]).toEqual(base);
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+  it("does not migrate a Topaz layer with ambiguous submission evidence", async () => {
+    const { step } = await fixture();
+    state.result.enhancement.model = "topaz/upscale/image/transparent";
+    state.result.enhancement.items[0].startedAt = new Date().toISOString();
+    await step();
+    expect(state.result.enhancement.items[0].status).toBe("uncertain");
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+  it('checkpoints a direct Recraft result and retries storage without regenerating',async()=>{
+    const {step,assets}=await fixture();
+    const source=await sharp({create:{width:32,height:32,channels:4,background:{r:30,g:60,b:90,alpha:.5}}}).png().toBuffer();
+    const output=await sharp({create:{width:128,height:128,channels:3,background:{r:30,g:60,b:90}}}).png().toBuffer();
+    assets.readAsset.mockImplementation(async(_url,provider)=>provider?output:source);
+    state.result=enhancementResult({layers:[{...base,width:32,height:32}],warnings:[]});
+    mocks.submit.mockResolvedValue({image_url:'https://img.recraft.ai/output.png',units:4});
+    await step();expect(state.result.enhancement.items[0]).toMatchObject({status:'queued',outputUrl:'https://img.recraft.ai/output.png',units:4});
+    assets.uploadToR2.mockRejectedValueOnce(Error('storage outage'));await expect(step()).rejects.toThrow('storage outage');
+    await step();await step();expect(state.status).toBe('ready');expect(mocks.submit).toHaveBeenCalledTimes(1);expect(mocks.status).not.toHaveBeenCalled();
+    expect(state.result.layers[0]).toMatchObject({width:128,height:128,enhancement:{model:'recraft/crisp-upscale',scale:4}});
+  });
+  it("resumes recorded ESRGAN work with its original endpoint and settings", async () => {
+    const {step,assets}=await fixture();
+    state.result.enhancement.model="fal-ai/esrgan";
+    await step(); await step(); await step();
+    expect(state.status).toBe("ready");
+    expect(mocks.submit).toHaveBeenCalledWith(expect.objectContaining({scale:4,model:"RealESRGAN_x4plus",face:false}),"fal-ai/esrgan");
+    expect(mocks.status).toHaveBeenCalledWith("fal-ai/esrgan",expect.any(Object));
+    expect(state.result.layers[0].enhancement.model).toBe("fal-ai/esrgan");
+    const bytes=assets.uploadToR2.mock.calls.find(([,key])=>key.includes("enhance-input"))[0];
+    expect((await sharp(bytes).metadata()).hasAlpha).toBe(false);
+  });
   it("enhances every candidate, records receipts, then makes review ready", async () => {
     const {step,assets}=await fixture(4);
     for(let i=0;i<12&&state.status!=="ready";i++)await step();
     expect(state.status).toBe("ready");expect(mocks.submit).toHaveBeenCalledTimes(4);
     expect(state.result.enhancement.items.every(item=>item.status==="done")).toBe(true);
-    for(const layer of state.result.layers){expect(layer).toMatchObject({width:8,height:8,enhancement:{scale:4}});expect(layer.url).toContain("enhanced-");}
-    expect(mocks.submit.mock.calls.every(([input])=>input.scale===4&&input.face===false&&input.model==="RealESRGAN_x4plus")).toBe(true);
+    for(const layer of state.result.layers){expect(layer).toMatchObject({width:8,height:8,enhancement:{scale:4,model:"fal-ai/esrgan"}});expect(layer.url).toContain("enhanced-");}
+    expect(mocks.submit.mock.calls.every(([input,model])=>input.output_format==="png"&&input.scale===4&&model==="fal-ai/esrgan")).toBe(true);
     const rgb=assets.uploadToR2.mock.calls.find(([,key])=>key.includes("enhance-input"))[0];expect((await sharp(rgb).metadata()).hasAlpha).toBe(false);
   });
   it("allows only one browser/cron poller to submit a layer", async () => {
@@ -99,7 +168,7 @@ describe("durable automatic per-layer processing", () => {
     expect(state.status).toBe("ready");expect(state.result.layers[0].enhancement.scale).toBe(4);expect(state.result.layers[1].url).toEqual(base.url);expect(mocks.submit).toHaveBeenCalledTimes(2);
   });
   it("skips unsafe output sizes without submitting and leaves the candidate untouched", async () => {
-    const {step}=await fixture();state.result=enhancementResult({layers:[{...base,width:4000,height:4000}],warnings:[]});await step();
+    const {step}=await fixture();state.result=legacyResult({layers:[{...base,width:4000,height:4000}],warnings:[]});await step();
     expect(state.status).toBe("ready");expect(state.result.enhancement.items[0].status).toBe("skipped");expect(state.result.warnings[0]).toContain("safe output limits");expect(mocks.submit).not.toHaveBeenCalled();
   });
 });

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const clampZoom = value => Math.max(.05, Math.min(4, value));
 const isTyping = target => target instanceof Element && Boolean(target.closest("input, textarea, select, button, summary, [contenteditable='true']"));
 
-export default function useCanvasNavigation(viewport, enabled, layerDrag) {
+export default function useCanvasNavigation(viewport, enabled, layerDrag, reducedMotion = false) {
   const [camera, setCameraState] = useState({ x: 36, y: 54, zoom: .7 });
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
@@ -13,7 +13,7 @@ export default function useCanvasNavigation(viewport, enabled, layerDrag) {
   const setCamera = useCallback((next, smooth = true, anchor = null) => {
     zoomAnchor.current = anchor;
     goal.current = { ...next, zoom: clampZoom(next.zoom) };
-    if (!smooth || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!smooth || reducedMotion) {
       cancelAnimationFrame(frame.current); frame.current = 0;
       current.current = goal.current; setCameraState(goal.current); return;
     }
@@ -30,7 +30,7 @@ export default function useCanvasNavigation(viewport, enabled, layerDrag) {
       frame.current = done ? 0 : requestAnimationFrame(tick);
     };
     frame.current = requestAnimationFrame(tick);
-  }, []);
+  }, [reducedMotion]);
   const zoomAt = useCallback((value, point) => {
     const el = viewport.current;
     if (!el) return;

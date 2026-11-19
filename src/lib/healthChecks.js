@@ -1,3 +1,4 @@
+import { designExtractConfiguration } from "./designExtractReadiness";
 import { adminSupabase } from "@/lib/supabase";
 import { NANO_BANANA_EDIT_MODEL } from "@/lib/tracePrompts";
 
@@ -302,14 +303,43 @@ export function buildInfo() {
   };
 }
 
+/** Protected deep-health only: never return asset URLs, users or provider payloads. */
+export async function checkDesignExtractReadiness() {
+  const configuration=designExtractConfiguration();
+  if(!configuration.enabled||!configuration.ok)return configuration;
+  const tables={design_extract_projects:'id,expires_at,revision',design_extract_jobs:'id,billing_state,charge_amount,dispatch_started_at',design_extract_ledger:'job_id,state'};
+  if(configuration.processor==='workflow'){
+    tables.design_extract_jobs+=',processor,processor_generation,processing_lease_until,last_polled_at,last_progress_at';
+    tables.design_extract_outbox='job_id,generation,state,next_attempt_at,lease_until';
+  }
+  for(const [table,columns]of Object.entries(tables)){
+    const result=await adminSupabase.from(table).select(columns).limit(0);
+    if(result.error)return {...configuration,ok:false,code:'DESIGN_SCHEMA_UNAVAILABLE',table};
+  }
+  const cutoff=new Date(Date.now()-5*60000).toISOString();
+  const held=await adminSupabase.from('design_extract_jobs').select('id').eq('billing_state','held').in('status',['ready','accepted','rejected','failed']).lt('updated_at',cutoff).limit(1);
+  if(held.error)return {...configuration,ok:false,code:'DESIGN_BILLING_CHECK_UNAVAILABLE'};
+  if(held.data?.length)return {...configuration,ok:false,code:'DESIGN_SETTLEMENT_OVERDUE'};
+  if(configuration.processor==='workflow'){
+    const pending=await adminSupabase.from('design_extract_outbox').select('job_id').eq('state','pending').lt('updated_at',cutoff).limit(1);
+    if(pending.error)return {...configuration,ok:false,code:'DESIGN_WORKFLOW_CHECK_UNAVAILABLE'};
+    if(pending.data?.length)return {...configuration,ok:false,code:'DESIGN_WORKFLOW_START_OVERDUE'};
+    const stale=await adminSupabase.from('design_extract_jobs').select('id').eq('processor','workflow').in('status',['submitting','queued','processing','saving']).lt('created_at',cutoff).or(`last_polled_at.is.null,last_polled_at.lt.${cutoff}`).limit(1);
+    if(stale.error)return {...configuration,ok:false,code:'DESIGN_WORKER_CHECK_UNAVAILABLE'};
+    if(stale.data?.length)return {...configuration,ok:false,code:'DESIGN_WORKER_HEARTBEAT_OVERDUE'};
+  }
+  return {...configuration,schemaVerified:true};
+}
+
 /** Run the complete dependency-readiness suite used by deploy and cron checks. */
 export async function runDeepHealthChecks() {
-  const [database, schema, rls, aiProvider, welcomeTrial] = await Promise.all([
+  const [database, schema, rls, aiProvider, welcomeTrial, designExtract] = await Promise.all([
     checkDatabase(),
     checkSchema(),
     checkRlsEnforced(),
     checkAiProvider(),
     checkWelcomeTrialReadiness(),
+    checkDesignExtractReadiness(),
   ]);
   const checks = {
     env: checkEnv(),
@@ -320,6 +350,7 @@ export async function runDeepHealthChecks() {
     referrals: checkReferralReadiness(),
     aiProvider,
     welcomeTrial,
+    designExtract,
   };
   const failed = Object.entries(checks)
     .filter(([, value]) => value && value.ok === false)

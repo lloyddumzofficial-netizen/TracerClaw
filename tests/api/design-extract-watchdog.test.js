@@ -1,0 +1,15 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({maintain:vi.fn(),billing:vi.fn(),legacy:vi.fn()}));
+vi.mock('@/server/designExtract/processing/launcher',()=>({maintainDesignWorkflows:mocks.maintain}));
+vi.mock('@/server/designExtract/billing',()=>({recoverDesignBilling:mocks.billing}));
+vi.mock('@/server/designExtract/recovery',()=>({recoverLegacyDesignJobs:mocks.legacy}));
+vi.mock('@/lib/logger',()=>({logger:{warn:vi.fn()}}));
+import {GET} from '@/app/api/cron/design-extract/route';
+beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-cron');vi.stubEnv('DESIGN_EXTRACT_ENABLED','true');});
+afterEach(()=>vi.unstubAllEnvs());
+const request=token=>new Request('http://localhost/api/cron/design-extract',{headers:token?{authorization:`Bearer ${token}`}:{}});
+it('rejects untrusted watchdog calls before any database or provider work',async()=>{expect((await GET(request())).status).toBe(401);expect(mocks.maintain).not.toHaveBeenCalled();expect(mocks.billing).not.toHaveBeenCalled();});
+it('continues recorded jobs and billing recovery when new submissions are disabled',async()=>{vi.stubEnv('DESIGN_EXTRACT_ENABLED','false');expect(await (await GET(request('test-cron'))).json()).toEqual({ok:true});expect(mocks.maintain).toHaveBeenCalledTimes(1);expect(mocks.billing).toHaveBeenCalledTimes(1);});
+it('does not require feature tables on installations where the feature was never enabled',async()=>{vi.stubEnv('DESIGN_EXTRACT_ENABLED','false');mocks.billing.mockRejectedValue({code:'PGRST205'});expect(await (await GET(request('test-cron'))).json()).toEqual({enabled:false});expect(mocks.maintain).not.toHaveBeenCalled();});
+it('recovers billing and both processors without performing general asset cleanup',async()=>{expect((await GET(request('test-cron'))).status).toBe(200);expect(mocks.billing).toHaveBeenCalledTimes(1);expect(mocks.maintain).toHaveBeenCalledTimes(1);expect(mocks.legacy).toHaveBeenCalledTimes(1);});
+it('returns a retryable failure without leaking provider errors',async()=>{mocks.maintain.mockRejectedValue(new Error('secret signed image'));const response=await GET(request('test-cron'));expect(response.status).toBe(503);expect(await response.json()).toEqual({error:'Recovery will retry'});});

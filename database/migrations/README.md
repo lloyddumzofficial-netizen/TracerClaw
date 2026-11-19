@@ -60,3 +60,9 @@ scripts with this ordered directory during a fresh setup.
 of this ordered migration path because the current atomic RPC migrations replace
 that older refund/credit approach.
 `038_design_extract.sql` — Admin-only Design Extract projects and durable layer operations (3-day retention).
+
+- `039_design_extract_billing.sql` — Atomic Design Extract reservations, server-set tariffs, and one-time settlement/refunds.
+
+- `040_design_extract_processing.sql` — Optional Workflow driver, atomic outbox, processing leases, per-user concurrency, and stale-run fencing. Existing jobs remain on the legacy driver; billing mode is unchanged.
+
+- `041_design_extract_sam2.sql` — Adds SAM 2 automatic/manual models to the existing job-claim allowlist, retaining legacy recovery. No tariff, refund, privilege or access-policy changes.

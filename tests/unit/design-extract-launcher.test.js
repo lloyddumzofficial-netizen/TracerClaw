@@ -1,0 +1,17 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({from:vi.fn(),rpc:vi.fn(),start:vi.fn(),warn:vi.fn()}));
+vi.mock('@/lib/supabase',()=>({adminSupabase:{from:mocks.from,rpc:mocks.rpc}}));
+vi.mock('@/lib/logger',()=>({logger:{warn:mocks.warn}}));
+vi.mock('workflow/api',()=>({start:mocks.start}));
+vi.mock('workflow/errors',()=>({HookConflictError:{is:error=>error.conflict===true}}));
+vi.mock('@/workflows/designExtract',()=>({processDesignExtract:()=>{}}));
+import {dispatchPendingDesignWorkflows,maintainDesignWorkflows} from '@/server/designExtract/processing/launcher';
+const entry={job_id:'job',generation:2,lease_token:'outbox-lease',attempts:1};
+const query=(data=[],error=null)=>{const q={};for(const method of ['update','eq','select','in','lt','or','order','limit'])q[method]=vi.fn(()=>q);q.then=(resolve,reject)=>Promise.resolve({data,error}).then(resolve,reject);return q;};
+beforeEach(()=>{vi.resetAllMocks();mocks.rpc.mockResolvedValue({data:[entry]});mocks.from.mockImplementation(()=>query());mocks.start.mockResolvedValue({runId:'workflow-run'});});
+it('uses a deterministic durable start token, with only job ID and generation as workflow input',async()=>{expect(await dispatchPendingDesignWorkflows('job')).toEqual({started:1});expect(mocks.start).toHaveBeenCalledWith(expect.any(Function),['job',2],{experimental_hook:{token:'design-extract:job:2',experimental_minRetention:'4 days'}});});
+it('accepts an existing workflow receipt after a lost start acknowledgement without starting a different run',async()=>{mocks.start.mockRejectedValue({conflict:true,conflictingRunId:'original-run'});const job=query();mocks.from.mockReturnValueOnce(query()).mockReturnValueOnce(job);expect(await dispatchPendingDesignWorkflows()).toEqual({started:1});expect(job.update).toHaveBeenCalledWith({processor_run_id:'original-run'});});
+it('keeps an uncertain start pending with bounded backoff and a lease-fenced retry',async()=>{mocks.start.mockRejectedValue(new Error('private provider URL'));const retry=query();mocks.from.mockReturnValue(retry);expect(await dispatchPendingDesignWorkflows()).toEqual({started:0});expect(retry.update).toHaveBeenCalledWith(expect.objectContaining({lease_token:null,last_error_code:'WORKFLOW_START_UNCONFIRMED'}));expect(retry.eq).toHaveBeenCalledWith('generation',2);expect(retry.eq).toHaveBeenCalledWith('lease_token','outbox-lease');expect(JSON.stringify(mocks.warn.mock.calls)).not.toContain('private provider');});
+it('does not mark an empty workflow receipt started',async()=>{mocks.start.mockResolvedValue({});expect(await dispatchPendingDesignWorkflows()).toEqual({started:0});});
+it('stays compatible before migration 040 is applied',async()=>{mocks.from.mockReturnValue(query([],{code:'42703'}));expect(await maintainDesignWorkflows()).toEqual({available:false});expect(mocks.rpc).not.toHaveBeenCalled();});
+it('does not requeue ready refinements waiting for explicit review',async()=>{const active=query(),ready=query();mocks.from.mockReturnValueOnce(active).mockReturnValueOnce(ready);mocks.rpc.mockResolvedValue({data:[]});expect(await maintainDesignWorkflows()).toEqual({available:true});expect(active.in).toHaveBeenCalledWith('status',['submitting','queued','processing','saving']);expect(ready.eq).toHaveBeenCalledWith('kind','extract');expect(ready.eq).toHaveBeenCalledWith('status','ready');});

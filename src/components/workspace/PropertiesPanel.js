@@ -230,6 +230,14 @@ const PropertiesPanel = memo(function PropertiesPanel({
               : "Connect Google Drive"
             : "Save to Google Drive";
 
+  const driveButtonText = ({
+    "Open Drive folder": "Drive folder",
+    "Google Drive unavailable": "Unavailable",
+    "Reconnect Google Drive": "Reconnect Drive",
+    "Connect Google Drive": "Connect Drive",
+    "Save to Google Drive": "Save to Drive",
+  })[driveButtonLabel] || driveButtonLabel;
+
   const traceButtonLabel = hasSvg
     ? "SVG Generated"
     : isSavingCrop
@@ -428,10 +436,10 @@ const PropertiesPanel = memo(function PropertiesPanel({
       <div className="pp-scroll-region">
       {/* ── COLOR DETAIL ─────────────────────────────────── */}
       <div className="pp-section pp-color-section" style={{ padding: "8px 14px", flexShrink: 0 }}>
-        <span className="pp-lbl">Color Detail</span>
+        <label className="pp-lbl" htmlFor="trace-color-detail">Color Detail</label>
         <div className="pp-sel-wrap">
           <span className="pp-sel-ico"><IconColorRings /></span>
-          <select value={vectorColors} onChange={e => setVectorColors(e.target.value)} className="pp-sel">
+          <select id="trace-color-detail" value={vectorColors} onChange={e => setVectorColors(e.target.value)} className="pp-sel">
             <option value="auto" style={{ background: "#161616" }}>Auto (Precision Balance)</option>
             <option value="16" style={{ background: "#161616" }}>16 Colors (High Details)</option>
             <option value="8" style={{ background: "#161616" }}>8 Colors (Medium Details)</option>
@@ -450,7 +458,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
           {/* Standard */}
           <button type="button" className={`pp-card${svgEngine === "standard" ? " on" : ""}`}
-            onClick={() => setSvgEngine("standard")}>
+            aria-pressed={svgEngine === "standard"} onClick={() => setSvgEngine("standard")}>
             <div className="pp-plan-icon" style={{ color: svgEngine === "standard" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
               <IconBezier />
             </div>
@@ -472,7 +480,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
           {/* Precision */}
           <button type="button" className={`pp-card${svgEngine === "precision" ? " on" : ""}`}
-            onClick={() => setSvgEngine("precision")}>
+            aria-pressed={svgEngine === "precision"} onClick={() => setSvgEngine("precision")}>
             <div className="pp-plan-icon" style={{ color: svgEngine === "precision" ? "#FFD700" : "#a1a1aa", flexShrink: 0, display: "flex" }}>
               <Sparkles size={16} />
             </div>
@@ -503,7 +511,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
       </div>
 
       {isCompleteDesignProject(project) && <div className="pp-section pp-edit-section" style={{ padding: "4px 14px 10px", flexShrink: 0 }}>
-        <button className={`pp-svg-btn ${aiOutlineStyles.outline}`} onClick={onOpenArtworkEditor}
+        <button data-ai-outline className={`pp-svg-btn ${aiOutlineStyles.outline}`} onClick={onOpenArtworkEditor}
           disabled={isBusy || !artworkEditingEnabled || !project?.generated_image_url || project.generated_image_url === "REFUNDED"}
           title={!project?.generated_image_url || project.generated_image_url === "REFUNDED" ? "Available after flat extraction finishes" : !artworkEditingEnabled ? "Artwork editing is not enabled for this account yet" : isBusy ? "Wait for processing to finish" : "Select areas and edit your extracted artwork"}>
           <span className={`pp-edit-artwork-label ${aiOutlineStyles.label}`}><ImagePlus size={16} /> Edit artwork</span>
@@ -553,20 +561,22 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </button>
 
         {/* 2×2 grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "6px" }}>
           <button className="pp-sec"
+            aria-label="Download all (ZIP)" title="Download all (ZIP)"
             onClick={() => handleDownloadClick("all", onDownloadAll)}
             disabled={!project?.original_image_url || !!downloading}>
             {downloading === "all" ? <span className="pp-spin"><Loader2 size={15} /></span> : <IconFileZip />}
-            <span>Download all (ZIP)</span>
+            <span>Download ZIP</span>
           </button>
           <button className="pp-sec"
+            aria-label={driveButtonLabel} title={driveButtonLabel}
             onClick={handleDriveClick}
             disabled={driveButtonDisabled}>
             {downloading === "drive"
               ? <span className="pp-spin"><Loader2 size={15} /></span>
               : <GoogleDriveMark className="pp-google-drive-icon" size={17} />}
-            <span>{driveButtonLabel}</span>
+            <span>{driveButtonText}</span>
           </button>
           <button className="pp-sec"
             // Anchor target for the "Palette Studio ready" nudge, which measures

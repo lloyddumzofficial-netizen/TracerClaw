@@ -5,6 +5,7 @@ loadEnvConfig(process.cwd());
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('cookie_consent', 'declined');
+    localStorage.setItem('ai_disclaimer_seen', 'true');
     // Stub only the external CAPTCHA widget; this does not bypass server tests.
     window.turnstile = {
       ready: callback => callback(),

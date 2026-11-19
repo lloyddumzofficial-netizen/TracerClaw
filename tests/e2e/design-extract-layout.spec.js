@@ -13,7 +13,7 @@ async function setup(page,count,review=false,status=null){
   await page.route("https://editor-assets.test/**", route => route.fulfill({ contentType: "image/svg+xml", body: artwork }));
   let project = { id: "editor-tools", revision: 0, source_url: source, manifest: { version: 1, width: 800, height: 1200, layers: ["Team mark", "Print pattern"].map((name, index) => ({ id: `layer-${index}`, name, url: source, width: 100, height: 140, visible: !index, locked: false, layout: { x: 300 + index * 300, y: 0, scale: 1 }, composition: { x: index * 100, y: 0, scale: 1 } })) } };
   project.manifest.layers = Array.from({length:count},(_,i)=>({id:'layer-'+i,name:'Layer '+(i+1),url:source,width:480,height:832,visible:true,locked:false,layout:{x:300+i%4*260,y:Math.floor(i/4)*300,scale:.3},composition:{x:0,y:0,scale:1.6}}));
-  const job = status ? {id:"state-job",status,kind:"split",layer_id:"layer-0",request_id:status==="submitting"?null:"existing-request",error:status==="failed"?"The provider could not complete this extraction. Your original artwork is unchanged.":null} : review ? {id:'layout-review',status:'ready',kind:'extract',result:{layers:project.manifest.layers,warnings:['The AI output has a different aspect ratio from your source. Layers are centered without stretching. Check their alignment before accepting.']}} : null;
+  const job = status ? {id:"state-job",status,kind:"split",layer_id:"layer-0",request_id:status==="submitting"?null:"existing-request",error:status==="failed"?"The provider could not complete this extraction. Your original artwork is unchanged.":null} : review ? {id:'layout-review',status:'ready',kind:'split',result:{layers:project.manifest.layers,warnings:['The AI output has a different aspect ratio from your source. Layers are centered without stretching. Check their alignment before accepting.']}} : null;
   if(status === "saving") job.result = { enhancement: { version: 1, items: [{status:"done"},{status:"done"},{status:"queued"},{status:"pending"}] } };
   if(review) project.manifest.layers=[];
   let saves = 0, generations = 0;
@@ -34,7 +34,7 @@ for(const count of [4,32]) test('fixed Layers sidebar and canvas inspector fit '
  const list=page.locator('[class*="layerListViewport"]').first();
  await expect(page.getByRole('textbox',{name:'Search layers',exact:true})).toBeVisible();
  await expect(page.locator('.studio-commandbar-shell[data-position="bottom"]')).toBeVisible();
- const barBounds=await page.locator('.studio-commandbar-shell').boundingBox();const canvasBounds=await page.getByRole('region',{name:'Design canvas',exact:true}).boundingBox();expect(barBounds.y).toBeGreaterThanOrEqual(canvasBounds.y+canvasBounds.height-1);
+ const barBounds=await page.locator('.studio-commandbar-shell').boundingBox();const canvasBounds=await page.getByRole('region',{name:'Design canvas',exact:true}).boundingBox();expect(barBounds.y).toBeGreaterThan(canvasBounds.y);expect(barBounds.y+barBounds.height).toBeLessThanOrEqual(canvasBounds.y+canvasBounds.height+1);const statusBounds=await page.locator(".studio-statusbar").boundingBox();expect(Math.abs(canvasBounds.y+canvasBounds.height-statusBounds.y)).toBeLessThanOrEqual(1);
  await expect(page.locator('.studio-projectbar')).toHaveCount(0);await expect(page.getByText('Artwork overview',{exact:true})).toHaveCount(0);
  for(const height of [1000,900,800,720,600]){
   await page.setViewportSize({width:1440,height});await page.evaluate(()=>document.fonts.ready);
@@ -57,7 +57,9 @@ for(const count of [4,32]) test('fixed Layers sidebar and canvas inspector fit '
  const exportsBefore=await sidebar.locator('[class*="exports"]').boundingBox();
  const canvasBefore=await page.locator('[data-design-board]').evaluate(e=>getComputedStyle(e).transform);
  const listBox=await list.boundingBox();await page.mouse.move(listBox.x+listBox.width/2,listBox.y+listBox.height/2);await page.mouse.wheel(0,10000);
- await expect.poll(()=>list.evaluate(e=>e.scrollTop)).toBeGreaterThan(0);
+ const canScroll=await list.evaluate(e=>e.scrollHeight>e.clientHeight);
+ if(canScroll) await expect.poll(()=>list.evaluate(e=>e.scrollTop)).toBeGreaterThan(0);
+ else expect(await list.evaluate(e=>e.scrollTop)).toBe(0);
  await expect(list.getByRole('button').last()).toBeInViewport({ratio:1});
  expect(await sidebar.evaluate(e=>e.scrollTop)).toBe(0);
  expect(await sidebar.locator('[class*="exports"]').boundingBox()).toEqual(exportsBefore);

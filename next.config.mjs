@@ -1,4 +1,5 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
+import { withWorkflow } from "workflow/next";
 import { execSync } from 'node:child_process';
 import { getSecurityHeaders } from './src/lib/securityHeaders.mjs';
 
@@ -35,6 +36,8 @@ function resolveBuildDirty() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A dedicated output directory keeps local release builds separate from dev.
+  distDir: process.env.DESAYNCLAW_BUILD_CHECK === '1' ? '.tmp/release-build' : '.next',
   experimental: {
     agentUpgrade: 'security',
     // Allow a 20 MB image plus multipart headers on the local upload fallback.
@@ -82,7 +85,7 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+export default withWorkflow(withSentryConfig(nextConfig, {
   silent: true,
   webpack: {
     treeshake: {
@@ -92,4 +95,4 @@ export default withSentryConfig(nextConfig, {
   sourcemaps: {
     disable: !process.env.SENTRY_AUTH_TOKEN,
   },
-});
+}));

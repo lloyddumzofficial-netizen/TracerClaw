@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/design-extract",
+      "schedule": "*/2 * * * *"
+    },
+    {
       "path": "/api/cron/cleanup",
       "schedule": "0 * * * *"
     },

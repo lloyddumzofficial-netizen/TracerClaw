@@ -46,7 +46,7 @@ const teamMembers = [
     tone: "gold",
   },
   {
-    name: "Mary Dumadaug",
+    name: "Mary S.",
     role: "Content & Marketing",
     focus: "Helps create content and marketing materials that introduce DesaynClaw and explain its tools to designers and print shops.",
     image: "/Team/MARY-DUMADAUG-CONTENT-MARKETING.png",

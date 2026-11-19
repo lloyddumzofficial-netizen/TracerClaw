@@ -3,9 +3,9 @@
   flex-direction: column;
   min-width: 0;
   padding: 20px 16px 18px;
-  border: 1px solid #2c2e30;
+  border: 1px solid #333333;
   border-radius: 12px;
-  background: #101112;
+  background: #111315;
   color: #f4f4f1;
   transition: border-color 220ms ease, background-color 220ms ease, translate 220ms cubic-bezier(.22, 1, .36, 1);
 }
@@ -45,9 +45,9 @@
   gap: 10px;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid #383a3c;
+  border: 1px solid #333333;
   border-radius: 999px;
-  background: #202020;
+  background: #111315;
   color: #f4f4f1;
   font-family: inherit;
   font-size: 11px;
@@ -62,12 +62,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
-    border-color: #696c6e;
-    background: #141516;
+    border-color: #929591;
+    background: #1A1C1E;
   }
   .copy button:hover {
-    border-color: #747779;
-    background: #202224;
+    border-color: #929591;
+    background: #1A1C1E;
   }
 }
 
@@ -89,4 +89,20 @@
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -.025em;
+}
+
+/* Shared brand surfaces, with all five tools visible on desktop. */
+.shelf.shelf { background: var(--dc-bg); color: #F4F4F1; }
+.shelf.shelf :global(.desktop-tools-kicker) { color: #929591; }
+.shelf.shelf :global(.desktop-tools-track) { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 14px; }
+.shelf.shelf .copy button { background: #F4F4F1 !important; color: #08090A !important; }
+.shelf.shelf .copy button:hover { background: #F4F4F1 !important; border-color: #929591 !important; }
+@media (min-width: 900px) and (max-width: 1099px) {
+  .shelf.shelf :global(.desktop-tools-track) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 899px) {
+  .shelf.shelf :global(.desktop-tools-track) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 620px) {
+  .shelf.shelf :global(.desktop-tools-track) { grid-template-columns: minmax(0, 1fr) !important; }
 }

@@ -7,7 +7,7 @@ test("team keeps the founder above the roster without horizontal overflow", asyn
   const cards = page.locator(".team-card");
   await expect(cards).toHaveCount(5);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("The people behind DesaynClaw.");
-  await expect(cards.filter({ hasText: "Mary Dumadaug" })).toHaveCount(1);
+  await expect(cards.filter({ hasText: "Mary S." })).toHaveCount(1);
 
   const desktopCards = await cards.evaluateAll((elements) => elements.map((element) => {
     const rect = element.getBoundingClientRect();

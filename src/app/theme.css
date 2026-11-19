@@ -8,9 +8,10 @@
 
 :root {
   /* Core workspace palette */
-  --bg-app: #262626;
+  --dc-bg: #0B0B0B;
+  --bg-app: var(--dc-bg);
   --bg-panel: #1a1a1a;
-  --bg-canvas: #222222;
+  --bg-canvas: var(--dc-bg);
   --bg-hover: #333333;
   --bg-active: #222222;
   --border: #444444;
@@ -23,7 +24,7 @@
   --radius: 0px;
 
   /* Shared marketing surfaces */
-  --marketing-bg: #070707;
+  --marketing-bg: var(--dc-bg);
   --marketing-panel: #151515;
   --marketing-panel-strong: #101010;
   --marketing-border: rgba(255, 255, 255, 0.085);

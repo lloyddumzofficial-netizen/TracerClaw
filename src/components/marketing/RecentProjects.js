@@ -1,7 +1,23 @@
 "use client";
 
 import { memo, useState } from "react";
-import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock, Loader2 } from "lucide-react";
+import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock, Loader2, Layers3, Shirt, PenTool, Grid2X2, Scan, Scissors } from "lucide-react";
+
+const PROJECT_TOOLS = {
+  design_extract: { label: "Design Extract", Icon: Layers3 },
+  logo: { label: "Logo Vectorizer", Icon: PenTool },
+  mockup: { label: "Garment Extract", Icon: Shirt },
+  pattern: { label: "Pattern Rebuilder", Icon: Grid2X2 },
+  bg_remover: { label: "Background Remover", Icon: Scissors },
+  upscale: { label: "Image Upscale", Icon: Scan },
+};
+
+function ProjectToolLabel({ traceType }) {
+  const tool = PROJECT_TOOLS[traceType];
+  if (!tool) return null;
+  const { label, Icon } = tool;
+  return <span className="recent-tool-label"><Icon size={11} aria-hidden="true" />{label}</span>;
+}
 
 const RecentProjects = memo(function RecentProjects({
   user,
@@ -13,6 +29,7 @@ const RecentProjects = memo(function RecentProjects({
   openMenuId,
   setOpenMenuId,
   onNavigate,
+  onPrefetch,
   onStartEditing,
   onCancelEditing,
   onSaveRename,
@@ -95,6 +112,8 @@ const RecentProjects = memo(function RecentProjects({
                 key={proj.id}
                 className={`recent-card${navigatingId === proj.id ? " is-navigating" : ""}${navigatingId ? " is-locked" : ""}`}
                 onClick={() => handleCardClick(proj)}
+                onMouseEnter={() => onPrefetch?.(proj)}
+                onFocus={() => onPrefetch?.(proj)}
                 role="button"
                 tabIndex={0}
                 aria-busy={navigatingId === proj.id}
@@ -102,12 +121,11 @@ const RecentProjects = memo(function RecentProjects({
               >
               <div className="recent-thumb" style={{
                   backgroundImage: proj.original_image_url
-                    ? `url(/api/proxy?url=${encodeURIComponent(proj.original_image_url)})`
+                    ? proj.trace_type === "design_extract" ? `url("${proj.original_image_url}")` : `url(/api/proxy?url=${encodeURIComponent(proj.original_image_url)})`
                     : 'none',
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}>
-                  {proj.trace_type === "design_extract" && <span className="recent-tool-label">Design Extract</span>}
                   {navigatingId === proj.id && (
                     <div className="recent-opening">
                       <Loader2 size={18} className="animate-spin" />
@@ -131,7 +149,10 @@ const RecentProjects = memo(function RecentProjects({
                     </div>
                   ) : (
                     <>
-                      <div className="recent-name" title={proj.name}>{proj.name}</div>
+                      <div className="recent-project-copy">
+                        <div className="recent-name" title={proj.name}>{proj.name}</div>
+                        <ProjectToolLabel traceType={proj.trace_type} />
+                      </div>
                       <div className="menu-container" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === proj.id ? null : proj.id); }}>
                         <button className="dots-btn"><MoreVertical size={16} /></button>
                         {openMenuId === proj.id && (

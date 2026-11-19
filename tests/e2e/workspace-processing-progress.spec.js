@@ -40,6 +40,7 @@ test("garment loading percentage advances within real stages and never completes
     await route.fulfill({ json: { svg_url: "https://progress.test/final.svg" } });
   });
   await page.goto("/workspace/progress-test");
+  await page.getByRole('button', { name: 'Continue to crop', exact: true }).click();
   await page.getByRole("button", { name: "Close crop modal" }).click();
   await page.getByRole("button", { name: /Run Auto-Trace/ }).click();
   const header = page.locator(".processing-layer-header");

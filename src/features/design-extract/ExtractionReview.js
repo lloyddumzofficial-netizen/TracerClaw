@@ -4,7 +4,7 @@ import useLayerPagination from "./useLayerPagination";
 import LayerPagination from "./LayerPagination";
 import styles from "./designExtract.module.css";
 
-export default function ExtractionReview({ job, selectedId, busy, onPreview, onAccept, onDiscard }) {
+export default function ExtractionReview({ job, selectedId, busy, versions = {}, onVersion, onPreview, onAccept, onDiscard }) {
   const layers = job.result?.layers || [];
   const pagination = useLayerPagination(layers);
   const warnings = job.result?.warnings || [];
@@ -26,7 +26,8 @@ export default function ExtractionReview({ job, selectedId, busy, onPreview, onA
       </button>)}
     </div></div>
     <LayerPagination pagination={pagination} review />
+    {layers.filter(layer => layer.baseVariant && layer.id === selectedId).map(layer => <label key={layer.id} className={styles.versionChoice}>{layer.name}<select aria-label={`Version for ${layer.name}`} disabled={busy} value={versions[layer.id] || "enhanced"} onChange={event => onVersion(layer.id, event.target.value)}><option value="base">Base · {layer.baseVariant.width} × {layer.baseVariant.height} px</option><option value="enhanced">Enhanced · enlarged</option></select></label>)}
     <div className={styles.reviewActions}><button disabled={busy || !layers.length} onClick={onAccept}><CheckCircle2 size={14} />Accept layers</button><button disabled={busy} onClick={onDiscard}>Discard result</button></div>
-    <small className={styles.reviewFootnote}>Accepting adds these layers to your document. Discarding keeps your existing artwork.</small>
+    {layers.some(layer => layer.enhancedVariant) && <small className={styles.reviewFootnote}>Enhanced versions are enlarged; they do not recover original detail. Accepting keeps the selected versions.</small>}
   </section>;
 }
