@@ -88,5 +88,15 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   await expect(page.locator('.new-project-category-grid [data-workspace-card="design_extract"]')).toHaveCount(0);
   await expect(page.locator('.desktop-tools-shelf').getByRole('heading', {name:'Design Extract',exact:true})).toHaveCount(0);
   await expect(page.locator('.new-project-category-grid [data-workspace-card]').nth(1)).toHaveAttribute("data-workspace-card", "logo");
+  const chooser = page.locator('.new-project-category-grid');
+  await expect(chooser.locator('[data-workspace-card]')).toHaveCount(4);
+  for (const width of [1440, 1000]) {
+    await page.setViewportSize({width,height:1000});
+    await expect.poll(async () => {
+      const grid = await chooser.boundingBox();
+      const last = await chooser.locator('[data-workspace-card]').last().boundingBox();
+      return Math.abs(grid.x + grid.width - last.x - last.width);
+    }).toBeLessThan(2);
+  }
   await page.screenshot({ path: "output/design-extract-picker-access-unavailable.png", fullPage: true });
 });
