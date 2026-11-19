@@ -127,7 +127,7 @@ async function uploadImageToStorage({ token, file, purpose }) {
   }
 }
 
-function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesignExtract }) {
+function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesignExtract, designExtractEnabled = false }) {
   const trackRef = useRef(null);
   const tools = [
     {
@@ -156,7 +156,7 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesign
     },
   ];
 
-  tools.splice(1, 0, { title: "Design Extract", description: "Separate flat artwork into reusable layers.", tool: "design_extract", onClick: onDesignExtract });
+  if (designExtractEnabled) tools.splice(1, 0, { title: "Design Extract", description: "Separate flat artwork into reusable layers.", tool: "design_extract", onClick: onDesignExtract });
 
   const scrollTools = (direction) => {
     trackRef.current?.scrollBy({
@@ -468,6 +468,7 @@ export default function StartScreen() {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [user, setUser] = useState(null);
+  const [designExtractEnabled, setDesignExtractEnabled] = useState(false);
   const [credits, setCredits] = useState(0);
 
   // ─── UI State ───────────────────────────────────────────────────────────────
@@ -602,7 +603,7 @@ export default function StartScreen() {
       const owner = projectLoadRef.current.owner;
       if (event === 'SIGNED_OUT' || owner && session?.user?.id !== owner) {
         projectLoadRef.current = { generation: projectLoadRef.current.generation + 1, owner: null };
-        clearDesignProjects(); setRecentProjects([]); setIsLoadingProjects(false); setCredits(0); setUser(null);
+        clearDesignProjects(); setRecentProjects([]); setDesignExtractEnabled(false); setIsLoadingProjects(false); setCredits(0); setUser(null);
       }
     });
 
@@ -918,15 +919,21 @@ export default function StartScreen() {
       .limit(50);
 
     let designProjects = [];
+    let designAvailable = false;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user.id === userId) {
         const response = await fetch("/api/design-extract", { signal: AbortSignal.timeout(20000), headers: { Authorization: `Bearer ${session.access_token}` } });
-        if (response.ok) designProjects = (await response.json()).projects || [];
+        if (response.ok) {
+          const snapshot = await response.json();
+          designAvailable = snapshot.enabled === true;
+          if (designAvailable) designProjects = snapshot.projects || [];
+        }
       }
     } catch (err) { console.warn("Could not load Design Extract projects", err); }
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     if (generation !== projectLoadRef.current.generation || currentSession?.user?.id !== userId) return;
+    setDesignExtractEnabled(designAvailable);
     if (!error && data) setRecentProjects([...data, ...designProjects].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50));
     setIsLoadingProjects(false);
   };
@@ -941,7 +948,7 @@ export default function StartScreen() {
 
   const handleLogout = async () => {
     projectLoadRef.current = { generation: projectLoadRef.current.generation + 1, owner: null };
-    setRecentProjects([]); setIsLoadingProjects(false);
+    setRecentProjects([]); setDesignExtractEnabled(false); setIsLoadingProjects(false);
     clearDesignProjects();
     await supabase.auth.signOut();
     analytics.reset();
@@ -1005,7 +1012,7 @@ export default function StartScreen() {
 
   // ─── Upload Logic ───────────────────────────────────────────────────────────
   const handleDesignExtractUpload = async file => {
-    if (!file || requireDesktopTool()) return;
+    if (!designExtractEnabled || !file || requireDesktopTool()) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > resolveImageUploadLimit({ purpose: "design_extract" })) { toast.error("Use PNG, JPG or WebP up to 20 MB."); return; }
     setIsUploading(true);
     try {
@@ -1414,7 +1421,7 @@ export default function StartScreen() {
         <MovingArtworkGallery />
 
 {user && (
-          <DesktopToolsShelf onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
+          <DesktopToolsShelf designExtractEnabled={designExtractEnabled} onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
             onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
@@ -1713,6 +1720,7 @@ export default function StartScreen() {
         {/* ─── Modals ────────────────────────────────────────────────────────── */}
         <NewProjectModal
           show={showModal}
+          designExtractEnabled={designExtractEnabled}
           projectName={modalProjectName} setProjectName={setModalProjectName}
           traceType={modalTraceType} setTraceType={setModalTraceType}
           initialCategory={initialProjectCategory}

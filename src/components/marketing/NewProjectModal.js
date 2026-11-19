@@ -124,6 +124,7 @@ const NewProjectModal = memo(function NewProjectModal({
   onSelectImage,
   onSelectBgRemover,
   onSelectDesignExtract,
+  designExtractEnabled = false,
 }) {
   const [step, setStep] = useState("category");
   const [category, setCategory] = useState(null);
@@ -266,7 +267,7 @@ const NewProjectModal = memo(function NewProjectModal({
                 title="Garment Extract"
                 description="Extract clean production artwork from garment mockups."
               />
-              <CategoryCard onClick={() => { onSelectDesignExtract?.(); handleClose(); }} artwork="design_extract" title="Design Extract" description="Separate flat artwork into reusable layers." />
+              {designExtractEnabled && <CategoryCard onClick={() => { onSelectDesignExtract?.(); handleClose(); }} artwork="design_extract" title="Design Extract" description="Separate flat artwork into reusable layers." />}
               <CategoryCard
                 onClick={() => handleCategorySelect("logo")}
                 artwork="logo"

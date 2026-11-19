@@ -79,12 +79,14 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   await expect(page.getByRole("button", { name: "Extract elements", exact: true })).toBeVisible();
   await page.goto("/design-extract");
   await expect(page).toHaveURL(/\/#start$/);
-  // An unavailable/admin-restricted API must not silently remove the option.
+  // Hosted pauses and access denial hide entry points as well as project cards.
   await page.route("**/api/design-extract", route => route.fulfill({ status: 403, json: { error: "Admin access required" } }));
   await page.reload();
   await expect(page.locator(".recent-card")).toHaveCount(2);
   await page.getByRole("button", { name: "New Project", exact: true }).first().click();
   await expect(page.locator('.new-project-category-grid [data-workspace-card]').nth(0)).toHaveAttribute("data-workspace-card", "garment");
-  await expect(page.locator('.new-project-category-grid [data-workspace-card]').nth(1)).toHaveAttribute("data-workspace-card", "design_extract");
+  await expect(page.locator('.new-project-category-grid [data-workspace-card="design_extract"]')).toHaveCount(0);
+  await expect(page.locator('.desktop-tools-shelf').getByRole('heading', {name:'Design Extract',exact:true})).toHaveCount(0);
+  await expect(page.locator('.new-project-category-grid [data-workspace-card]').nth(1)).toHaveAttribute("data-workspace-card", "logo");
   await page.screenshot({ path: "output/design-extract-picker-access-unavailable.png", fullPage: true });
 });

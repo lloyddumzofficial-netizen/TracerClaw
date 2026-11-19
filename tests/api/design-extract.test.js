@@ -62,6 +62,9 @@ describe("Design Extract admin gate", () => {
   });
   it("fails closed when flag or admin configuration is absent", async () => {
     vi.stubEnv("DESIGN_EXTRACT_ENABLED", "false"); expect((await GET(jsonRequest({}))).status).toBe(404);
+    expect((await POST(jsonRequest({ imageUrl: "https://r2.test/users/admin-1/source.png" }))).status).toBe(404);
+    expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
     vi.stubEnv("ADMIN_EMAIL", ""); expect((await GET(jsonRequest({}))).status).toBe(403);
   });
   it("checks project ownership and expiry", async () => {
