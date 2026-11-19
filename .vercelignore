@@ -1,0 +1,42 @@
+# Local dependencies and generated builds are recreated by Vercel.
+node_modules/
+.next/
+out/
+build/
+.pnp
+.pnp.*
+.pnpm-store/
+.npm-cache/
+
+# Local tooling, experiments, and generated verification artifacts.
+.git/
+.vercel/
+.tmp/
+.codex-local/
+.workflow-data/
+.claude/
+.codex/
+.agents/
+scratch/
+output/
+test-results/
+playwright-report/
+coverage/
+
+# Private local configuration and debug files.
+.env*
+*.pem
+*.tsbuildinfo
+.DS_Store
+*.log
+test-*.js
+test-*.mjs
+test_*.js
+test_*.mjs
+
+# Source masters; the app uses the optimized assets instead.
+public/FEATURES/*.psb
+public/FEATURES/*.psd
+public/FOOTER IMAGE.png
+
+# Keep tests/, scripts/, and database/: npm prebuild validates them.
