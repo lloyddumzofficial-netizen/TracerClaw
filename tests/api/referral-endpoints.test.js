@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase", () => ({
@@ -10,11 +10,9 @@ vi.mock("@/lib/supabase", () => ({
 }));
 vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
-afterEach(() => {
-  delete process.env.REFERRALS_ENABLED;
-  delete process.env.REFERRAL_SECURITY_SECRET;
-  delete process.env.CRON_SECRET;
-});
+// Deployment feature flags must not determine this test's starting state.
+beforeEach(() => vi.stubEnv("REFERRALS_ENABLED", "false"));
+afterEach(() => vi.unstubAllEnvs());
 
 describe("referral endpoint gates", () => {
   it("exposes the server-side feature flag without caching it", async () => {
@@ -25,7 +23,7 @@ describe("referral endpoint gates", () => {
     expect(disabledResponse.headers.get("cache-control")).toBe("no-store");
     expect(await disabledResponse.json()).toEqual({ enabled: false });
 
-    process.env.REFERRALS_ENABLED = "true";
+    vi.stubEnv("REFERRALS_ENABLED", "true");
     const enabledResponse = GET();
     expect(await enabledResponse.json()).toEqual({ enabled: true });
   });
@@ -49,8 +47,8 @@ describe("referral endpoint gates", () => {
   });
 
   it("protects the settlement cron with CRON_SECRET", async () => {
-    process.env.REFERRALS_ENABLED = "true";
-    process.env.CRON_SECRET = "cron-secret";
+    vi.stubEnv("REFERRALS_ENABLED", "true");
+    vi.stubEnv("CRON_SECRET", "cron-secret");
     const { GET } = await import("@/app/api/cron/referrals/route.js");
     const response = await GET(new Request("http://localhost/api/cron/referrals"));
     expect(response.status).toBe(401);

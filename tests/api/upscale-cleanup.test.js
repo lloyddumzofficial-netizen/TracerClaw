@@ -1,15 +1,19 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const db = { from: vi.fn(), rpc: vi.fn() };
 const uploadToR2 = vi.fn();
 const fal = { queue: { status: vi.fn(), result: vi.fn() } };
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => db }));
+vi.mock("@/lib/supabase", () => ({ adminSupabase: db }));
 vi.mock("@/lib/cloudflare", () => ({
   uploadToR2, deleteFromR2: vi.fn(), deleteR2Prefix: vi.fn(), bucketName: "test", s3Client: { send: async () => ({ Contents: [] }) },
 }));
 vi.mock("@fal-ai/client", () => ({ fal }));
 vi.mock("@/lib/logger", () => ({ logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 vi.mock("@/server/billing/recoverAttemptOutput", () => ({ getRecoverableAttemptOutput: vi.fn() }));
+// Design Extract has its own maintenance coverage; this suite checks upscale
+// settlement and must not treat unrelated outbox RPCs as upscale refunds.
+vi.mock("@/server/designExtract/maintenance", () => ({ maintainDesignExtract: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/ssrf", () => ({
   DEFAULT_MAX_UPSCALED_IMAGE_BYTES: 120000000, getAllowedProviderHosts: () => ["provider.test"],
   fetchWithSSRFProtection: async () => ({ response: new Response("", { headers: { "content-type": "image/png" } }), buffer: Buffer.from("png") }),
@@ -17,8 +21,8 @@ vi.mock("@/lib/ssrf", () => ({
 let row;
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.CRON_SECRET = "test-cron";
-  process.env.FAL_KEY = "test-provider";
+  vi.stubEnv("CRON_SECRET", "test-cron");
+  vi.stubEnv("FAL_KEY", "test-provider");
   row = { id: "project-1", user_id: "user-1", trace_type: "upscale", ai_prompt: "fal:topaz/upscale/image/precision:job-1", credit_deducted: true, refunded: false, generated_image_url: null };
   db.from.mockImplementation(table => {
     let fields = "";
@@ -29,7 +33,7 @@ beforeEach(() => {
       select: value => { fields = value; return query; },
       eq: (key, value) => { filters.push([key, value]); return query; },
       is: (key, value) => { filters.push([key, value]); return query; },
-      lt: () => query, not: () => query, order: () => query, limit: () => query,
+      lt: () => query, not: () => query, neq: () => query, in: () => query, or: () => query, order: () => query, limit: () => query,
       update: value => { update = value; return query; },
       upsert: async () => ({ error: null }),
       maybeSingle: async () => {
@@ -50,6 +54,7 @@ beforeEach(() => {
   fal.queue.result.mockResolvedValue({ data: { image: { url: "https://provider.test/result.png" } } });
   uploadToR2.mockResolvedValue("https://storage.test/result.png");
 });
+afterEach(() => vi.unstubAllEnvs());
 async function runCleanup() {
   const { GET } = await import("@/app/api/cron/cleanup/route.js");
   const response = await GET(new Request("http://localhost/api/cron/cleanup", { headers: { authorization: "Bearer test-cron" } }));
