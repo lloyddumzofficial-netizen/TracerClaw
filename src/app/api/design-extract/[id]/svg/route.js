@@ -11,10 +11,10 @@ export async function POST(request, context) {
     const user = await requireDesignAdmin(request, true);
     const { id } = await context.params;
     const project = await ownedProject(id, user.id);
-    const { layerId, attach, revision } = await designJson(request);
+    const { layerId, attach, revision, acknowledgedClaws } = await designJson(request);
     if (typeof layerId !== "string" || !layerId || layerId.length > 120) fail("Select a layer to convert.");
-    if(attach===true)return await designResponse(await attachVectorLayer(project,layerId,revision));
-    const svg = await convertDesignLayer(project, layerId);
+    if(attach===true)return await designResponse(await attachVectorLayer(project,layerId,revision,acknowledgedClaws));
+    const svg = await convertDesignLayer(project, layerId, acknowledgedClaws);
     return new Response(svg, { headers: { "Content-Type": "image/svg+xml", "Content-Disposition": 'attachment; filename="design-layer.svg"', "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" } });
   } catch (error) { return designError(error); }
 }

@@ -30,7 +30,7 @@ self.onmessage = async ({ data: { format, manifest, files, source } }) => {
       let allocated=2*width*height,paths=0,knots=0;
       for (const [index, layer] of manifest.layers.entries()) {
         const placement = layer.composition;
-        if(layer.kind==='svg'){
+        if(layer.kind==='svg' && layer.vector?.psdMode !== "raster"){
           const doc=normalizeVector(await files[index].text(),{width:layer.width,height:layer.height});
           paths+=doc.pathCount;knots+=doc.knotCount;
           if(paths>VECTOR_LIMITS.documentPaths||knots>VECTOR_LIMITS.documentKnots)throw Error('This PSD exceeds editable shape limits. Download SVG or ZIP instead.');

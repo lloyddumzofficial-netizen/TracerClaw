@@ -3,7 +3,7 @@ const m = vi.hoisted(() => ({ from:vi.fn(), settle:vi.fn(), review:vi.fn(), owne
 vi.mock('@/lib/supabase',()=>({adminSupabase:{from:m.from}}));
 vi.mock('@/server/designExtract/service',()=>({settleOperation:m.settle,reviewOperation:m.review,ownedProject:m.owned}));
 import { recoverLegacyDesignJobs } from '@/server/designExtract/recovery';
-function q(data) { const x={};for(const name of ['select','eq','in','is','order','limit','gt'])x[name]=vi.fn(()=>x);x.maybeSingle=x.single=vi.fn(async()=>({data}));x.then=resolve=>Promise.resolve({data}).then(resolve);return x; }
+function q(data) { const x={};for(const name of ['select','eq','neq','or','in','is','order','limit','gt'])x[name]=vi.fn(()=>x);x.maybeSingle=x.single=vi.fn(async()=>({data}));x.then=resolve=>Promise.resolve({data}).then(resolve);return x; }
 const project={id:'p',user_id:'u',revision:2}, job={id:'j',project_id:'p',user_id:'u',status:'saving',kind:'extract',base_revision:2,updated_at:'2026-01-01'};
 beforeEach(()=>{vi.resetAllMocks();m.from.mockReturnValue(q([]));m.owned.mockResolvedValue(project);});
 it('advances an existing legacy job and accepts initial output without an open browser',async()=>{
@@ -19,4 +19,12 @@ it('does not resurrect removed projects or replay uncertain submissions',async()
  await recoverLegacyDesignJobs();expect(claims.is).toHaveBeenCalledWith('dispatch_started_at',null);expect(m.settle).not.toHaveBeenCalled();
  m.from.mockReturnValueOnce(q([])).mockReturnValueOnce(q([reserved])).mockReturnValueOnce(q([])).mockReturnValueOnce(q(null));
  await recoverLegacyDesignJobs();expect(m.settle).not.toHaveBeenCalled();
+});
+it('keeps local quality results pending even if the watchdog finishes saving their masks', async () => {
+ const local = {...job,input:{_desaynclaw:{reviewCutouts:true}}};
+ m.from.mockReturnValueOnce(q([])).mockReturnValueOnce(q([local])).mockReturnValueOnce(q([])).mockReturnValueOnce(q(project));
+ m.settle.mockResolvedValue({...local,status:'ready'});
+ await recoverLegacyDesignJobs();
+ expect(m.settle).toHaveBeenCalledWith(project,local);
+ expect(m.review).not.toHaveBeenCalled();
 });

@@ -1,15 +1,17 @@
 import { adminSupabase as db } from '@/lib/supabase';
 import { settleOperation, reviewOperation, ownedProject } from './service';
+import { isQualityReviewJob, PILOT_MASK_MODEL } from './qualityPilot';
+import { GUIDED_CUTOUT_MODEL, isAutomaticSeparationJob } from './guidedCutout';
 
 // One expensive legacy step per watchdog invocation; no asset cleanup here.
 // The durable job/request ID remains the authority, never a new generation.
 export async function recoverLegacyDesignJobs() {
   const now = new Date().toISOString();
-  const ready = await db.from('design_extract_jobs').select('*').eq('processor', 'legacy').eq('kind', 'extract').eq('status', 'ready').order('updated_at').limit(3);
+  const ready = await db.from('design_extract_jobs').select('*').eq('processor', 'legacy').eq('kind', 'extract').eq('status', 'ready').neq('model', PILOT_MASK_MODEL).neq('model', GUIDED_CUTOUT_MODEL).or('input->_desaynclaw->>reviewCutouts.is.null,input->_desaynclaw->>reviewCutouts.neq.true').order('updated_at').limit(3);
   if (ready.error) throw ready.error;
   for (const job of ready.data || []) {
     const project = await projectFor(job, now);
-    if (!project || project.revision !== job.base_revision) continue;
+    if (!project || project.revision !== job.base_revision || isQualityReviewJob(job) || isAutomaticSeparationJob(job)) continue;
     try { await reviewOperation(project, job.id, true); }
     catch (error) {
       const current = await db.from('design_extract_jobs').select('status').eq('id', job.id).single();
@@ -18,14 +20,14 @@ export async function recoverLegacyDesignJobs() {
   }
   const pending = await db.from('design_extract_jobs').select('*').eq('processor', 'legacy').in('status', ['queued', 'processing', 'saving']).order('updated_at').limit(1);
   if (pending.error) throw pending.error;
-  const reserved = await db.from('design_extract_jobs').select('*').eq('processor', 'legacy').eq('status', 'submitting').eq('billing_state', 'held').is('dispatch_started_at', null).order('updated_at').limit(1);
+  const reserved = await db.from('design_extract_jobs').select('*').eq('processor', 'legacy').eq('status', 'submitting').eq('billing_state', 'held').is('dispatch_started_at', null).is('input->_desaynclaw->guidedCutout', null).or('input->_desaynclaw->>qualityPilot.is.null,input->_desaynclaw->>qualityPilot.neq.true').or('input->_desaynclaw->>autoSeparation.is.null,input->_desaynclaw->>autoSeparation.neq.true').order('updated_at').limit(1);
   if (reserved.error) throw reserved.error;
   const candidate = [...(pending.data || []), ...(reserved.data || [])].sort((a,b) => Date.parse(a.updated_at) - Date.parse(b.updated_at))[0];
   if (!candidate) return;
   const project = await projectFor(candidate, now);
   if (!project) return;
   const job = await settleOperation(project, candidate);
-  if (job.status === 'ready' && job.kind === 'extract') {
+  if (job.status === 'ready' && job.kind === 'extract' && !isQualityReviewJob(job) && !isAutomaticSeparationJob(job)) {
     const current = await ownedProject(project.id, project.user_id);
     if (current.revision === job.base_revision) await reviewOperation(current, job.id, true);
   }

@@ -18,6 +18,8 @@ test("compact palette callout points to its actual button and follows viewport c
   await page.route("**/api/trace-step3",r=>r.fulfill({json:{svg_url:"https://palette.test/final.svg"}}));
   await page.goto("/workspace/palette-test");
   await page.getByRole("button",{name:/Retry SVG/}).click();
+  await expect(page.getByRole("button",{name:"2. HD UPSCALE",exact:true})).toHaveAttribute("aria-pressed","true");
+  await page.getByRole("button",{name:"Before / After Compare",exact:true}).click();
   await page.getByRole("button",{name:"Close comparison",exact:true}).click();
   const nudge=page.locator(".palette-ready-nudge");
   const target=page.locator('[data-palette-preview-anchor="true"]');

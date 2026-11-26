@@ -31,11 +31,13 @@ export function acceptLayers(manifest, job) {
     composition: parent ? { x: parent.composition.x + layer.composition.x * parent.composition.scale, y: parent.composition.y + layer.composition.y * parent.composition.scale, scale: parent.composition.scale * layer.composition.scale } : layer.composition,
   }));
   // Segmentation adds a cutout; decomposition replaces its parent only on accept.
-  const retained = job.kind === "split" ? manifest.layers.filter(layer => layer.id !== job.layer_id) : manifest.layers;
+  const retained = job.result.replaceExtraction ? [] : job.kind === "split" ? manifest.layers.filter(layer => layer.id !== job.layer_id)
+    : job.result.replaceGuidedBackground ? manifest.layers.filter(layer => !layer.guidedBackground) : manifest.layers;
   if (retained.length) {
     const bottom = Math.max(...retained.map(layer => layer.layout.y + layer.height * layer.layout.scale));
     for (const layer of additions) layer.layout = { ...layer.layout, y: layer.layout.y + bottom + 64 };
   }
   if (retained.length + additions.length > MAX_LAYERS) throw new Error("Maximum 32 layers");
-  return { ...manifest, layers: [...retained, ...additions] };
+  const background = additions.find(layer => layer.guidedBackground);
+  return { ...manifest, layers: background ? [background, ...retained, ...additions.filter(layer => layer !== background)] : [...retained, ...additions] };
 }

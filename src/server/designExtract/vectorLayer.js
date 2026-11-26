@@ -8,7 +8,7 @@ import { ownedProject, prefix, fail } from "./service";
 import { uploadDesignAsset } from "./storage";
 import { withDesignImageWork } from "./imageWork";
 
-export async function attachVectorLayer(project,layerId,revision){
+export async function attachVectorLayer(project,layerId,revision,acknowledgedClaws){
   if(revision!==project.revision)fail('Project changed. Reload before converting.',409);
   const source=project.manifest.layers.find(l=>l.id===layerId);
   if(!source||source.kind==='svg')fail('Select a raster layer.',400);
@@ -19,10 +19,30 @@ export async function attachVectorLayer(project,layerId,revision){
   if(project.manifest.layers.length>=MAX_LAYERS)fail('Maximum 32 layers. Remove a layer before converting.',409);
   const pending=await db.from('design_extract_jobs').select('id').eq('project_id',project.id).in('status',['submitting','queued','processing','saving','ready']).limit(1);
   if(pending.error)throw pending.error;if(pending.data.length)fail('Finish the active extraction before converting SVG artwork.',409);
-  const raw=await convertDesignLayer(project,layerId);
-  let doc;try{doc=normalizeVector(raw.toString('utf8'),vectorInputGeometry(source.width,source.height));}catch(error){fail(`${error.message}. The original SVG remains available as a standalone download.`,422);}
-  const svg=Buffer.from(vectorSvg(doc)),base=`${prefix(project)}svg-layers/${fingerprint}`;
-  const preview=await withDesignImageWork(()=>sharp(svg,{limitInputPixels:24000000}).png().toBuffer());
+  const raw=await convertDesignLayer(project,layerId,acknowledgedClaws);
+  const geometry = vectorInputGeometry(source.width, source.height);
+  let doc;
+  try {
+    doc = normalizeVector(raw.toString("utf8"), geometry);
+  } catch (error) {
+    if (!error.message.startsWith("SVG shapes:")) throw error;
+  }
+  // convertDesignLayer has already checked the SVG for active content and
+  // external references. Keep that SVG when its fills cannot be encoded as shapes.
+  const svg = doc ? Buffer.from(vectorSvg(doc)) : raw;
+  const base = `${prefix(project)}svg-layers/${fingerprint}`;
+  const preview = await withDesignImageWork(async () => {
+    const image = sharp(svg, { limitInputPixels: 24000000 });
+    if (doc) return image.png().toBuffer();
+    try {
+      const padded = await image.resize(geometry.inputWidth, geometry.inputHeight, { fit: "fill" }).ensureAlpha().png().toBuffer();
+      return await sharp(padded).extract({ left: 0, top: 0, width: geometry.contentWidth, height: geometry.contentHeight })
+        .png().toBuffer();
+    } catch {
+      fail("The converted SVG could not be previewed. Your source layer is intact.", 422);
+    }
+  });
+  const vectorMetadata = doc ? { pathCount: doc.pathCount, knotCount: doc.knotCount } : { psdMode: "raster" };
   const [url,previewUrl]=await Promise.all([uploadDesignAsset(svg,`${base}.svg`,'image/svg+xml'),uploadDesignAsset(preview,`${base}.png`,'image/png')]);
   for(let attempt=0;attempt<3;attempt++){
     const current=await ownedProject(project.id,project.user_id);
@@ -33,7 +53,7 @@ export async function attachVectorLayer(project,layerId,revision){
     if(active.error)throw active.error;if(active.data.length)fail('Finish the active extraction before inserting SVG artwork.',409);
     const bounds=current.manifest.layers.map(l=>({right:l.layout.x+l.width*l.layout.scale,bottom:l.layout.y+l.height*l.layout.scale}));
     const scale=parent.layout.scale;
-    const vector={id,kind:'svg',name:`${parent.name} · SVG`,url,previewUrl,width:source.width,height:source.height,sourceLayerId:source.id,sourceFingerprint:fingerprint,converterVersion:'recraft-v1/shapes-v1',vector:{pathCount:doc.pathCount,knotCount:doc.knotCount},visible:true,visibility:{overview:true,composition:true},locked:false,composition:{...parent.composition},layout:{x:Math.max(...bounds.map(b=>b.right))+48,y:parent.layout.y,scale}};
+    const vector={id,kind:'svg',name:`${parent.name} · SVG`,url,previewUrl,width:source.width,height:source.height,sourceLayerId:source.id,sourceFingerprint:fingerprint,converterVersion:'recraft-v1/shapes-v1',vector:vectorMetadata,visible:true,visibility:{overview:true,composition:true},locked:false,composition:{...parent.composition},layout:{x:Math.max(...bounds.map(b=>b.right))+48,y:parent.layout.y,scale}};
     const manifest={...current.manifest,version:2,layers:[...current.manifest.layers.map(l=>l.id===parent.id?{...l,kind:'raster',visible:false,visibility:{overview:true,composition:false}}:l),vector]};
     const result=await db.from('design_extract_projects').update({manifest,revision:current.revision+1,updated_at:new Date().toISOString()}).eq('id',current.id).eq('user_id',current.user_id).eq('revision',current.revision).select().maybeSingle();
     if(result.error)throw result.error;if(result.data)return {project:result.data,layerId:id};

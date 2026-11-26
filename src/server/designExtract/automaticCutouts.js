@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { readMaskCoverage } from "./sourceMask";
+import { flatColorMasks } from "./flatColorMasks";
 import { DESIGN_IMAGE_MAX_PIXELS, DESIGN_ASSET_MAX_BYTES, validateDesignImage } from "@/lib/designExtractImagePolicy";
 
 function similar(a, b) {
@@ -11,15 +12,18 @@ function similar(a, b) {
 // Parent masks often include smaller objects. Allocate smaller regions first,
 // then subtract their already-composited alpha from parent/background masks.
 // The residual layer retains any source content the model did not isolate.
-export async function* automaticCutouts(source, images, { readMask, limit, warnings = new Set() }) {
+export async function* automaticCutouts(source, images, { readMask, limit, warnings = new Set(), namedMasks, groupFlatColors = false, requireFlatColors = false }) {
   if (!Number.isInteger(limit) || limit < 2 || limit > 32) throw Object.assign(new Error("Make room for at least two extracted layers"), { status: 422 });
   const image = sharp(source, { limitInputPixels: DESIGN_IMAGE_MAX_PIXELS });
   validateDesignImage(await image.metadata());
   const original = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width, height } = original.info, count = width * height;
+  const masks = namedMasks || ((groupFlatColors || requireFlatColors) && flatColorMasks(original, limit));
+  if (requireFlatColors && !masks) throw Object.assign(new Error("This artwork does not have enough distinct flat colors to group reliably. Use Group fragments or Color Wand."), { status: 422, designExtractError: true });
+  const providerMasks = masks ? [] : images || [];
   let retained = [], totalBytes = 0;
-  if (images.length > 64) warnings.add("Some small regions stayed in Remaining artwork because the detection limit was reached.");
-  for (const entry of images.slice(0, 64)) {
+  if (providerMasks.length > 64) warnings.add("Some small regions stayed in Remaining artwork because the detection limit was reached.");
+  for (const entry of providerMasks.slice(0, 64)) {
     if (typeof entry?.url !== "string") throw Object.assign(new Error("Provider returned an invalid mask"), { status: 422 });
     const bytes = await readMask(entry.url);
     totalBytes += bytes.length;
@@ -32,12 +36,15 @@ export async function* automaticCutouts(source, images, { readMask, limit, warni
     if (retained.some(candidate => similar(candidate.thumbnail, thumbnail))) continue;
     retained.push({ bytes, area, thumbnail });
   }
-  if (retained.length >= limit) {
+  if (masks) {
+    retained = masks.slice(0, limit - 1);
+    if (masks.length >= limit) warnings.add("Some regions stayed in Remaining artwork to keep this project within its layer limit.");
+  } else if (retained.length >= limit) {
     retained.sort((a, b) => b.area - a.area);
     retained = retained.slice(0, limit - 1);
     warnings.add("Some small regions stayed in Remaining artwork to keep this project within its layer limit.");
   }
-  retained.sort((a, b) => a.area - b.area);
+  if (!masks) retained.sort((a, b) => a.area - b.area);
   const covered = new Uint8Array(count);
   let index = 0;
   async function render(coverage, residual = false) {
@@ -55,11 +62,12 @@ export async function* automaticCutouts(source, images, { readMask, limit, warni
     return visible ? sharp(pixels, { raw: original.info }).png().toBuffer() : null;
   }
   for (const candidate of retained) {
-    const coverage = await readMaskCoverage(candidate.bytes, width, height);
+    const coverage = masks ? await candidate.nativeCoverage(width, height) : await readMaskCoverage(candidate.bytes, width, height);
     const bytes = await render(coverage);
-    if (bytes) yield { index: index++, name: `Element ${index}`, bytes };
+    if (bytes) yield { index: index++, name: candidate.name || `Element ${index}`, bytes, candidate };
+    else if (masks) warnings.add(`No visible cutout for ${candidate.name}. Check Remaining artwork.`);
   }
-  if (!index) throw Object.assign(new Error("No visible elements were detected. Your original artwork is unchanged."), { status: 422, designExtractError: true });
+  if (!index && !namedMasks) throw Object.assign(new Error("No visible elements were detected. Your original artwork is unchanged."), { status: 422, designExtractError: true });
   const residual = await render(null, true);
   if (residual) yield { index, name: "Remaining artwork", bytes: residual };
 }

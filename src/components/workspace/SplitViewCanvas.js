@@ -5,6 +5,7 @@ import { AlertCircle, Sparkles } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 import LogoLoader from "@/components/ui/LogoLoader";
 import WorkspaceProcessingLoader from "./WorkspaceProcessingLoader";
+import { isGarmentProject } from "@/lib/artworkEdits";
 import {
   calculateFittedArtworkLayout,
   calculateSynchronizedPan,
@@ -128,6 +129,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   commandBar,
 }) {
   const isPatternWorkspace = project?.trace_type === "pattern";
+  const isGarmentWorkspace = isGarmentProject(project);
   const stageLabels = isPatternWorkspace
     ? ["Pattern retrace", "Detail pass", "Vector output"]
     : STAGE_LABELS;
@@ -559,17 +561,18 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   else if (activeTab === "upscaled") activeUrl = proxyUpscaled;
   else if (activeTab === "svg") activeUrl = proxySvg;
 
-  // Auto-switch tabs when new stages complete OR start
-  useEffect(() => {
+  // Follow the running stage, then prefer the finished HD artwork for garments.
+  useLayoutEffect(() => {
     if (traceState === "step1") setActiveTab("generated");
     else if (traceState === "step2") setActiveTab("upscaled");
     else if (traceState === "step3") setActiveTab("svg");
     else if (traceState === "idle") {
-      if (project?.svg_url) setActiveTab("svg");
+      if (isGarmentWorkspace && project?.upscaled_image_url) setActiveTab("upscaled");
+      else if (project?.svg_url) setActiveTab("svg");
       else if (project?.upscaled_image_url) setActiveTab("upscaled");
       else if (project?.generated_image_url) setActiveTab("generated");
     }
-  }, [traceState, project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
+  }, [traceState, isGarmentWorkspace, project?.svg_url, project?.upscaled_image_url, project?.generated_image_url]);
 
   useLayoutEffect(() => {
     if (traceState !== "idle") {

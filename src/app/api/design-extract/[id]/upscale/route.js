@@ -9,8 +9,8 @@ export async function POST(request, context) {
   try {
     const user = await requireDesignAdmin(request, true);
     const { id } = await context.params;
-    const { layerId, revision } = await designJson(request);
+    const { layerId, revision, acknowledgedClaws } = await designJson(request);
     if (typeof layerId !== "string" || !layerId || layerId.length > 120) fail("Select an image layer.");
-    return await designResponse(await upscaleDesignLayer(await ownedProject(id, user.id), layerId, revision));
+    return await designResponse(await upscaleDesignLayer(await ownedProject(id, user.id), layerId, revision, acknowledgedClaws));
   } catch (error) { return designError(error); }
 }

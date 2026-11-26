@@ -1,8 +1,8 @@
 import { adminSupabase as db } from "@/lib/supabase";
 import { DESIGN_EXTRACT_CLAWS, DESIGN_EXTRACT_PRICE_VERSION, DESIGN_EXTRACT_DEFAULT_BILLING_MODE } from "@/lib/designExtractPricing";
 
-export async function designBillingQuote(userId) {
-  const mode = designBillingMode();
+export async function designBillingQuote(userId, refine = false) {
+  const mode = refine ? "paid" : designBillingMode();
   const { data, error } = await db.from("profiles").select("credits").eq("id", userId).maybeSingle();
   const balance = !error && Number.isInteger(data?.credits) && data.credits >= 0 ? data.credits : null;
   if (mode === "paid" && balance === null) throw Object.assign(new Error("Could not confirm your Claw balance. Retry before generating."), { status: 503, designExtractError: true });
@@ -15,12 +15,16 @@ export function designBillingMode() {
   return mode;
 }
 export async function claimPaidDesignOperation(project, record) {
-  const { data, error } = await db.rpc(record.processor === "workflow" ? "claim_design_extract_v2" : "claim_design_extract", {
+  const scopedProcessor = record.processor === "workflow" || record.processor === "local";
+  const { data, error } = await db.rpc(scopedProcessor ? "claim_design_extract_v2" : "claim_design_extract", {
     target_user: project.user_id, target_project: project.id, expected_revision: project.revision,
     request_key: record.idempotency_key, operation_kind: record.kind, target_layer: record.layer_id,
     provider_model: record.model, provider_input: record.input,
-    ...(record.processor === "workflow" ? { operation_processor: "workflow" } : {}),
+    ...(scopedProcessor ? { operation_processor: record.processor } : {}),
   });
+  if (record.processor === "local" && error?.code === "P0001" && error.message === "Invalid processor") {
+    throw Object.assign(new Error("Local Design Extract needs database migration 042. No extraction was submitted."), { status: 503, designExtractError: true });
+  }
   // An RPC failure may have committed. Never fall back to another debit or dispatch.
   if (error) throw Object.assign(new Error("Could not confirm the credit reservation. Reopen this project before retrying."), { status: 503, designExtractError: true });
   if (data?.status === "insufficient_credits") throw Object.assign(new Error("Not enough Claws for this operation"), { status: 402, designExtractError: true });

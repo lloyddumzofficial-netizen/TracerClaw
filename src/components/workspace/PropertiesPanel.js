@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Download,
   ImagePlus,
+  ListChecks,
   Palette,
   SplitSquareHorizontal,
   CheckCircle2
@@ -106,7 +107,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const [driveRequiresReconnect, setDriveRequiresReconnect] = useState(false);
 
   const isPatternWorkspace = project?.trace_type === "pattern";
-  const agent = project?.trace_type === "logo" ? LOGO_AGENT : GARMENT_AGENT;
+  const isLogoWorkspace = project?.trace_type === "logo";
+  const agent = isLogoWorkspace ? LOGO_AGENT : isPatternWorkspace ? GARMENT_AGENT : null;
 
   const standardPlan = getTraceResumePlan(project, "standard");
   const precisionPlan = getTraceResumePlan(project, "precision");
@@ -121,7 +123,12 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const isBusy = traceState !== "idle" || isSavingCrop || isEditingArtwork;
   const hasSvg = Boolean(project?.svg_url);          // ← permanent gate: SVG already exists
   const canUsePaletteStudio = hasSvg;
-  const isLogoWorkspace = project?.trace_type === "logo";
+  const zipContents = !agent && [
+    project?.original_image_url && "Reference",
+    project?.generated_image_url && project.generated_image_url !== "REFUNDED" && "Flat extract",
+    project?.upscaled_image_url && "HD upscale",
+    hasSvg && "Vector SVG",
+  ].filter(Boolean).join(" · ");
 
   const cropWarningCopy = isPatternWorkspace
     ? "Crop to the exact artwork boundary before retracing."
@@ -596,12 +603,29 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>Compare results</span>
           </button>
         </div>
+        {zipContents && (
+          <dl className={panelStyles.zipContents}>
+            <dt>ZIP contents</dt>
+            <dd>{zipContents}</dd>
+          </dl>
+        )}
         {actionMessage && (
           <div className="pp-action-message" role="status">{actionMessage}</div>
         )}
       </div>
 
-      <aside className="pp-agent-card" aria-label={agent.label}>
+      {!agent && hasSvg && (
+        <div className={panelStyles.printChecklistSlot}>
+          <aside className={panelStyles.printChecklist} aria-label="Before printing">
+            <h3><ListChecks size={15} aria-hidden="true" /> Before printing</h3>
+            <ul>
+              <li>Check fine details at print size.</li>
+              <li>Check fit against your panel template.</li>
+            </ul>
+          </aside>
+        </div>
+      )}
+      {agent && <aside className="pp-agent-card" aria-label={agent.label}>
         <div className="pp-agent-card-copy">
           <div className="pp-agent-identity">
             <span>{agent.number}</span>
@@ -621,7 +645,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
             sizes="150px"
           />
         </div>
-      </aside>
+      </aside>}
       </div>
 
     </aside>

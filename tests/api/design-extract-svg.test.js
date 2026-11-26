@@ -1,8 +1,8 @@
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { readFile } from "node:fs/promises";
-const mocks = vi.hoisted(() => ({ user: vi.fn(), owned: vi.fn(), read: vi.fn(), upload: vi.fn(), privateRead: vi.fn(), provider: vi.fn(), fetch: vi.fn(), limit: vi.fn(),from:vi.fn() }));
-vi.mock("@/lib/supabase", () => ({ adminSupabase: { auth: { getUser: mocks.user },from:mocks.from } }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), owned: vi.fn(), read: vi.fn(), upload: vi.fn(), privateRead: vi.fn(), provider: vi.fn(), fetch: vi.fn(), limit: vi.fn(),from:vi.fn(), rpc: vi.fn() }));
+vi.mock("@/lib/supabase", () => ({ adminSupabase: { auth: { getUser: mocks.user },from:mocks.from, rpc: mocks.rpc } }));
 vi.mock("@/lib/rateLimit", () => ({ enforceRateLimit: mocks.limit }));
 vi.mock("@/server/designExtract/service", () => ({ ownedProject: mocks.owned, readAsset: mocks.read, prefix: p => `users/${p.user_id}/design-extract/${p.id}/`, fail: (message,status=400) => { throw Object.assign(new Error(message),{status,designExtractError:true}); } }));
 vi.mock("@/server/designExtract/storage", () => ({ serializeDesignData:async x=>x, ownsPrivateDesignAsset: (url,user) => url.startsWith(`r2-private://design-extract/users/${user}/`), uploadDesignAsset: mocks.upload, readPrivateDesignAsset: mocks.privateRead, designAssetUrl: async () => "https://signed.test/input.png" }));
@@ -38,6 +38,28 @@ it("claims once across simultaneous conversions",async()=>{
   const results=await Promise.allSettled([convertDesignLayer(project,'l'),convertDesignLayer(project,'l')]);
   expect(results.some(result=>result.status==='fulfilled')).toBe(true);expect(mocks.fetch).toHaveBeenCalledTimes(1);
 });
+it("confirms the finishing price, refunds a rejected conversion, and settles a saved SVG once", async () => {
+  vi.stubEnv("NODE_ENV", "development"); vi.stubEnv("VERCEL", "");
+  vi.stubEnv("DESIGN_EXTRACT_QUALITY_PILOT", "true"); vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
+  project.revision = 0;
+  mocks.rpc.mockResolvedValueOnce({ data: { status: "offer" } });
+  const offer = await request({ layerId: "l" });
+  expect(offer.status).toBe(409);
+  expect(await offer.json()).toMatchObject({ code: "DESIGN_FINISH_UNLOCK_REQUIRED" });
+  expect(mocks.fetch).not.toHaveBeenCalled();
+
+  mocks.rpc.mockResolvedValueOnce({ data: { status: "claimed", id: "try-1" } }).mockResolvedValueOnce({});
+  mocks.fetch.mockResolvedValueOnce(new Response(null, { status: 422 }));
+  expect((await request({ layerId: "l", acknowledgedClaws: 1 })).status).toBe(502);
+  expect(mocks.rpc).toHaveBeenLastCalledWith("settle_design_extract_finish", { target_user: "u", target_action: "try-1", usable: false });
+
+  mocks.rpc.mockResolvedValueOnce({}).mockResolvedValueOnce({ data: { status: "claimed", id: "try-2" } }).mockResolvedValue({});
+  expect((await request({ layerId: "l", acknowledgedClaws: 1 })).status).toBe(200);
+  expect(mocks.rpc).toHaveBeenLastCalledWith("settle_design_extract_finish", { target_user: "u", target_action: "try-2", usable: true });
+  expect((await request({ layerId: "l" })).status).toBe(200);
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(mocks.rpc.mock.calls.filter(([name]) => name === "claim_design_extract_finish")).toHaveLength(3);
+});
 it("resumes a saved provider result after a download outage without another provider POST",async()=>{
   mocks.provider.mockRejectedValueOnce(new Error('temporary download outage'));
   await expect(convertDesignLayer(project,'l')).rejects.toThrow('outage');
@@ -72,6 +94,24 @@ it('inserts a persistent typed SVG once, preserves placement and changes only co
  expect(data.project.manifest.layers[0].visibility).toEqual({overview:true,composition:false});
  const vector=data.project.manifest.layers[1];expect(vector).toMatchObject({kind:'svg',name:'Logo · SVG',composition:{x:12,y:18,scale:.7},visibility:{overview:true,composition:true}});expect(vector.vector.pathCount).toBe(1);
  expect((await request({layerId:'l',attach:true,revision:project.revision})).status).toBe(200);expect(project.manifest.layers).toHaveLength(2);expect(mocks.fetch).toHaveBeenCalledTimes(1);
+});
+it("inserts the saved gradient SVG and retains the original colors for PSD", async () => {
+  project.revision = 0;
+  Object.assign(project.manifest.layers[0], { name: "Logo", width: 640, height: 800, composition: { x: 12, y: 18, scale: .7 }, layout: { x: 300, y: 0, scale: .4 } });
+  const gradient = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800"><defs><linearGradient id="ink"><stop stop-color="#f00"/><stop offset="1" stop-color="#00f"/></linearGradient></defs><rect width="640" height="800" fill="url(#ink)"/></svg>');
+  mocks.provider.mockResolvedValue({ buffer: gradient });
+  expect((await request({ layerId: "l" })).status).toBe(200);
+  const response = await request({ layerId: "l", attach: true, revision: 0 });
+  expect(response.status).toBe(200);
+  const { project: saved } = await response.json();
+  const added = saved.manifest.layers[1];
+  expect(added).toMatchObject({ kind: "svg", vector: { psdMode: "raster" }, composition: { x: 12, y: 18, scale: .7 } });
+  expect(files.get(added.url.replace("r2-private://design-extract/", ""))).toEqual(gradient);
+  const pixels = await sharp(files.get(added.previewUrl.replace("r2-private://design-extract/", ""))).raw().toBuffer();
+  expect(pixels.equals(await sharp(gradient).ensureAlpha().raw().toBuffer())).toBe(true);
+  expect(pixels[0]).toBeGreaterThan(pixels[2]);
+  expect(pixels[639 * 4 + 2]).toBeGreaterThan(pixels[639 * 4]);
+  expect(mocks.fetch).toHaveBeenCalledTimes(1);
 });
 it('checks the 32-layer limit before issuing a conversion',async()=>{project.revision=0;project.manifest.layers=Array.from({length:32},(_,i)=>({...project.manifest.layers[0],id:i===0?'l':`l${i}`}));expect((await request({layerId:'l',attach:true,revision:0})).status).toBe(409);expect(mocks.fetch).not.toHaveBeenCalled();});
 

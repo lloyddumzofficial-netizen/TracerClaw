@@ -6,7 +6,7 @@ import { layerAsset } from "@/lib/designExtractVariants";
 import { designProviderInput } from "./storage";
 import { fenceDesignJob } from "./processing/fence";
 import { DESIGN_IMAGE_MAX_PIXELS, validateDesignImage } from "@/lib/designExtractImagePolicy";
-import { recraftUpscalePlan } from "@/lib/designExtractUpscalePolicy";
+import { recraftUpscalePlan, recraftResultPlan } from "@/lib/designExtractUpscalePolicy";
 
 export { ENHANCE_MODEL };
 const MAX_PIXELS = DESIGN_IMAGE_MAX_PIXELS;
@@ -29,12 +29,13 @@ export async function restoreEnhancedAlpha(source, enhanced, plan) {
   const original = sharp(source, { limitInputPixels: MAX_PIXELS });
   const metadata = await original.metadata();
   validateDesignImage(metadata);
-  if (!metadata.hasAlpha || metadata.width * plan.scale !== plan.width || metadata.height * plan.scale !== plan.height) throw new Error("Invalid enhancement source dimensions");
+  if (metadata.width !== (plan.sourceWidth ?? plan.width / plan.scale) || metadata.height !== (plan.sourceHeight ?? plan.height / plan.scale)) throw new Error("Invalid enhancement source dimensions");
   const output = sharp(enhanced, { limitInputPixels: MAX_PIXELS });
   const size = await output.metadata();
   validateDesignImage(size);
   if (size.width !== plan.width || size.height !== plan.height) throw new Error("Enhancement returned unexpected dimensions");
-  const alpha = await original.ensureAlpha().extractChannel(3).resize(plan.width, plan.height, { kernel: "lanczos3" }).raw().toBuffer();
+  if (!metadata.hasAlpha) return output.toColourspace("srgb").removeAlpha().png().toBuffer();
+  const alpha = await original.extractChannel(3).resize(plan.width, plan.height, { kernel: "lanczos3" }).greyscale().raw().toBuffer();
   // Materialize RGB first: sharp applies removeAlpha after joinChannel when
   // they share a pipeline, which would strip the newly restored mask again.
   const rgb = await output.removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
@@ -43,10 +44,11 @@ export async function restoreEnhancedAlpha(source, enhanced, plan) {
 
 export function enhancedLayer(layer, url, plan, model = ENHANCE_MODEL) {
   const frame = layer.nativeFrame;
+  const scaleX = plan.width / layer.width, scaleY = plan.height / layer.height;
   const enhanced = { ...layer, url, width: plan.width, height: plan.height,
     composition: { ...layer.composition, scale: layer.composition.scale / plan.scale },
     layout: { ...layer.layout, scale: layer.layout.scale / plan.scale },
-    ...(frame && { nativeFrame: Object.fromEntries(Object.entries(frame).map(([key, value]) => [key, value * plan.scale])) }),
+    ...(frame && { nativeFrame: { width: Math.round(frame.width * scaleX), height: Math.round(frame.height * scaleY), left: Math.round(frame.left * scaleX), top: Math.round(frame.top * scaleY) } }),
     enhancement: { model, scale: plan.scale, sourceWidth: layer.width, sourceHeight: layer.height },
   };
   return { ...enhanced, baseVariant: layerAsset(layer), enhancedVariant: layerAsset(enhanced), acceptedVersion: "enhanced" };
@@ -138,11 +140,18 @@ export async function advanceEnhancement(project, job, { readAsset, uploadToR2, 
     const { data } = model===ENHANCE_MODEL?{data:{image:{url:item.outputUrl}}}:await fal.queue.result(model, { requestId: item.requestId });
     if (!data.image?.url) return fallback(job, index, "failed", "Enhancement returned no usable image.");
     const [source, output] = await Promise.all([readAsset(layer.url), readAsset(data.image.url, true)]);
-    let png;
-    try { png = await restoreEnhancedAlpha(source, output, item.plan); }
+    let png, plan = item.plan;
+    try {
+      if (model === ENHANCE_MODEL) {
+        const { width, height } = await sharp(output, { limitInputPixels: MAX_PIXELS }).metadata();
+        plan = recraftResultPlan(layer.width, layer.height, width, height);
+        if (!plan) throw new Error("Invalid Recraft output dimensions");
+      }
+      png = await restoreEnhancedAlpha(source, output, plan);
+    }
     catch { return fallback(job, index, "failed", "Enhancement could not preserve the element dimensions and transparency."); }
     const url = await uploadToR2(png, `${prefix(project)}${job.id}/enhanced-${index}.png`, "image/png");
-    const layers = job.result.layers.map((entry, i) => i === index ? enhancedLayer(entry, url, item.plan, model) : entry);
+    const layers = job.result.layers.map((entry, i) => i === index ? enhancedLayer(entry, url, plan, model) : entry);
     const done = items.map((entry, i) => i === index ? { ...entry, status: "done" } : entry);
     return await checkpoint(job, revise(job, done, { layers })) || current(job);
   } catch (error) {

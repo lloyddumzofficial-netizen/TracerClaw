@@ -1,10 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const clampZoom = value => Math.max(.05, Math.min(4, value));
+const clampZoom = (value, maxZoom) => Math.max(.05, Math.min(maxZoom, value));
 const isTyping = target => target instanceof Element && Boolean(target.closest("input, textarea, select, button, summary, [contenteditable='true']"));
 
-export default function useCanvasNavigation(viewport, enabled, layerDrag, reducedMotion = false) {
+export default function useCanvasNavigation(viewport, enabled, layerDrag, reducedMotion = false, maxZoom = 4) {
   const [camera, setCameraState] = useState({ x: 36, y: 54, zoom: .7 });
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
@@ -12,7 +12,7 @@ export default function useCanvasNavigation(viewport, enabled, layerDrag, reduce
   const zoomAnchor = useRef(null);
   const setCamera = useCallback((next, smooth = true, anchor = null) => {
     zoomAnchor.current = anchor;
-    goal.current = { ...next, zoom: clampZoom(next.zoom) };
+    goal.current = { ...next, zoom: clampZoom(next.zoom, maxZoom) };
     if (!smooth || reducedMotion) {
       cancelAnimationFrame(frame.current); frame.current = 0;
       current.current = goal.current; setCameraState(goal.current); return;
@@ -30,17 +30,17 @@ export default function useCanvasNavigation(viewport, enabled, layerDrag, reduce
       frame.current = done ? 0 : requestAnimationFrame(tick);
     };
     frame.current = requestAnimationFrame(tick);
-  }, [reducedMotion]);
+  }, [maxZoom, reducedMotion]);
   const zoomAt = useCallback((value, point) => {
     const el = viewport.current;
     if (!el) return;
     // Rebase on the visible camera, not a previous animation's destination.
     // This keeps a newly positioned cursor pinned during rapid wheel input.
-    const from = current.current, next = clampZoom(typeof value === "function" ? value(goal.current.zoom) : value);
+    const from = current.current, next = clampZoom(typeof value === "function" ? value(goal.current.zoom) : value, maxZoom);
     const anchor = point || { x: el.clientWidth / 2, y: el.clientHeight / 2 };
     const pinned = { ...anchor, worldX: (anchor.x - from.x) / from.zoom, worldY: (anchor.y - from.y) / from.zoom };
     setCamera({ zoom: next, x: pinned.x - pinned.worldX * next, y: pinned.y - pinned.worldY * next }, true, pinned);
-  }, [setCamera, viewport]);
+  }, [maxZoom, setCamera, viewport]);
   useEffect(() => {
     const el = viewport.current;
     if (!el || !enabled) return;

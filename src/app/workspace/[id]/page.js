@@ -16,7 +16,7 @@ import { ArrowUpRight, CheckCircle2, Palette, X } from "lucide-react";
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "@/hooks/useTraceExecution";
 import useArtworkEdits from "@/hooks/useArtworkEdits";
-import { isCompleteDesignProject } from "@/lib/artworkEdits";
+import { isCompleteDesignProject, isGarmentProject } from "@/lib/artworkEdits";
 
 // ─── Components ───────────────────────────────────────────────────────────────
 import SplitViewCanvas from "@/components/workspace/SplitViewCanvas";
@@ -81,7 +81,7 @@ export default function Workspace() {
   const [showPalettePreview, setShowPalettePreview] = useState(false);
   const [showPaletteNudge, setShowPaletteNudge] = useState(false);
   // Set when a generation finishes; converted into the visible nudge once the
-  // auto-opened comparison is closed.
+  // comparison is closed.
   const [, setPaletteNudgeQueued] = useState(false);
   const paletteNudgeRef = useRef(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
@@ -303,13 +303,13 @@ export default function Workspace() {
   const onExecuteTrace = useCallback(async (vectorColors, svgEngine) => {
     const result = await handleExecuteTrace(vectorColors, svgEngine);
     if (result?.success) {
-      // Show the finished result straight away — the whole point of the wait.
-      setShowCompare(true);
+      // Keep the garment canvas visible so it can show the finished HD artwork.
+      if (!isGarmentProject(project)) setShowCompare(true);
       // Hold the Palette Studio nudge until the comparison is dismissed, so the
       // two don't fight for attention on top of each other.
       setPaletteNudgeQueued(true);
     }
-  }, [handleExecuteTrace]);
+  }, [handleExecuteTrace, project]);
 
   const handleCloseCompare = useCallback(() => {
     setShowCompare(false);
@@ -433,7 +433,7 @@ export default function Workspace() {
       <StudioShell
         className="garment-workspace-ui"
         title={workspaceTitle}
-        extraTopActions={<DesignExtractEntry sourceProjectId={projectId} hasResult={Boolean(project?.generated_image_url && project.generated_image_url !== "REFUNDED")} />}
+        extraTopActions={<DesignExtractEntry sourceProjectId={projectId} hasResult={Boolean(isGarmentProject(project) && project?.generated_image_url && project.generated_image_url !== "REFUNDED")} />}
         credits={userCredits}
         onHome={() => router.push("/")}
         onCreditsClick={() => setShowTopUpModal(true)}

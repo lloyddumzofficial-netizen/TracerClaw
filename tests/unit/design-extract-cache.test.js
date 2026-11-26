@@ -3,7 +3,7 @@ const auth = vi.hoisted(() => ({ getSession: vi.fn(), onAuthStateChange: vi.fn()
 vi.mock("@/utils/supabase/client", () => ({ createClient: () => ({ auth }) }));
 let client, event;
 const card = { id: "project", trace_type: "design_extract", original_image_url: "https://owned.test/image.png", width: 800, height: 1200 };
-const document = { project: { id: "project", expires_at: "2099-01-01", manifest: { width: 800, height: 1200, layers: [] } }, job: null };
+const document = { project: { id: "project", expires_at: "2099-01-01", manifest: { width: 800, height: 1200, layers: [] } }, job: null, billing: { mode: "paid" }, guidedCutouts: false };
 beforeEach(async () => {
   vi.resetModules(); vi.useFakeTimers();
   auth.getSession.mockResolvedValue({ data: { session: { user: { id: "owner" }, access_token: "token" } } });
@@ -36,6 +36,19 @@ describe("private project memory cache", () => {
     fetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ error: "Denied" }) });
     await expect(client.fetchDesignProject("project", true)).rejects.toMatchObject({ status: 403 });
     expect(client.editorSeed("project")).toBeNull();
+  });
+  it("revalidates the extraction mode after a mutation returns only the saved project", async () => {
+    const guided = { ...document, guidedCutouts: true };
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => guided });
+    await client.fetchDesignProject("project");
+    expect(client.editorSeed("project").guidedCutouts).toBe(true);
+
+    const project = { ...document.project, revision: 1 };
+    client.cacheDesignProject({ project, billing: document.billing });
+    expect(client.editorSeed("project")).toBeNull();
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ...guided, project }) });
+    await expect(client.fetchDesignProject("project")).resolves.toMatchObject({ project: { revision: 1 }, guidedCutouts: true });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
   it("discards a response that arrives after sign-out", async () => {
     let resolve;

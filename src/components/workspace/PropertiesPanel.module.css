@@ -1,4 +1,64 @@
 /* Scoped panel polish overrides the shared workspace's legacy control styles. */
+.zipContents {
+  display: grid;
+  gap: 3px;
+  margin: 8px 0 0;
+  padding: 7px 0 0;
+  border-top: 1px solid #333333;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.zipContents dt {
+  color: #F4F4F1;
+  font-weight: 600;
+}
+
+.zipContents dd {
+  margin: 0;
+  color: #929591;
+}
+
+.printChecklistSlot {
+  flex: 1 0 auto;
+  display: grid;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.printChecklist {
+  min-width: 0;
+  padding: 8px 10px;
+  background: #1A1C1E;
+  border: 2px solid #333333;
+  border-radius: 8px;
+}
+
+.printChecklist h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #F4F4F1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.printChecklist ul {
+  display: grid;
+  gap: 4px;
+  margin: 7px 0 0;
+  padding-inline-start: 17px;
+  list-style: disc;
+  color: #929591;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@container (max-height: 820px) {
+  .printChecklistSlot { display: none; }
+}
+
 .panel.panel.panel.panel {
   background: #111315 !important;
   border-left: 1px solid #333333 !important;

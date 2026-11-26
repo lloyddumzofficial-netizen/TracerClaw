@@ -22,6 +22,7 @@ test("garment loading percentage advances within real stages and never completes
     document.cookie = `${key}=base64-${value}; path=/; SameSite=Lax`;
   }, { key: `sb-${reference}-auth-token`, value: encode(session) });
   await page.route("**/auth/v1/**", route => route.fulfill({ json: user }));
+  await page.route("**/api/design-extract?scope=access", route => route.fulfill({ json: { enabled: true, refinement: true } }));
   await page.route("**/rest/v1/**", route => route.fulfill({ json: route.request().url().includes("/projects")
     ? { id: "progress-test", name: "Progress test", trace_type: "standard", original_image_url: "https://progress.test/crop_source.svg", generated_image_url: null }
     : { credits: 10 } }));
@@ -40,8 +41,13 @@ test("garment loading percentage advances within real stages and never completes
     await route.fulfill({ json: { svg_url: "https://progress.test/final.svg" } });
   });
   await page.goto("/workspace/progress-test");
+  await expect(page.getByRole("button", { name: "Refine design", exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Continue to crop', exact: true }).click();
   await page.getByRole("button", { name: "Close crop modal" }).click();
+  await expect(page.getByLabel("Maya, your garment panel agent")).toHaveCount(0);
+  await expect(page.getByText("ZIP contents", { exact: true })).toBeVisible();
+  await expect(page.getByText("Reference", { exact: true })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Before printing" })).toHaveCount(0);
   await page.getByRole("button", { name: /Run Auto-Trace/ }).click();
   const header = page.locator(".processing-layer-header");
   const bar = page.getByRole("progressbar");
@@ -63,9 +69,41 @@ test("garment loading percentage advances within real stages and never completes
   await expect(bar).toHaveAttribute("aria-valuenow", "66");
   releases[1]();
   await expect(header).toContainText("Stage 3 of 3");
+  const vectorTab = page.getByRole("button", { name: "3. VECTOR SVG", exact: true });
+  const hdTab = page.getByRole("button", { name: "2. HD UPSCALE", exact: true });
+  await expect(vectorTab).toHaveAttribute("aria-pressed", "true");
   await expect(bar).toHaveAttribute("aria-valuenow", "67");
   await page.clock.fastForward(300000);
   await expect(bar).toHaveAttribute("aria-valuenow", "95");
   releases[2]();
   await expect(bar).toHaveCount(0);
+  await expect(hdTab).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("img", { name: "Output", exact: true })).toHaveAttribute("src", /step-2\.svg$/);
+  await expect(page.getByRole("button", { name: "Close comparison", exact: true })).toHaveCount(0);
+  await vectorTab.click();
+  await expect(vectorTab).toHaveAttribute("aria-pressed", "true");
+  await hdTab.click();
+  await expect(page.getByText("Reference · Flat extract · HD upscale · Vector SVG", { exact: true })).toBeVisible();
+  const checklist = page.getByRole("complementary", { name: "Before printing" });
+  await expect(checklist).toBeInViewport({ ratio: 1 });
+  const alignment = await checklist.evaluate(card => {
+    const border = card.getBoundingClientRect();
+    const slot = card.parentElement.getBoundingClientRect();
+    const exportButton = card.closest(".pp-scroll-region").querySelector(".pp-actions-section .pp-svg-btn").getBoundingClientRect();
+    return { top: border.top - slot.top, bottom: slot.bottom - border.bottom, left: border.left - exportButton.left, right: border.right - exportButton.right };
+  });
+  expect(Math.abs(alignment.top - alignment.bottom)).toBeLessThan(1);
+  expect(Math.abs(alignment.left)).toBeLessThan(1);
+  expect(Math.abs(alignment.right)).toBeLessThan(1);
+  await page.route("**/api/design-extract", async route => {
+    expect(route.request().postDataJSON()).toEqual({ sourceProjectId: "progress-test" });
+    await route.fulfill({ json: { project: { id: "refined-handoff", source_url: "https://progress.test/step-1.svg", manifest: { width: 600, height: 800, layers: [], workspaceMode: "refine" } } } });
+  });
+  await page.route("**/api/design-extract/refined-handoff", route => route.fulfill({ json: {
+    project: { id: "refined-handoff", source_url: "https://progress.test/step-1.svg", manifest: { width: 600, height: 800, layers: [], workspaceMode: "refine" } },
+    job: null, billing: { mode: "paid", priceVersion: "design-extract-v1", prices: { refine: 2 }, balance: 10 },
+  } }));
+  await page.getByRole("button", { name: "Refine design", exact: true }).click();
+  await expect(page).toHaveURL(/\/design-extract\/refined-handoff$/);
+  await expect(page.getByRole("button", { name: "Refine design · 2 Claws", exact: true })).toBeEnabled();
 });

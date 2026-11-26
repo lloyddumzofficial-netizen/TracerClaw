@@ -32,6 +32,17 @@ it('preserves a known output across storage failure and never regenerates',async
  const upload=m.upload.getMockImplementation();let failed=false;m.upload.mockImplementation(async(bytes,key,...args)=>{if(key.endsWith('.png')&&!key.endsWith('-input.png')&&!failed){failed=true;throw Error('storage outage');}return upload(bytes,key,...args);});
  await expect(upscaleDesignLayer(project,'l',0)).rejects.toThrow('storage outage');await upscaleDesignLayer(project,'l',0);expect(m.submit).toHaveBeenCalledTimes(1);
 });
+it('applies a recorded Recraft result with rounded dimensions to an opaque refinement option', async () => {
+ const layer = project.manifest.layers[0];
+ Object.assign(layer, { width: 106, height: 157, nativeFrame: { width: 106, height: 157, left: 0, top: 0 } });
+ const source = await sharp({ create: { width: 106, height: 157, channels: 3, background: "#1B3C4D" } }).png().toBuffer();
+ const output = await sharp({ create: { width: 346, height: 512, channels: 3, background: "#1B3C4D" } }).png().toBuffer();
+ m.read.mockImplementation(async (_url, provider) => provider ? output : source);
+ m.privateRead.mockResolvedValueOnce(Buffer.from(JSON.stringify({ state: "generated", sourceUrl: layer.url, outputUrl: "https://img.recraft.ai/saved.png", model: "recraft/crisp-upscale", plan: { scale: 4, width: 424, height: 628 } })));
+ const result = await upscaleDesignLayer(project, layer.id, 0);
+ expect(result.project.manifest.layers[0]).toMatchObject({ width: 346, height: 512, nativeFrame: { width: 346, height: 512, left: 0, top: 0 } });
+ expect(m.submit).not.toHaveBeenCalled();
+});
 it('does not repeat an ambiguous provider request',async()=>{m.submit.mockRejectedValue(Error('secret upstream error'));await expect(upscaleDesignLayer(project,'l',0)).rejects.toThrow('could not be confirmed');await expect(upscaleDesignLayer(project,'l',0)).rejects.toThrow('already requested');expect(m.submit).toHaveBeenCalledTimes(1);});
 it('rejects SVG, locked layers, unsafe dimensions and stale revisions',async()=>{
  project.manifest.layers[0].kind='svg';await expect(upscaleDesignLayer(project,'l',0)).rejects.toThrow('raster');delete project.manifest.layers[0].kind;

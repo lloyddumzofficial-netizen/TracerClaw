@@ -1,15 +1,20 @@
 import { DESIGN_IMAGE_MAX_PIXELS } from "./designExtractImagePolicy";
 import { alreadyUpscaled } from "./designLayerTypes";
 
-// Recraft's endpoint exposes no selectable scale parameter. Keep the existing
-// 4× output contract until a different factor is qualified end to end.
 export function recraftUpscalePlan(width, height) {
   if (![width, height].every(value => Number.isSafeInteger(value) && value >= 32)) return null;
-  const outputWidth = width * 4;
-  const outputHeight = height * 4;
-  if (Math.max(width, height) > 4096 || width * height > 16_000_000 ||
-      Math.max(outputWidth, outputHeight) > 8192 || outputWidth * outputHeight > DESIGN_IMAGE_MAX_PIXELS) return null;
-  return { scale: 4, width: outputWidth, height: outputHeight };
+  const scale = Math.min(4, 4096 / Math.max(width, height));
+  if (scale <= 1 || width * height > 4_000_000) return null;
+  return { scale, width: Math.round(width * scale), height: Math.round(height * scale) };
+}
+
+export function recraftResultPlan(sourceWidth, sourceHeight, width, height) {
+  if (![sourceWidth, sourceHeight, width, height].every(value => Number.isSafeInteger(value) && value > 0)) return null;
+  const scale = Math.min(width / sourceWidth, height / sourceHeight);
+  if (scale <= 1 || width > sourceWidth * 4 || height > sourceHeight * 4 ||
+      Math.max(width, height) > 8192 || width * height > DESIGN_IMAGE_MAX_PIXELS ||
+      Math.abs(width - sourceWidth * scale) > 2 || Math.abs(height - sourceHeight * scale) > 2) return null;
+  return { width, height, scale, sourceWidth, sourceHeight };
 }
 
 export function layerUpscaleAvailability(layer) {
@@ -17,7 +22,7 @@ export function layerUpscaleAvailability(layer) {
   if (alreadyUpscaled(layer)) return { label: "Already upscaled", reason: "This image is already upscaled. Each image can be upscaled once." };
   const { width, height } = layer;
   const plan = recraftUpscalePlan(width, height);
-  if (plan) return { label: "Upscale image", plan, reason: `4× output · ${plan.width} × ${plan.height} px` };
+  if (plan) return { label: "Upscale image", plan, reason: `Up to ${plan.width} × ${plan.height} px` };
   if (![width, height].every(value => Number.isSafeInteger(value) && value > 0)) {
     return { label: "Upscale unavailable", reason: "Reload this project to check the image dimensions." };
   }

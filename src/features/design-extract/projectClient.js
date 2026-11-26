@@ -16,7 +16,7 @@ function bound(map) { while (map.size > 20) map.delete(map.keys().next().value);
 export function seedDesignPreview(userId, card) {
   if (!userId || card.trace_type !== "design_extract") return;
   watch(); userScope(userId);
-  previews.set(card.id, { until: Date.now() + TTL, data: { thumbnailUrl: card.original_image_url ? card.original_image_url : null, project: { id: card.id, source_url: card.original_image_url, manifest: { name: card.name, width: card.width || 240, height: card.height || 320, layers: [] } }, preview: true } }); bound(previews);
+  previews.set(card.id, { until: Date.now() + TTL, data: { thumbnailUrl: card.original_image_url ? card.original_image_url : null, project: { id: card.id, source_url: card.original_image_url, manifest: { name: card.name, workspaceMode: card.workspaceMode, width: card.width || 240, height: card.height || 320, layers: [] } }, preview: true } }); bound(previews);
 }
 export function editorSeed(id) {
   if (!activeUser) return null;
@@ -25,10 +25,15 @@ export function editorSeed(id) {
 }
 export function cacheDesignProject(data) {
   if (!activeUser || !data?.project?.id || !Array.isArray(data.project.manifest?.layers)) return;
+  // A mutation response may have a newer revision without the editor's capabilities.
+  if (typeof data.guidedCutouts !== "boolean" || !data.billing) {
+    snapshots.delete(data.project.id);
+    return;
+  }
   snapshots.set(data.project.id, { until: Date.now() + TTL, data }); bound(snapshots);
 }
 export function forgetDesignProject(id) { snapshots.delete(id); previews.delete(id); }
-export async function designRequest(path, options = {}) {
+export async function designRequest(path, { responseType, ...options } = {}) {
   watch();
   const { data: { session } } = await createClient().auth.getSession();
   if (!session) { clearDesignProjects(); throw Object.assign(new Error("Sign in to open this document."), { status: 401 }); }
@@ -41,12 +46,15 @@ export async function designRequest(path, options = {}) {
     if (error.name === "TimeoutError") throw Object.assign(new Error("The connection timed out. Retry to check the saved document or existing request."), { status: 408 });
     throw error;
   }
-  const data = await response.json();
+  const data = response.ok && responseType === "blob" ? await response.blob() : await response.json().catch(() => null);
   if (requestGeneration !== generation) throw Object.assign(new Error("Your session changed. Reopen the document."), { status: 401 });
   if (!response.ok) {
     if ([401, 403].includes(response.status)) clearDesignProjects();
-    throw Object.assign(new Error(data.error || "Could not load the document. Please retry."), { status: response.status });
+    const retryHeader = response.headers?.get("retry-after");
+    const retryAfterMs = retryHeader && /^\d+$/.test(retryHeader) ? Number(retryHeader) * 1000 : Date.parse(retryHeader) - Date.now();
+    throw Object.assign(new Error(data?.error || "Could not load the document. Please retry."), { status: response.status, retryAfterMs, code: data?.code });
   }
+  if (!data) throw Object.assign(new Error("The server returned an incomplete response."), { status: 502 });
   return data;
 }
 export async function fetchDesignProject(id, force = false) {

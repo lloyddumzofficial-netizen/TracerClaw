@@ -4,10 +4,10 @@ import { layerUpscaleAvailability, recraftUpscalePlan } from "@/lib/designExtrac
 describe("Recraft upscale eligibility", () => {
   it("shows native output dimensions within the edge and pixel budgets", () => {
     expect(recraftUpscalePlan(600, 1000)).toEqual({ scale: 4, width: 2400, height: 4000 });
-    expect(recraftUpscalePlan(2048, 32)).toEqual({ scale: 4, width: 8192, height: 128 });
-    expect(recraftUpscalePlan(1500, 1000)).toEqual({ scale: 4, width: 6000, height: 4000 });
+    expect(recraftUpscalePlan(2048, 32)).toEqual({ scale: 2, width: 4096, height: 64 });
+    expect(recraftUpscalePlan(848, 1256)).toMatchObject({ width: 2765, height: 4096 });
   });
-  it.each([[2049,32], [1501,1000], [3372,5086], [31,100], [NaN,100], [100.5,100]])(
+  it.each([[4096,32], [2048,2048], [3372,5086], [31,100], [NaN,100], [100.5,100]])(
     "rejects unsafe or unsupported %i × %i before submission", (width,height) => {
       expect(recraftUpscalePlan(width,height)).toBeNull();
       expect(layerUpscaleAvailability({width,height}).plan).toBeUndefined();

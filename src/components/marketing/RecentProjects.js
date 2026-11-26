@@ -5,6 +5,7 @@ import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, 
 
 const PROJECT_TOOLS = {
   design_extract: { label: "Design Extract", Icon: Layers3 },
+  design_refined: { label: "Design Refined", Icon: Layers3 },
   logo: { label: "Logo Vectorizer", Icon: PenTool },
   mockup: { label: "Garment Extract", Icon: Shirt },
   pattern: { label: "Pattern Rebuilder", Icon: Grid2X2 },
@@ -151,7 +152,7 @@ const RecentProjects = memo(function RecentProjects({
                     <>
                       <div className="recent-project-copy">
                         <div className="recent-name" title={proj.name}>{proj.name}</div>
-                        <ProjectToolLabel traceType={proj.trace_type} />
+                        <ProjectToolLabel traceType={proj.workspaceMode === "refine" ? "design_refined" : proj.trace_type} />
                       </div>
                       <div className="menu-container" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === proj.id ? null : proj.id); }}>
                         <button className="dots-btn"><MoreVertical size={16} /></button>

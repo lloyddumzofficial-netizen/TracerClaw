@@ -127,7 +127,7 @@ async function uploadImageToStorage({ token, file, purpose }) {
   }
 }
 
-function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesignExtract, designExtractEnabled = false }) {
+function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesignExtract, designExtractEnabled = false, designRefined = false }) {
   const trackRef = useRef(null);
   const tools = [
     {
@@ -156,7 +156,7 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesign
     },
   ];
 
-  if (designExtractEnabled) tools.splice(1, 0, { title: "Design Extract", description: "Separate flat artwork into reusable layers.", tool: "design_extract", onClick: onDesignExtract });
+  if (designExtractEnabled) tools.splice(1, 0, { title: designRefined ? "Design Refined" : "Design Extract", description: designRefined ? "Clean up flat artwork and compare three refined versions." : "Separate flat artwork into reusable layers.", tool: "design_extract", onClick: onDesignExtract });
 
   const scrollTools = (direction) => {
     trackRef.current?.scrollBy({
@@ -469,6 +469,7 @@ export default function StartScreen() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [user, setUser] = useState(null);
   const [designExtractEnabled, setDesignExtractEnabled] = useState(false);
+  const [designRefined, setDesignRefined] = useState(false);
   const [credits, setCredits] = useState(0);
 
   // ─── UI State ───────────────────────────────────────────────────────────────
@@ -905,36 +906,61 @@ export default function StartScreen() {
     const generation = ++projectLoadRef.current.generation;
     projectLoadRef.current.owner = userId;
     setIsLoadingProjects(true);
+    const isCurrent = () => generation === projectLoadRef.current.generation;
+
+    const loadDesignProjects = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id !== userId || !isCurrent()) return null;
+
+        const request = (path) => fetch(path, {
+          signal: AbortSignal.timeout(20000), headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const access = await request("/api/design-extract?scope=access");
+        if (!isCurrent()) return null;
+        if ([401, 403, 404].includes(access.status)) {
+          setDesignExtractEnabled(false);
+          return [];
+        }
+        const capability = access.ok ? await access.json() : null;
+        if (!capability?.enabled || !isCurrent()) return null;
+        setDesignRefined(Boolean(capability.refinement));
+
+        setDesignExtractEnabled(true);
+        const response = await request("/api/design-extract");
+        if ([401, 403, 404].includes(response.status)) {
+          if (isCurrent()) setDesignExtractEnabled(false);
+          return [];
+        }
+        if (!response.ok) return null;
+        const snapshot = await response.json();
+        return snapshot.projects || [];
+      } catch (err) {
+        console.warn("Could not check Design Extract projects", err);
+        return null;
+      }
+    };
+    const loadingDesign = loadDesignProjects();
 
     // Only fetch projects from the last 3 days since R2 objects are auto-deleted after 3 days
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    const { data, error } = await supabase
+    const loadingProjects = supabase
       .from("projects")
       .select("*")
       .eq("user_id", userId)
       .gte("created_at", threeDaysAgo.toISOString())
       .order("created_at", { ascending: false })
       .limit(50);
-
-    let designProjects = [];
-    let designAvailable = false;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user.id === userId) {
-        const response = await fetch("/api/design-extract", { signal: AbortSignal.timeout(20000), headers: { Authorization: `Bearer ${session.access_token}` } });
-        if (response.ok) {
-          const snapshot = await response.json();
-          designAvailable = snapshot.enabled === true;
-          if (designAvailable) designProjects = snapshot.projects || [];
-        }
-      }
-    } catch (err) { console.warn("Could not load Design Extract projects", err); }
+    const [{ data, error }, designProjects] = await Promise.all([loadingProjects, loadingDesign]);
     const { data: { session: currentSession } } = await supabase.auth.getSession();
-    if (generation !== projectLoadRef.current.generation || currentSession?.user?.id !== userId) return;
-    setDesignExtractEnabled(designAvailable);
-    if (!error && data) setRecentProjects([...data, ...designProjects].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50));
+    if (!isCurrent() || currentSession?.user?.id !== userId) return;
+    setRecentProjects(previous => {
+      const ordinary = !error && data ? data : previous.filter(project => project.trace_type !== "design_extract");
+      const designs = designProjects ?? previous.filter(project => project.trace_type === "design_extract");
+      return [...ordinary, ...designs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50);
+    });
     setIsLoadingProjects(false);
   };
 
@@ -1019,15 +1045,15 @@ export default function StartScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { handleLogin(); return; }
       setUploadStage("Checking workspace access");
-      const access = await fetch("/api/design-extract", { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const access = await fetch("/api/design-extract?scope=access", { headers: { Authorization: `Bearer ${session.access_token}` } });
       if (!access.ok) { const result = await safeJson(access, "Could not verify Design Extract access"); throw new Error(result.error || "Design Extract is unavailable. Please retry."); }
       setUploadStage("Uploading your artwork");
       const imageUrl = await uploadDesignFile({ file, token: session.access_token });
-      setUploadStage("Opening Design Extract");
+      setUploadStage(designRefined ? "Opening Design Refined" : "Opening Design Extract");
       const response = await fetch("/api/design-extract", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify({ imageUrl }) });
       const data = await safeJson(response, "Could not create Design Extract project");
       if (!response.ok) throw new Error(data.error);
-      seedDesignPreview(session.user.id, { id: data.project.id, trace_type: "design_extract", original_image_url: data.project.source_url, width: data.project.manifest?.width, height: data.project.manifest?.height });
+      seedDesignPreview(session.user.id, { id: data.project.id, trace_type: "design_extract", workspaceMode: data.project.manifest?.workspaceMode, original_image_url: data.project.source_url, width: data.project.manifest?.width, height: data.project.manifest?.height });
       cacheDesignProject({ project: data.project, job: null });
       router.push(`/design-extract/${data.project.id}`);
     } catch (error) { toast.error(error.message || "Could not upload design"); }
@@ -1421,7 +1447,7 @@ export default function StartScreen() {
         <MovingArtworkGallery />
 
 {user && (
-          <DesktopToolsShelf designExtractEnabled={designExtractEnabled} onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
+          <DesktopToolsShelf designExtractEnabled={designExtractEnabled} designRefined={designRefined} onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
             onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
@@ -1721,6 +1747,7 @@ export default function StartScreen() {
         <NewProjectModal
           show={showModal}
           designExtractEnabled={designExtractEnabled}
+          designRefined={designRefined}
           projectName={modalProjectName} setProjectName={setModalProjectName}
           traceType={modalTraceType} setTraceType={setModalTraceType}
           initialCategory={initialProjectCategory}

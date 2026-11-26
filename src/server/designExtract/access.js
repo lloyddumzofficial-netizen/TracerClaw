@@ -16,7 +16,10 @@ export async function requireDesignAdmin(request, mutate = false) {
 export function designError(error) {
   if (error.code === "P0001") return Response.json({ error: "Project changed or an operation is active. Reload before continuing." }, { status: 409 });
   if (["42P01", "42703", "PGRST202", "PGRST204", "PGRST205"].includes(error.code)) return Response.json({ error: "Design Extract database setup is required." }, { status: 503 });
-  if (error.designExtractError) return Response.json({ error: error.message }, { status: error.status || 400 });
+  if (error.designExtractError) return Response.json({
+    error: error.message,
+    ...(error.code === "DESIGN_FINISH_UNLOCK_REQUIRED" && { code: error.code }),
+  }, { status: error.status || 400 });
   console.error("[Design Extract] Request failed", { code: error.code || null, status: error.status || null });
   return Response.json({ error: "Design Extract request failed. Please retry." }, { status: Number.isInteger(error.status) && error.status >= 400 && error.status <= 599 ? error.status : 500 });
 }
