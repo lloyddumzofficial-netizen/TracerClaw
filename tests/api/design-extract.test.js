@@ -489,6 +489,11 @@ describe("durable operations", () => {
     expect(mocks.submit).toHaveBeenCalledExactlyOnceWith("google/nano-banana-2.1/edit", { input: expect.objectContaining({
       image_urls: ["https://private-signed.test/source.png"], prompt: expect.stringContaining("solid pure white #FFFFFF"), num_images: 1, resolution: "4K",
     }) });
+    const { prompt } = mocks.submit.mock.calls[0][1].input;
+    expect(prompt).toContain("Visible standalone typography is mandatory foreground artwork.");
+    expect(prompt).toContain("Keep a title, its small lead-in and its tagline together in one tile");
+    expect(prompt).toContain("Any lettering printed inside a logo or badge stays with that complete logo or badge.");
+    expect(prompt).toContain("Remove the separated typography");
   });
 
   it("saves independent white-background graphics and omits tiles crossed by other artwork", async () => {
