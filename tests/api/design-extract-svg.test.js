@@ -15,6 +15,7 @@ const request=body=>POST(new Request("http://localhost/api/design-extract/p/svg"
 beforeEach(async()=>{
   vi.resetAllMocks();vi.stubGlobal("fetch",mocks.fetch);vi.stubEnv("RECRAFT_API_KEY","private-test-key");vi.stubEnv("ADMIN_EMAIL","admin@test.com");vi.stubEnv("DESIGN_EXTRACT_ENABLED","true");
   vi.stubEnv("VERCEL_ENV", "");
+  mocks.rpc.mockResolvedValue({ data: { status: "legacy" } });
   files=new Map();project={id:"p",user_id:"u",manifest:{layers:[{id:"l",url:"r2-private://design-extract/users/u/design-extract/p/l.png"}]}};
   mocks.user.mockResolvedValue({data:{user:{id:"u",email:"admin@test.com"}}});mocks.owned.mockImplementation(async()=>structuredClone(project));
   mocks.limit.mockResolvedValue({success:true});
@@ -86,7 +87,19 @@ it('checks project ownership before converting a layer for a regular account',as
   expect(mocks.owned).toHaveBeenCalledWith('p','x');
   expect(mocks.fetch).not.toHaveBeenCalled();
 });
-it('respects provider rate limits without claiming or paying',async()=>{mocks.limit.mockImplementation(async({namespace})=>({success:namespace!=='design-extract:svg'}));expect((await request({layerId:'l'})).status).toBe(429);expect(mocks.upload).not.toHaveBeenCalled();expect(mocks.fetch).not.toHaveBeenCalled();});
+it('respects provider rate limits without claiming or paying',async()=>{mocks.limit.mockImplementation(async({namespace})=>({success:namespace!=='design-extract:svg'}));expect((await request({layerId:'l'})).status).toBe(429);expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.upload).not.toHaveBeenCalled();expect(mocks.fetch).not.toHaveBeenCalled();});
+it('requires the one-Claw offer on production with the local pilot disabled',async()=>{
+  vi.stubEnv('VERCEL_ENV','production');vi.stubEnv('DESIGN_EXTRACT_BILLING_MODE','paid');
+  vi.stubEnv('DESIGN_EXTRACT_QUALITY_PILOT','false');
+  vi.stubEnv('UPSTASH_REDIS_REST_URL','https://redis.test');vi.stubEnv('UPSTASH_REDIS_REST_TOKEN','test');
+  mocks.rpc.mockResolvedValueOnce({data:{status:'offer'}});
+  const response=await request({layerId:'l'});
+  expect(response.status).toBe(409);expect(await response.json()).toMatchObject({code:'DESIGN_FINISH_UNLOCK_REQUIRED'});
+  expect(mocks.fetch).not.toHaveBeenCalled();
+  const legacy = await request({layerId:'l',acknowledgedClaws:1});
+  expect(legacy.status).toBe(409);expect(await legacy.json()).toMatchObject({error:expect.stringContaining('outside a finishing bundle')});
+  expect(mocks.fetch).not.toHaveBeenCalled();
+});
 it('requires provider configuration',async()=>{vi.stubEnv('RECRAFT_API_KEY','');expect((await request({layerId:'l'})).status).toBe(503);expect(mocks.fetch).not.toHaveBeenCalled();});
 it('accepts the SVG returned by the live synthetic Recraft qualification',async()=>{const actual=await readFile(new URL('../fixtures/recraft-layer-vector.svg',import.meta.url));expect(checkedVectorSvg(actual).toString()).toContain('<path');});
 it('does not repeat an unconfirmed paid conversion after refresh',async()=>{mocks.fetch.mockRejectedValueOnce(new Error('network interrupted'));await expect(convertDesignLayer(project,'l')).rejects.toMatchObject({status:502});await expect(convertDesignLayer(project,'l')).rejects.toMatchObject({status:409});expect(mocks.fetch).toHaveBeenCalledTimes(1);});

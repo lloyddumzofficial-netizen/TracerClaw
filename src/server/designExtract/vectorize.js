@@ -6,7 +6,7 @@ import { DESIGN_IMAGE_MAX_PIXELS, validateDesignImage } from "@/lib/designExtrac
 import { readAsset, prefix, fail } from "./service";
 import { ownsPrivateDesignAsset, uploadDesignAsset, readPrivateDesignAsset, designAssetUrl } from "./storage";
 import { withDesignImageWork } from "./imageWork";
-import { claimFinishAction, confirmedFinishRejection, settleFinishAction } from "./finishBilling";
+import { claimFinishAction, confirmedFinishRejection, finishReceiptExpired, settleFinishAction, trackFinishAction } from "./finishBilling";
 
 const VERSION = "recraft-vectorize-v1";
 const missing = error => error?.name === "NoSuchKey" || error?.$metadata?.httpStatusCode === 404;
@@ -37,6 +37,8 @@ export async function convertDesignLayer(project, layerId, acknowledgedClaws) {
   if (retry) await settleFinishAction(project, record.finishActionId, false);
   if (!record || retry) {
     if (!process.env.RECRAFT_API_KEY) fail("SVG conversion is not configured.", 503);
+    const limit = await enforceRateLimit({ namespace: "design-extract:svg", identifier: project.user_id, max: 3, window: "60 s", windowMs: 60000 });
+    if (!limit.success) fail("Too many SVG conversions. Try again in a minute.", 429);
     const source = await readAsset(layer.url);
     const input = await withDesignImageWork(async () => {
       const image = sharp(source, { limitInputPixels: DESIGN_IMAGE_MAX_PIXELS });
@@ -51,14 +53,13 @@ export async function convertDesignLayer(project, layerId, acknowledgedClaws) {
     // from repeating a paid POST. Ambiguous submissions are never auto-retried.
     const finishActionId = await claimFinishAction(project, layerId, "svg", acknowledgedClaws);
     if (retry && !finishActionId) fail("The previous SVG conversion could not be completed.", 422);
-    const binding = finishActionId ? { finishActionId } : {};
+    const binding = { createdAt: new Date().toISOString(), ...(finishActionId && { finishActionId }) };
     let signedInputUrl;
     try {
-      const limit = await enforceRateLimit({ namespace: "design-extract:svg", identifier: project.user_id, max: 3, window: "60 s", windowMs: 60000 });
-      if (!limit.success) fail("Too many SVG conversions. Try again in a minute.", 429);
+      await trackFinishAction(project, finishActionId, `${base}.json`);
       const inputUrl = await uploadDesignAsset(input, `${base}-input.png`, "image/png");
       signedInputUrl = await designAssetUrl(inputUrl);
-      await uploadDesignAsset(Buffer.from(JSON.stringify({ ...binding, state: "submitting", createdAt: new Date().toISOString() })), `${base}.json`, "application/json", { ifAbsent: !retry });
+      await uploadDesignAsset(Buffer.from(JSON.stringify({ ...binding, state: "submitting" })), `${base}.json`, "application/json", { ifAbsent: !retry });
     }
     catch (error) {
       await settleFinishAction(project, finishActionId, false);
@@ -100,6 +101,7 @@ export async function convertDesignLayer(project, layerId, acknowledgedClaws) {
     return svg;
   }
   if (record.state !== "generated" || !record.providerUrl) fail("SVG conversion is running or needs recovery. No duplicate request was sent.", 409);
+  if (await finishReceiptExpired(record)) fail("The SVG result expired before it could be saved.", 410);
   const { buffer } = await fetchWithSSRFProtection(record.providerUrl, { allowedHosts: getAllowedProviderHosts(), maxBytes: DEFAULT_MAX_SVG_BYTES, timeoutMs: 10_000, allowedContentTypes: ["image/svg+xml", "application/xml", "text/xml", "text/plain", "application/octet-stream"] });
   let svg;
   try { svg = checkedVectorSvg(buffer); }

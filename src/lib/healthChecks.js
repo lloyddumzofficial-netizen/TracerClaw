@@ -308,6 +308,10 @@ export async function checkDesignExtractReadiness() {
   const configuration=designExtractConfiguration();
   if(!configuration.enabled||!configuration.ok)return configuration;
   const tables={design_extract_projects:'id,expires_at,revision',design_extract_jobs:'id,billing_state,charge_amount,dispatch_started_at',design_extract_ledger:'job_id,state'};
+  if(configuration.billingMode==='paid'){
+    tables.design_extract_finish_bundles='batch_id,user_id,state,reserved_by';
+    tables.design_extract_finish_actions='id,batch_id,layer_id,action,state,created_at';
+  }
   if(configuration.processor==='workflow'){
     tables.design_extract_jobs+=',processor,processor_generation,processing_lease_until,last_polled_at,last_progress_at';
     tables.design_extract_outbox='job_id,generation,state,next_attempt_at,lease_until';

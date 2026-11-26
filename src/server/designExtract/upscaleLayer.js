@@ -10,7 +10,7 @@ import { DESIGN_IMAGE_MAX_PIXELS } from "@/lib/designExtractImagePolicy";
 import { withDesignImageWork } from "./imageWork";
 import { alreadyUpscaled } from "@/lib/designLayerTypes";
 import { layerUpscaleAvailability, recraftResultPlan } from "@/lib/designExtractUpscalePolicy";
-import { claimFinishAction, confirmedFinishRejection, settleFinishAction } from "./finishBilling";
+import { claimFinishAction, confirmedFinishRejection, finishReceiptExpired, settleFinishAction, trackFinishAction } from "./finishBilling";
 
 export { alreadyUpscaled };
 const missing = error => error?.name === "NoSuchKey" || error?.$metadata?.httpStatusCode === 404;
@@ -39,16 +39,17 @@ export async function upscaleDesignLayer(project, layerId, revision, acknowledge
   if (retry) await settleFinishAction(project, record.finishActionId, false);
   if (!record || retry) {
     if (!process.env.RECRAFT_API_KEY) fail("Image upscaling is not configured.", 503);
+    const limit = await enforceRateLimit({ namespace: "design-extract:upscale", identifier: project.user_id, max: 3, window: "60 s", windowMs: 60000 });
+    if (!limit.success) fail("Too many upscale requests. Try again in a minute.", 429);
     const source = await readAsset(layer.url);
     const rgb = await withDesignImageWork(() => sharp(source, { limitInputPixels: DESIGN_IMAGE_MAX_PIXELS }).removeAlpha().png().toBuffer());
     const inputVersion = createHash("sha256").update(layer.url).digest("hex");
     const finishActionId = await claimFinishAction(project, layerId, "upscale", acknowledgedClaws);
     if (retry && !finishActionId) fail("The previous upscale could not be completed.", 422);
-    record = { state: "submitting", sourceUrl: layer.url, plan, model: ENHANCE_MODEL, ...(finishActionId && { finishActionId }) };
+    record = { state: "submitting", createdAt: new Date().toISOString(), sourceUrl: layer.url, plan, model: ENHANCE_MODEL, ...(finishActionId && { finishActionId }) };
     let signedInputUrl;
     try {
-      const limit = await enforceRateLimit({ namespace: "design-extract:upscale", identifier: project.user_id, max: 3, window: "60 s", windowMs: 60000 });
-      if (!limit.success) fail("Too many upscale requests. Try again in a minute.", 429);
+      await trackFinishAction(project, finishActionId, `${key}.json`);
       const inputUrl = await uploadDesignAsset(rgb, `${key}-${inputVersion}-input.png`, "image/png");
       signedInputUrl = await designAssetUrl(inputUrl);
       await uploadDesignAsset(Buffer.from(JSON.stringify(record)), `${key}.json`, "application/json", { ifAbsent: !retry });
@@ -74,6 +75,7 @@ export async function upscaleDesignLayer(project, layerId, revision, acknowledge
   if (record.sourceUrl !== layer.url) fail("This layer changed after its upscale request. The saved request cannot be repeated.", 409);
   if (record.state === "submitting") fail("An upscale was already requested for this image. It is running or needs recovery; no duplicate request was sent.", 409);
   if (record.state === "generated") {
+    if (await finishReceiptExpired(record)) fail("The upscale result expired before it could be saved.", 410);
     const [source, output] = await Promise.all([readAsset(layer.url), readAsset(record.outputUrl, true)]);
     const { width, height } = await sharp(output, { limitInputPixels: DESIGN_IMAGE_MAX_PIXELS }).metadata();
     const actualPlan = recraftResultPlan(layer.width, layer.height, width, height);

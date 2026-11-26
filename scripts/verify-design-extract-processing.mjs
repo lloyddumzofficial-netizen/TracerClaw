@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises
 const {PGlite}=await (process.env.PGLITE_TEST_MODULE?import(pathToFileURL(path.resolve(process.env.PGLITE_TEST_MODULE)).href):import('@electric-sql/pglite'));const db=new PGlite();
 try{
  await db.exec('CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE TABLE profiles(id uuid PRIMARY KEY,credits integer NOT NULL); CREATE TABLE credit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid REFERENCES profiles(id),action text,amount integer);');
- for(const file of ['038_design_extract.sql','039_design_extract_billing.sql','040_design_extract_processing.sql','041_design_extract_sam2.sql','042_design_extract_local_processor.sql','043_design_refined.sql'])await db.exec(await readFile('database/migrations/'+file,'utf8'));
+ for(const file of ['038_design_extract.sql','039_design_extract_billing.sql','040_design_extract_processing.sql','041_design_extract_sam2.sql','042_design_extract_local_processor.sql','043_design_refined.sql','044_design_extract_finish_bundle.sql'])await db.exec(await readFile('database/migrations/'+file,'utf8'));
  const owner='10000000-0000-4000-8000-000000000001';await db.query('INSERT INTO profiles VALUES($1,20)',[owner]);
  const claim=async(n,processor='workflow')=>{const project=`20000000-0000-4000-8000-${String(n).padStart(12,'0')}`;await db.query("INSERT INTO design_extract_projects(id,user_id,source_url,manifest)VALUES($1,$2,'https://test.invalid','{}')ON CONFLICT DO NOTHING",[project,owner]);return(await db.query("SELECT claim_design_extract_v2($1,$2,0,$3,'extract',NULL,'fal-ai/sam2/auto-segment','{}',$4)AS result",[owner,project,'processing-'+n,processor])).rows[0].result;};
  const first=await claim(1);assert.equal(first.status,'charged');assert.equal(first.job.processor,'workflow');
@@ -49,5 +49,40 @@ try{
   assert.equal(await settle(), expected);
  }
  assert.equal((await db.query('SELECT credits FROM profiles WHERE id=$1',[owner])).rows[0].credits,10);
+ const finishProject = '40000000-0000-4000-8000-000000000001';
+ const outsider = '10000000-0000-4000-8000-000000000002';
+ const layers = Array.from({ length: 10 }, (_, index) => ({ id: `layer-${index + 1}` }));
+ await db.query('INSERT INTO profiles VALUES($1,0)', [outsider]);
+ await db.query("INSERT INTO design_extract_projects(id,user_id,source_url,manifest) VALUES ($1,$2,'https://test.invalid',$3::jsonb)", [finishProject, owner, JSON.stringify({layers})]);
+ await db.query("INSERT INTO design_extract_jobs(project_id,user_id,base_revision,idempotency_key,kind,input,model,status,result) VALUES ($1,$2,0,'finish-batch','extract',$3::jsonb,'google/nano-banana-2.1/edit','accepted',$4::jsonb)", [finishProject, owner, JSON.stringify({_desaynclaw:{nanoElements:true}}), JSON.stringify({layers})]);
+ const finish = async (action, layer, amount = null, user = owner) => (await db.query('SELECT claim_design_extract_finish($1,$2,0,$3,$4,$5) AS result', [user, finishProject, layer, action, amount])).rows[0].result;
+ const settleFinish = (id, usable) => db.query('SELECT settle_design_extract_finish($1,$2,$3)', [owner, id, usable]);
+ const credits = async () => (await db.query('SELECT credits FROM profiles WHERE id=$1', [owner])).rows[0].credits;
+ assert.equal((await finish('svg','layer-1',1,outsider)).status,'stale');
+ assert.equal((await finish('svg','layer-10',1)).status,'limit');
+ assert.equal((await finish('upscale','layer-1')).status,'offer');
+ assert.equal(await credits(),10);
+ const abandoned = await finish('upscale','layer-1',1);
+ assert.equal(abandoned.status,'claimed');
+ assert.equal(await credits(),9);
+ assert.equal((await finish('svg','layer-1',1)).status,'pending');
+ await settleFinish(abandoned.id,false);
+ await settleFinish(abandoned.id,false);
+ assert.equal(await credits(),10);
+ const firstFinish = await finish('svg','layer-1',1);
+ assert.equal(firstFinish.status,'claimed');
+ await settleFinish(firstFinish.id,true);
+ await settleFinish(firstFinish.id,true);
+ assert.equal((await finish('svg','layer-1',1)).status,'used');
+ const included = await finish('upscale','layer-9');
+ assert.equal(included.status,'claimed');
+ await settleFinish(included.id,true);
+ assert.equal(await credits(),9);
+ for (const role of ['anon','authenticated','service_role']) {
+  for (const fn of ['claim_design_extract_finish(uuid,uuid,integer,text,text,integer)','settle_design_extract_finish(uuid,uuid,boolean)']) {
+   assert.equal((await db.query("SELECT has_function_privilege($1,$2,'EXECUTE') AS allowed",[role,fn])).rows[0].allowed,role==='service_role');
+  }
+ }
+ console.log('Finishing SQL verified: one-Claw bundle, exact-once refund, duplicate action block, ownership, and nine-layer limit.');
  console.log('Processing SQL verified, including 2-Claw refinement claims, isolation, and exact-once refunds for 0–2 previews.');
 }catch(error){console.error('Processing SQL failed',{message:error.message,code:error.code});process.exitCode=1;}finally{await db.close();}

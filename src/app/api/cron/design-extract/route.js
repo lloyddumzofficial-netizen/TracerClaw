@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { maintainDesignWorkflows } from '@/server/designExtract/processing/launcher';
 import { recoverDesignBilling } from '@/server/designExtract/billing';
 import { recoverLegacyDesignJobs } from '@/server/designExtract/recovery';
+import { recoverDesignFinishing } from '@/server/designExtract/finishRecovery';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -17,6 +18,7 @@ export async function GET(request) {
     await recoverDesignBilling();
     await maintainDesignWorkflows();
     await recoverLegacyDesignJobs();
+    await recoverDesignFinishing();
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (process.env.DESIGN_EXTRACT_ENABLED !== 'true' && ['42P01', 'PGRST205'].includes(error.code)) return NextResponse.json({ enabled: false });

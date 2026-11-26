@@ -112,6 +112,9 @@ export async function enforceRateLimit({
     ? await limiter.limit(safeIdentifier)
     : checkMemoryLimit({ key: `${resolvedNamespace}:${safeIdentifier}`, max: resolvedMax, windowMs });
 
+  if (result.reason === "timeout" && resolvedNamespace.startsWith("design-extract:")) {
+    throw new Error("Design Extract rate limiter timed out");
+  }
   if (!result.success) {
     return {
       success: false,

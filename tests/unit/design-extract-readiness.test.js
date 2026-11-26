@@ -18,6 +18,15 @@ it('uses the paid default consistently and reports missing production rate-limit
  expect(designExtractConfiguration({...env,NODE_ENV:'production',UPSTASH_REDIS_REST_URL:'https://redis.test',UPSTASH_REDIS_REST_TOKEN:'test'}).ok).toBe(true);
 });
 it('checks billing schema even in free beta without returning private database errors',async()=>{vi.stubEnv('DESIGN_EXTRACT_BILLING_MODE','beta');mocks.from.mockReturnValue(query([], {code:'42703',message:'secret table details'}));const result=await checkDesignExtractReadiness();expect(result).toMatchObject({ok:false,code:'DESIGN_SCHEMA_UNAVAILABLE'});expect(JSON.stringify(result)).not.toContain('secret');});
-it('reports overdue terminal settlement',async()=>{mocks.from.mockReturnValueOnce(query()).mockReturnValueOnce(query()).mockReturnValueOnce(query()).mockReturnValueOnce(query([{id:'private-job'}]));expect(await checkDesignExtractReadiness()).toMatchObject({ok:false,code:'DESIGN_SETTLEMENT_OVERDUE'});});
+it('reports overdue terminal settlement',async()=>{
+ let jobReads=0;
+ mocks.from.mockImplementation(table=>table==='design_extract_jobs' && ++jobReads===2 ? query([{id:'private-job'}]) : query());
+ expect(await checkDesignExtractReadiness()).toMatchObject({ok:false,code:'DESIGN_SETTLEMENT_OVERDUE'});
+});
+it('detects missing finishing schema in paid mode',async()=>{
+ vi.stubEnv('DESIGN_EXTRACT_BILLING_MODE','paid');
+ mocks.from.mockImplementation(table=>table==='design_extract_finish_actions' ? query([],{code:'PGRST205'}) : query());
+ expect(await checkDesignExtractReadiness()).toMatchObject({ok:false,code:'DESIGN_SCHEMA_UNAVAILABLE',table:'design_extract_finish_actions'});
+});
 it('checks outbox and worker health only when the driver is enabled',async()=>{vi.stubEnv('DESIGN_EXTRACT_PROCESSOR','workflow');expect(await checkDesignExtractReadiness()).toMatchObject({ok:true,schemaVerified:true});expect(mocks.from).toHaveBeenCalledWith('design_extract_outbox');});
 it('fences workflow writes by generation, token and unexpired lease',()=>{const q={eq:vi.fn(),gt:vi.fn()};q.eq.mockReturnValue(q);q.gt.mockReturnValue(q);fenceDesignJob(q,{processor:'workflow',processor_generation:2,processing_lease_token:'token'});expect(q.eq).toHaveBeenCalledWith('processor_generation',2);expect(q.eq).toHaveBeenCalledWith('processing_lease_token','token');expect(q.gt).toHaveBeenCalledWith('processing_lease_until',expect.any(String));expect(()=>fenceDesignJob(q,{processor:'workflow'})).toThrow('lease');});
