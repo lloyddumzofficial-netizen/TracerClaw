@@ -14,6 +14,7 @@ let files, project;
 const request=body=>POST(new Request("http://localhost/api/design-extract/p/svg",{method:"POST",headers:{Authorization:"Bearer test","Content-Type":"application/json"},body:JSON.stringify(body)}),{params:Promise.resolve({id:"p"})});
 beforeEach(async()=>{
   vi.resetAllMocks();vi.stubGlobal("fetch",mocks.fetch);vi.stubEnv("RECRAFT_API_KEY","private-test-key");vi.stubEnv("ADMIN_EMAIL","admin@test.com");vi.stubEnv("DESIGN_EXTRACT_ENABLED","true");
+  vi.stubEnv("VERCEL_ENV", "");
   files=new Map();project={id:"p",user_id:"u",manifest:{layers:[{id:"l",url:"r2-private://design-extract/users/u/design-extract/p/l.png"}]}};
   mocks.user.mockResolvedValue({data:{user:{id:"u",email:"admin@test.com"}}});mocks.owned.mockImplementation(async()=>structuredClone(project));
   mocks.limit.mockResolvedValue({success:true});

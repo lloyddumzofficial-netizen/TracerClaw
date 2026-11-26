@@ -33,6 +33,7 @@ function query(data, error = null) {
 const project = { id: "project-1", user_id: "admin-1", revision: 0, source_url: "https://r2.test/users/admin-1/source.png", manifest: { version: 1, width: 100, height: 100, layers: [] }, expires_at: "2099-01-01" };
 beforeEach(async () => {
   vi.resetAllMocks(); vi.stubEnv("DESIGN_EXTRACT_PRIVATE_BUCKET", "design-extract-private"); vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "beta"); vi.stubEnv("ADMIN_EMAIL", "admin@test.com"); vi.stubEnv("DESIGN_EXTRACT_ENABLED", "true");
+  vi.stubEnv("VERCEL_ENV", "");
   vi.stubEnv("FAL_KEY", "mock-key");
   mocks.fetch.mockResolvedValue({buffer:await sharp({create:{width:100,height:100,channels:4,background:"#fff"}}).png().toBuffer()});
   mocks.upload.mockImplementation(async (_bytes,key)=>"r2-private://design-extract/"+key);

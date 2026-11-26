@@ -9,7 +9,7 @@ vi.mock('@/server/designExtract/enhancementProvider',()=>({ENHANCE_MODEL:'recraf
 import {upscaleDesignLayer} from '@/server/designExtract/upscaleLayer';
 let project,files;
 beforeEach(async()=>{
- vi.resetAllMocks();vi.stubEnv('RECRAFT_API_KEY','test');files=new Map();
+ vi.resetAllMocks();vi.stubEnv('RECRAFT_API_KEY','test');vi.stubEnv('VERCEL_ENV','');files=new Map();
  project={id:'p',user_id:'u',revision:0,manifest:{layers:[{id:'l',url:'r2-private://design-extract/users/u/design-extract/p/source.png',width:32,height:32,name:'Image',visible:true,composition:{x:10,y:20,scale:2},layout:{x:300,y:0,scale:3}}]}};
  const source=await sharp({create:{width:32,height:32,channels:4,background:{r:20,g:40,b:60,alpha:.5}}}).png().toBuffer();
  const output=await sharp({create:{width:128,height:128,channels:3,background:{r:30,g:50,b:70}}}).png().toBuffer();
