@@ -384,17 +384,32 @@ describe("Design Extract admin gate", () => {
     expect((await response.json()).error).toContain("Cannot reach the sign-in service");
     expect(mocks.from).not.toHaveBeenCalled();
   });
-  it("rejects unauthenticated and non-admin callers before database access", async () => {
+  it("requires sign-in and lets a regular account access only its own projects", async () => {
     expect((await GET(jsonRequest({}, { token: null }))).status).toBe(401);
+    vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
     mocks.getUser.mockResolvedValue({ data: { user: { id: "other", email: "other@test.com" } } });
-    expect((await POST(jsonRequest({}))).status).toBe(403); expect(mocks.from).not.toHaveBeenCalled();
+    const list = query([]);
+    mocks.from.mockReturnValueOnce(list).mockReturnValueOnce(query(null));
+    expect(await (await GET(jsonRequest({}))).json()).toMatchObject({ enabled: true, projects: [] });
+    expect(list.eq).toHaveBeenCalledWith("user_id", "other");
+    expect((await getDocument(jsonRequest({}), { params: { id: project.id } })).status).toBe(404);
   });
-  it("fails closed when flag or admin configuration is absent", async () => {
+  it("keeps manual provider reconciliation admin-only", async () => {
+    vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
+    mocks.getUser.mockResolvedValue({ data: { user: { id: project.user_id, email: "member@test.com" } } });
+    mocks.from.mockReturnValueOnce(query(project));
+    const response = await postDocument(jsonRequest({ action: "reconcile", jobId: "job-1", requestId: "other-request" }), { params: { id: project.id } });
+    expect(response.status).toBe(403);
+    expect(mocks.status).not.toHaveBeenCalled();
+  });
+  it("fails closed when the flag is off or production billing is free", async () => {
     vi.stubEnv("DESIGN_EXTRACT_ENABLED", "false"); expect((await GET(jsonRequest({}))).status).toBe(404);
     expect((await POST(jsonRequest({ imageUrl: "https://r2.test/users/admin-1/source.png" }))).status).toBe(404);
     expect(mocks.from).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
-    vi.stubEnv("ADMIN_EMAIL", ""); expect((await GET(jsonRequest({}))).status).toBe(403);
+    vi.stubEnv("DESIGN_EXTRACT_ENABLED", "true");
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect((await GET(jsonRequest({}))).status).toBe(503);
   });
   it("checks project ownership and expiry", async () => {
     const q = query(null); mocks.from.mockReturnValue(q);
@@ -440,8 +455,15 @@ it("previews and saves disconnected same-color artwork as one native layer witho
   expect(mocks.submit).not.toHaveBeenCalled();
 });
 describe("durable operations", () => {
-  it.each(["automatic-white", "automatic", "review"])("submits only Nano Banana for %s", async extractionMode => {
-    vi.stubEnv("NODE_ENV", "development"); vi.stubEnv("VERCEL", ""); vi.stubEnv("DESIGN_EXTRACT_QUALITY_PILOT", "true");
+  it.each([["automatic-white", false], ["automatic", false], ["review", false], ["automatic-white", true]])("submits only Nano Banana for %s (production: %s)", async (extractionMode, production) => {
+    vi.stubEnv("NODE_ENV", production ? "production" : "development");
+    vi.stubEnv("VERCEL", production ? "1" : "");
+    vi.stubEnv("VERCEL_ENV", production ? "production" : "");
+    vi.stubEnv("DESIGN_EXTRACT_QUALITY_PILOT", production ? "false" : "true");
+    if (production) {
+      vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.test"); vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "test");
+      mocks.getUser.mockResolvedValue({ data: { user: { id: project.user_id, email: "member@test.com" } } });
+    }
     vi.stubEnv("DESIGN_EXTRACT_PROCESSOR", "legacy"); vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
     const source = "r2-private://design-extract/users/admin-1/design-extract/project-1/source.png";
     const job = { id: "auto", kind: "extract", status: "submitting", model: "fal-ai/sam2/auto-segment", user_id: project.user_id, project_id: project.id,
@@ -458,7 +480,9 @@ describe("durable operations", () => {
       priceVersion: "design-extract-v1", acknowledgedClaws: 2 }), { params: { id: project.id } });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ job: { status: "queued", creditsRemaining: 3, automaticSeparation: true } });
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("claim_design_extract_v2", expect.objectContaining({ operation_kind: "extract", operation_processor: "local" }));
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith(production ? "claim_design_extract" : "claim_design_extract_v2", expect.objectContaining({
+      operation_kind: "extract", ...(production ? {} : { operation_processor: "local" }),
+    }));
     expect(directFetch).not.toHaveBeenCalled();
     expect(prepare.update.mock.calls[0][0]).toMatchObject({ model: "google/nano-banana-2.1/edit" });
     expect(mocks.submit).toHaveBeenCalledExactlyOnceWith("google/nano-banana-2.1/edit", { input: expect.objectContaining({

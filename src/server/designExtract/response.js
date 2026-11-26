@@ -37,7 +37,7 @@ export async function designResponse(data, options = {}) {
         const { productionOutput: _productionOutput, ...result } = job.result;
         job.result = result;
       }
-      job.preparingPilot = job.status === "submitting" && (data.job.model !== (job.whiteElements ? REFINE_MODEL : GUIDED_CUTOUT_MODEL) || Date.now() - Date.parse(job.dispatch_started_at || job.created_at) < PILOT_PREPARATION_LIMIT_MS);
+      job.preparingPilot = job.status === "submitting" && (data.job.input?._desaynclaw?.nanoElements && data.job.processor === "legacy" || data.job.model !== (job.whiteElements ? REFINE_MODEL : GUIDED_CUTOUT_MODEL) || Date.now() - Date.parse(job.dispatch_started_at || job.created_at) < PILOT_PREPARATION_LIMIT_MS);
     }
     if (job.result?.enhancement?.items) job.result = { ...job.result, enhancement: { ...job.result.enhancement, items: job.result.enhancement.items.map(({ requestId: _requestId, outputUrl: _outputUrl, ...item }) => item) } };
     output = { ...data, job };

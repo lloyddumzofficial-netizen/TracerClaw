@@ -77,7 +77,14 @@ it.each([null,'foreign'])('rejects an unowned or missing layer %s',async layer=>
   if(layer==='foreign')project.manifest.layers[0].url='r2-private://design-extract/users/other/l.png';
   expect((await request({layerId:layer==='foreign'?'l':'missing'})).status).toBe(404);expect(mocks.fetch).not.toHaveBeenCalled();
 });
-it('enforces admin access before reading projects',async()=>{mocks.user.mockResolvedValue({data:{user:{id:'x',email:'other@test.com'}}});expect((await request({layerId:'l'})).status).toBe(403);expect(mocks.owned).not.toHaveBeenCalled();});
+it('checks project ownership before converting a layer for a regular account',async()=>{
+  vi.stubEnv('DESIGN_EXTRACT_BILLING_MODE','paid');
+  mocks.user.mockResolvedValue({data:{user:{id:'x',email:'other@test.com'}}});
+  mocks.owned.mockRejectedValueOnce(Object.assign(new Error('Project not found'),{status:404,designExtractError:true}));
+  expect((await request({layerId:'l'})).status).toBe(404);
+  expect(mocks.owned).toHaveBeenCalledWith('p','x');
+  expect(mocks.fetch).not.toHaveBeenCalled();
+});
 it('respects provider rate limits without claiming or paying',async()=>{mocks.limit.mockImplementation(async({namespace})=>({success:namespace!=='design-extract:svg'}));expect((await request({layerId:'l'})).status).toBe(429);expect(mocks.upload).not.toHaveBeenCalled();expect(mocks.fetch).not.toHaveBeenCalled();});
 it('requires provider configuration',async()=>{vi.stubEnv('RECRAFT_API_KEY','');expect((await request({layerId:'l'})).status).toBe(503);expect(mocks.fetch).not.toHaveBeenCalled();});
 it('accepts the SVG returned by the live synthetic Recraft qualification',async()=>{const actual=await readFile(new URL('../fixtures/recraft-layer-vector.svg',import.meta.url));expect(checkedVectorSvg(actual).toString()).toContain('<path');});

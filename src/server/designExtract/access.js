@@ -1,14 +1,22 @@
 import { adminSupabase } from "@/lib/supabase";
 import { designRateLimit as enforceRateLimit } from "./rateLimit";
+import { designBillingMode } from "./billing";
 
-export async function requireDesignAdmin(request, mutate = false) {
+export function canReconcileDesignSubmission(user) {
+  return Boolean(process.env.ADMIN_EMAIL && user.email?.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+}
+
+export async function requireDesignUser(request, mutate = false) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   if (!token) throw Object.assign(new Error("Sign in required"), { status: 401, designExtractError: true });
   const { data: { user }, error } = await adminSupabase.auth.getUser(token);
   if (error && (error.name === "AuthRetryableFetchError" || error.status === 0 || error.status >= 500)) throw Object.assign(new Error("Cannot reach the sign-in service. Check the server connection and retry."), { status: 503, designExtractError: true });
   if (error || !user) throw Object.assign(new Error("Sign in required"), { status: 401, designExtractError: true });
-  if (!process.env.ADMIN_EMAIL || !user.email || user.email.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) throw Object.assign(new Error("Administrator access required"), { status: 403, designExtractError: true });
   if (process.env.DESIGN_EXTRACT_ENABLED !== "true") throw Object.assign(new Error("Design Extract is not available"), { status: 404, designExtractError: true });
+  if (designBillingMode() !== "paid") {
+    if (process.env.VERCEL_ENV === "production") throw Object.assign(new Error("Design Extract billing is not configured"), { status: 503, designExtractError: true });
+    if (!canReconcileDesignSubmission(user)) throw Object.assign(new Error("Administrator access required for free testing"), { status: 403, designExtractError: true });
+  }
   const limit = await enforceRateLimit({ namespace: `design-extract:${mutate ? "write" : "read"}`, identifier: user.id, max: mutate ? 60 : 120, window: "60 s", windowMs: 60000 });
   if (!limit.success) throw Object.assign(new Error("Too many requests. Try again shortly."), { status: 429, designExtractError: true });
   return user;

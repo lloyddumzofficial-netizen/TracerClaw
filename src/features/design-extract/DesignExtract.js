@@ -50,6 +50,9 @@ export default function DesignExtract({ projectId }) {
   const [qualityPilot, setQualityPilot] = useState(Boolean(seed.current?.qualityPilot));
   const [qualityReview, setQualityReview] = useState(Boolean(seed.current?.qualityReview));
   const [guidedCutouts, setGuidedCutouts] = useState(Boolean(seed.current?.guidedCutouts));
+  const [nanoExtraction, setNanoExtraction] = useState(Boolean(seed.current?.nanoExtraction));
+  const [canReconcile, setCanReconcile] = useState(Boolean(seed.current?.canReconcile));
+  const extractsOnWhite = guidedCutouts || nanoExtraction;
   const [extractionMode, setExtractionMode] = useState("review");
   const [reviewDraft, setReviewDraft] = useState(null);
   const [reviewBackground, setReviewBackground] = useState("dark");
@@ -237,6 +240,8 @@ export default function DesignExtract({ projectId }) {
     if (typeof data.qualityPilot === "boolean") setQualityPilot(data.qualityPilot);
     if (typeof data.qualityReview === "boolean") setQualityReview(data.qualityReview);
     if (typeof data.guidedCutouts === "boolean") setGuidedCutouts(data.guidedCutouts);
+    if (typeof data.nanoExtraction === "boolean") setNanoExtraction(data.nanoExtraction);
+    if (typeof data.canReconcile === "boolean") setCanReconcile(data.canReconcile);
   }, []);
   const load = useCallback(data => {
     updateProjectSettings(data);
@@ -396,7 +401,7 @@ export default function DesignExtract({ projectId }) {
     try {
     await persist(layers);
     const guided = kind === "segment" && fromSource && guidedSelection;
-    const mode = guided ? "guided" : kind === "extract" ? guidedCutouts ? "automatic-white" : qualityReview ? extractionMode : undefined : undefined;
+    const mode = guided ? "guided" : kind === "extract" ? extractsOnWhite ? "automatic-white" : qualityReview ? extractionMode : undefined : undefined;
     const data = await api(`/${projectId}`, { method: "POST", body: JSON.stringify({ kind, ...(kind === "refine" && { revision: remote.current.revision }), layerId: kind === "extract" || kind === "refine" || fromSource ? null : selected, points: guided ? undefined : points, selectionBox: kind === "segment" && selectionBox ? selectionBox : undefined, extractionMode: mode, targetName: guided ? targetName.trim() : undefined, priceVersion: pricing?.priceVersion, acknowledgedClaws: pricing?.mode === "paid" ? pricing.prices[kind] : 0, idempotencyKey: crypto.randomUUID() }) });
     if (Number.isInteger(data.job?.creditsRemaining)) setPricing(current => current ? { ...current, balance: data.job.creditsRemaining } : current);
     if (data.job?.status === "failed") load(await fetchDesignProject(projectId, true));
@@ -592,7 +597,7 @@ export default function DesignExtract({ projectId }) {
     <div className={styles.controlGroup} role="group" aria-label="Edit history"><button title="Undo" aria-label="Undo" disabled={disabled || !history.current.past.length} onClick={() => travel("undo")}><Undo2 size={15} /></button><button title="Redo" aria-label="Redo" disabled={disabled || !history.current.future.length} onClick={() => travel("redo")}><Redo2 size={15} /></button></div>
     <button className={`${styles.saveAction} ${styles.iconAction}`} aria-label={saving ? "Saving…" : "Save changes"} title="Save changes · Ctrl / ⌘ S" disabled={disabled} aria-busy={saving} onClick={() => run(async () => { await persist(layers); })}>{saving ? <Loader2 size={14} className={styles.spinner} /> : <Save size={14} />}</button>
     <button disabled={access !== "allowed" || maskEditing || !canvasLayers.length} aria-pressed={compare} onClick={toggleCompare}>Compare</button><button disabled={access !== "allowed"} onClick={detailView}>100% detail</button><span className={styles.toolbarMeta}>{project.manifest.width} × {project.manifest.height} px · {canvasLayers.length} {reviewing ? "layers to review" : "layers"}</span>
-    {guidedCutouts ? <button className={styles.quickExport} aria-label={exporting === "zip" ? "Exporting ZIP…" : "Quick download ZIP"} disabled={disabled || !layers.length} aria-busy={exporting === "zip"} onClick={() => exportFile("zip")}>
+    {extractsOnWhite ? <button className={styles.quickExport} aria-label={exporting === "zip" ? "Exporting ZIP…" : "Quick download ZIP"} disabled={disabled || !layers.length} aria-busy={exporting === "zip"} onClick={() => exportFile("zip")}>
       {exporting === "zip" ? <Loader2 size={16} className={styles.spinner} /> : <Download size={16} />}<span>Download ZIP</span>
     </button> : <button className={styles.quickExport} aria-label={exporting === "psd" ? "Exporting PSD…" : "Quick export PSD"} disabled={disabled || !layers.length} aria-busy={exporting === "psd"} title={layers.length ? "Advanced feature · Included" : "Extract and accept layers before exporting a PSD"} onClick={() => exportFile("psd")}>
       {exporting === "psd" ? <Loader2 size={18} className={styles.spinner} /> : <Image src="/brand-logos/adobe-photoshop.svg" width={20} height={20} alt="" aria-hidden="true" />}
@@ -734,10 +739,10 @@ export default function DesignExtract({ projectId }) {
             {showStartGuide && <section style={{ left: introWidth + 60, height: introHeight }} className={styles.emptyBoard} ref={startGuide} aria-label={refinedWorkspace ? "Getting started with Design Refined" : "Getting started with Design Extract"}>
               <span className={styles.emptyBoardIcon}><Layers3 size={22} /></span>
               <span className={styles.eyebrow}>Start with your artwork</span>
-              <h2>{refinedWorkspace ? "Clean up your design" : job?.status === "failed" ? <>Your original<br />is safe.</> : guidedCutouts ? "Separate your design" : <>One design.<br />Individual elements.</>}</h2>
-              <p>{refinedWorkspace ? "Straighten damaged details and sharpen edges. Compare three versions against your original." : guidedCutouts ? "Extract reusable graphics on white and a separate background." : "Automatically separate shapes, logos, text artwork, and design elements into transparent image layers."}</p>
-              <span className={styles.startHint}>{refinedWorkspace ? <>Choose <strong>Refine design</strong> to start.</> : guidedCutouts ? <>Choose <strong>Extract elements</strong> to start.</> : job?.status === "failed" ? job.qualityPilot ? "Choose SAM 2 or use Manual cutout in the toolbar." : "Use Recover existing result in the Layers panel to check the completed output." : <>Choose <strong>Extract elements</strong> to start. No manual selection needed.</>}</span>
-              {!refinedWorkspace && !guidedCutouts && <small>For a logo or wordmark you want to keep together, choose Manual cutout and try Color Wand.</small>}
+              <h2>{refinedWorkspace ? "Clean up your design" : job?.status === "failed" ? <>Your original<br />is safe.</> : extractsOnWhite ? "Separate your design" : <>One design.<br />Individual elements.</>}</h2>
+              <p>{refinedWorkspace ? "Straighten damaged details and sharpen edges. Compare three versions against your original." : extractsOnWhite ? "Extract reusable graphics on white and a separate background." : "Automatically separate shapes, logos, text artwork, and design elements into transparent image layers."}</p>
+              <span className={styles.startHint}>{refinedWorkspace ? <>Choose <strong>Refine design</strong> to start.</> : extractsOnWhite ? <>Choose <strong>Extract elements</strong> to start.</> : job?.status === "failed" ? job.qualityPilot ? "Choose SAM 2 or use Manual cutout in the toolbar." : "Use Recover existing result in the Layers panel to check the completed output." : <>Choose <strong>Extract elements</strong> to start. No manual selection needed.</>}</span>
+              {!refinedWorkspace && !extractsOnWhite && <small>For a logo or wordmark you want to keep together, choose Manual cutout and try Color Wand.</small>}
             </section>}
             {compare && <img className={styles.comparisonSource} src={project.source_url} alt="Comparison source" style={{ width: project.manifest.width, height: project.manifest.height, clipPath: `inset(0 ${100 - comparison}% 0 0)` }} />}
             {compare && <span className={styles.comparisonDivider} style={{ left: project.manifest.width * comparison / 100, height: project.manifest.height }} />}
@@ -770,7 +775,7 @@ export default function DesignExtract({ projectId }) {
 
         {access === "checking" && openingPlaceholder && <div className={styles.openingSkeleton} role="status" aria-label="Loading layers"><span /><span /><span /></div>}
         {job?.status === "accepted" && job.result?.warnings?.length > 0 && <details className={styles.extractionNote}><summary>Extraction notes</summary>{job.result.warnings.map((warning, index) => <p key={index}>{warning.replaceAll("before accepting", "before production")}</p>)}</details>}
-        {job?.status === "submitting" && !awaitingDispatch && <section className={styles.properties}><p role="status">Submission needs reconciliation. Find this operation in fal history by its source image and creation time. No automatic resubmission.</p><label>fal request ID<input value={requestId} onChange={event => setRequestId(event.target.value)} /></label><button disabled={busy || !requestId} onClick={() => run(async () => { const data = await api(`/${projectId}`, { method: "POST", body: JSON.stringify({ action: "reconcile", jobId: job.id, requestId }) }); setJob(data.job); })}>Reconnect existing request</button></section>}
+        {canReconcile && job?.status === "submitting" && !awaitingDispatch && <section className={styles.properties}><p role="status">Submission needs reconciliation. Find this operation in fal history by its source image and creation time. No automatic resubmission.</p><label>fal request ID<input value={requestId} onChange={event => setRequestId(event.target.value)} /></label><button disabled={busy || !requestId} onClick={() => run(async () => { const data = await api(`/${projectId}`, { method: "POST", body: JSON.stringify({ action: "reconcile", jobId: job.id, requestId }) }); setJob(data.job); })}>Reconnect existing request</button></section>}
         {showingFailure && <section className={styles.failedResult}>
           <h3>{refinedWorkspace ? "Refinement needs attention" : "Extraction needs attention"}</h3><p role="alert">{job.error}</p>
           <p>{refinedWorkspace ? job.billing_state === "refunded" ? "2 Claws refunded. Your original is available for another attempt." : "Your original is still available." : job.recordedBackgroundJobId ? "Restore the saved cutouts and background from the existing request." : job.recordedCutoutJobId ? "Restore the completed cutouts for review." : job.automaticSeparation ? "You can try Extract elements again or use Manual cutout for a specific graphic." : job.guided ? "Try Guided cutout with a new selection." : job.qualityPilot ? "Choose SAM 2 or use Manual cutout to continue." : "Your original artwork is safe. Recover the existing result before starting another extraction."}</p>
@@ -830,7 +835,7 @@ export default function DesignExtract({ projectId }) {
         {!filteredLayers.length && <div className={styles.noLayerMatches}><strong>No matching layers</strong><button onClick={() => { setLayerQuery(""); setLayerFilter("all"); layerListViewport.current?.scrollTo({ top: 0 }); }}>Clear filters</button></div>}
         </div>}
         {!refinedWorkspace && access === "allowed" && !layers.length && !operationPending && job?.status !== "failed" && <div className={styles.emptyLayers}><Layers3 size={26} /><strong>No layers yet</strong><p>Your extracted elements will appear here.</p><ol className={styles.quickSteps}><li><span>1</span>Extract your design</li><li><span>2</span>Review and accept layers</li><li><span>3</span>Arrange and export</li></ol></div>}
-        {!previewing && layers.length > 0 && <div className={styles.exports}><h3>Export artwork</h3><button disabled={disabled || !layers.length} onClick={() => exportFile("zip")}><Download size={14} />Download all · ZIP</button>{!guidedCutouts && <button disabled={disabled || !layers.length} onClick={() => exportFile("psd")}><Layers3 size={14} />Export layered PSD</button>}</div>}
+        {!previewing && layers.length > 0 && <div className={styles.exports}><h3>Export artwork</h3><button disabled={disabled || !layers.length} onClick={() => exportFile("zip")}><Download size={14} />Download all · ZIP</button>{!extractsOnWhite && <button disabled={disabled || !layers.length} onClick={() => exportFile("psd")}><Layers3 size={14} />Export layered PSD</button>}</div>}
       </aside>
     </main>
   </StudioShell>;

@@ -28,3 +28,14 @@ it('keeps local quality results pending even if the watchdog finishes saving the
  expect(m.settle).toHaveBeenCalledWith(project,local);
  expect(m.review).not.toHaveBeenCalled();
 });
+
+it('auto-accepts a completed production Nano result for an empty project', async () => {
+ const empty = {...project, manifest:{layers:[]}};
+ const nano = {...job, processor:'legacy', input:{_desaynclaw:{autoSeparation:true,nanoElements:true}}};
+ const ready = {...nano,status:'ready',result:{replaceExtraction:true,layers:[{id:'graphic'}]}};
+ m.from.mockReturnValueOnce(q([])).mockReturnValueOnce(q([nano])).mockReturnValueOnce(q([])).mockReturnValueOnce(q(empty));
+ m.settle.mockResolvedValue(ready);
+ m.owned.mockResolvedValue(empty);
+ await recoverLegacyDesignJobs();
+ expect(m.review).toHaveBeenCalledWith(empty,nano.id,true);
+});

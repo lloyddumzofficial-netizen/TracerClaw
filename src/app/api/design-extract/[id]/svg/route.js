@@ -1,5 +1,5 @@
 import { designJson } from "@/server/designExtract/request";
-import { requireDesignAdmin, designError } from "@/server/designExtract/access";
+import { requireDesignUser, designError } from "@/server/designExtract/access";
 import { ownedProject, fail } from "@/server/designExtract/service";
 import { convertDesignLayer } from "@/server/designExtract/vectorize";
 import { attachVectorLayer } from "@/server/designExtract/vectorLayer";
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function POST(request, context) {
   try {
-    const user = await requireDesignAdmin(request, true);
+    const user = await requireDesignUser(request, true);
     const { id } = await context.params;
     const project = await ownedProject(id, user.id);
     const { layerId, attach, revision, acknowledgedClaws } = await designJson(request);

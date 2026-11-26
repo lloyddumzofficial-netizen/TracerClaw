@@ -1,6 +1,6 @@
 import { designJson } from "@/server/designExtract/request";
 import { designResponse } from "@/server/designExtract/response";
-import { requireDesignAdmin, designError } from "@/server/designExtract/access";
+import { requireDesignUser, designError } from "@/server/designExtract/access";
 import { createProject } from "@/server/designExtract/service";
 import { adminSupabase as db } from "@/lib/supabase";
 import { designRefineAvailable, isRefinementProject } from "@/server/designExtract/refinement";
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function GET(request) {
   try {
-    const user = await requireDesignAdmin(request);
+    const user = await requireDesignUser(request);
     if (new URL(request.url).searchParams.get("scope") === "access") {
       const refinement = await designRefineAvailable();
       return await designResponse(refinement ? { enabled: true, refinement } : { enabled: true });
@@ -21,7 +21,7 @@ export async function GET(request) {
 }
 export async function POST(request) {
   try {
-    const user = await requireDesignAdmin(request, true);
+    const user = await requireDesignUser(request, true);
     const body = await designJson(request);
     const project = await createProject(user.id, body.imageUrl, body.sourceProjectId, await designRefineAvailable());
     return await designResponse({ project }, { status: 201 });

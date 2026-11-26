@@ -1,4 +1,4 @@
-import { requireDesignAdmin, designError } from "@/server/designExtract/access";
+import { requireDesignUser, designError } from "@/server/designExtract/access";
 import { ownedProject, readAsset, fail } from "@/server/designExtract/service";
 import { adminSupabase as db } from "@/lib/supabase";
 import { maskAsset, selectVariant } from "@/lib/designExtractVariants";
@@ -7,7 +7,7 @@ import { readQualityDraft } from "@/server/designExtract/qualityReview";
 export const runtime = "nodejs";
 export async function GET(request, context) {
   try {
-    const user = await requireDesignAdmin(request);
+    const user = await requireDesignUser(request);
     const { id } = await context.params;
     const project = await ownedProject(id, user.id);
     const params = new URL(request.url).searchParams;

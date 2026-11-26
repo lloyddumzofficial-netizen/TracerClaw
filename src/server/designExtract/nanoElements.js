@@ -5,7 +5,7 @@ const columns = 3;
 const rows = 3;
 
 export function canAutoAcceptNanoLayers(job, project) {
-  return Boolean(job?.status === "ready" && job.kind === "extract" && job.processor === "local" &&
+  return Boolean(job?.status === "ready" && job.kind === "extract" && ["local", "legacy"].includes(job.processor) &&
     job.input?._desaynclaw?.nanoElements && job.result?.layers?.length && project?.manifest &&
     job.base_revision === project.revision &&
     !(job.result.replaceExtraction && project.manifest.layers.length));

@@ -50,6 +50,7 @@ export const fail = (message, status = 400) => { throw Object.assign(new Error(m
 function checked(result) { if (result.error) throw result.error; return result.data; }
 const updateJob = (job, values) => fenceDesignJob(db.from("design_extract_jobs").update(values).eq("id", job.id), job);
 const guidedModeAvailable = () => qualityReviewAvailable() && designProcessingDriver() === "legacy" && Boolean(process.env.FAL_KEY);
+const productionNanoAvailable = () => process.env.VERCEL_ENV === "production";
 export const prefix = project => `users/${project.user_id}/design-extract/${project.id}/`;
 export async function readAsset(url, provider = false, { upload = false } = {}) {
   const maxBytes = upload ? DESIGN_UPLOAD_MAX_BYTES : DESIGN_ASSET_MAX_BYTES;
@@ -180,7 +181,8 @@ export async function startOperation(project, body) {
   if (refine && (!await designRefineAvailable() || layerId || body.extractionMode)) fail("Design Refined is unavailable.", 400);
   const paid = refine || designBillingMode() === "paid";
   const pilot = body.extractionMode === "pilot";
-  const automatic = kind === "extract" && !pilot && guidedModeAvailable();
+  const productionNano = kind === "extract" && !pilot && productionNanoAvailable();
+  const automatic = kind === "extract" && !pilot && (productionNano || guidedModeAvailable());
   const whiteElements = body.extractionMode === "automatic-white";
   if ((body.extractionMode === "automatic" || whiteElements) && !automatic) fail("Automatic separation is unavailable in this workspace.", 400);
   if (automatic && layerId) fail("Automatic separation uses the original artwork.");
@@ -231,7 +233,7 @@ export async function startOperation(project, body) {
   const record = { project_id: project.id, user_id: project.user_id, base_revision: project.revision, idempotency_key: idempotencyKey, kind, layer_id: layerId || null, input: refine ? { image_url: project.source_url } : kind === "segment" ? input : { ...input, _desaynclaw: { enhanceLayers: 0, maskExtraction: 1, ...(pilot && { qualityPilot: true }), ...(reviewCutouts && { reviewCutouts: true }), ...(automatic && { autoSeparation: true, whiteElements: true, nanoElements: true }) } }, model };
   if (paid && (body.priceVersion !== DESIGN_EXTRACT_PRICE_VERSION || body.acknowledgedClaws !== designExtractPrice(kind))) fail("Pricing changed. Refresh the workspace to review the current Claw price.", 409);
   requirePrivateDesignStorage();
-  const processor = refine || automatic || guided || pilot || reviewCutouts ? "local" : designProcessingDriver();
+  const processor = productionNano ? "legacy" : refine || automatic || guided || pilot || reviewCutouts ? "local" : designProcessingDriver();
   if (processor !== "legacy") record.processor = processor;
   if (!ownsPrivateDesignAsset(input.image_url, project.user_id)) {
     if (!isOwnedStorageUrl(input.image_url, { userId: project.user_id, projectId: project.id })) fail("Unauthorized operation source", 403);
@@ -380,6 +382,14 @@ export async function settleOperation(project, job) {
   if (job.processor === "local" && (process.env.NODE_ENV !== "development" || process.env.VERCEL)) return job;
   const guidedModel = job.input?._desaynclaw?.whiteElements ? REFINE_MODEL : GUIDED_CUTOUT_MODEL;
   const preparingLocal = isQualityPilotJob(job) && job.model !== PILOT_MASK_MODEL || (guidedCutout(job) || isAutomaticSeparationJob(job)) && job.model !== guidedModel;
+  if (job.processor === "legacy" && job.input?._desaynclaw?.nanoElements && job.status === "submitting" && !job.request_id) {
+    if (Date.now() - Date.parse(job.dispatch_started_at || job.created_at) >= PILOT_PREPARATION_LIMIT_MS) return failQualityPilot(job, "Extraction could not be confirmed. You can retry.");
+    if (!job.dispatch_started_at) {
+      if (job.base_revision !== project.revision) return failQualityPilot(job, "The project changed before extraction started.");
+      return dispatchLocalMaskJob(project, job);
+    }
+    return job;
+  }
   if (preparingLocal && job.processor === "local" && job.status === "submitting" &&
       !job.dispatch_started_at && !job.request_id && Date.now() - Date.parse(job.created_at) < PILOT_PREPARATION_LIMIT_MS) {
     if (job.base_revision !== project.revision) fail("Project changed before extraction. Reload before continuing.", 409);
@@ -757,7 +767,7 @@ export async function snapshot(project, advance = false) {
   }
   return {
     project, job, billing,
-    qualityReview, qualityPilot: qualityReview && qualityPilotAvailable(), guidedCutouts,
+    qualityReview, qualityPilot: qualityReview && qualityPilotAvailable(), guidedCutouts, nanoExtraction: productionNanoAvailable(),
   };
 }
 export async function reconcileSubmission(project, jobId, requestId) {
