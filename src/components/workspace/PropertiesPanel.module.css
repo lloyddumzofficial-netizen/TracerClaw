@@ -19,6 +19,23 @@
   color: #929591;
 }
 
+.artworkActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.panel.panel.panel.panel .artworkActions :global(.pp-svg-btn) {
+  min-width: 0;
+  padding-inline: 4px !important;
+  gap: 5px;
+  font-size: 11px !important;
+  white-space: nowrap;
+}
+
+.artworkActions svg { flex-shrink: 0; }
+
 .printChecklistSlot {
   flex: 1 0 auto;
   display: grid;
@@ -271,6 +288,8 @@
   .panel.panel.panel.panel :global(.pp-agent-card-copy p) { display: none; }
   .panel.panel.panel.panel :global(.pp-agent-card-copy) { padding:8px; }
   .panel.panel.panel.panel :global(.pp-agent-headline) { font-size: 14px; }
+  :global(.has-artwork-editor) .printChecklist { padding: 6px 9px; }
+  :global(.has-artwork-editor) .printChecklist ul { gap: 3px; margin-top: 4px; }
 }
 
 @container (max-height: 740px) {
@@ -295,6 +314,9 @@
   .panel.panel.panel.panel :global(.pp-agent-identity) { margin-bottom:4px; }
   .panel.panel.panel.panel :global(.pp-agent-identity > span) { width:20px; height:20px; }
   .panel.panel.panel.panel :global(.pp-agent-portrait) { width: 100px; height: 110px; }
+  .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-sec) { min-height: 38px !important; padding: 3px !important; }
+  :global(.has-artwork-editor) .zipContents { margin-top: 5px; padding-top: 4px; gap: 2px; }
+  :global(.has-artwork-editor) .printChecklistSlot { padding-block: 5px; }
 }
 
 @container (max-height: 540px) {
@@ -316,4 +338,10 @@
   .panel.panel.panel.panel :global(.pp-agent-headline) { display:none; }
   .panel.panel.panel.panel :global(.pp-agent-headline br) { display: none; }
   .panel.panel.panel.panel :global(.pp-agent-portrait) { width: 76px; height: 84px; }
+  .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-sec) { min-height: 34px !important; }
+  :global(.has-artwork-editor) .printChecklistSlot { padding-block: 2px; }
+  :global(.has-artwork-editor) .printChecklist ul { font-size: 10px; }
+  :global(.has-artwork-editor) .zipContents { display: flex; flex-wrap: wrap; column-gap: 6px; }
+  .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-mode-options .pp-card) { min-height: 40px !important; }
+  .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-warn) { padding: 3px 7px !important; }
 }

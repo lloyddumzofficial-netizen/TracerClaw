@@ -4,6 +4,7 @@ import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
+import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -206,25 +207,20 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
         </button>
 
         <div className="login-image-side">
-          <video
-            className="login-banner-video"
-            src="/login-page.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            disablePictureInPicture
-            controlsList="nodownload nofullscreen noremoteplayback"
-            preload="metadata"
-            tabIndex={-1}
-            aria-label="DesaynClaw workspace preview"
-          />
-          <div className="login-visual-shade" aria-hidden="true" />
+          <div className="login-banner-grid" aria-hidden="true">
+            <SafeInlineSVG className="login-banner-outline" url="/SVG/LOGO%20OUTLINE.svg" />
+          </div>
           <div className="login-visual-copy">
-            <div className="login-visual-proof">
-              <ShieldCheck size={15} />
-              <span>Private by default · Auto-deleted after 3 days</span>
-            </div>
+            <Image className="login-banner-logo" src="/nav bar logo.png" alt="DesaynClaw" width={188} height={40} />
+            <p>
+              <span>Extract artwork.</span>
+              <span>Refine the details.</span>
+              <strong>Ready for print.</strong>
+            </p>
+          </div>
+          <div className="login-visual-proof">
+            <ShieldCheck size={15} aria-hidden="true" />
+            <span>Project files are private and expire after 3 days.</span>
           </div>
         </div>
 

@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import { SlidersHorizontal, X, LockKeyhole, ArrowUp, ArrowDown, Trash2, Sparkles, Layers3, MousePointer2, Download, PenTool, Loader2, Scan, CheckCircle2 } from "lucide-react";
+import { SlidersHorizontal, X, LockKeyhole, ArrowUp, ArrowDown, Trash2, Sparkles, Layers3, MousePointer2, Download, PenTool, Loader2, Scan, CheckCircle2, Scissors } from "lucide-react";
 import styles from "./designExtract.module.css";
 import FeatureBadges from "./FeatureBadges";
 import { layerUpscaleAvailability } from "@/lib/designExtractUpscalePolicy";
-export default function LayerInspector({ refinement = false, layer, view, disabled, pending = false, acceptPreview, downloadDisabled = disabled, segmentMode, splitPriceLabel = "", segmentPriceLabel = "", upscaling = false, onUpscale, convertingSvg = false, svgReady = false, onConvertSvg, onUpdate, onForward, onBackward, onDelete, onSplit, onSegment, onMask, onVersion, onDownload, onClose }) {
+export default function LayerInspector({ refinement = false, layer, view, disabled, pending = false, acceptPreview, downloadDisabled = disabled, segmentMode, splitPriceLabel = "", segmentPriceLabel = "", upscaling = false, finishAllowance, onUpscale, removingBackground = false, onRemoveBackground, convertingSvg = false, svgReady = false, onConvertSvg, onUpdate, onForward, onBackward, onDelete, onSplit, onSegment, onMask, onVersion, onDownload, onClose }) {
   const [tab, setTab] = useState("properties");
   const raster = layer.kind !== "svg";
   const upscale = layerUpscaleAvailability(layer);
@@ -48,8 +48,20 @@ export default function LayerInspector({ refinement = false, layer, view, disabl
     <footer className={styles.layerDownloads}>
       {(raster || !svgReady) && <section aria-label="Layer actions"><h4>Actions</h4>
         {raster && <>
+          {finishAllowance && <div className={styles.finishAllowance} aria-live="polite">
+            <p>{finishAllowance.state === "unlocked" ? "Unlocked for this extraction" : finishAllowance.state === "held" ? "Unlock in progress" : "Unlock both once · 1 Claw"}</p>
+            <div>
+              <span>Upscale <strong>{finishAllowance.remaining.upscale}{finishAllowance.state === "locked" ? " included" : " left"}</strong></span>
+              <span>SVG <strong>{finishAllowance.remaining.svg}{finishAllowance.state === "locked" ? " included" : " left"}</strong></span>
+            </div>
+          </div>}
           <button disabled={disabled || layer.locked || !upscale.plan} aria-busy={upscaling} aria-describedby="layer-upscale-details" onClick={onUpscale} title={upscale.reason}><span className={styles.layerActionContent}>{upscaling ? <Loader2 size={14} className={styles.spinner} /> : <Scan size={14} />}<span>{upscaling ? "Upscaling image…" : upscale.label}</span></span>{!upscaling && upscale.plan && <FeatureBadges />}</button>
           <p id="layer-upscale-details" className={styles.upscaleDetails}>{upscale.reason}</p>
+          {!layer.backgroundRemoval && <button type="button" disabled={disabled || layer.locked} aria-busy={removingBackground} onClick={onRemoveBackground}>
+            <span className={styles.layerActionContent}>{removingBackground ? <Loader2 size={14} className={styles.spinner} /> : <Scissors size={14} />}
+              <span>{removingBackground ? "Removing background…" : "Remove background"}</span></span>
+            {!removingBackground && <FeatureBadges />}
+          </button>}
         </>}
         {!svgReady && svgAction}
       </section>}

@@ -4,6 +4,33 @@ import { uploadDesignAsset } from "./storage";
 
 export const FINISH_RECEIPT_WINDOW_MS = 24 * 60 * 60_000;
 
+export async function readFinishAllowance(project, layerId) {
+  if (designBillingMode() === "beta") return null;
+  const currentLayers = new Set(project.manifest.layers.filter(layer => layer.kind !== "svg" && !layer.backgroundRemoval).map(layer => layer.id));
+  if (!currentLayers.has(layerId)) return null;
+  const { data: batch, error: batchError } = await db.from("design_extract_jobs").select("id,result")
+    .eq("project_id", project.id).eq("user_id", project.user_id).eq("kind", "extract").eq("status", "accepted")
+    .eq("input->_desaynclaw->>nanoElements", "true")
+    .contains("result->layers", JSON.stringify([{ id: layerId }])).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (batchError) throw batchError;
+  if (!batch) return null;
+  const eligible = new Set(batch.result.layers.slice(0, 9).map(layer => layer.id).filter(id => currentLayers.has(id)));
+  if (!eligible.has(layerId)) return null;
+
+  const { data: bundle, error: bundleError } = await db.from("design_extract_finish_bundles")
+    .select("state,actions:design_extract_finish_actions(layer_id,action,state)")
+    .eq("batch_id", batch.id).eq("user_id", project.user_id).maybeSingle();
+  if (bundleError) throw bundleError;
+  const remaining = { upscale: eligible.size, svg: eligible.size };
+  for (const action of bundle?.actions || []) {
+    if (action.state !== "refunded" && eligible.has(action.layer_id)) remaining[action.action]--;
+  }
+  return {
+    state: bundle?.state === "unlocked" || bundle?.state === "held" ? bundle.state : "locked",
+    remaining,
+  };
+}
+
 export async function finishReceiptExpired(record) {
   if (!record.finishActionId) return false;
   let createdAt = Date.parse(record.createdAt);

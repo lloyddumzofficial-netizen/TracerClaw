@@ -74,7 +74,7 @@ test("project editor → layers → arrange/refine → refresh → PNG, ZIP and 
   const camera = () => board.evaluate(element => { const matrix = new DOMMatrix(getComputedStyle(element).transform); return { x: matrix.m41, y: matrix.m42, zoom: matrix.a }; });
   const initialCamera = await camera(), viewport = await canvas.boundingBox();
   const labelHeight = await page.locator('[data-canvas-details]').evaluate(element => element.getBoundingClientRect().height);
-  await expect(page.getByRole("button", { name: "Layers extracted", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^(Extract elements|Layers extracted)$/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Quick export PSD", exact: true })).toBeEnabled();
   const pointer = { x: Math.round(viewport.x + viewport.width * .6), y: Math.round(viewport.y + viewport.height * .5) };
   const artworkX = (pointer.x - viewport.x - initialCamera.x) / initialCamera.zoom;

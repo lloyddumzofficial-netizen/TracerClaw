@@ -49,9 +49,22 @@ test("garment loading percentage advances within real stages and never completes
   await expect(page.getByText("Reference", { exact: true })).toBeVisible();
   const beforeTracing = page.getByRole("complementary", { name: "Before tracing" });
   await expect(beforeTracing).toBeInViewport({ ratio: 1 });
-  await page.setViewportSize({ width: 1440, height: 760 });
-  await beforeTracing.scrollIntoViewIfNeeded();
-  await expect(beforeTracing).toBeInViewport({ ratio: 1 });
+  const settings = page.locator(".workspace-properties-panel");
+  const verifySidebar = async height => {
+    await page.setViewportSize({ width: 1440, height });
+    await expect(settings.locator(".pp-scroll-region")).toHaveCSS("overflow-y", "clip");
+    await expect.poll(() => settings.evaluate(panel => {
+      const region = panel.querySelector(".pp-scroll-region");
+      const { top, bottom } = region.getBoundingClientRect();
+      const items = [...region.querySelectorAll("button, select, aside, dl")];
+      const outside = items.filter(item => {
+        const rect = item.getBoundingClientRect();
+        return !rect.height || rect.top < top - 1 || rect.bottom > bottom + 1;
+      }).map(item => item.textContent.trim());
+      return { overflow: Math.max(0, region.scrollHeight - region.clientHeight - 1), outside };
+    }), { message: `Keep Complete Design controls fit at ${height}px` }).toEqual({ overflow: 0, outside: [] });
+  };
+  for (const height of [920, 760, 680, 600]) await verifySidebar(height);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.getByRole("complementary", { name: "Before printing" })).toHaveCount(0);
   await page.getByRole("button", { name: /Run Auto-Trace/ }).click();
@@ -96,12 +109,14 @@ test("garment loading percentage advances within real stages and never completes
   const alignment = await checklist.evaluate(card => {
     const border = card.getBoundingClientRect();
     const slot = card.parentElement.getBoundingClientRect();
-    const exportButton = card.closest(".pp-scroll-region").querySelector(".pp-actions-section .pp-svg-btn").getBoundingClientRect();
-    return { top: border.top - slot.top, bottom: slot.bottom - border.bottom, left: border.left - exportButton.left, right: border.right - exportButton.right };
+    const actions = card.closest(".pp-scroll-region").querySelector(".pp-actions-section .pp-svg-btn").parentElement.getBoundingClientRect();
+    return { top: border.top - slot.top, bottom: slot.bottom - border.bottom, left: border.left - actions.left, right: border.right - actions.right };
   });
   expect(Math.abs(alignment.top - alignment.bottom)).toBeLessThan(1);
   expect(Math.abs(alignment.left)).toBeLessThan(1);
   expect(Math.abs(alignment.right)).toBeLessThan(1);
+  await verifySidebar(600);
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route("**/api/design-extract", async route => {
     expect(route.request().postDataJSON()).toEqual({ sourceProjectId: "progress-test" });
     await route.fulfill({ json: { project: { id: "refined-handoff", source_url: "https://progress.test/step-1.svg", manifest: { width: 600, height: 800, layers: [], workspaceMode: "refine" } } } });

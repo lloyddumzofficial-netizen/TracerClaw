@@ -15,6 +15,8 @@ test("layer search, visibility filters, focus and safe keyboard editing", async 
   await page.route("https://editor-assets.test/**", route => route.fulfill({ contentType: "image/svg+xml", body: artwork }));
   let project = { id: "editor-tools", revision: 0, source_url: source, manifest: { version: 1, width: 800, height: 1200, layers: ["Team mark", "Print pattern"].map((name, index) => ({ id: `layer-${index}`, name, url: source, width: 100, height: 140, visible: !index, locked: false, layout: { x: 300 + index * 300, y: 0, scale: 1 }, composition: { x: index * 100, y: 0, scale: 1 } })) } };
   let saves = 0, generations = 0;
+  let finishAllowance = { state: "locked", remaining: { upscale: 2, svg: 2 } };
+  await page.route("**/api/design-extract/editor-tools/finish?*", route => route.fulfill({ json: { allowance: finishAllowance } }));
   await page.route("**/api/design-extract/editor-tools", route => {
     if (route.request().method() === "PATCH") {
       saves++; project = { ...project, revision: project.revision + 1, manifest: { ...project.manifest, layers: route.request().postDataJSON().layers } };
@@ -78,4 +80,53 @@ test("layer search, visibility filters, focus and safe keyboard editing", async 
   expect(project.source_url).toBe(source);
   expect(generations).toBe(0);
   await page.screenshot({ path: "output/design-extract-editor-tools.png" });
+
+  let checks = 0;
+  await page.route("**/api/design-extract/editor-tools/remove-background", route => {
+    if (++checks === 1) return route.fulfill({ status: 202, json: { pending: true } });
+    const cutout = { ...project.manifest.layers[0], id: "cutout", name: "Team badge · Cutout",
+      backgroundRemoval: true, layout: { x: 360, y: 2600, scale: 1 } };
+    project = { ...project, revision: project.revision + 1, manifest: { ...project.manifest, layers: [...project.manifest.layers, cutout] } };
+    return route.fulfill({ json: { project, layerId: cutout.id } });
+  });
+  await list.getByRole("button", { name: /Team badge/ }).click();
+  await expect(page.getByText("Unlock both once · 1 Claw", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Remove background", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Removing background…" })).toBeDisabled();
+  const sourceLayer = page.getByRole("button", { name: "Select Team badge", exact: true });
+  const sourceRow = list.getByRole("button", { name: /Team badge/ });
+  await expect(sourceLayer.getByRole("region", { name: "Background removal progress" })).toBeVisible();
+  await expect.poll(async () => (await sourceLayer.boundingBox())?.width).toBeGreaterThan(240);
+  await expect(sourceRow.locator('[class*="thumbnailProgress"]')).toBeVisible();
+  const cutout = page.getByRole("button", { name: "Select Team badge · Cutout", exact: true });
+  await expect(cutout).toBeInViewport({ ratio: 1 });
+  await expect.poll(async () => (await cutout.boundingBox())?.width).toBeGreaterThan(160);
+  await expect(page.getByLabel("Layer name", { exact: true })).toHaveValue("Team badge · Cutout");
+  await expect(sourceLayer.getByRole("region", { name: "Background removal progress" })).toHaveCount(0);
+  await expect(list.locator('[class*="thumbnailProgress"]')).toHaveCount(0);
+  expect(checks).toBe(2);
+
+  let finishUpscale;
+  const upscaleResponse = new Promise(resolve => { finishUpscale = resolve; });
+  await page.route("**/api/design-extract/editor-tools/upscale", async route => {
+    await upscaleResponse;
+    finishAllowance = { state: "unlocked", remaining: { upscale: 1, svg: 2 } };
+    return route.fulfill({ json: { project } });
+  });
+  await page.getByRole("button", { name: "Fit", exact: true }).click();
+  await expect.poll(async () => (await cutout.boundingBox())?.width).toBeLessThan(110);
+  await page.getByRole("button", { name: "Upscale image", exact: true }).click();
+  const cutoutRow = list.getByRole("button", { name: /Team badge · Cutout/ });
+  try {
+    await expect(cutout.getByRole("region", { name: "Image upscale progress" })).toBeVisible();
+    await expect.poll(async () => (await cutout.boundingBox())?.width).toBeGreaterThan(240);
+    await expect(cutoutRow.locator('[class*="thumbnailProgress"]')).toBeVisible();
+  } finally {
+    finishUpscale();
+  }
+  await expect(cutout.getByRole("region", { name: "Image upscale progress" })).toHaveCount(0);
+  await expect(cutoutRow.locator('[class*="thumbnailProgress"]')).toHaveCount(0);
+  await expect(page.getByText("Unlocked for this extraction", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 left", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 left", { exact: true })).toBeVisible();
 });

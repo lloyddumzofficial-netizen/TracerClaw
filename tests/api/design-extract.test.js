@@ -2,13 +2,13 @@ import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import sharp from "sharp";
 import { randomFillSync } from "node:crypto";
 import { jsonRequest } from "../helpers/routeTestUtils";
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), from: vi.fn(), rpc: vi.fn(), status: vi.fn(), result: vi.fn(), submit: vi.fn(), fetch: vi.fn(), upload: vi.fn(), privateRead: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), from: vi.fn(), rpc: vi.fn(), status: vi.fn(), result: vi.fn(), submit: vi.fn(), fetch: vi.fn(), upload: vi.fn(), privateRead: vi.fn(), rateLimit: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({ adminSupabase: { auth: { getUser: mocks.getUser }, from: mocks.from, rpc: mocks.rpc } }));
-vi.mock("@/lib/rateLimit", () => ({ enforceRateLimit: async () => ({ success: true }) }));
+vi.mock("@/lib/rateLimit", () => ({ enforceRateLimit: mocks.rateLimit }));
 vi.mock("@fal-ai/client", () => ({ fal: { queue: { status: mocks.status, result: mocks.result, submit: mocks.submit } } }));
 vi.mock("@/server/designExtract/storage", async () => ({ ...(await vi.importActual("@/server/designExtract/storage")), uploadDesignAsset: mocks.upload, readPrivateDesignAsset: mocks.privateRead }));
 vi.mock("@/server/designExtract/processing/launcher",()=>({maintainDesignWorkflows:async()=>{},wakeDesignWorkflow:async()=>{}}));
-vi.mock("@/server/designExtract/submission", () => ({ submitDesignOperation: mocks.submit }));
+vi.mock("@/server/designExtract/submission", async importOriginal => ({ ...(await importOriginal()), submitDesignOperation: mocks.submit }));
 vi.mock("@/lib/cloudflare", () => ({ bucketName: "public-bucket", s3Client: { send: vi.fn(async () => ({ Contents: [] })) }, uploadToR2: mocks.upload, deleteR2Prefix: vi.fn() }));
 vi.mock("@aws-sdk/s3-request-presigner", () => ({ getSignedUrl: async () => "https://private-signed.test/source.png" }));
 vi.mock("@/lib/ssrf", () => ({ fetchWithSSRFProtection: mocks.fetch, getAllowedProviderHosts: () => ["fal.media"], getAllowedStorageHosts: () => ["r2.test"], isOwnedStorageUrl: (url, { userId }) => url?.startsWith(`https://r2.test/users/${userId}/`) }));
@@ -16,6 +16,8 @@ import { GET, POST } from "@/app/api/design-extract/route";
 import { GET as getDocument, PATCH as patchDocument, POST as postDocument } from "@/app/api/design-extract/[id]/route";
 import { POST as syncDocument } from "@/app/api/design-extract/[id]/sync/route";
 import { GET as getAsset } from "@/app/api/design-extract/[id]/asset/route";
+import { POST as postRemoveBackground } from "@/app/api/design-extract/[id]/remove-background/route";
+import { GET as getFinishAllowance } from "@/app/api/design-extract/[id]/finish/route";
 import { readAsset, ownedProject, createProject, startOperation, settleOperation, reviewOperation, recoverOperation, snapshot, editLayerAsset } from "@/server/designExtract/service";
 import { renameDesignProject, deleteDesignProject } from "@/server/designExtract/service";
 import { maintainDesignExtract } from "@/server/designExtract/maintenance";
@@ -25,7 +27,7 @@ import { findAutomaticTargets, prepareAutomaticMask } from "@/server/designExtra
 import { nanoColumnGuide, splitNanoElements } from "@/server/designExtract/nanoElements";
 function query(data, error = null) {
   const q = {};
-  for (const key of ["select", "eq", "neq", "is", "gt", "lt", "in", "order", "limit", "insert", "update", "delete"]) q[key] = vi.fn(() => q);
+  for (const key of ["select", "eq", "neq", "is", "gt", "lt", "in", "contains", "order", "limit", "insert", "update", "delete"]) q[key] = vi.fn(() => q);
   q.single = q.maybeSingle = vi.fn(async () => ({ data, error }));
   q.then = (resolve, reject) => Promise.resolve({ data, error }).then(resolve, reject);
   return q;
@@ -35,11 +37,99 @@ beforeEach(async () => {
   vi.resetAllMocks(); vi.stubEnv("DESIGN_EXTRACT_PRIVATE_BUCKET", "design-extract-private"); vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "beta"); vi.stubEnv("ADMIN_EMAIL", "admin@test.com"); vi.stubEnv("DESIGN_EXTRACT_ENABLED", "true");
   vi.stubEnv("VERCEL_ENV", "");
   vi.stubEnv("FAL_KEY", "mock-key");
+  mocks.rateLimit.mockResolvedValue({ success: true });
   mocks.fetch.mockResolvedValue({buffer:await sharp({create:{width:100,height:100,channels:4,background:"#fff"}}).png().toBuffer()});
   mocks.upload.mockImplementation(async (_bytes,key)=>"r2-private://design-extract/"+key);
   mocks.getUser.mockResolvedValue({ data: { user: { id: "admin-1", email: "admin@test.com" } } });
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+it("blocks another whole-artwork extraction before charging, even after its layers are deleted", async () => {
+  vi.stubEnv("VERCEL_ENV", "production");
+  vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
+  const body = { kind: "extract", idempotencyKey: "another-extraction" };
+  for (const manifest of [{ ...project.manifest, layers: [{ id: "saved" }] }, { ...project.manifest, extractionComplete: true }]) {
+    mocks.from.mockReturnValueOnce(query(null));
+    await expect(startOperation({ ...project, revision: 2, manifest }, body)).rejects.toMatchObject({ status: 409, message: "Elements have already been extracted for this artwork." });
+  }
+  const accepted = query({ id: "legacy-extraction" });
+  mocks.from.mockReturnValueOnce(query(null)).mockReturnValueOnce(accepted);
+  await expect(startOperation({ ...project, revision: 2 }, body)).rejects.toMatchObject({ status: 409 });
+  expect(accepted.eq).toHaveBeenCalledWith("status", "accepted");
+  expect(mocks.rateLimit).not.toHaveBeenCalled();
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  expect(mocks.submit).not.toHaveBeenCalled();
+});
+
+it("reports separate remaining uses from the selected layer's paid extraction batch", async () => {
+  vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
+  const layers = Array.from({ length: 10 }, (_, index) => ({ id: `graphic-${index}` }));
+  const document = { ...project, manifest: { ...project.manifest, layers: layers.filter(layer => layer.id !== "graphic-8") } };
+  const batch = query({ id: "accepted-batch", result: { layers } });
+  const bundle = query({ state: "unlocked", actions: [
+    { layer_id: "graphic-0", action: "upscale", state: "saved" },
+    { layer_id: "graphic-1", action: "upscale", state: "pending" },
+    { layer_id: "graphic-2", action: "svg", state: "refunded" },
+    { layer_id: "graphic-8", action: "svg", state: "saved" },
+  ] });
+  const request = layerId => getFinishAllowance(new Request(`https://example.test/api/design-extract/project-1/finish?layerId=${layerId}`, {
+    headers: { Authorization: "Bearer mock-token" },
+  }), { params: { id: document.id } });
+  mocks.from.mockReturnValueOnce(query(document)).mockReturnValueOnce(batch).mockReturnValueOnce(bundle);
+  const response = await request("graphic-0");
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ allowance: { state: "unlocked", remaining: { upscale: 6, svg: 8 } } });
+  expect(batch.contains).toHaveBeenCalledWith("result->layers", '[{"id":"graphic-0"}]');
+  expect(bundle.eq).toHaveBeenCalledWith("user_id", project.user_id);
+
+  mocks.from.mockReturnValueOnce(query(document)).mockReturnValueOnce(batch);
+  expect(await (await request("graphic-9")).json()).toEqual({ allowance: null });
+  mocks.from.mockClear().mockReturnValueOnce(query({ ...document, manifest: { ...document.manifest, layers: [
+    ...document.manifest.layers, { id: "cutout", backgroundRemoval: true },
+  ] } }));
+  expect(await (await request("cutout")).json()).toEqual({ allowance: null });
+  expect(mocks.from).toHaveBeenCalledExactlyOnceWith("design_extract_projects");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+it("limits new background removals and resumes a saved receipt to add a transparent layer", async () => {
+  const source = { id: "graphic", name: "Graphic", url: "r2-private://design-extract/users/admin-1/design-extract/project-1/graphic.png",
+    width: 2, height: 1, visible: true, composition: { x: 11, y: 8, scale: 2 }, layout: { x: 0, y: 0, scale: 1 } };
+  const document = { ...project, manifest: { ...project.manifest, layers: [source] } };
+  const request = () => postRemoveBackground(jsonRequest({ layerId: source.id, revision: 0 }), { params: { id: document.id } });
+  const bytes = async rgba => sharp(Buffer.from(rgba), { raw: { width: 2, height: 1, channels: 4 } }).png().toBuffer();
+  const original = await bytes([255, 0, 0, 255, 0, 255, 0, 255]);
+  const output = await bytes([0, 0, 0, 255, 0, 0, 0, 0]);
+
+  mocks.from.mockReturnValueOnce(query(document)).mockReturnValueOnce(query([]));
+  mocks.privateRead.mockRejectedValueOnce(Object.assign(new Error(), { name: "NoSuchKey" }));
+  mocks.rateLimit.mockResolvedValueOnce({ success: true }).mockResolvedValueOnce({ success: false });
+  expect((await request()).status).toBe(429);
+  expect(mocks.submit).not.toHaveBeenCalled();
+
+  mocks.from.mockReturnValueOnce(query(document)).mockReturnValueOnce(query([]));
+  mocks.privateRead.mockRejectedValueOnce(Object.assign(new Error(), { name: "NoSuchKey" }));
+  mocks.submit.mockResolvedValueOnce({ request_id: "cutout-receipt" });
+  mocks.status.mockResolvedValueOnce({ status: "IN_QUEUE" });
+  expect((await request()).status).toBe(202);
+  expect(mocks.submit).toHaveBeenCalledExactlyOnceWith("fal-ai/birefnet", { input: expect.objectContaining({ operating_resolution: "1024x1024" }) });
+
+  const update = query(null);
+  update.maybeSingle.mockImplementation(async () => ({ data: { ...document, ...update.update.mock.calls[0][0] } }));
+  mocks.from.mockReturnValueOnce(query(document)).mockReturnValueOnce(query([])).mockReturnValueOnce(query([])).mockReturnValueOnce(update);
+  mocks.privateRead.mockResolvedValueOnce(Buffer.from('{"requestId":"cutout-receipt"}')).mockResolvedValueOnce(original);
+  mocks.fetch.mockResolvedValueOnce({ buffer: output });
+  mocks.status.mockResolvedValueOnce({ status: "COMPLETED" });
+  mocks.result.mockResolvedValueOnce({ data: { image: { url: "https://test.fal.media/cutout.png" } } });
+  const complete = await request();
+  expect(complete.status).toBe(200);
+  expect(await complete.json()).toMatchObject({ project: { revision: 1, manifest: { layers: [
+    { id: "graphic", visible: false }, { name: "Graphic · Cutout", backgroundRemoval: true, composition: source.composition },
+  ] } } });
+  expect(mocks.submit).toHaveBeenCalledTimes(1);
+  const [png] = mocks.upload.mock.calls.find(([, key]) => key.endsWith(".png"));
+  expect([...(await sharp(png).raw().toBuffer())]).toEqual([255, 0, 0, 255, 0, 255, 0, 0]);
+});
 
 it("automatically saves a ready Nano Banana result on sync without submitting another job", async () => {
   vi.stubEnv("NODE_ENV", "development"); vi.stubEnv("VERCEL", "");
@@ -77,6 +167,7 @@ it("leaves a Nano Banana replacement or stale result awaiting explicit review", 
     input: { _desaynclaw: { autoSeparation: true, nanoElements: true } }, result: { replaceExtraction: true, layers: [{ id: "preview" }] } };
   for (const current of [{ ...project, manifest: { ...project.manifest, layers: [{ id: "saved" }] } }, { ...project, revision: 1 }]) {
     mocks.from.mockReturnValueOnce(query(current)).mockReturnValueOnce(query([ready])).mockReturnValueOnce(query({ credits: 4 }));
+    if (!current.manifest.layers.length) mocks.from.mockReturnValueOnce(query(null));
     const synced = await syncDocument(jsonRequest({}), { params: { id: current.id } });
     expect((await synced.json()).job).toMatchObject({ status: "ready" });
   }
@@ -316,6 +407,14 @@ it("uses the nearby white gutter when a Nano Banana tile drifts across the nomin
   expect(green).toBe(93 * 45);
 });
 
+it("recovers six populated cells from a ruled sheet with edge-touching artwork and a square background", async () => {
+  const sheet = await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="white"/><g fill="#26733a"><rect x="25" y="5" width="48" height="95"/><path d="M100 30L200 100H100Z M200 25L300 100H200Z"/><circle cx="50" cy="150" r="29"/><circle cx="150" cy="150" r="27"/><rect x="200" y="200" width="100" height="100"/></g><path d="M100 0V300M200 0V300M0 100H300M0 200H300" fill="none" stroke="#222" stroke-width="2"/></svg>')).png().toBuffer();
+  const { elements, clipped } = await splitNanoElements(sheet, "grid", 848 / 1264);
+  expect(elements.map(item => item.slot)).toEqual([1, 2, 3, 4, 5, 9]);
+  expect(elements.at(-1).background).toBe(true);
+  expect(clipped).toBe(0);
+});
+
 it("keeps the reserved background as a full rectangle and treats other assets as graphics", async () => {
   const sheet = await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#fff"/><circle cx="50" cy="50" r="24" fill="#bc7f23"/><rect x="222" y="211" width="56" height="78" fill="#185789"/></svg>')).png().toBuffer();
   const { elements, clipped } = await splitNanoElements(sheet, "grid", 56 / 78);
@@ -498,7 +597,7 @@ describe("durable operations", () => {
     expect(directFetch).not.toHaveBeenCalled();
     expect(prepare.update.mock.calls[0][0]).toMatchObject({ model: "google/nano-banana-2.1/edit" });
     expect(mocks.submit).toHaveBeenCalledExactlyOnceWith("google/nano-banana-2.1/edit", { input: expect.objectContaining({
-      image_urls: ["https://private-signed.test/source.png"], prompt: expect.stringContaining("solid pure white #FFFFFF"), num_images: 1, resolution: "4K",
+      image_urls: ["https://private-signed.test/source.png"], prompt: expect.stringContaining("solid pure white #FFFFFF"), num_images: 1, resolution: "4K", thinking_level: "medium",
     }) });
     const { prompt } = mocks.submit.mock.calls[0][1].input;
     expect(prompt).toContain("Visible standalone typography is mandatory foreground artwork.");
@@ -507,10 +606,10 @@ describe("durable operations", () => {
     expect(prompt).toContain("Remove the separated typography");
   });
 
-  it("saves independent white-background graphics and omits tiles crossed by other artwork", async () => {
+  it.each(["fal-ai/nano-banana-pro/edit", "google/nano-banana-2.1/edit"])("saves white-background graphics from a recorded %s job and omits overlapping tiles", async model => {
     vi.stubEnv("NODE_ENV", "development"); vi.stubEnv("VERCEL", "");
     const job = { id: "nano-sheet", processor: "local", project_id: project.id, user_id: project.user_id,
-      model: "google/nano-banana-2.1/edit", kind: "extract", status: "saving", request_id: "recorded-nano-receipt",
+      model, kind: "extract", status: "saving", request_id: "recorded-nano-receipt",
       created_at: new Date().toISOString(), input: { _desaynclaw: { autoSeparation: true, nanoElements: true, whiteElements: true } } };
     const atlas = await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#fafafa"/><rect x="20" y="24" width="20" height="38" fill="#2d7550"/><rect x="45" y="24" width="18" height="38" fill="#2d7550"/><circle cx="150" cy="45" r="26" fill="#942e3f"/><rect x="180" y="120" width="45" height="50" fill="#111"/></svg>')).png().toBuffer();
     mocks.status.mockResolvedValue({ status: "COMPLETED" });

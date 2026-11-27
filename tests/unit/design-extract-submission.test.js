@@ -2,7 +2,7 @@ import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import { submitDesignOperation } from "@/server/designExtract/submission";
 beforeEach(() => { vi.stubEnv("FAL_KEY", "test-only-secret"); vi.stubGlobal("fetch", vi.fn()); });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
-it.each(["fal-ai/sam2/auto-segment", "fal-ai/qwen-image-layered", "fal-ai/sam2/image", "fal-ai/sam-3/image"])("submits %s exactly once to a fixed allowed endpoint", async model => {
+it.each(["fal-ai/sam2/auto-segment", "fal-ai/qwen-image-layered", "fal-ai/sam2/image", "fal-ai/sam-3/image", "google/nano-banana-2.1/edit"])("submits %s exactly once to a fixed allowed endpoint", async model => {
   fetch.mockResolvedValue(new Response(JSON.stringify({ request_id: "recorded-request-1234" })));
   expect(await submitDesignOperation(model, { input: { image_url: "https://owned.test/source.png" } })).toEqual({ request_id: "recorded-request-1234" });
   expect(fetch).toHaveBeenCalledExactlyOnceWith(`https://queue.fal.run/${model}`, expect.objectContaining({ method: "POST", redirect: "error", cache: "no-store", signal: expect.any(AbortSignal) }));

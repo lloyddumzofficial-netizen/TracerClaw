@@ -84,17 +84,28 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   await page.locator(".recent-card").filter({ hasText: "Production elements" }).click();
   await expect(page).toHaveURL(/\/design-extract\/existing-layers/);
   const wholeDesign = page.getByRole("button", { name: "Extract elements · 2 Claws", exact: true });
-  await expect(wholeDesign).toBeEnabled();
+  await expect(wholeDesign).toHaveCount(0);
   await page.getByRole("button", { name: /^Logo\s/ }).click();
+  await expect(wholeDesign).toHaveCount(0);
   await page.getByRole("textbox", { name: "Layer name" }).fill("Renamed logo");
   await expect.poll(() => existingProject.revision).toBe(1);
   await expect(page.getByText("All changes saved", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    window.guestHeroFlashed = false;
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(".guest-landing-nav")) window.guestHeroFlashed = true;
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
   await page.getByRole("button", { name: "Go to Home", exact: true }).click();
+  await expect(page.locator(".home-topbar")).toBeVisible();
+  expect(await page.evaluate(() => window.guestHeroFlashed)).toBe(false);
   await page.locator(".recent-card").filter({ hasText: "Production elements" }).click();
-  await expect(wholeDesign).toBeEnabled();
+  await expect(wholeDesign).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Renamed logo\s/ })).toBeVisible();
-  await page.getByRole("button", { name: "Go to Home", exact: true }).click();
+  await page.goBack();
   await expect(page.locator(".recent-card")).toHaveCount(3);
+  expect(await page.evaluate(() => window.guestHeroFlashed)).toBe(false);
   await page.getByRole("button", { name: "New Project", exact: true }).first().click();
   const options = page.locator(".new-project-category-grid [data-workspace-card]");
   await expect(options.nth(0)).toHaveAttribute("data-workspace-card", "garment");

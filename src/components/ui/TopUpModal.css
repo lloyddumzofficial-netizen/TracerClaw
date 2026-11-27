@@ -2,8 +2,8 @@
    workspace entry points render the same dark production UI. */
 .modal-overlay .top-up-modal {
   --top-up-grain: var(--surface-grain-strong);
-  width: min(960px, calc(100vw - 48px)) !important;
-  max-width: min(960px, calc(100vw - 48px)) !important;
+  width: min(1024px, calc(100vw - 48px)) !important;
+  max-width: min(1024px, calc(100vw - 48px)) !important;
   background: #08090a !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   border-radius: 14px !important;

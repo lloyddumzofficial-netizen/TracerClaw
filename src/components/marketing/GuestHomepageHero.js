@@ -73,7 +73,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
           <button className="guest-landing-primary" type="button" onClick={onStart} disabled={!isInteractive}>
             Start designing
           </button>
-          <a className="guest-landing-secondary" href="#hero-product-demo"><Play size={15} aria-hidden="true" /> Watch how it works</a>
+          <a className={heroStyles.tutorialLink} href="#hero-product-demo"><Play size={15} aria-hidden="true" /> Watch how it works</a>
         </div>
         {/* Reserve this row while stats load so the background stays anchored. */}
         <div className={`guest-landing-community${hasCommunityProof ? "" : ` ${heroStyles.communityPending}`}`}

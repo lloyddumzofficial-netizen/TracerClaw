@@ -108,6 +108,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
   const isPatternWorkspace = project?.trace_type === "pattern";
   const isLogoWorkspace = project?.trace_type === "logo";
+  const completeDesign = isCompleteDesignProject(project);
   const agent = isLogoWorkspace ? LOGO_AGENT : isPatternWorkspace ? GARMENT_AGENT : null;
 
   const standardPlan = getTraceResumePlan(project, "standard");
@@ -135,6 +136,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
     ? "Crop to the exact artwork boundary before retracing."
     : isLogoWorkspace
     ? "Crop tightly around the mark and remove empty background."
+    : completeDesign
+    ? "Crop one garment side at a time."
     : "If image shows front AND back of a shirt, use Crop Tool to isolate one side.";
   const hasCurrentDriveExport = String(project?.google_drive_export_signature || "").startsWith("gdrive:v2:");
   const driveFolderUrl = hasCurrentDriveExport ? project?.google_drive_folder_url || "" : "";
@@ -263,7 +266,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
                 : `${isPatternWorkspace ? "Run Pattern Retrace" : "Run Auto-Trace"}  (−${creditCost} Claw${creditCost > 1 ? "s" : ""})`;
 
   return (
-    <aside className={`${panelStyles.panel} workspace-properties-panel${isCompleteDesignProject(project) ? " has-artwork-editor" : ""}`} style={{
+    <aside className={`${panelStyles.panel} workspace-properties-panel${completeDesign ? " has-artwork-editor" : ""}`} style={{
       width: "280px",
       background: "#161616",
       borderLeft: "1px solid #222",
@@ -441,7 +444,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </button>
       </div>
 
-      <div className={`pp-scroll-region${agent ? "" : ` ${panelStyles.garmentScrollRegion}`}`}>
+      <div className={`pp-scroll-region${!agent && !completeDesign ? ` ${panelStyles.garmentScrollRegion}` : ""}`}>
       {/* ── COLOR DETAIL ─────────────────────────────────── */}
       <div className="pp-section pp-color-section" style={{ padding: "8px 14px", flexShrink: 0 }}>
         <label className="pp-lbl" htmlFor="trace-color-detail">Color Detail</label>
@@ -518,14 +521,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </p>
       </div>
 
-      {isCompleteDesignProject(project) && <div className="pp-section pp-edit-section" style={{ padding: "4px 14px 10px", flexShrink: 0 }}>
-        <button data-ai-outline className={`pp-svg-btn ${aiOutlineStyles.outline}`} onClick={onOpenArtworkEditor}
-          disabled={isBusy || !artworkEditingEnabled || !project?.generated_image_url || project.generated_image_url === "REFUNDED"}
-          title={!project?.generated_image_url || project.generated_image_url === "REFUNDED" ? "Available after flat extraction finishes" : !artworkEditingEnabled ? "Artwork editing is not enabled for this account yet" : isBusy ? "Wait for processing to finish" : "Select areas and edit your extracted artwork"}>
-          <span className={`pp-edit-artwork-label ${aiOutlineStyles.label}`}><ImagePlus size={16} /> Edit artwork</span>
-        </button>
-      </div>}
-
       {/* ── ACTIONS ──────────────────────────────────────── */}
       <div className="pp-section pp-actions-section" style={{ padding: "0 14px 8px", flexShrink: 0 }}>
         <span className="pp-lbl">Actions</span>
@@ -557,16 +552,23 @@ const PropertiesPanel = memo(function PropertiesPanel({
           <AlertCircle size={14} color="#A3A3A3" style={{ flexShrink: 0, marginTop: "1px" }} /><span>{cropWarningCopy}</span>
         </div>
 
+        <div className={completeDesign ? panelStyles.artworkActions : undefined}>
+        {completeDesign && <button data-ai-outline className={`pp-svg-btn ${aiOutlineStyles.outline}`} onClick={onOpenArtworkEditor}
+          disabled={isBusy || !artworkEditingEnabled || !project?.generated_image_url || project.generated_image_url === "REFUNDED"}
+          title={!project?.generated_image_url || project.generated_image_url === "REFUNDED" ? "Available after flat extraction finishes" : !artworkEditingEnabled ? "Artwork editing is not enabled for this account yet" : isBusy ? "Wait for processing to finish" : "Select areas and edit your extracted artwork"}>
+          <span className={`pp-edit-artwork-label ${aiOutlineStyles.label}`}><ImagePlus size={16} /> Edit artwork</span>
+        </button>}
         {/* Export as SVG */}
         <button className="pp-svg-btn"
           onClick={() => handleDownloadClick("svg", onDownloadSvg)}
           disabled={!project?.svg_url || !!downloading}
-          style={{ marginBottom: "6px" }}>
+          style={completeDesign ? undefined : { marginBottom: "6px" }}>
           {downloading === "svg"
             ? <span className="pp-spin"><Loader2 size={16} /></span>
             : <Download size={16} />}
           Export as SVG
         </button>
+        </div>
 
         {/* 2×2 grid */}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "6px" }}>
@@ -620,8 +622,8 @@ const PropertiesPanel = memo(function PropertiesPanel({
           <aside className={panelStyles.printChecklist} aria-label={checklistTitle}>
             <h3><ListChecks size={15} aria-hidden="true" /> {checklistTitle}</h3>
             <ul>
-              <li>{hasSvg ? "Check fine details at print size." : "Keep the entire design inside the crop."}</li>
-              <li>{hasSvg ? "Check fit against your panel template." : "Leave room around small text and thin lines."}</li>
+              <li>{hasSvg ? "Check fine details at print size." : completeDesign ? "Keep the full design inside the crop." : "Keep the entire design inside the crop."}</li>
+              <li>{hasSvg ? "Check fit against your panel template." : completeDesign ? "Leave room around fine details." : "Leave room around small text and thin lines."}</li>
             </ul>
           </aside>
         </div>

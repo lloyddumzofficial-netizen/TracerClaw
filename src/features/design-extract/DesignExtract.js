@@ -51,6 +51,7 @@ export default function DesignExtract({ projectId }) {
   const [qualityReview, setQualityReview] = useState(Boolean(seed.current?.qualityReview));
   const [guidedCutouts, setGuidedCutouts] = useState(Boolean(seed.current?.guidedCutouts));
   const [nanoExtraction, setNanoExtraction] = useState(Boolean(seed.current?.nanoExtraction));
+  const [acceptedExtraction, setAcceptedExtraction] = useState(Boolean(seed.current?.extractionComplete));
   const [canReconcile, setCanReconcile] = useState(Boolean(seed.current?.canReconcile));
   const extractsOnWhite = guidedCutouts || nanoExtraction;
   const [extractionMode, setExtractionMode] = useState("review");
@@ -155,7 +156,9 @@ export default function DesignExtract({ projectId }) {
   const [requestId, setRequestId] = useState("");
   const [vectorizing, setVectorizing] = useState(null);
   const [upscaling, setUpscaling] = useState(null);
+  const [removingBackground, setRemovingBackground] = useState(null);
   const [finishOffer, setFinishOffer] = useState(null);
+  const [finishAllowance, setFinishAllowance] = useState(null);
   const finishDialog = useRef(null);
   useEffect(() => {
     const dialog = finishDialog.current;
@@ -168,6 +171,7 @@ export default function DesignExtract({ projectId }) {
   const drag = useRef(null);
   const worker = useRef(null);
   const exportAbort = useRef(null);
+  const backgroundAbort = useRef(null);
   const stage = useRef(null);
   const startGuide = useRef(null);
   const framedReview = useRef(null);
@@ -188,6 +192,8 @@ export default function DesignExtract({ projectId }) {
   const reviewResult = draftId ? reviewDraft.job.result : job?.result;
   const replacesSavedLayers = Boolean(reviewResult?.replaceExtraction && layers.length);
   const refinedWorkspace = project?.manifest.workspaceMode === "refine";
+  const extractionComplete = Boolean(acceptedExtraction || project?.manifest.extractionComplete ||
+    project?.manifest.layers.length || layers.length || job?.kind === "extract" && job.status === "accepted");
   const canRefine = Number.isInteger(pricing?.prices?.refine);
   const awaitingRefinementSettlement = job?.kind === "refine" && ["ready", "failed"].includes(job.status) && job.billing_state === "held";
   useEffect(() => {
@@ -210,6 +216,7 @@ export default function DesignExtract({ projectId }) {
   const enhancementItems = job?.status === "saving" ? job.result?.enhancement?.items : null;
   const enhancingLayerId = enhancementItems?.find(item => !["done", "failed", "uncertain", "skipped"].includes(item.status))?.layerId;
   const targetLayerId = startingExtraction ? extractionTarget : enhancingLayerId || job?.layer_id || (job?.kind === "split" ? selected : null);
+  const finishingLayerId = upscaling || removingBackground;
   const sourceProcessing = processing && !targetLayerId;
   const enhancing = Boolean(enhancementItems?.length);
   const enhancementFinished = enhancementItems?.filter(item => ["done", "failed", "uncertain", "skipped"].includes(item.status)).length || 0;
@@ -234,6 +241,22 @@ export default function DesignExtract({ projectId }) {
       throw error;
     }
   }, [projectId]);
+  const finishLayerId = !previewing && focusedLayer?.kind !== "svg" ? focusedLayer?.id : null;
+  const finishRevision = project?.revision;
+  useEffect(() => {
+    if (access !== "allowed" || !finishLayerId || upscaling || vectorizing) return;
+    const controller = new AbortController();
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]);
+    const query = new URLSearchParams({ layerId: finishLayerId });
+    designRequest(`/${projectId}/finish?${query}`, { signal })
+      .then(({ allowance }) => {
+        if (!controller.signal.aborted) setFinishAllowance({ projectId, layerId: finishLayerId, allowance });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFinishAllowance(null);
+      });
+    return () => controller.abort();
+  }, [access, finishLayerId, finishRevision, projectId, upscaling, vectorizing]);
   const updateProjectSettings = useCallback(data => {
     cacheDesignProject(data);
     if (data.billing) setPricing(data.billing);
@@ -241,6 +264,7 @@ export default function DesignExtract({ projectId }) {
     if (typeof data.qualityReview === "boolean") setQualityReview(data.qualityReview);
     if (typeof data.guidedCutouts === "boolean") setGuidedCutouts(data.guidedCutouts);
     if (typeof data.nanoExtraction === "boolean") setNanoExtraction(data.nanoExtraction);
+    if (typeof data.extractionComplete === "boolean") setAcceptedExtraction(data.extractionComplete);
     if (typeof data.canReconcile === "boolean") setCanReconcile(data.canReconcile);
   }, []);
   const load = useCallback(data => {
@@ -261,7 +285,7 @@ export default function DesignExtract({ projectId }) {
       } catch (err) { if (live) { setAccess([401, 403, 404, 410].includes(err.status) ? "denied" : "unavailable"); setError(err.message); if ([401, 403, 404, 410].includes(err.status)) { setProject({ id: projectId, source_url: null, manifest: { width: 240, height: 320, layers: [] } }); setLayers([]); setJob(null); } } }
       finally { clearTimeout(placeholder); }
     })();
-    return () => { live = false; clearTimeout(placeholder); exportAbort.current?.abort(); worker.current?.terminate(); };
+    return () => { live = false; clearTimeout(placeholder); backgroundAbort.current?.abort(); exportAbort.current?.abort(); worker.current?.terminate(); };
   }, [load, projectId, reloadKey]);
   useEffect(() => {
     const clear = () => { exportAbort.current?.abort(); forgetDesignProject(projectId); setAccess("denied"); setProject({ id: projectId, source_url: null, manifest: { width: 240, height: 320, layers: [] } }); setLayers([]); setJob(null); setMaskEditing(false); setReviewDraft(null); setError("Your session changed. Sign in and reopen this document."); };
@@ -394,6 +418,7 @@ export default function DesignExtract({ projectId }) {
     clearSelection();
   });
   const start = (kind, points, fromSource = false) => run(async () => {
+    if (kind === "extract" && extractionComplete) return;
     if (kind === "refine") setCompare(false);
     if (kind === "extract" || kind === "refine" || fromSource) setView("layout");
     setExtractionTarget(kind === "extract" || kind === "refine" || fromSource ? null : selected);
@@ -445,7 +470,9 @@ export default function DesignExtract({ projectId }) {
     if(alreadyUpscaled(selection))throw new Error("This image is already upscaled.");
     const availability = layerUpscaleAvailability(selection);
     if (!availability.plan) throw new Error(availability.reason);
-    const layerId=selection.id;setUpscaling(layerId);
+    const layerId = selection.id;
+    setUpscaling(layerId);
+    frame(layerBounds(selection, view), 4);
     try {
       await persist(layers);
       const data=await api('/'+projectId+'/upscale',{method:'POST',body:JSON.stringify({layerId,revision:remote.current.revision,acknowledgedClaws})});
@@ -457,6 +484,48 @@ export default function DesignExtract({ projectId }) {
     } finally {
       if (acknowledgedClaws) await fetchDesignProject(projectId, true).then(updateProjectSettings).catch(() => {});
       setUpscaling(null);
+    }
+  });
+  const removeBackground = () => run(async () => {
+    if (!selection || selection.kind === "svg" || selection.locked || selection.backgroundRemoval) return;
+    const layerId = selection.id;
+    const controller = new AbortController();
+    backgroundAbort.current = controller;
+    setRemovingBackground(layerId);
+    frame(layerBounds(selection, view), 4);
+    try {
+      await persist(layers);
+      const body = JSON.stringify({ layerId, revision: remote.current.revision });
+      const deadline = Date.now() + 180_000;
+      while (Date.now() < deadline) {
+        controller.signal.throwIfAborted();
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(65_000)]);
+        const data = await api(`/${projectId}/remove-background`, { method: "POST", body, signal });
+        controller.signal.throwIfAborted();
+        if (data.pending) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          continue;
+        }
+        const cutout = data.project.manifest.layers.find(layer => layer.id === data.layerId);
+        load({ ...data, job });
+        setSelected(data.layerId);
+        if (!layers.some(layer => layer.id === data.layerId)) {
+          history.current = { past: [...history.current.past, layers], future: [] };
+          setHistoryVersion(value => value + 1);
+        }
+        setLayerQuery("");
+        setLayerFilter("all");
+        setView("layout");
+        requestAnimationFrame(() => {
+          if (cutout) frame(layerBounds(cutout, "layout"), 2);
+          layerListViewport.current?.scrollTo({ top: 0 });
+        });
+        return;
+      }
+      throw new Error("Background removal is still processing. Click Remove background again to check the same request.");
+    } finally {
+      if (backgroundAbort.current === controller) backgroundAbort.current = null;
+      setRemovingBackground(null);
     }
   });
   const convertSvg = acknowledgedClaws => run(async () => {
@@ -588,11 +657,11 @@ export default function DesignExtract({ projectId }) {
     if (target < 0 || target >= layers.length) return;
     const next = [...layers]; [next[index], next[target]] = [next[target], next[index]]; change(next);
   };
-  const showStartGuide = access === "allowed" && view === "layout" && !layers.length && !operationPending && !segmentMode && (!refinedWorkspace || canRefine);
+  const showStartGuide = access === "allowed" && view === "layout" && !layers.length && !operationPending && !segmentMode && (refinedWorkspace ? canRefine : !extractionComplete);
   const introHeight = Math.max(400, 240 * project.manifest.height / project.manifest.width);
   const introWidth = introHeight * project.manifest.width / project.manifest.height;
   return <StudioShell className={"garment-workspace-ui " + styles.shell + (reducedMotion ? " " + styles.reducedMotion : "")} title={refinedWorkspace ? "Design Refined" : "Design Extract"} onHome={() => router.push("/")} showCredits credits={pricing?.balance} onCreditsClick={() => router.push("/#pricing")} commandBarPosition="bottom" statusLeft={<><span className={styles.documentStatus}>{(busy || saving || exporting) && <Loader2 size={12} className={styles.spinner} />}{access === "checking" ? "Loading document" : exporting ? `Exporting ${exporting.toUpperCase()}…` : saving ? "Saving…" : busy ? "Working…" : job && activeStatuses.includes(job.status) ? connectionLabel || (autoSavingLayers ? (refinedWorkspace ? "Saving options…" : "Saving layers…") : enhancing ? `Enhancing layers · ${enhancementFinished}/${enhancementItems.length}` : (refinedWorkspace && job.status === "processing" ? "Refining design" : refinedWorkspace && job.status === "saving" ? "Saving previews" : operationLabels[job.status])) : (project ? (saved.current === JSON.stringify(layers) ? "All changes saved" : "Unsaved changes") : "Ready to upload")}</span>{project && <span className={styles.navigationHint}>Scroll to zoom · Space + drag to pan · F to focus · Shift+F to fit</span>}</>} statusRight={null} commandBar={project && <div className={styles.toolbar} role="toolbar" aria-label="Design editing tools">
-    {refinedWorkspace ? canRefine && <button className={styles.refineButton} disabled={disabled || awaitingRefinementSettlement} onClick={() => start("refine")}><Sparkles size={16} />{processing ? "Refining design…" : "Refine design · 2 Claws"}</button> : <ExtractionActions disabled={disabled} processing={processing} paused={Boolean(connectionLabel)} progressLabel={connectionLabel || ( job?.fillingBackground ? "Filling background…" : autoSavingLayers ? "Saving layers…" : enhancing ? "Enhancing layers…" : "Extracting…")} reviewing={reviewing} hasLayers={layers.length > 0} pricing={pricing} guided={guidedCutouts} sourceSelected={segmentMode === "source"} onSource={openSourceSelection} onExtract={() => start("extract")} />}
+    {refinedWorkspace ? canRefine && <button className={styles.refineButton} disabled={disabled || awaitingRefinementSettlement} onClick={() => start("refine")}><Sparkles size={16} />{processing ? "Refining design…" : "Refine design · 2 Claws"}</button> : <ExtractionActions disabled={disabled} processing={processing} paused={Boolean(connectionLabel)} progressLabel={connectionLabel || ( job?.fillingBackground ? "Filling background…" : autoSavingLayers ? "Saving layers…" : enhancing ? "Enhancing layers…" : "Extracting…")} reviewing={reviewing} extractionComplete={extractionComplete} pricing={pricing} guided={guidedCutouts} sourceSelected={segmentMode === "source"} onSource={openSourceSelection} onExtract={() => start("extract")} />}
     <div className={styles.viewSwitch} role="group" aria-label="Canvas view"><button title="Overview" aria-label="Overview" disabled={access !== "allowed" || maskEditing} aria-pressed={view === "layout"} onClick={() => setView("layout")}><LayoutGrid size={16} /></button><button title="Composition" aria-label="Composition" disabled={access !== "allowed" || maskEditing} aria-pressed={view === "composition"} onClick={() => setView("composition")}><Combine size={16} /></button></div>
     <div className={styles.controlGroup} role="group" aria-label="Edit history"><button title="Undo" aria-label="Undo" disabled={disabled || !history.current.past.length} onClick={() => travel("undo")}><Undo2 size={15} /></button><button title="Redo" aria-label="Redo" disabled={disabled || !history.current.future.length} onClick={() => travel("redo")}><Redo2 size={15} /></button></div>
     <button className={`${styles.saveAction} ${styles.iconAction}`} aria-label={saving ? "Saving…" : "Save changes"} title="Save changes · Ctrl / ⌘ S" disabled={disabled} aria-busy={saving} onClick={() => run(async () => { await persist(layers); })}>{saving ? <Loader2 size={14} className={styles.spinner} /> : <Save size={14} />}</button>
@@ -618,7 +687,7 @@ export default function DesignExtract({ projectId }) {
     {error && <WorkspaceNotice key={error} message={error} onDismiss={() => setError("")} onRetry={access !== "allowed" ? () => { setAccess("checking"); setError(""); setReloadKey(value => value + 1); } : undefined} />}
     {finishOffer && <dialog ref={finishDialog} className={styles.finishDialog} aria-labelledby="design-finish-heading" onClose={() => setFinishOffer(null)}>
       <h2 id="design-finish-heading">Unlock Upscale + SVG</h2>
-      <p>1 Claw includes one upscale and one SVG conversion for each of up to nine eligible layers in this extraction.</p>
+      <p>Pay 1 Claw once for this extraction. Each of up to nine eligible layers gets one upscale and one SVG conversion.</p>
       <div>
         <button type="button" onClick={() => finishDialog.current?.close()}>Cancel</button>
         <button type="button" onClick={() => {
@@ -664,7 +733,10 @@ export default function DesignExtract({ projectId }) {
             history.current = { past: [], future: [] };
           })}
           upscaling={upscaling === focusedLayer.id}
+          finishAllowance={finishAllowance?.projectId === projectId && finishAllowance.layerId === focusedLayer.id ? finishAllowance.allowance : null}
           onUpscale={() => upscaleImage()}
+          removingBackground={removingBackground === focusedLayer.id}
+          onRemoveBackground={removeBackground}
           convertingSvg={vectorizing === focusedLayer.id}
           svgReady={focusedLayer.kind === "svg"}
           onConvertSvg={() => convertSvg()}
@@ -746,7 +818,7 @@ export default function DesignExtract({ projectId }) {
             </section>}
             {compare && <img className={styles.comparisonSource} src={project.source_url} alt="Comparison source" style={{ width: project.manifest.width, height: project.manifest.height, clipPath: `inset(0 ${100 - comparison}% 0 0)` }} />}
             {compare && <span className={styles.comparisonDivider} style={{ left: project.manifest.width * comparison / 100, height: project.manifest.height }} />}
-            {canvasLayers.map(layer => { const placement = layer[view]; return <div key={layer.id} className={`${styles.element} ${(previewing ? reviewSelected : selected) === layer.id ? styles.selected : ""}`} style={{ left: placement.x, top: placement.y, width: layer.width * placement.scale, height: layer.height * placement.scale, display: (comparisonLayer || layerVisible(layer,view)) && !(maskEditing && editingLayer?.id === layer.id) ? "block" : "none", clipPath: compare ? `inset(0 0 0 ${Math.max(0, Math.min(100, (project.manifest.width * comparison / 100 - placement.x) / (layer.width * placement.scale) * 100))}%)` : undefined, zIndex: canvasLayers.indexOf(layer) + 1 }}
+            {canvasLayers.map((layer, index) => { const placement = layer[view]; const finishing = layer.id === finishingLayerId; return <div key={layer.id} className={`${styles.element} ${(previewing ? reviewSelected : selected) === layer.id ? styles.selected : ""}`} style={{ left: placement.x, top: placement.y, width: layer.width * placement.scale, height: layer.height * placement.scale, display: (finishing || comparisonLayer || layerVisible(layer,view)) && !(maskEditing && editingLayer?.id === layer.id) ? "block" : "none", clipPath: compare ? `inset(0 0 0 ${Math.max(0, Math.min(100, (project.manifest.width * comparison / 100 - placement.x) / (layer.width * placement.scale) * 100))}%)` : undefined, zIndex: finishing ? canvasLayers.length + 1 : index + 1 }}
               data-design-element title={`${layer.name} · ${layer.width} × ${layer.height} px`} role="button" tabIndex={0} aria-label={`${previewing ? "Inspect generated" : "Select"} ${layer.name}`} aria-pressed={(previewing ? reviewSelected : selected) === layer.id}
               onKeyDown={event => { if (!maskEditing && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); if (previewing) setReviewSelected(layer.id); else selectLayer(layer.id); } }}
               onPointerDown={event => {
@@ -763,7 +835,12 @@ export default function DesignExtract({ projectId }) {
               onPointerMove={event => { updateSelectionBox(event); const d = drag.current; if (!d || d.id !== layer.id) return; setLayers(d.before.map(item => item.id === d.id ? { ...item, [view]: { ...d.placement, x: d.placement.x + (event.clientX - d.x) / zoom, y: d.placement.y + (event.clientY - d.y) / zoom } } : item)); }}
               onPointerUp={event => { updateSelectionBox(event, true); if (drag.current) { forgetDesignProject(projectId); history.current.past.push(drag.current.before); if (history.current.past.length > 40) history.current.past.shift(); history.current.future = []; drag.current = null; setHistoryVersion(value => value + 1); } }}
               onPointerCancel={event => { cancelSelectionBox(event); if (drag.current) setLayers(drag.current.before); drag.current = null; }} onLostPointerCapture={cancelSelectionBox}>
-              <img src={layer.url} alt={layer.name} draggable={false} />{segmentMode === "layer" && selected === layer.id && selectionOverlays(layer.width, layer.height)}{upscaling === layer.id && <ExtractionProgress status="upscaling" operationId={`upscale-${layer.id}`} compact />}{vectorizing === layer.id && <ExtractionProgress status="vectorizing" operationId={`svg-${layer.id}`} compact />}{processing && !sourceProcessing && targetLayerId === layer.id && <ExtractionProgress status={progressStatus} detail={enhancementProgress} operationId={job?.id} startedAt={job?.created_at} paused={Boolean(connectionLabel)} connectionLabel={connectionLabel} compact />}
+              <img src={layer.url} alt={layer.name} draggable={false} />
+              {segmentMode === "layer" && selected === layer.id && selectionOverlays(layer.width, layer.height)}
+              {upscaling === layer.id && <ExtractionProgress status="upscaling" operationId={`upscale-${layer.id}`} compact />}
+              {removingBackground === layer.id && <ExtractionProgress status="removing-background" operationId={`remove-bg-${layer.id}`} compact />}
+              {vectorizing === layer.id && <ExtractionProgress status="vectorizing" operationId={`svg-${layer.id}`} compact />}
+              {processing && !sourceProcessing && targetLayerId === layer.id && <ExtractionProgress status={progressStatus} detail={enhancementProgress} operationId={job?.id} startedAt={job?.created_at} paused={Boolean(connectionLabel)} connectionLabel={connectionLabel} compact />}
             </div>; })}
           </div>
         </div>
@@ -778,7 +855,7 @@ export default function DesignExtract({ projectId }) {
         {canReconcile && job?.status === "submitting" && !awaitingDispatch && <section className={styles.properties}><p role="status">Submission needs reconciliation. Find this operation in fal history by its source image and creation time. No automatic resubmission.</p><label>fal request ID<input value={requestId} onChange={event => setRequestId(event.target.value)} /></label><button disabled={busy || !requestId} onClick={() => run(async () => { const data = await api(`/${projectId}`, { method: "POST", body: JSON.stringify({ action: "reconcile", jobId: job.id, requestId }) }); setJob(data.job); })}>Reconnect existing request</button></section>}
         {showingFailure && <section className={styles.failedResult}>
           <h3>{refinedWorkspace ? "Refinement needs attention" : "Extraction needs attention"}</h3><p role="alert">{job.error}</p>
-          <p>{refinedWorkspace ? job.billing_state === "refunded" ? "2 Claws refunded. Your original is available for another attempt." : "Your original is still available." : job.recordedBackgroundJobId ? "Restore the saved cutouts and background from the existing request." : job.recordedCutoutJobId ? "Restore the completed cutouts for review." : job.automaticSeparation ? "You can try Extract elements again or use Manual cutout for a specific graphic." : job.guided ? "Try Guided cutout with a new selection." : job.qualityPilot ? "Choose SAM 2 or use Manual cutout to continue." : "Your original artwork is safe. Recover the existing result before starting another extraction."}</p>
+          <p>{refinedWorkspace ? job.billing_state === "refunded" ? "2 Claws refunded. Your original is available for another attempt." : "Your original is still available." : job.recordedBackgroundJobId ? "Restore the saved cutouts and background from the existing request." : job.recordedCutoutJobId ? "Restore the completed cutouts for review." : extractionComplete ? "Your saved layers are available. Use Manual cutout for a specific graphic." : job.automaticSeparation ? "You can try Extract elements again or use Manual cutout for a specific graphic." : job.guided ? "Try Guided cutout with a new selection." : job.qualityPilot ? "Choose SAM 2 or use Manual cutout to continue." : "Your original artwork is safe. Recover the existing result before starting another extraction."}</p>
           {!refinedWorkspace && (recordedRecoveryId || !job.guided && !job.qualityPilot && (job.canRecover || job.request_id)) && <button disabled={busy || saving} onClick={() => run(async () => {
             const data = await api(`/${projectId}`, { method: "POST", body: JSON.stringify({ action: "recover", jobId: recordedRecoveryId || job.id }) });
             if (data.project) load(data);
@@ -829,7 +906,12 @@ export default function DesignExtract({ projectId }) {
           <div className={styles.layerFilterRow}><select aria-label="Filter layers" value={layerFilter} onChange={event => { setLayerFilter(event.target.value); layerListViewport.current?.scrollTo({ top: 0 }); }}><option value="all">All layers</option><option value="visible">Visible only</option><option value="hidden">Hidden only</option></select><span aria-live="polite">{filteredLayers.length} of {layers.length}</span></div>
         </div>}
         {!previewing && layers.length > 0 && <div className={`${styles.layerListViewport} ${styles.scrollableLayerList}`} ref={layerListViewport} data-layer-scroll role="region" aria-label="Layer list" tabIndex={0}><div className={styles.layerList}>{filteredLayers.map(layer => <div key={layer.id} data-layer-row={layer.id} className={selected === layer.id ? styles.activeRow : styles.row}>
-          <button className={styles.layerSelect} disabled={maskEditing} title="Select layer; double-click to focus on canvas" aria-pressed={selected === layer.id} onClick={() => selectLayer(layer.id)} onDoubleClick={() => focusLayer(layer)}><span className={styles.thumbnail}><img src={layer.kind === "svg" ? layer.previewUrl : layer.url} alt="" /></span><span className={styles.layerCopy}><strong>{layer.name}</strong><small>{layer.kind === "svg" ? "SVG · " : ""}{layer.width} × {layer.height} px{layer.enhancement ? ` · ${Number(layer.enhancement.scale.toFixed(2))}× enhanced` : ""}{layer.locked ? " · Locked" : ""}</small></span></button>
+          <button className={styles.layerSelect} disabled={maskEditing} title="Select layer; double-click to focus on canvas" aria-pressed={selected === layer.id} aria-busy={upscaling === layer.id || removingBackground === layer.id} onClick={() => selectLayer(layer.id)} onDoubleClick={() => focusLayer(layer)}>
+            <span className={styles.thumbnail}><img src={layer.kind === "svg" ? layer.previewUrl : layer.url} alt="" />
+              {(upscaling === layer.id || removingBackground === layer.id) && <span className={styles.thumbnailProgress} aria-hidden="true"><Loader2 size={16} className={styles.spinner} /></span>}
+            </span>
+            <span className={styles.layerCopy}><strong>{layer.name}</strong><small>{layer.kind === "svg" ? "SVG · " : ""}{layer.width} × {layer.height} px{layer.enhancement ? ` · ${Number(layer.enhancement.scale.toFixed(2))}× enhanced` : ""}{layer.locked ? " · Locked" : ""}</small></span>
+          </button>
           <label className={styles.visibility} title={`${layerVisible(layer,view) ? "Hide" : "Show"} in ${view === "layout" ? "Overview" : "Composition"}`}><input aria-label={`Show ${layer.name}`} type="checkbox" checked={layerVisible(layer,view)} disabled={disabled} onChange={event => change(layers.map(item => item.id === layer.id ? { ...item, visible: view === "composition" ? event.target.checked : item.visible, visibility: { overview: layerVisible(item,"layout"), composition: layerVisible(item,"composition"), [view === "layout" ? "overview" : "composition"]: event.target.checked } } : item))} />{layerVisible(layer,view) ? <Eye size={15} /> : <EyeOff size={15} />}</label>
         </div>)}</div>
         {!filteredLayers.length && <div className={styles.noLayerMatches}><strong>No matching layers</strong><button onClick={() => { setLayerQuery(""); setLayerFilter("all"); layerListViewport.current?.scrollTo({ top: 0 }); }}>Clear filters</button></div>}

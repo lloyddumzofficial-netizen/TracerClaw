@@ -4,9 +4,11 @@ import { GUIDED_CUTOUT_MODEL } from "./guidedCutout";
 import { GUIDED_BACKGROUND_MODEL } from "./guidedBackground";
 import { REFINE_MODEL } from "./refinement";
 
+export const BACKGROUND_REMOVAL_MODEL = "fal-ai/birefnet";
+
 // One paid HTTP attempt. SDK retry policies must never duplicate a generation.
 export async function submitDesignOperation(model, { input }) {
-  if (![LAYER_MODEL, LEGACY_LAYER_MODEL, SEGMENT_MODEL, LEGACY_SEGMENT_MODEL, PILOT_MASK_MODEL, GUIDED_CUTOUT_MODEL, GUIDED_BACKGROUND_MODEL, REFINE_MODEL].includes(model)) throw new Error("Unsupported design model");
+  if (![LAYER_MODEL, LEGACY_LAYER_MODEL, SEGMENT_MODEL, LEGACY_SEGMENT_MODEL, PILOT_MASK_MODEL, GUIDED_CUTOUT_MODEL, GUIDED_BACKGROUND_MODEL, REFINE_MODEL, BACKGROUND_REMOVAL_MODEL].includes(model)) throw new Error("Unsupported design model");
   if (!process.env.FAL_KEY) throw new Error("AI processing is not configured");
   const response = await fetch(`https://queue.fal.run/${model}`, {
     method: "POST", redirect: "error", cache: "no-store",

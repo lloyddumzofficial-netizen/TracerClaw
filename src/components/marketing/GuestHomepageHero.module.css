@@ -128,7 +128,7 @@
 
 .navCta:global(.guest-landing-nav-cta),
 .hero :global(.guest-landing-primary),
-.hero :global(.guest-landing-secondary) {
+.tutorialLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -161,33 +161,27 @@
   transform: none;
 }
 
-/* Override the older glass CTA treatment within this hero only. */
-.hero :global(.guest-landing-secondary) {
-  background: #191919 !important;
-  border-color: #292929 !important;
-  color: #c5c5c5 !important;
-  text-shadow: none !important;
-  box-shadow: none !important;
+.tutorialLink {
+  box-sizing: border-box;
+  gap: 10px;
+  border: 2px solid #333333;
+  background: #111315;
+  color: #F4F4F1;
+  text-decoration: none;
 }
 
-.hero :global(.guest-landing-secondary)::before {
-  display: none;
+.tutorialLink svg {
+  flex-shrink: 0;
 }
 
-.hero :global(.guest-landing-secondary) svg {
-  color: inherit !important;
-}
-
-.hero :global(.guest-landing-secondary):hover {
-  background: #242424 !important;
-  border-color: #444 !important;
-  color: #fff !important;
-  transform: none;
+.tutorialLink:hover {
+  background: #1A1C1E;
+  border-color: #929591;
 }
 
 .navCta:focus-visible,
 .hero :global(.guest-landing-primary):focus-visible,
-.hero :global(.guest-landing-secondary):focus-visible {
+.tutorialLink:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 4px;
 }

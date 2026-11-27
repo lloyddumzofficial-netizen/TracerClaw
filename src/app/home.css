@@ -2747,43 +2747,57 @@
   background: #edece8 !important;
 }
 
-.tool-pattern-example {
-  position: relative;
+.tool-preview-frame {
+  box-sizing: border-box;
   width: 100%;
-  aspect-ratio: 1;
+  max-width: 560px;
   margin: 0;
+  padding: 8px;
+  min-width: 0;
+  border: 2px solid #333333;
+  border-radius: 16px;
+  background: #111315;
+}
+
+.tool-preview-art {
+  position: relative;
+  aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid #2c2e30;
-  border-radius: 18px;
-  background: #101112;
+  border-radius: 9px;
+  background: #1A1C1E;
 }
 
-.tool-pattern-example img {
+.tool-preview-art img {
   object-fit: cover;
-  object-position: center top;
 }
 
-.tool-pattern-example figcaption {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  left: 20px;
+.tool-preview-repeat {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 4px, #0B0B0B22 4px 5px),
+    conic-gradient(from 45deg, #111315 0 12.5%, #333333 12.5% 25%, #F4F4F1 25% 37.5%, #1A1C1E 37.5% 50%, #111315 50% 62.5%, #333333 62.5% 75%, #FFD700 75% 87.5%, #1A1C1E 87.5%) 0 0 / 25% 25%;
+}
+
+.tool-showcase-media .tool-preview-frame .ba-slider-card,
+.tool-showcase-media .tool-preview-frame .ba-slider-stage {
+  border-radius: 9px !important;
+}
+
+.tool-preview-frame > figcaption {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px 16px;
-  padding: 12px 14px;
-  border: 1px solid #2c2e30;
-  border-radius: 8px;
-  background: #101112;
-  color: #f4f4f1;
+  gap: 4px 12px;
+  padding: 11px 5px 4px;
+  color: #F4F4F1;
   font-size: 12px;
+  font-weight: 600;
 }
 
-.tool-pattern-example figcaption span {
+.tool-preview-frame > figcaption span {
   color: #929591;
   font-size: 11px;
+  font-weight: 500;
 }
 
 .tool-extraction-preview .ba-slider-stage:focus-within {
@@ -3258,7 +3272,6 @@
 
 /* Top-up modal: darker, sharper, and aligned with the homepage system. */
 .modal-overlay .top-up-modal {
-  width: min(960px, calc(100vw - 48px)) !important;
   background: #101010 !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   border-radius: 2px !important;

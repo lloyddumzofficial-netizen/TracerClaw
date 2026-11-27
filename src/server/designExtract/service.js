@@ -13,7 +13,7 @@ import { separateElements } from "./separateElements";
 import { automaticCutouts } from "./automaticCutouts";
 import { PILOT_MASK_MODEL, PILOT_PREPARATION_LIMIT_MS, createPilotPreview, isQualityPilotJob, isQualityReviewJob, locatePilotRegions, matchPilotMasks, nativePilotCoverage, pilotMaskRequest, qualityPilotAvailable, qualityReviewAvailable } from "./qualityPilot";
 import { editQualityDraft, readQualityDraft } from "./qualityReview";
-import { GUIDED_CUTOUT_MODEL, guidedCutout, guidedPreview, isAutomaticSeparationJob, renderGuidedCutout } from "./guidedCutout";
+import { GUIDED_CUTOUT_MODEL, guidedCutout, guidedPreview, hasPreparedCutoutInput, isAutomaticSeparationJob, renderGuidedCutout } from "./guidedCutout";
 import { advanceGuidedFillJob, hasRecoverableBackground, interruptedCutoutError, prepareGuidedFillJob, readyCutoutsWithoutFill, recoverRecordedBackground } from "./guidedFillJob";
 import { advanceAutomaticMasks, findAutomaticTargets, prepareAutomaticMask, renderWhiteElement, wholeArtworkTarget } from "./automaticSeparation";
 import { advanceProductionLayers, isProductionSeparation } from "./productionLayers";
@@ -173,6 +173,13 @@ export async function colorCutout(project, body) {
     return { project: saved, layerId: id };
   });
 }
+async function hasAcceptedExtraction(project) {
+  if (project.manifest.extractionComplete) return true;
+  if (project.revision === 0) return false;
+  return Boolean(checked(await db.from("design_extract_jobs").select("id").eq("project_id", project.id)
+    .eq("user_id", project.user_id).eq("kind", "extract").eq("status", "accepted").limit(1).maybeSingle()));
+}
+
 export async function startOperation(project, body) {
   const { kind, layerId, idempotencyKey } = body;
   if (!["extract", "split", "segment", "refine"].includes(kind) || typeof idempotencyKey !== "string" || !/^[\w-]{8,120}$/.test(idempotencyKey)) fail("Invalid operation");
@@ -185,7 +192,7 @@ export async function startOperation(project, body) {
   const automatic = kind === "extract" && !pilot && (productionNano || guidedModeAvailable());
   const whiteElements = body.extractionMode === "automatic-white";
   if ((body.extractionMode === "automatic" || whiteElements) && !automatic) fail("Automatic separation is unavailable in this workspace.", 400);
-  if (automatic && layerId) fail("Automatic separation uses the original artwork.");
+  if (kind === "extract" && layerId) fail("Extract elements uses the original artwork.");
   const reviewCutouts = body.extractionMode === "review" && !automatic;
   const guided = body.extractionMode === "guided";
   if ((pilot || reviewCutouts) && (kind !== "extract" || !qualityReviewAvailable() || designProcessingDriver() !== "legacy" || pilot && !qualityPilotAvailable())) fail("The selected local extraction method is unavailable.", 400);
@@ -196,6 +203,9 @@ export async function startOperation(project, body) {
     if (existing.kind !== kind || (existing.layer_id || null) !== (layerId || null) || isQualityPilotJob(existing) !== pilot || isQualityReviewJob(existing) !== (pilot || reviewCutouts) || isAutomaticSeparationJob(existing) !== automatic || (!automatic && Boolean(guidedCutout(existing)) !== guided)) fail("This request key belongs to a different operation", 409);
     return existing;
   }
+  if (kind === "extract" && (project.manifest.layers.length || await hasAcceptedExtraction(project))) {
+    fail("Elements have already been extracted for this artwork.", 409);
+  }
   if (refine && body.revision !== project.revision) fail("Project changed. Reload before refining.", 409);
   if (!process.env.FAL_KEY) fail("AI processing is not configured", 503);
   const limit = await enforceRateLimit({ namespace: "design-extract:ai", identifier: project.user_id, max: 6, window: "60 s", windowMs: 60000 });
@@ -204,7 +214,6 @@ export async function startOperation(project, body) {
   if(layer?.kind==='svg')fail('Select a raster layer for AI extraction.');
   if(layer?.kind==='svg')fail('Choose a raster layer for extraction.');
   if (kind === "split" && !layer || kind === "segment" && layerId && !layer) fail("Select a valid layer");
-  if (kind === "extract" && project.manifest.layers.length && !automatic) fail("Use Split further on an existing layer");
   const availableLayers = automatic ? MAX_LAYERS : MAX_LAYERS - project.manifest.layers.length + (kind === "split" || guided && project.manifest.layers.some(item => item.guidedBackground) ? 1 : 0);
   if (refine && availableLayers < 3) fail("Make room for three refinement options before starting.");
   if (availableLayers < (kind === "segment" && !guided ? 1 : 2)) fail("Make room for extracted layers. Maximum 32 layers.");
@@ -380,8 +389,7 @@ async function sendRecordedOperation(job, providerInput) {
 }
 export async function settleOperation(project, job) {
   if (job.processor === "local" && (process.env.NODE_ENV !== "development" || process.env.VERCEL)) return job;
-  const guidedModel = job.input?._desaynclaw?.whiteElements ? REFINE_MODEL : GUIDED_CUTOUT_MODEL;
-  const preparingLocal = isQualityPilotJob(job) && job.model !== PILOT_MASK_MODEL || (guidedCutout(job) || isAutomaticSeparationJob(job)) && job.model !== guidedModel;
+  const preparingLocal = isQualityPilotJob(job) && job.model !== PILOT_MASK_MODEL || (guidedCutout(job) || isAutomaticSeparationJob(job)) && !hasPreparedCutoutInput(job);
   if (job.processor === "legacy" && job.input?._desaynclaw?.nanoElements && job.status === "submitting" && !job.request_id) {
     if (Date.now() - Date.parse(job.dispatch_started_at || job.created_at) >= PILOT_PREPARATION_LIMIT_MS) return failQualityPilot(job, "Extraction could not be confirmed. You can retry.");
     if (!job.dispatch_started_at) {
@@ -443,7 +451,7 @@ async function advanceOperation(project, job, { recordedOnly = false } = {}) {
     }
     const automatic = isAutomaticSeparationJob(job);
     if (automatic && job.input._desaynclaw.nanoElements) {
-      const { data } = await fal.queue.result(REFINE_MODEL, { requestId: job.request_id });
+      const { data } = await fal.queue.result(job.model, { requestId: job.request_id });
       if (!data?.images?.[0]?.url || data.has_nsfw_concepts?.some(Boolean)) fail("Nano Banana returned no usable graphics.", 422);
       const { nanoLayout: layout, nanoBackdropExpected, nanoBackdrop } = job.input._desaynclaw;
       const frame = project.manifest;
@@ -767,6 +775,8 @@ export async function snapshot(project, advance = false) {
   }
   return {
     project, job, billing,
+    ...(!refinement && { extractionComplete: Boolean(project.manifest.layers.length ||
+      job?.kind === "extract" && job.status === "accepted" || await hasAcceptedExtraction(project)) }),
     qualityReview, qualityPilot: qualityReview && qualityPilotAvailable(), guidedCutouts, nanoExtraction: productionNanoAvailable(),
   };
 }

@@ -39,5 +39,6 @@ export function acceptLayers(manifest, job) {
   }
   if (retained.length + additions.length > MAX_LAYERS) throw new Error("Maximum 32 layers");
   const background = additions.find(layer => layer.guidedBackground);
-  return { ...manifest, layers: background ? [background, ...retained, ...additions.filter(layer => layer !== background)] : [...retained, ...additions] };
+  return { ...manifest, ...(job.kind === "extract" && additions.length && { extractionComplete: true }),
+    layers: background ? [background, ...retained, ...additions.filter(layer => layer !== background)] : [...retained, ...additions] };
 }

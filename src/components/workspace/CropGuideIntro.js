@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Timer, X } from "lucide-react";
+import { ArrowRight, CircleCheck, Timer, X } from "lucide-react";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import LogoCropGuide from "./LogoCropGuide";
 import styles from "./CropGuideIntro.module.css";
@@ -36,6 +36,8 @@ export default function CropGuideIntro({ mode, onContinue }) {
   const description = mode === "logo" ? "Include every part of the mark, with only a small margin around the artwork."
     : mode === "pattern" ? "Include the complete flat artwork. Leave out scan edges, empty margins, tables, and unrelated objects."
       : "Crop one front or back body panel. Leave out sleeves, background, and extra side margins.";
+  const canContinue = ready && remaining === 0;
+  const StatusIcon = canContinue ? CircleCheck : Timer;
 
   return (
     <div className={styles.overlay}>
@@ -56,7 +58,10 @@ export default function CropGuideIntro({ mode, onContinue }) {
           </div>
         </div>
         <footer className={styles.footer}>
-          <span className={styles.status} role="status" aria-live="polite"><Timer size={15} aria-hidden="true" />{!ready ? "Loading guide…" : remaining > 0 ? `Please review · ${remaining}s` : "Ready when you are"}</span>
+          <span className={styles.status} data-ready={canContinue} role="status">
+            <StatusIcon size={14} aria-hidden="true" />
+            {!ready ? "Loading guide…" : canContinue ? "Ready to crop" : "Review the crop guide"}
+          </span>
           <button type="button" className={styles.continue} disabled={remaining > 0} onClick={continueToCrop}>
             {remaining > 0 ? `Continue in ${remaining}s` : "Continue to crop"}<ArrowRight size={15} aria-hidden="true" />
           </button>

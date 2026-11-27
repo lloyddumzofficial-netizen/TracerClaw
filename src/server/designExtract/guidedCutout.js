@@ -3,10 +3,17 @@ import { DESIGN_IMAGE_MAX_PIXELS, DESIGN_ASSET_MAX_BYTES } from "@/lib/designExt
 import { nativePilotCoverage } from "./qualityPilot";
 import { refineFlatCutout } from "./refineFlatCutout";
 import { refineProductionMatte } from "./refineProductionMatte";
+import { REFINE_MODEL } from "./refinement";
 
 export const GUIDED_CUTOUT_MODEL = "bria/guided-remove-background";
 export const guidedCutout = job => job?.input?._desaynclaw?.guidedCutout;
 export const isAutomaticSeparationJob = job => job?.input?._desaynclaw?.autoSeparation === true;
+
+export function hasPreparedCutoutInput(job) {
+  const settings = job.input?._desaynclaw;
+  if (settings?.nanoElements) return Boolean(settings.nanoLayout);
+  return job.model === (settings?.whiteElements ? REFINE_MODEL : GUIDED_CUTOUT_MODEL);
+}
 
 function invalid(message) {
   return Object.assign(new Error(message), { status: 422, designExtractError: true });

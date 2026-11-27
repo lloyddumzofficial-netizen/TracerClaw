@@ -34,7 +34,6 @@ import LoginModal from "@/components/marketing/LoginModal";
 import NewProjectModal from "@/components/marketing/NewProjectModal";
 import WorkspaceToolThumbnail from "@/components/marketing/WorkspaceToolThumbnail";
 import toolsShelfStyles from "@/components/marketing/DesktopToolsShelf.module.css";
-import logoSampleStyles from "@/components/marketing/LogoSamplePreview.module.css";
 import OnboardingModal from "@/components/marketing/OnboardingModal";
 import RecentProjects from "@/components/marketing/RecentProjects";
 import EduSection from "@/components/marketing/EduSection";
@@ -57,6 +56,8 @@ import { markReferralPromptSeen } from "@/lib/referralPrompt";
 const TopUpModal = dynamic(() => import("@/components/ui/TopUpModal"), { ssr: false });
 const QRCode = dynamic(() => import("react-qr-code"), { ssr: false });
 const PUBLIC_STATS_CACHE_KEY = "desaynclaw-public-stats-v2";
+// Keep only a presentation hint across client-side workspace navigation.
+let lastHomeViewWasMember = false;
 
 async function uploadFileToPresignedUrl(uploadUrl, file) {
   let lastError;
@@ -528,6 +529,11 @@ export default function StartScreen() {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [user, setUser] = useState(null);
+  const [returningToDashboard] = useState(() => lastHomeViewWasMember);
+  const showDashboardPlaceholder = returningToDashboard && !user && isLoadingProjects;
+  useEffect(() => {
+    if (user || !isLoadingProjects) lastHomeViewWasMember = Boolean(user);
+  }, [user, isLoadingProjects]);
   const [designExtractAccess, setDesignExtractAccess] = useState(null);
   const publicDesignExtractAvailable = usePublicDesignExtractAvailability();
   const designExtractEnabled = designExtractAccess ?? publicDesignExtractAvailable;
@@ -610,7 +616,7 @@ export default function StartScreen() {
 
   const scrollToHomeSection = useHomepageMotion({
     rootRef: homeRootRef,
-    view: user ? "member" : "guest",
+    view: showDashboardPlaceholder ? "returning" : user ? "member" : "guest",
     blocked: Boolean(showModal || showTopUpModal || showLoginModal || showReferralModal
       || showOnboarding || showQrModal || projectToDelete || isUploading || isDraggingGlobal),
   });
@@ -1222,6 +1228,10 @@ export default function StartScreen() {
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
+  if (showDashboardPlaceholder) {
+    return <main className={dashboardStyles.returning} aria-busy="true" aria-label="Loading your workspace dashboard" />;
+  }
+
   return (
     <div ref={homeRootRef} id="start" className={`start-screen-container ${motionStyles.root}${user ? ` ${dashboardStyles.root}` : " has-guest-home"}`} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => setOpenMenuId(null)}>
       {user && <h1 style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
@@ -1581,7 +1591,10 @@ export default function StartScreen() {
             </button>
           </div>
           <div className="tool-showcase-media tool-extraction-preview">
-            <GarmentSamplePreview />
+            <figure className="tool-preview-frame">
+              <GarmentSamplePreview />
+              <figcaption>Garment Extract <span>Drag to compare</span></figcaption>
+            </figure>
           </div>
         </section>
 
@@ -1603,14 +1616,16 @@ export default function StartScreen() {
             </button>
           </div>
           <div className="tool-showcase-media">
-            <figure className={logoSampleStyles.sample} aria-label="Logo Vectorizer sample artwork">
-              <Image
-                src="/samples/logo_workspace/ART_CREATION_SAMPLE/ORIGINAL.webp"
-                alt="Colorful ART logo with a hand holding a paintbrush and the words The Joy of Creation"
-                width={800}
-                height={800}
-                unoptimized
-              />
+            <figure className="tool-preview-frame">
+              <div className="tool-preview-art">
+                <Image
+                  src="/marketing/features/vector.webp"
+                  alt="Side-by-side detail of cleaned vector edges and the original phoenix artwork"
+                  fill
+                  sizes="(max-width: 760px) 92vw, 560px"
+                />
+              </div>
+              <figcaption>Logo Vectorizer <span>Edge detail comparison</span></figcaption>
             </figure>
           </div>
         </section>
@@ -1633,17 +1648,13 @@ export default function StartScreen() {
             </button>
           </div>
           <div className="tool-showcase-media">
-            <figure className="tool-pattern-example">
-              <Image
-                src="/workspace-thumbnails/preview-v1/03-pattern-workspace.webp"
-                alt="Interlocking cream, charcoal, and gold geometric pattern illustration"
-                fill
-                sizes="(max-width: 760px) 92vw, 540px"
+            <figure className="tool-preview-frame">
+              <div
+                className="tool-preview-art tool-preview-repeat"
+                role="img"
+                aria-label="Seamless geometric textile repeat with interlocking charcoal, soft white, and gold bands"
               />
-              <figcaption>
-                <strong>Pattern preview</strong>
-                <span>Illustrative example</span>
-              </figcaption>
+              <figcaption>Pattern Rebuilder <span>Seamless repeat example</span></figcaption>
             </figure>
           </div>
         </section>
@@ -1666,17 +1677,20 @@ export default function StartScreen() {
             </button>
           </div>
           <div className="tool-showcase-media tool-extraction-preview tool-cutout-preview">
-            <BeforeAfterSlider
-              rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
-              vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.png"
-              rasterAlt="Original fashion portrait with its studio background"
-              vectorAlt="Transparent portrait cutout with the background removed"
-              aspectRatio="1 / 1"
-              showCheckerboard
-              leftLabel="Transparent cutout"
-              rightLabel="Original photo"
-              description=""
-            />
+            <figure className="tool-preview-frame">
+              <BeforeAfterSlider
+                rasterUrl="/samples/f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c.webp"
+                vectorUrl="/samples/DesaynClaw_f3fe3b3f-bf6f-4182-9cc8-79a5a8204c6c_Transparent.png"
+                rasterAlt="Original fashion portrait with its studio background"
+                vectorAlt="Transparent portrait cutout with the background removed"
+                aspectRatio="1 / 1"
+                showCheckerboard
+                leftLabel="Transparent cutout"
+                rightLabel="Original photo"
+                description=""
+              />
+              <figcaption>Background Remover <span>Drag to compare</span></figcaption>
+            </figure>
           </div>
         </section>
 

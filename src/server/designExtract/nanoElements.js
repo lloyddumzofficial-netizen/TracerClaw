@@ -39,26 +39,26 @@ export function nanoElementInput(sourceUrl, layout = "grid", sourceAspect = null
   return {
     image_urls: [sourceUrl],
     prompt: [
-      "Perform conservative image extraction for a sublimation print designer. This is a reproduction and separation task. Do not design, complete, embellish or reinterpret anything.",
+      "Separate the supplied artwork for sublimation printing. Treat the reference as a finished print to lift pieces from. Every foreground mark must be traceable to the same visible mark in the reference. Source fidelity takes priority over a tidier silhouette or a fuller sheet. Return only the image sheet.",
+      "For a person or character, locate the topmost, bottommost, leftmost and rightmost visible marks of the whole figure before fitting it into the cell. Follow the clothing below the hands and waist to its last visible edge, including sections visible again beyond an overlap. Keep the exact face, gaze, pose, hand placement, clothing folds and proportions. Uniformly shrink the entire figure to fit. Never turn it into a bust or supply hidden anatomy or fabric.",
+      "Keep worn and held items in their original position on the figure. Preserve where fingers cover a handle and fabric covers a cord. A partly visible object is not evidence for a second, complete version of it. If separating overlapping artwork would require drawing a missing contour, lift that assembly together with its original front-to-back order. Only a separately visible instance can supply another copy.",
       panels
-        ? "The reference contains exactly THREE independent tall crops already separated by two vertical white gutters. Edit each crop in place and retain every visible text line belonging to it, including small captions and lettering. Do not duplicate a crop or move artwork between columns. Preserve the heights and column centers."
-        : "Before rendering, inventory the top, middle, bottom, and all sides of the reference. Inventory visible text separately from illustrations, logos, and decorative graphics. Use up to eight foreground cells with distinct assets, including the visible text groups, rather than stopping after the largest subjects.",
+        ? "The reference contains exactly THREE independent tall crops separated by two vertical white gutters. Edit each crop in place. Follow its contours from top to bottom, including tapered tips, thin parallel strokes, disconnected accents and small lettering belonging to that panel. Preserve each crop's height, column center and internal spacing. Never mirror a side, exchange details between columns or extend a shape past its source edge."
+        : "Plan the sheet before drawing. Silently inventory independently reusable artwork by position: center, each side, all four corners, then the overlaps between them. Trace long shapes across those regions so one shape is counted once. For each candidate ask what a print designer could move, resize or replace as a unit. Assign up to eight foreground cells and reserve the ninth for the background.",
       ...(!panels ? [
         "Visible standalone typography is mandatory foreground artwork. If the source contains a headline, title, slogan, subtitle, date, number, or caption, reserve foreground space for the text before placing illustrations or optional motifs. Keep a title, its small lead-in and its tagline together in one tile when they form a single lockup. Keep separately placed, independently reusable text blocks in their own tiles. Never split a word into letters or drop a smaller line because an illustration is more prominent. Any lettering printed inside a logo or badge stays with that complete logo or badge.",
-        "If foreground cells are limited, drop optional decorative motifs first and group related typography to keep all visible text. In the last pass, compare each text tile against the source line by line and check for omitted words, punctuation, and accents. Copy the visible glyphs exactly. Keep any partially visible text as shown, without guessing missing characters.",
-        "Keep separately placed subjects separate even if they are the same kind or overlap: a large fish near the top edge and a smaller school elsewhere are two assets, while the school stays together. An element partially obscured by another graphic or cut by the edge still qualifies. Keep its visible silhouette without inventing parts beyond the source.",
-        "Look for reusable scene accents as well as subjects. A stylized wave with foam, a defined sun with its rays, a small cluster of flying birds, or an intentional stripe or pattern panel can qualify as its own asset when visible. Keep coherent parts together, such as a wave and its own foam or a sun and its rays. Skip plain backdrop fill and generic texture.",
-        "After placing the foreground subjects, inspect the lower half again before leaving the last row blank. A clearly shaped curling wave is standalone artwork even when it touches other water or occupies a large area. If visible, isolate a complete crest and its foam in one cell. If a visually distinct ribbon stripe or framed pattern panel is visible, use another cell for it.",
-        "Use the bottom-right cell (row 3, column 3) only for a separate full rectangular background plate. Remove the separated typography, dominant subjects, logos, vehicles, animals and badges. Reconstruct the backdrop visibly implied behind them without holes. Keep its original framing, water, scenery, gradients, decorative stripes and base patterns where present. A wave or sun can also be provided separately as a reusable asset. Do not leave the background cell blank for a colored or illustrated design.",
+        "Inspect the supporting graphics at the same level of care as the main subjects. Look for a bounded pattern inset, a corner ornament, a sweep of parallel color bands, a side panel or a small silhouette cluster. A panel with its own boundary and direction is reusable artwork even where it touches the frame. An all-over texture or flat field stays on the background. These are recognition cues: include only what is actually visible.",
+        "Group by the design in the source. Keep an emblem and its lettering, a wave crest and its attached foam, or the strands of one striped ribbon together. Preserve the count, poses and spacing of a cluster. A large independent subject and a smaller group elsewhere are distinct pieces. Inspect the intersection with neighboring artwork: touching does not make it part of the subject. Follow visible outlines up to their actual occlusion or source edge. Do not include a rectangular patch of scenery or invent a hidden continuation.",
+        "Plan for distinct coverage before filling the cells. Give each standalone text lockup and principal subject a place. Use the remaining cells for different reusable shapes across the design, including its perimeter. A whole border or pattern panel takes priority over a second crop of a motif already represented. When a patterned insert and its trim form one bounded panel, keep their original relationship in one tile. Never assemble unrelated pieces just to fit. If capacity is reached, preserve unselected artwork at its original position on the background. If there are fewer distinct assets, leave unused cells white.",
+        "Use the bottom-right cell (row 3, column 3) only for a full rectangular background plate in the original framing. Remove the separated typography and other lifted artwork. Repair only their footprints. Match color, brightness, gradient direction and texture grain to the immediate boundary on each side. Join a line across the gap only when its visible ends establish its path. Where the hidden scene is unknown, use the simplest neighboring field. Never populate the repair with new leaves, symbols, figures or scenery. Keep all visible background detail outside the footprint exactly in place. Check the join for halos, abrupt color steps, seams and subject remnants. Provide the plate even when it is mostly plain.",
         ...(sourceAspect ? [`Keep the background rectangle at the source width-to-height ratio of approximately ${sourceAspect.toFixed(3)}, surrounded by clean white space so all four edges are visible.`] : []),
-        "Before finishing, compare your sheet with your inventory. Use an empty foreground cell to add an omitted visible element. Give text groups and distinct subjects priority over optional decorative accents.",
+        "Before delivery, compare each tile with its exact source location. When scaled back and placed there, the silhouette, lowest visible point and overlap boundaries should register with the original. Check cluster counts, petal shapes, thin tips, negative spaces and lettering line by line. Preserve partial glyphs as seen. Discard duplicate props, alternate poses and generic standalone versions of source details. Use a spare slot only for an actual unrepresented piece. Then check the corners and spaces between subjects for omitted artwork.",
       ] : []),
-      "For other layouts, keep whole logos, badges, wordmarks, connected illustrations and their intentional details together. Do not take multiple samples from a single assembly. Do not fill the sheet with variants, mirrored duplicates, invented wings, flourishes, or pieces clipped from a larger design. A graphic running off the source edge stays exactly as visibly cropped there. Leave extra slots empty even when only one asset is present.",
       panels
         ? "Output one square image in the exact same three-column, one-row layout. Keep the white gutters clear, leave white margins around each asset, and remove all original dark background within each crop while preserving dark ink inside the graphic."
         : "Output one square image with a strict invisible grid of exactly 3 equally sized columns and 3 equally sized rows. Place foreground artwork, including text from the source, in the first eight cells, one asset or text group per cell, and the full background in the ninth. Center each asset within its cell, with at least 8% pure white padding on every side. Leave unused foreground cells pure white. Add no sheet labels, cell numbers, new headings, grid lines, frames, mockups, collages, or drop shadows. Never cross a cell boundary.",
       "Preserve the source glyph shapes, spelling, case, line breaks, spacing, and print effects. Retain the artwork's own outline or shadow on light text. If pure white lettering would disappear on white paper, keep only the minimum original dark surround needed to read the letters, with pure white padding outside it. Do not recolor or retype the lettering.",
-      "Put every asset on solid pure white #FFFFFF. Treat this as carefully cutting and pasting the visible pixels onto white paper. Remove only the backdrop and shadows outside each asset. Preserve intentional dark ink, every existing curve and motif, exact colors, aspect ratio, spelling and orientation. Do not redraw the original curves or turn them into different shapes. Scale each complete asset uniformly as large as the cell padding allows. Before finishing, check that every copied item has the same silhouette and details as its location in the reference.",
+      "Place each foreground asset on solid pure white #FFFFFF. Copy its visible contour, interior colors, lettering, highlights, deliberate shadows and line weights. Keep open gaps between spokes, feathers, letters and other fine details open. Preserve sharp ink edges and the original softness of gradients. Scale uniformly to fit the padding. Never zoom into a detail, crop tips for a larger preview, add an outline, or add specks to suggest sharpness.",
     ].join("\n"),
     aspect_ratio: "1:1", num_images: 1, resolution: "4K", output_format: "png",
     limit_generations: true, thinking_level: "medium", enable_web_search: false,
@@ -107,6 +107,37 @@ export async function nanoColumnGuide(source, { withBackdrop = false } = {}) {
   return withBackdrop ? { guide, backdrop: { r, g, b } } : guide;
 }
 
+// Some sheets have printed rules instead of white gutters. Only trust a grid
+// when all four dividers are thin, nearly continuous neutral lines.
+function ruledCells(data, { width, height, channels }, vertical) {
+  const length = vertical ? width : height;
+  const span = vertical ? height : width;
+  if (length < 24) return null;
+  const ranges = [];
+  let start = 0;
+  for (const fraction of [1 / 3, 2 / 3]) {
+    const center = Math.round(length * fraction);
+    const radius = Math.max(3, Math.round(length * .02));
+    let first = -1, last = -1;
+    for (let x = center - radius; x <= center + radius; x++) {
+      let dark = 0;
+      for (let y = 0; y < span; y++) {
+        const p = (vertical ? y * width + x : x * width + y) * channels;
+        const max = Math.max(data[p], data[p + 1], data[p + 2]);
+        if (max < 180 && max - Math.min(data[p], data[p + 1], data[p + 2]) < 24) dark++;
+      }
+      if (dark < span * .65) continue;
+      if (last >= 0 && last !== x - 1) return null;
+      if (first < 0) first = x;
+      last = x;
+    }
+    if (first < 0 || last - first + 1 > Math.max(4, length * .009)) return null;
+    ranges.push([start, first - 1]);
+    start = last + 2; // Skip the antialiased fringe on each side.
+  }
+  return [...ranges, [start, length]];
+}
+
 export async function splitNanoElements(bytes, layout = "grid", sourceAspect = null) {
   const sheet = sharp(bytes, { limitInputPixels: DESIGN_IMAGE_MAX_PIXELS });
   const metadata = await sheet.metadata();
@@ -119,24 +150,26 @@ export async function splitNanoElements(bytes, layout = "grid", sourceAspect = n
   let tiles = [];
   let clipped = 0;
   const rowCount = layout === "columns" ? 1 : rows;
+  const ruledRows = layout === "grid" && ruledCells(data, info, false);
+  const ruledColumns = ruledRows && ruledCells(data, info, true);
   const horizontalInk = new Uint32Array(height);
-  if (layout !== "columns") {
+  if (layout !== "columns" && !ruledColumns) {
     for (let y = 0, p = 0; y < height; y++) for (let x = 0; x < width; x++, p += channels) {
       if (Math.min(data[p], data[p + 1], data[p + 2]) < 239) horizontalInk[y]++;
     }
   }
   const rowEdges = sheetEdges(height, rowCount, horizontalInk);
   for (let row = 0; row < rowCount; row++) {
-    const y0 = rowEdges[row], y1 = rowEdges[row + 1];
+    const [y0, y1] = ruledColumns ? ruledRows[row] : [rowEdges[row], rowEdges[row + 1]];
     const verticalInk = new Uint32Array(width);
-    if (layout !== "columns") {
+    if (layout !== "columns" && !ruledColumns) {
       for (let y = y0; y < y1; y++) for (let x = 0, p = y * width * channels; x < width; x++, p += channels) {
         if (Math.min(data[p], data[p + 1], data[p + 2]) < 239) verticalInk[x]++;
       }
     }
     const columnEdges = sheetEdges(width, columns, verticalInk);
     for (let column = 0; column < columns; column++) {
-      const x0 = columnEdges[column], x1 = columnEdges[column + 1];
+      const [x0, x1] = ruledColumns ? ruledColumns[column] : [columnEdges[column], columnEdges[column + 1]];
       let left = x1, top = y1, right = -1, bottom = -1, ink = 0, edgeInk = 0;
       const border = Math.max(2, Math.round(Math.min(x1 - x0, y1 - y0) * (layout === "columns" ? .025 : .006)));
       for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
@@ -150,11 +183,12 @@ export async function splitNanoElements(bytes, layout = "grid", sourceAspect = n
         if (nearEdge) edgeInk++;
       }
       if (ink < Math.max(16, (x1 - x0) * (y1 - y0) * .00012)) continue;
-      if (edgeInk > Math.max(5, border * .35)) { clipped++; continue; }
+      if (!ruledColumns && edgeInk > Math.max(5, border * .35)) { clipped++; continue; }
       const slot = row * columns + column + 1;
       const artWidth = right - left + 1, artHeight = bottom - top + 1;
       const background = sourceAspect && layout === "grid" && slot === 9 &&
-        Math.abs(artWidth / artHeight / sourceAspect - 1) < .16 && ink > artWidth * artHeight * .70 &&
+        (Math.abs(artWidth / artHeight / sourceAspect - 1) < .16 ||
+          ruledColumns && artWidth >= (x1 - x0) * .98 && artHeight >= (y1 - y0) * .98) && ink > artWidth * artHeight * .70 &&
         hasRectangularEdges(data, info, { left, top, width: artWidth, height: artHeight });
       const padding = background ? 0 : Math.max(6, Math.round(Math.max(artWidth, artHeight) * .035));
       const bounds = {
