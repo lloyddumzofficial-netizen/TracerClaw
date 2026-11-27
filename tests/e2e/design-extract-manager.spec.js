@@ -144,13 +144,30 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
   await page.screenshot({ path: "output/design-extract-picker-access-unavailable.png", fullPage: true });
 
   // A temporary access failure must not hide an enabled workspace.
+  let availabilityStatus = 200;
+  let workspaceEnabled = true;
   await page.route(url => url.pathname === "/api/design-extract", route => {
     const scope = new URL(route.request().url()).searchParams.get("scope");
     return scope === "availability"
-      ? route.fulfill({ json: { enabled: true } })
+      ? route.fulfill({ status: availabilityStatus, json: { enabled: workspaceEnabled } })
       : route.fulfill({ status: 503, json: { error: "Temporarily unavailable" } });
   });
   await page.reload();
   await page.getByRole("button", { name: "New Project", exact: true }).first().click();
   await expect(page.locator('.new-project-category-grid [data-workspace-card="design_extract"]')).toBeVisible();
+
+  // A reload during a double outage uses the last known availability.
+  availabilityStatus = 503;
+  const unavailable = page.waitForResponse(response => response.url().includes("scope=availability") && response.status() === 503);
+  await page.reload();
+  await unavailable;
+  await expect(page.locator(".recent-card")).toHaveCount(2);
+  await page.getByRole("button", { name: "New Project", exact: true }).first().click();
+  const designCard = page.locator('.new-project-category-grid [data-workspace-card="design_extract"]');
+  await expect(designCard).toBeVisible();
+
+  // A successful retry respects an explicit production pause.
+  availabilityStatus = 200;
+  workspaceEnabled = false;
+  await expect(designCard).toHaveCount(0);
 });

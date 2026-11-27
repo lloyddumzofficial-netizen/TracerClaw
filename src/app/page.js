@@ -204,16 +204,58 @@ function usePublicDesignExtractAvailability() {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
+    const cacheKey = "desaynclaw:design-extract-availability";
     const controller = new AbortController();
-    fetch("/api/design-extract?scope=availability", { signal: controller.signal })
-      .then(response => response.ok ? response.json() : null)
-      .then(availability => {
-        if (!controller.signal.aborted) setAvailable(availability?.enabled === true);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setAvailable(false);
-      });
-    return () => controller.abort();
+    let retryTimer;
+    let checking = false;
+    let failures = 0;
+
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached?.enabled === true && cached.expiresAt > Date.now()) setAvailable(true);
+    } catch {
+      // Storage can be unavailable in private or restricted browser contexts.
+    }
+
+    const refresh = async () => {
+      if (checking || controller.signal.aborted) return;
+      clearTimeout(retryTimer);
+      checking = true;
+      try {
+        const response = await fetch("/api/design-extract?scope=availability", {
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
+        });
+        if (!response.ok) throw new Error("Workspace availability check failed");
+        const { enabled } = await response.json();
+        if (controller.signal.aborted) return;
+        if (typeof enabled !== "boolean") throw new Error("Invalid workspace availability");
+        failures = 0;
+        setAvailable(enabled);
+        try {
+          if (enabled) localStorage.setItem(cacheKey, JSON.stringify({ enabled, expiresAt: Date.now() + 86_400_000 }));
+          else localStorage.removeItem(cacheKey);
+        } catch {
+          // The live result still applies when storage is unavailable.
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          retryTimer = setTimeout(refresh, Math.min(1000 * 2 ** failures, 30_000));
+          failures += 1;
+        }
+      } finally {
+        checking = false;
+      }
+    };
+
+    refresh();
+    window.addEventListener("online", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      controller.abort();
+      clearTimeout(retryTimer);
+      window.removeEventListener("online", refresh);
+      window.removeEventListener("focus", refresh);
+    };
   }, []);
 
   return available;
