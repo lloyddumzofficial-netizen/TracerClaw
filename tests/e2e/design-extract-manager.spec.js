@@ -142,4 +142,15 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
     }).toBeLessThan(2);
   }
   await page.screenshot({ path: "output/design-extract-picker-access-unavailable.png", fullPage: true });
+
+  // A temporary access failure must not hide an enabled workspace.
+  await page.route(url => url.pathname === "/api/design-extract", route => {
+    const scope = new URL(route.request().url()).searchParams.get("scope");
+    return scope === "availability"
+      ? route.fulfill({ json: { enabled: true } })
+      : route.fulfill({ status: 503, json: { error: "Temporarily unavailable" } });
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "New Project", exact: true }).first().click();
+  await expect(page.locator('.new-project-category-grid [data-workspace-card="design_extract"]')).toBeVisible();
 });

@@ -200,24 +200,23 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesign
   );
 }
 
-function GuestDesktopToolsShelf({ ready, ...props }) {
-  const [designExtractEnabled, setDesignExtractEnabled] = useState(false);
+function usePublicDesignExtractAvailability() {
+  const [available, setAvailable] = useState(false);
 
   useEffect(() => {
-    if (!ready) return;
     const controller = new AbortController();
     fetch("/api/design-extract?scope=availability", { signal: controller.signal })
       .then(response => response.ok ? response.json() : null)
       .then(availability => {
-        if (!controller.signal.aborted) setDesignExtractEnabled(availability?.enabled === true);
+        if (!controller.signal.aborted) setAvailable(availability?.enabled === true);
       })
       .catch(() => {
-        if (!controller.signal.aborted) setDesignExtractEnabled(false);
+        if (!controller.signal.aborted) setAvailable(false);
       });
     return () => controller.abort();
-  }, [ready]);
+  }, []);
 
-  return <DesktopToolsShelf {...props} designExtractEnabled={designExtractEnabled} />;
+  return available;
 }
 
 function HowItWorksSection() {
@@ -487,7 +486,9 @@ export default function StartScreen() {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [user, setUser] = useState(null);
-  const [designExtractEnabled, setDesignExtractEnabled] = useState(false);
+  const [designExtractAccess, setDesignExtractAccess] = useState(null);
+  const publicDesignExtractAvailable = usePublicDesignExtractAvailability();
+  const designExtractEnabled = designExtractAccess ?? publicDesignExtractAvailable;
   const [designRefined, setDesignRefined] = useState(false);
   const [credits, setCredits] = useState(0);
 
@@ -622,7 +623,7 @@ export default function StartScreen() {
       const owner = projectLoadRef.current.owner;
       if (event === 'SIGNED_OUT' || owner && session?.user?.id !== owner) {
         projectLoadRef.current = { generation: projectLoadRef.current.generation + 1, owner: null };
-        clearDesignProjects(); setRecentProjects([]); setDesignExtractEnabled(false); setIsLoadingProjects(false); setCredits(0); setUser(null);
+        clearDesignProjects(); setRecentProjects([]); setDesignExtractAccess(null); setDesignRefined(false); setIsLoadingProjects(false); setCredits(0); setUser(null);
       }
     });
 
@@ -938,17 +939,17 @@ export default function StartScreen() {
         const access = await request("/api/design-extract?scope=access");
         if (!isCurrent()) return null;
         if ([401, 403, 404].includes(access.status)) {
-          setDesignExtractEnabled(false);
+          setDesignExtractAccess(false);
           return [];
         }
         const capability = access.ok ? await access.json() : null;
         if (!capability?.enabled || !isCurrent()) return null;
         setDesignRefined(Boolean(capability.refinement));
 
-        setDesignExtractEnabled(true);
+        setDesignExtractAccess(true);
         const response = await request("/api/design-extract");
         if ([401, 403, 404].includes(response.status)) {
-          if (isCurrent()) setDesignExtractEnabled(false);
+          if (isCurrent()) setDesignExtractAccess(false);
           return [];
         }
         if (!response.ok) return null;
@@ -993,7 +994,7 @@ export default function StartScreen() {
 
   const handleLogout = async () => {
     projectLoadRef.current = { generation: projectLoadRef.current.generation + 1, owner: null };
-    setRecentProjects([]); setDesignExtractEnabled(false); setIsLoadingProjects(false);
+    setRecentProjects([]); setDesignExtractAccess(null); setDesignRefined(false); setIsLoadingProjects(false);
     clearDesignProjects();
     await supabase.auth.signOut();
     analytics.reset();
@@ -1492,7 +1493,7 @@ export default function StartScreen() {
         )}
 
 {!user && (
-          <GuestDesktopToolsShelf ready={!isLoadingProjects} onDesignExtract={event => { if (!requireDesktopTool()) handleLogin(event); }}
+          <DesktopToolsShelf designExtractEnabled={publicDesignExtractAvailable} onDesignExtract={event => { if (!requireDesktopTool()) handleLogin(event); }}
             onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
