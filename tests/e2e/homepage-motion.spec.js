@@ -224,24 +224,21 @@ for (const width of [1440, 390]) {
   }
 }
 
-test('new content sections fade in and re-arm only after leaving below the viewport', async ({ page }) => {
+test('workspace features fade in and re-arm only after leaving below the viewport', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await ready(page);
-  for (const id of ['moving-artwork-heading', 'workspace-features-heading']) {
-    const section = page.locator(`section[aria-labelledby="${id}"]`);
-    const piece = section.locator('[data-home-reveal-piece]').first();
-    await expect(section).toHaveAttribute('data-home-reveal', 'true');
-    await expect(piece).toHaveCSS('opacity', '0');
-    await section.evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 150, behavior: 'instant' }));
-    await expect(section).toHaveAttribute('data-home-revealed', 'true');
-    await expect(piece).toHaveCSS('opacity', '1');
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-    await expect(section).not.toHaveAttribute('data-home-revealed', 'true');
-    await section.evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 150, behavior: 'instant' }));
-    await expect(section).toHaveAttribute('data-home-revealed', 'true');
-    await expect(piece).toHaveCSS('opacity', '1');
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-  }
+  const section = page.locator('section[aria-labelledby="workspace-features-heading"]');
+  const piece = section.locator('[data-home-reveal-piece]').first();
+  await expect(section).toHaveAttribute('data-home-reveal', 'true');
+  await expect(piece).toHaveCSS('opacity', '0');
+  await section.evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 150, behavior: 'instant' }));
+  await expect(section).toHaveAttribute('data-home-revealed', 'true');
+  await expect(piece).toHaveCSS('opacity', '1');
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await expect(section).not.toHaveAttribute('data-home-revealed', 'true');
+  await section.evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 150, behavior: 'instant' }));
+  await expect(section).toHaveAttribute('data-home-revealed', 'true');
+  await expect(piece).toHaveCSS('opacity', '1');
 });
 
 test('keyboard focus reveals sections and refresh keeps the hero glow anchored', async ({ page }) => {

@@ -46,6 +46,11 @@ scratch-*.log
 .codex-local/
 scratch/
 
+# Private artwork previously used in the homepage gallery.
+/public/FLAT_deisgn-gallery/
+/public/flat-artwork-previews/
+/public/Moving_Images/
+
 # env files (can opt-in for committing if needed)
 .env*
 

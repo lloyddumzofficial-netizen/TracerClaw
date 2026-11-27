@@ -5,7 +5,6 @@ import { NAVIGATION_START_EVENT } from "./useAppRouter";
 
 const REVEAL_SECTIONS = [
   ".home-content-frame > section",
-  '.home-content-frame > [aria-labelledby="moving-artwork-heading"]',
   '.home-content-frame > [aria-labelledby="workspace-features-heading"]',
   ".home-content-frame > .desktop-tools-shelf",
   ".home-content-frame .guest-landing-example",

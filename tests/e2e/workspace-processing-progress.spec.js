@@ -47,6 +47,12 @@ test("garment loading percentage advances within real stages and never completes
   await expect(page.getByLabel("Maya, your garment panel agent")).toHaveCount(0);
   await expect(page.getByText("ZIP contents", { exact: true })).toBeVisible();
   await expect(page.getByText("Reference", { exact: true })).toBeVisible();
+  const beforeTracing = page.getByRole("complementary", { name: "Before tracing" });
+  await expect(beforeTracing).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1440, height: 760 });
+  await beforeTracing.scrollIntoViewIfNeeded();
+  await expect(beforeTracing).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.getByRole("complementary", { name: "Before printing" })).toHaveCount(0);
   await page.getByRole("button", { name: /Run Auto-Trace/ }).click();
   const header = page.locator(".processing-layer-header");
@@ -85,6 +91,7 @@ test("garment loading percentage advances within real stages and never completes
   await hdTab.click();
   await expect(page.getByText("Reference · Flat extract · HD upscale · Vector SVG", { exact: true })).toBeVisible();
   const checklist = page.getByRole("complementary", { name: "Before printing" });
+  await expect(beforeTracing).toHaveCount(0);
   await expect(checklist).toBeInViewport({ ratio: 1 });
   const alignment = await checklist.evaluate(card => {
     const border = card.getBoundingClientRect();

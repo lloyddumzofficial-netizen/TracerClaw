@@ -55,6 +55,12 @@ export const DODO_CREDIT_PLANS = {
   }),
 };
 
+export const POLAR_CREDIT_PLANS = {
+  basic: withOffer(PLAN_DEFINITIONS.basic, { amount: 279, currency: "USD", productEnv: "POLAR_PRODUCT_BASIC" }),
+  starter: withOffer(PLAN_DEFINITIONS.starter, { amount: 499, currency: "USD", productEnv: "POLAR_PRODUCT_STARTER" }),
+  pro: withOffer(PLAN_DEFINITIONS.pro, { amount: 1549, currency: "USD", productEnv: "POLAR_PRODUCT_PRO" }),
+};
+
 // Backwards-compatible public catalog used by Philippine marketing and manual
 // admin tooling. Provider checkouts must use getPaymentOffer instead.
 export const CREDIT_PLANS = PAYMONGO_CREDIT_PLANS;

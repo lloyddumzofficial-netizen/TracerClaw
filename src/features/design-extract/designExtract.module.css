@@ -361,21 +361,52 @@
 @media (prefers-reduced-motion: reduce) { .lockControl input::after { transition: none; } }
 @media (max-width: 800px) { .panel { width: 100%; flex-basis: auto; } }
 /* Layer discovery and review tools remain local to the editor. */
-.layerTools { display: grid; gap: 8px; padding: 8px 0 6px; }
-.layerSearch { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 34px; padding: 0 10px; border: 1px solid #333333; border-radius: 6px; background: #1A1C1E; color: #929591; }
-.layerSearch:focus-within { outline: 2px solid #FFD700; outline-offset: 2px; }
+.layerTools { display: grid; gap: 8px; padding: 10px 0; }
+.layerSearch { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 36px; padding: 0 10px; border: 2px solid #333333; border-radius: 8px; background: #111315; color: #929591; }
+.layerSearch:focus-within { outline: 2px solid #F4F4F1; outline-offset: 2px; }
+.layerSearch svg { flex-shrink: 0; }
 .layerSearch input { width: 100%; min-width: 0; padding: 8px 0; border: 0; outline: 0; color: #F4F4F1; background: transparent; font: inherit; font-size: 11px; }
 .layerSearch input::placeholder { color: #929591; }
 .layerFilterRow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.layerFilterRow select { min-height: 30px; padding: 4px 24px 4px 8px; color-scheme: dark; color: #F4F4F1; background: #111315; border: 1px solid #333333; border-radius: 5px; font-family: inherit; font-size: 10px; }
-.layerFilterRow > span { color: #929591; font-size: 10px; font-variant-numeric: tabular-nums; }
+.layerFilterRow select { min-height: 30px; padding: 4px 24px 4px 8px; color-scheme: dark; color: #F4F4F1; background: #111315; border: 2px solid #333333; border-radius: 6px; font-family: inherit; font-size: 11px; }
+.layerFilterRow > span { color: #929591; font-size: 11px; font-variant-numeric: tabular-nums; }
 .noLayerMatches { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 24px 10px; color: #929591; }
 .noLayerMatches strong { color: #F4F4F1; font-size: 12px; font-weight: 500; }
 .noLayerMatches p { margin: 0; font-size: 11px; }
 .elementLabel small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.canvasDetails { position:absolute; top:18px; left:20px; z-index:40; display:flex; flex-direction:column; gap:4px; max-width:min(280px, 45%); padding:8px 10px; background:#111315; border:2px solid #333333; border-radius:6px; pointer-events:none; }
-.canvasDetails strong { color:#F4F4F1; font-size:12px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.canvasDetails span { color:#929591; font-size:10px; font-variant-numeric:tabular-nums; }
+.canvasDetails {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(320px, calc(100% - 32px));
+  padding: 4px 8px;
+  background: #111315;
+  border: 2px solid #333333;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 16px;
+  pointer-events: none;
+}
+.canvasDetails strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #F4F4F1;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.canvasDetails span {
+  flex-shrink: 0;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid #333333;
+  color: #929591;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 .review { padding: 14px 0 18px; border: 0; border-top: 1px solid #333333; border-bottom: 1px solid #333333; border-radius: 0; background: transparent; }
 .reviewHeading { display: flex; align-items: center; gap: 10px; }
@@ -465,7 +496,12 @@
 .inspectorDock .properties { gap: 11px; padding: 0; border: 0; }
 .inspectorDock .properties label { color: #929591; font-size: 11px; }
 .inspectorDock .properties input:not([type="checkbox"]) { width: 142px; }
+.inspectorDock .transformFields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .inspectorDock .transformFields input:not([type="checkbox"]) { width: 100%; }
+.layerMetadata { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.layerMetadata .lockControl { flex-shrink: 0; gap: 6px; }
+.artworkVersion { display: grid; gap: 5px; color: #929591; font-size: 11px; }
+.artworkVersion select { width: 100%; min-width: 0; }
 .inspectorDock .buttons { gap: 5px; }
 .inspectorDock .buttons button { min-height: 30px; padding: 5px; font-size: 10px; }
 .inspectorQuality { margin: 0; color: #929591; font-size: 10px; line-height: 1.5; }
@@ -588,11 +624,22 @@
 .panel .issueToggle { flex-shrink: 0; min-height: 29px; margin: 6px 0; color: #F4F4F1; font-size: 10px; border-color: #333333; }
 
 /* Only accepted layers scroll; search, filters and export actions stay anchored. */
-.scrollableLayerList { --layer-row-height: 56px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #333333 transparent; padding-right: 4px; margin-bottom: 12px; }
-.scrollableLayerList .thumbnail { width:40px; height:40px; box-sizing:border-box; border-radius:4px; }
+.scrollableLayerList { --layer-row-height: 54px; --layer-row-gap: 5px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #333333 transparent; scrollbar-gutter: stable; margin-bottom: 10px; }
+.shell .scrollableLayerList .row,
+.shell .scrollableLayerList .activeRow { padding: 3px 5px 3px 6px; border-radius: 8px; }
+.shell .scrollableLayerList .row { background: #111315; border-color: transparent; }
+.shell .scrollableLayerList .row:hover { background: #1A1C1E; border-color: #333333; }
+.shell .scrollableLayerList .activeRow { background: #111315; border-color: #929591; }
+.scrollableLayerList .thumbnail { width:38px; height:38px; box-sizing:border-box; border-radius:5px; overflow:hidden; }
 .scrollableLayerList .thumbnail img { width:32px; height:32px; object-fit:contain; }
 .scrollableLayerList .layerSelect { min-height:0; gap:10px; padding:2px; }
 .scrollableLayerList .layerCopy { gap:2px; }
+.scrollableLayerList .layerCopy strong { font-weight: 600; }
+.scrollableLayerList .layerCopy small { font-size: 11px; }
+.scrollableLayerList .visibility { border-radius: 6px; }
+.scrollableLayerList .visibility:hover { color: #F4F4F1; }
+.scrollableLayerList .visibility:focus-within { outline-offset: -2px; }
+.scrollableLayerList .layerSelect:focus-visible { outline-offset: -2px; }
 .scrollableLayerList:focus-visible { outline: 1px solid #929591; outline-offset: 2px; }
 .panel .exports button { min-height: 46px; padding: 12px 14px; font-size: 12px; gap: 9px; }
 .panel .exports button svg { width: 17px; height: 17px; }
@@ -665,11 +712,11 @@
 .layerDownloads section { display:grid; gap:6px; }
 .upscaleDetails { margin:0 2px 4px; color:#929591; font-size:10px; line-height:1.4; }
 .layerDownloads section + section { border-top:1px solid #333333; margin-top:8px; padding-top:8px; }
-.layerDownloads h4 { margin:0 0 3px; padding:0 8px; color:#929591; font-size:10px; line-height:1.5; font-weight:500; }
+.layerDownloads h4 { margin:0 0 2px; color:#929591; font-size:11px; line-height:1.4; font-weight:600; }
 .shell .inspectorDock .layerDownloads button { display:flex; justify-content:flex-start; align-items:center; gap:8px; min-height:34px; padding:6px 8px; border:2px solid #F4F4F1; border-radius:5px; background:#F4F4F1; color:#08090A; font-size:11px; font-weight:500; text-align:left; }
 .shell .inspectorDock .layerDownloads button:not(:disabled):hover { background:#F4F4F1; color:#08090A; border-color:#929591; }
 .layerDownloads button > svg { width:14px; height:14px; flex-shrink:0; }
-.layerActionContent { display:flex; flex:1; min-width:0; align-items:center; justify-content:center; gap:7px; }
+.layerActionContent { display:flex; flex:1; min-width:0; align-items:center; justify-content:flex-start; gap:8px; }
 .layerActionContent > svg { width:14px; height:14px; flex-shrink:0; }
 .layerActionContent > span { white-space:nowrap; }
 .featureBadges { display:inline-flex; align-items:center; gap:5px; flex-shrink:0; }

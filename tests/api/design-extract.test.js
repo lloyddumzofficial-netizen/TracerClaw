@@ -395,6 +395,17 @@ describe("Design Extract admin gate", () => {
     expect(list.eq).toHaveBeenCalledWith("user_id", "other");
     expect((await getDocument(jsonRequest({}), { params: { id: project.id } })).status).toBe(404);
   });
+  it("advertises the paid workspace to guests without exposing projects or authenticating", async () => {
+    const url = "http://localhost/api/design-extract?scope=availability";
+    const availability = async () => (await (await GET(new Request(url))).json()).enabled;
+    expect(await availability()).toBe(false);
+    vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
+    expect(await (await GET(new Request(url))).json()).toEqual({ enabled: true });
+    vi.stubEnv("DESIGN_EXTRACT_ENABLED", "false");
+    expect(await availability()).toBe(false);
+    expect(mocks.getUser).not.toHaveBeenCalled();
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
   it("keeps manual provider reconciliation admin-only", async () => {
     vi.stubEnv("DESIGN_EXTRACT_BILLING_MODE", "paid");
     mocks.getUser.mockResolvedValue({ data: { user: { id: project.user_id, email: "member@test.com" } } });

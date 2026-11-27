@@ -4,12 +4,18 @@ import { requireDesignUser, designError } from "@/server/designExtract/access";
 import { createProject } from "@/server/designExtract/service";
 import { adminSupabase as db } from "@/lib/supabase";
 import { designRefineAvailable, isRefinementProject } from "@/server/designExtract/refinement";
+import { designBillingMode } from "@/server/designExtract/billing";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function GET(request) {
   try {
+    const scope = new URL(request.url).searchParams.get("scope");
+    if (scope === "availability") {
+      const enabled = process.env.DESIGN_EXTRACT_ENABLED === "true" && designBillingMode() === "paid";
+      return Response.json({ enabled }, { headers: { "Cache-Control": "no-store" } });
+    }
     const user = await requireDesignUser(request);
-    if (new URL(request.url).searchParams.get("scope") === "access") {
+    if (scope === "access") {
       const refinement = await designRefineAvailable();
       return await designResponse(refinement ? { enabled: true, refinement } : { enabled: true });
     }

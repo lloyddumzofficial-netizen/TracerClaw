@@ -56,7 +56,11 @@
 }
 
 @container (max-height: 820px) {
-  .printChecklistSlot { display: none; }
+  .printChecklistSlot { padding: 7px 14px; }
+}
+
+@container (max-height: 740px) {
+  .printChecklistSlot { padding: 6px 12px; }
 }
 
 .panel.panel.panel.panel {
@@ -83,6 +87,12 @@
 .panel.panel.panel.panel :global(.pp-scroll-region) {
   overflow: clip;
   justify-content: flex-start;
+}
+
+.panel.panel.panel.panel .garmentScrollRegion {
+  overflow: hidden auto;
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #111315;
 }
 
 .panel.panel.panel.panel :global(.pp-section) {

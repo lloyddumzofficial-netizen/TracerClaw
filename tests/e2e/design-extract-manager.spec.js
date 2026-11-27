@@ -38,6 +38,7 @@ test("Design Extract shares the project manager, thumbnail labels and direct upl
     const url = new URL(route.request().url()), method = route.request().method();
     if (url.pathname === "/api/design-extract") {
       if (method === "POST") { expect(route.request().postDataJSON().imageUrl).toBe(source); await creationGate; return route.fulfill({ json: { project: { id: "new-layers", revision: 0, source_url: source, manifest: { width: 60, height: 80, layers: [] } } } }); }
+      if (url.searchParams.get("scope") === "availability") return route.fulfill({ json: { enabled: true } });
       if (url.searchParams.get("scope") === "access") return route.fulfill({ json: { enabled: true } });
       if (!firstListRequested) {
         firstListRequested = true;

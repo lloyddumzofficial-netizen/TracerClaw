@@ -9966,12 +9966,10 @@ html:has(.has-guest-home) {
   border-color: rgba(255, 255, 255, .18) !important;
 }
 
-.home-content-frame > section[aria-labelledby="moving-artwork-heading"],
 .home-content-frame > section[aria-labelledby="workspace-features-heading"] {
   position: relative;
 }
 
-.home-content-frame > section[aria-labelledby="moving-artwork-heading"]::after,
 .home-content-frame > section[aria-labelledby="workspace-features-heading"]::after {
   content: "";
   position: absolute;

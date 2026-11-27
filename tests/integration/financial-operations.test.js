@@ -150,80 +150,81 @@ describe("Legacy manual GCash approval", () => {
   });
 });
 
-describe("Dodo checkout", () => {
-  it("rejects QR-Ph-only packages before creating a local payment", async () => {
-    adminSupabase.from = vi.fn();
+describe("Polar checkout", () => {
+  it.each([{ plan: "tingi" }, { plan: "basic", billingCurrency: "ZZZ" }, { plan: "basic", amount: 1, credits: 500 }])(
+    "rejects invalid checkout request %j before creating a payment",
+    async (input) => {
+      adminSupabase.from = vi.fn();
+      const { POST } = await import("@/app/api/payments/polar/checkout/route.js");
+      const response = await POST(jsonRequest(input));
+      expect(response.status).toBe(400);
+      expect(adminSupabase.from).not.toHaveBeenCalled();
+    },
+  );
 
-    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
-    const res = await POST(jsonRequest({ plan: "tingi" }));
-    const body = await res.json();
+  it("saves the trusted checkout snapshot before redirecting", async () => {
+    vi.stubEnv("POLAR_CHECKOUT_ENABLED", "true");
+    vi.stubEnv("POLAR_ACCESS_TOKEN", "test-token");
+    vi.stubEnv("POLAR_WEBHOOK_SECRET", "test-secret");
+    vi.stubEnv("POLAR_PRODUCT_BASIC", "test-product");
+    const fetchCheckout = vi.fn(async () => Response.json({
+      id: "session-1", amount: 279, currency: "usd", url: "https://polar.sh/checkout/session-1",
+    }));
+    vi.stubGlobal("fetch", fetchCheckout);
 
-    expect(res.status).toBe(400);
-    expect(body.error).toMatch(/Invalid plan/i);
-    expect(adminSupabase.from).not.toHaveBeenCalled();
+    try {
+      const insert = vi.fn(() => ({ select: () => ({ single: async () => ({ data: { id: "local-1" } }) }) }));
+      const eq = vi.fn(async () => ({ error: null }));
+      const update = vi.fn(() => ({ eq }));
+      adminSupabase.from = vi.fn(() => ({ insert, update }));
+
+      const { POST } = await import("@/app/api/payments/polar/checkout/route.js");
+      const response = await POST(jsonRequest({ plan: "basic" }));
+      expect(response.status).toBe(200);
+      expect(insert).toHaveBeenCalledWith({
+        user_id: "user-1", product_id: "test-product", amount: 279, credits: 5,
+      });
+      const request = JSON.parse(fetchCheckout.mock.calls[0][1].body);
+      expect(request.products).toEqual(["test-product"]);
+      expect(request.metadata).toEqual({ desaynclaw_payment: "local-1" });
+      expect(update).toHaveBeenCalledWith({ checkout_id: "session-1" });
+      expect(eq).toHaveBeenCalledWith("id", "local-1");
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
   });
+});
 
-  it("rejects unsupported billing currencies before creating a local payment", async () => {
-    adminSupabase.from = vi.fn();
-
-    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
-    const res = await POST(jsonRequest({ plan: "basic", billingCurrency: "ZZZ" }));
-
-    expect(res.status).toBe(400);
-    expect(adminSupabase.from).not.toHaveBeenCalled();
-  });
-
-  it("rejects client-supplied price and credit overrides", async () => {
-    adminSupabase.from = vi.fn();
-
-    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
-    const res = await POST(jsonRequest({
-      plan: "basic",
-      billingCurrency: "USD",
-      amount: 1,
-      credits: 500,
-    }));
-
-    expect(res.status).toBe(400);
-    expect(adminSupabase.from).not.toHaveBeenCalled();
-  });
-
-  it("creates a pending local payment before opening Dodo checkout", async () => {
-    const updateEq = vi.fn(() => ({}));
-    const update = vi.fn(() => ({ eq: vi.fn(() => ({ eq: updateEq })) }));
-    const insertSingle = vi.fn(async () => ({
-      data: { id: "dodo-local-1", plan: "basic", amount: 279, credits: 5 },
-      error: null,
-    }));
-    const insert = vi.fn(() => ({ select: () => ({ single: insertSingle }) }));
-    adminSupabase.from = vi.fn(() => ({ insert, update }));
-    getDodoClient.mockReturnValue({
-      checkoutSessions: {
-        create: vi.fn(async () => ({ checkout_url: "https://checkout.example/session", session_id: "sess-1" })),
-      },
-    });
-
-    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
-    const res = await POST(jsonRequest({ plan: "basic", billingCurrency: "USD" }));
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body.checkoutUrl).toBe("https://checkout.example/session");
-    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      user_id: "user-1",
-      plan: "basic",
-      credits: 5,
-      amount: 279,
-      currency: "USD",
-      provider_product_id: "prod_basic_v3",
-      catalog_version: "dodo_intl_2026_11_v3",
-      requested_billing_currency: "USD",
-      status: "pending",
-    }));
-    expect(getDodoClient().checkoutSessions.create).toHaveBeenCalledWith(expect.objectContaining({
-      billing_currency: "USD",
-      metadata: expect.objectContaining({ local_payment_id: "dodo-local-1", user_id: "user-1" }),
-    }));
+describe("Polar paid-order webhook", () => {
+  it("rejects unsigned orders and sends only authenticated orders to fulfillment", async () => {
+    const { createHmac } = await import("node:crypto");
+    const { POST } = await import("@/app/api/payments/polar/webhook/route.js");
+    vi.stubEnv("POLAR_WEBHOOK_SECRET", "test-secret");
+    adminSupabase.rpc = vi.fn(async () => ({ error: null }));
+    try {
+      const payload = JSON.stringify({
+        type: "order.paid",
+        data: { id: "order-1", status: "paid", paid: true, currency: "usd", net_amount: 279,
+          product_id: "product-1", checkout_id: "checkout-1", metadata: { desaynclaw_payment: "local-1" } },
+      });
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = createHmac("sha256", "test-secret")
+        .update(`event-1.${timestamp}.${payload}`).digest("base64");
+      const deliver = (signed) => POST(new Request("http://localhost/api/payments/polar/webhook", {
+        method: "POST", body: payload,
+        headers: { "webhook-id": "event-1", "webhook-timestamp": timestamp, "webhook-signature": `v1,${signed}` },
+      }));
+      expect((await deliver("invalid")).status).toBe(401);
+      expect(adminSupabase.rpc).not.toHaveBeenCalled();
+      expect((await deliver(signature)).status).toBe(200);
+      expect(adminSupabase.rpc).toHaveBeenCalledWith("grant_polar_payment_credits", {
+        payment_row_id: "local-1", provider_order_id: "order-1", provider_checkout_id: "checkout-1",
+        provider_product_id: "product-1", amount_before_tax: 279,
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 
@@ -284,10 +285,10 @@ describe("Credit refunds", () => {
 });
 
 describe("Provider and refund failure boundaries", () => {
-  it("returns 400 for malformed Dodo checkout JSON without creating a payment", async () => {
+  it("returns 400 for malformed Polar checkout JSON without creating a payment", async () => {
     adminSupabase.from = vi.fn();
-    const { POST } = await import("@/app/api/payments/dodo/checkout/route.js");
-    const response = await POST(new Request("http://localhost/api/payments/dodo/checkout", {
+    const { POST } = await import("@/app/api/payments/polar/checkout/route.js");
+    const response = await POST(new Request("http://localhost/api/payments/polar/checkout", {
       method: "POST",
       headers: { authorization: "Bearer test-token" },
       body: "{",

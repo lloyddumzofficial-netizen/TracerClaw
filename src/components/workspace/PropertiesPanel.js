@@ -129,6 +129,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
     project?.upscaled_image_url && "HD upscale",
     hasSvg && "Vector SVG",
   ].filter(Boolean).join(" · ");
+  const checklistTitle = hasSvg ? "Before printing" : "Before tracing";
 
   const cropWarningCopy = isPatternWorkspace
     ? "Crop to the exact artwork boundary before retracing."
@@ -440,7 +441,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </button>
       </div>
 
-      <div className="pp-scroll-region">
+      <div className={`pp-scroll-region${agent ? "" : ` ${panelStyles.garmentScrollRegion}`}`}>
       {/* ── COLOR DETAIL ─────────────────────────────────── */}
       <div className="pp-section pp-color-section" style={{ padding: "8px 14px", flexShrink: 0 }}>
         <label className="pp-lbl" htmlFor="trace-color-detail">Color Detail</label>
@@ -614,13 +615,13 @@ const PropertiesPanel = memo(function PropertiesPanel({
         )}
       </div>
 
-      {!agent && hasSvg && (
+      {!agent && (
         <div className={panelStyles.printChecklistSlot}>
-          <aside className={panelStyles.printChecklist} aria-label="Before printing">
-            <h3><ListChecks size={15} aria-hidden="true" /> Before printing</h3>
+          <aside className={panelStyles.printChecklist} aria-label={checklistTitle}>
+            <h3><ListChecks size={15} aria-hidden="true" /> {checklistTitle}</h3>
             <ul>
-              <li>Check fine details at print size.</li>
-              <li>Check fit against your panel template.</li>
+              <li>{hasSvg ? "Check fine details at print size." : "Keep the entire design inside the crop."}</li>
+              <li>{hasSvg ? "Check fit against your panel template." : "Leave room around small text and thin lines."}</li>
             </ul>
           </aside>
         </div>

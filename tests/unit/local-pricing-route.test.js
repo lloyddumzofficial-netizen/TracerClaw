@@ -20,12 +20,12 @@ describe("localized pricing API", () => {
       baseCurrency: "USD",
       country: "US",
       currency: "USD",
-      primaryProvider: "dodo",
+      primaryProvider: "polar",
       rate: 1,
       estimated: false,
     }));
-    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 279, currency: "USD" }));
-    expect(body.providers.dodo.plans.tingi).toBeUndefined();
+    expect(body.providers.polar.plans.basic).toEqual(expect.objectContaining({ amount: 279, currency: "USD" }));
+    expect(body.providers.polar.plans.tingi).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -55,7 +55,7 @@ describe("localized pricing API", () => {
     );
   });
 
-  it("keeps the Philippine catalog in PHP and localizes the optional Dodo card price", async () => {
+  it("keeps the Philippine catalog in PHP and localizes the optional Polar card price", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ rate: 63 }) }));
     vi.stubGlobal("fetch", fetchMock);
     const response = await GET(new Request("http://localhost/api/pricing/local?currency=PHP", {
@@ -64,10 +64,10 @@ describe("localized pricing API", () => {
     const body = await response.json();
     expect(body).toEqual(expect.objectContaining({ currency: "PHP", rate: 1, primaryProvider: "paymongo" }));
     expect(body.providers.paymongo.plans.tingi.amount).toBe(6900);
-    expect(body.providers.dodo).toEqual(expect.objectContaining({ baseCurrency: "USD", rate: 63 }));
+    expect(body.providers.polar).toEqual(expect.objectContaining({ baseCurrency: "USD", rate: 63 }));
   });
 
-  it("switches Philippine users to the Dodo catalog when they select USD", async () => {
+  it("switches Philippine users to the Polar catalog when they select USD", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ rate: 0.016 }) }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -79,12 +79,12 @@ describe("localized pricing API", () => {
     expect(body).toEqual(expect.objectContaining({
       baseCurrency: "USD",
       currency: "USD",
-      primaryProvider: "dodo",
+      primaryProvider: "polar",
       rate: 1,
       estimated: false,
     }));
-    expect(body.providers.dodo.plans.basic).toEqual(expect.objectContaining({ amount: 279, currency: "USD" }));
-    expect(body.providers.dodo.plans.tingi).toBeUndefined();
+    expect(body.providers.polar.plans.basic).toEqual(expect.objectContaining({ amount: 279, currency: "USD" }));
+    expect(body.providers.polar.plans.tingi).toBeUndefined();
   });
 
   it("rejects currencies outside the server allowlist", async () => {

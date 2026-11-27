@@ -70,3 +70,4 @@ that older refund/credit approach.
 - `042_design_extract_local_processor.sql` — Isolates new local Design Extract jobs from hosted workers while using the existing reservation and review functions.
 - `043_design_refined.sql` — Adds the local Design Refined batch and refunds the held 2 Claws when fewer than three previews are saved. Apply after 042, then set `DESIGN_REFINED_ENABLED=true` locally.
 - `044_design_extract_finish_bundle.sql` — Adds the opt-in 1-Claw Upscale + SVG allowance for accepted Nano Banana batches in local paid Design Extract. Apply after 043.
+- `045_polar_payments.sql` — Adds the Polar checkout ledger and atomic Claw fulfillment for signed paid orders.

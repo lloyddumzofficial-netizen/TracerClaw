@@ -853,6 +853,7 @@ test("clean edges previews native pixels and submits optional cleanup without pr
   });
   await page.goto("/design-extract/improvements");
   await page.getByRole("button", { name: "Select Artwork", exact: true }).click();
+  await page.getByRole("button", { name: "Refine layer", exact: true }).click();
   await page.getByRole("button", { name: "Refine mask", exact: true }).click();
   const canvas = page.getByLabel("Mask brush canvas", { exact: true });
   await expect(page.getByRole("button", { name: "Apply mask", exact: true })).toBeEnabled();
@@ -876,6 +877,7 @@ test("clean edges previews native pixels and submits optional cleanup without pr
   await page.screenshot({ path: "test-results/design-extract-clean-edges.png" });
   await page.getByRole("button", { name: "Apply mask", exact: true }).click();
   await expect.poll(() => maskBody?.edgeCleanup).toEqual({ defringe: 1, specks: 4 });
+  await page.getByRole("button", { name: "Refine layer", exact: true }).click();
   await page.getByRole("button", { name: "Refine mask", exact: true }).click();
   await expect(page.getByRole("button", { name: "Discard changes", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Discard changes", exact: true }).click();
@@ -912,6 +914,7 @@ test("selection preview, native brush undo/redo, compare, and revision-checked m
   expect(operation.points.map(point => point.label)).toEqual([1, 0]);
   await page.getByRole("button", { name: "Cancel selection", exact: true }).click();
   await page.getByRole("button", { name: "Dismiss notification", exact: true }).click();
+  await page.getByRole("button", { name: "Refine layer", exact: true }).click();
   await page.getByRole("button", { name: "Refine mask", exact: true }).click();
   const canvas = page.getByLabel("Mask brush canvas", { exact: true });
   await expect(page.getByRole("button", { name: "Apply mask", exact: true })).toBeEnabled();

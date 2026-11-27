@@ -6,7 +6,7 @@ import { X, Package, Check, ArrowRight, History, Clock } from "lucide-react";
 import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
-import { CREDIT_PLANS, DODO_CREDIT_PLANS } from "@/lib/paymentPlans";
+import { CREDIT_PLANS, POLAR_CREDIT_PLANS } from "@/lib/paymentPlans";
 import { SUPPORTED_BILLING_CURRENCIES } from "@/lib/localCurrency";
 import { safeJson } from "@/lib/safeJson";
 import { analytics } from "@/lib/analytics";
@@ -21,12 +21,11 @@ const PLANS_META = {
   pro:     { eyebrow: 'Best value', desc: 'The lowest cost per Claw for active production teams.', best: true, features: ['Up to 35 standard traces', 'Up to 17 precision traces', 'QR Ph or card'] },
 };
 
-const DODO_ENABLED_PLANS = new Set(Object.keys(DODO_CREDIT_PLANS));
+const POLAR_ENABLED_PLANS = new Set(Object.keys(POLAR_CREDIT_PLANS));
 const PAYMENT_LOGOS = {
   qrph: "/Payments-logo/qr-ph-logo_svgstack_com_74171786789082.png",
   gcash: "/Payments-logo/gcash-logo.png",
   maya: "/Payments-logo/Maya_logo.svg.webp",
-  dodo: "/Payments-logo/dodo-payments.png",
 };
 
 const CURRENCY_LABELS = {
@@ -48,36 +47,6 @@ const CURRENCY_LABELS = {
   NZD: "New Zealand Dollar",
 };
 
-function PaymentLogoTile({ src, alt, wide = false, large = false }) {
-  const width = large ? 220 : wide ? 180 : 160;
-  const height = large ? 80 : 70;
-  return (
-    <span
-      className="top-up-payment-logo-tile"
-      style={{
-        width: `${width}px`,
-        height: `${height}px`,
-        border: '0',
-        borderRadius: '0',
-        background: 'transparent',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        padding: '0',
-        boxShadow: 'none',
-      }}
-    >
-      <Image
-        src={src}
-        alt={alt}
-        width={width}
-        height={height}
-        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-      />
-    </span>
-  );
-}
-
 function PaymentBrandStrip({ light = false }) {
   return (
     <span className={`top-up-payment-brand-strip${light ? " top-up-payment-brand-strip-light" : ""}`}>
@@ -90,7 +59,7 @@ function PaymentBrandStrip({ light = false }) {
 }
 
 function getPlanAnalytics(planKey, provider) {
-  const plan = provider === "dodo" ? DODO_CREDIT_PLANS[planKey] : CREDIT_PLANS[planKey];
+  const plan = provider === "polar" ? POLAR_CREDIT_PLANS[planKey] : CREDIT_PLANS[planKey];
   return {
     plan: planKey,
     price: plan?.price,
@@ -121,7 +90,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const supabase = supabaseProp || fallbackSupabase;
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ plan: "pro" });
-  const [isStartingDodo, setIsStartingDodo] = useState(false);
+  const [isStartingPolar, setIsStartingPolar] = useState(false);
   const [isStartingPayMongo, setIsStartingPayMongo] = useState(false);
   const [qrphPayment, setQrphPayment] = useState(null);
   const [activeTab, setActiveTab] = useState("plans");
@@ -136,7 +105,7 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     primaryProvider: "paymongo",
     providers: {
       paymongo: { baseCurrency: "PHP", displayCurrency: "PHP", rate: 1, estimated: false },
-      dodo: { baseCurrency: "USD", displayCurrency: "USD", rate: 1, estimated: false },
+      polar: { baseCurrency: "USD", displayCurrency: "USD", rate: 1, estimated: false },
     },
   });
   const [isPricingLoading, setIsPricingLoading] = useState(false);
@@ -254,30 +223,30 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const handleClose = useCallback(() => {
     onClose();
     setStep(1);
-    setIsStartingDodo(false);
+    setIsStartingPolar(false);
     setIsStartingPayMongo(false);
     setQrphPayment(null);
     setActiveTab("plans");
     setForm({ plan: "pro" });
   }, [onClose]);
 
-  const handleStartDodoCheckout = useCallback(async () => {
+  const handleStartPolarCheckout = useCallback(async () => {
     if (!user) {
       onLoginRequired?.();
       return;
     }
-    if (!DODO_ENABLED_PLANS.has(form.plan)) {
+    if (!POLAR_ENABLED_PLANS.has(form.plan)) {
       toast.error("Mini is available through QR Ph only. Choose Basic, Starter, or Professional for card payments.");
       return;
     }
 
-    setIsStartingDodo(true);
+    setIsStartingPolar(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error("Please log in again before checkout.");
 
-      const response = await fetch("/api/payments/dodo/checkout", {
+      const response = await fetch("/api/payments/polar/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -285,23 +254,22 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
         },
         body: JSON.stringify({
           plan: form.plan,
-          billingCurrency: localizedPricing.providers?.dodo?.displayCurrency || "USD",
         }),
       });
 
-      const data = await safeJson(response, "Failed to start Dodo checkout");
-      if (!response.ok) throw new Error(data.error || "Failed to start Dodo checkout");
-      if (!data.checkoutUrl) throw new Error("Dodo checkout URL is missing");
+      const data = await safeJson(response, "Failed to start Polar checkout");
+      if (!response.ok) throw new Error(data.error || "Failed to start Polar checkout");
+      if (!data.checkoutUrl) throw new Error("Polar checkout URL is missing");
 
-      analytics.checkoutStarted({ ...getPlanAnalytics(form.plan, "dodo"), provider: "dodo" });
+      analytics.checkoutStarted({ ...getPlanAnalytics(form.plan, "polar"), provider: "polar" });
       window.location.href = data.checkoutUrl;
     } catch (err) {
-      analytics.error(err, { area: "dodo_checkout", plan: form.plan, provider: "dodo" });
-      toast.error(err.message || "Failed to start Dodo checkout");
+      analytics.error(err, { area: "polar_checkout", plan: form.plan, provider: "polar" });
+      toast.error(err.message || "Failed to start Polar checkout");
     } finally {
-      setIsStartingDodo(false);
+      setIsStartingPolar(false);
     }
-  }, [form.plan, localizedPricing.providers?.dodo?.displayCurrency, onLoginRequired, supabase, user]);
+  }, [form.plan, onLoginRequired, supabase, user]);
 
   const handleStartPayMongoCheckout = useCallback(async () => {
     if (!user) {
@@ -347,10 +315,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   }, [form.plan, onLoginRequired, supabase, user]);
 
   const showQrPh = !localizedPricing.country || localizedPricing.country === "PH";
-  const primaryProvider = localizedPricing.primaryProvider || (showQrPh ? "paymongo" : "dodo");
-  const primaryCatalog = primaryProvider === "dodo" ? DODO_CREDIT_PLANS : CREDIT_PLANS;
+  const primaryProvider = localizedPricing.primaryProvider || (showQrPh ? "paymongo" : "polar");
+  const primaryCatalog = primaryProvider === "polar" ? POLAR_CREDIT_PLANS : CREDIT_PLANS;
   const primaryPricing = localizedPricing.providers?.[primaryProvider] || localizedPricing;
-  const dodoPricing = localizedPricing.providers?.dodo || {
+  const polarPricing = localizedPricing.providers?.polar || {
     baseCurrency: "USD",
     displayCurrency: "USD",
     rate: 1,
@@ -425,10 +393,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
 
         <div className={`top-up-modal-body${activeTab === 'plans' && step === 1 ? ' top-up-modal-body-plans' : ''}${activeTab === 'plans' && step !== 1 ? ' top-up-modal-body-payment' : ''}`} style={{ background: '#262626', padding: '24px', overflowY: 'auto', minHeight: 0 }}>
           {activeTab === 'history' ? (
-            <div style={{ minHeight: '300px' }}>
-              <div style={{ marginBottom: '24px' }}>
-                <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '700', color: '#fff' }}>Claw History</h2>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>View your recent claw transactions and usage. Logs are automatically deleted after 3 days.</p>
+            <div>
+              <div className="top-up-activity-heading">
+                <h2>Claw Activity</h2>
+                <p>Transactions and usage from the last 3 days.</p>
               </div>
               
               {!user ? (
@@ -464,20 +432,15 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     Welcome. You need claws to trace images. Please select a plan and log in.
                   </div>
                 )}
-                <div className="top-up-pricing-kicker">Simple, flexible pricing</div>
                 <div className="top-up-pricing-title-row">
                   <h2>Plans &amp; Pricing</h2>
-                  <p>Choose the production capacity that fits your workflow and pay only when you need more Claws.</p>
-                  <p><strong>1 design = 1 Claw in Standard mode.</strong> Front design: 1 Claw. Back design: 1 Claw. Front + back: 2 Claws. Precision SVG: 2 Claws per design. Additional paid actions show their own cost before processing.</p>
-                </div>
-                <div className="top-up-purchase-mode" aria-label="All packages are one-time purchases">
-                  <span className="top-up-purchase-mode-active">One-time packages</span>
-                  <span>No subscription</span>
+                  <p>One-time packs. Standard costs 1 Claw per design and Precision SVG costs 2. Front and back count as two designs.</p>
                 </div>
                 <div className="top-up-currency-row">
                   <label htmlFor="top-up-currency">Display currency</label>
                   <select
                     id="top-up-currency"
+                    aria-describedby="top-up-currency-note"
                     value={localizedPricing.currency}
                     onChange={handleCurrencyChange}
                     disabled={isPricingLoading}
@@ -488,13 +451,13 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                       </option>
                     ))}
                   </select>
-                  <span>
+                  <span id="top-up-currency-note">
                     {isPricingLoading
                       ? "Updating…"
                       : usingLocalEstimate
-                        ? `Estimated from the ${primaryPricing.baseCurrency} checkout price · final amount shown at checkout`
-                        : primaryProvider === "dodo"
-                          ? "Dodo card checkout price"
+                        ? `Estimate based on ${primaryPricing.baseCurrency}. Final price at checkout.`
+                        : primaryProvider === "polar"
+                          ? "Polar card checkout price"
                           : "PayMongo local checkout price"}
                   </span>
                 </div>
@@ -577,8 +540,8 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   type="button"
                   className="top-up-payment-option top-up-payment-option-featured"
                   onClick={handleStartPayMongoCheckout}
-                  disabled={isStartingPayMongo || isStartingDodo}
-                  style={{ cursor: (isStartingPayMongo || isStartingDodo) ? 'not-allowed' : 'pointer', opacity: (isStartingPayMongo || isStartingDodo) ? 0.65 : 1 }}
+                  disabled={isStartingPayMongo || isStartingPolar}
+                  style={{ cursor: (isStartingPayMongo || isStartingPolar) ? 'not-allowed' : 'pointer', opacity: (isStartingPayMongo || isStartingPolar) ? 0.65 : 1 }}
                 >
                   <span className="top-up-payment-option-head">
                     <PaymentBrandStrip />
@@ -603,12 +566,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                 <button
                   type="button"
                   className={`top-up-payment-option${showQrPh ? '' : ' top-up-payment-option-featured'}`}
-                  onClick={handleStartDodoCheckout}
-                  disabled={isStartingDodo || isStartingPayMongo || form.plan === 'tingi'}
-                  style={{ cursor: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', opacity: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 0.58 : 1 }}
+                  onClick={handleStartPolarCheckout}
+                  disabled={isStartingPolar || isStartingPayMongo || form.plan === 'tingi'}
+                  style={{ cursor: (isStartingPolar || isStartingPayMongo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', opacity: (isStartingPolar || isStartingPayMongo || form.plan === 'tingi') ? 0.58 : 1 }}
                 >
                   <span className="top-up-payment-option-head">
-                    <PaymentLogoTile src={PAYMENT_LOGOS.dodo} alt="Dodo Payments" wide />
+                    <strong>Polar</strong>
                     <span className="top-up-payment-option-tag">Cards worldwide</span>
                   </span>
                   <span className="top-up-payment-copy">
@@ -617,22 +580,22 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                     <span className="top-up-payment-desc">
                       {form.plan === 'tingi'
                         ? 'Card checkout starts at Basic. Use QR Ph for the Mini package.'
-                        : 'Pay securely using your debit or credit card through the Dodo hosted checkout.'}
+                        : 'Pay securely using your debit or credit card through the Polar hosted checkout.'}
                     </span>
                   </span>
                   <span className="top-up-payment-option-foot">
                     <span>{form.plan === 'tingi'
                       ? 'Unavailable for Mini'
-                      : `${formatLocalizedPrice(DODO_CREDIT_PLANS[form.plan]?.amount, dodoPricing)}${dodoPricing.estimated ? ` · base ${DODO_CREDIT_PLANS[form.plan]?.price}` : ''}`}</span>
+                      : `${formatLocalizedPrice(POLAR_CREDIT_PLANS[form.plan]?.amount, polarPricing)}${polarPricing.estimated ? ` · base ${POLAR_CREDIT_PLANS[form.plan]?.price}` : ''}`}</span>
                     <span className="top-up-payment-status">
-                      {form.plan === 'tingi' ? 'Basic or higher' : isStartingDodo ? 'Opening…' : <>Continue <ArrowRight size={14} /></>}
+                      {form.plan === 'tingi' ? 'Basic or higher' : isStartingPolar ? 'Opening…' : <>Continue <ArrowRight size={14} /></>}
                     </span>
                   </span>
                 </button>
               </div>
 
               <div className="top-up-payment-nav">
-                <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingPayMongo || isStartingDodo} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: (isStartingPayMongo || isStartingDodo) ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>← Back to plans</button>
+                <button className="top-up-secondary-button" onClick={() => setStep(1)} disabled={isStartingPayMongo || isStartingPolar} style={{ padding: '12px 24px', background: 'transparent', color: '#d5d5d5', border: '1px solid #555', borderRadius: '6px', cursor: (isStartingPayMongo || isStartingPolar) ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500' }}>← Back to plans</button>
               </div>
             </>
           ) : step === "qrph" ? (

@@ -45,7 +45,6 @@ import TestimonialSection from "@/components/marketing/TestimonialSection";
 import GuestHomepageHero, { GuestHomepageConversionSections } from "@/components/marketing/GuestHomepageHero";
 import WorkspaceFeatureGrid from "@/components/marketing/WorkspaceFeatureGrid";
 import ProductionOverview from "@/components/marketing/ProductionOverview";
-import MovingArtworkGallery from "@/components/marketing/MovingArtworkGallery";
 import GarmentSamplePreview from "@/components/marketing/GarmentSamplePreview";
 import HomeHeaderBrand from "@/components/marketing/HomeHeaderBrand";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
@@ -199,6 +198,26 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesign
       </div>
     </section>
   );
+}
+
+function GuestDesktopToolsShelf({ ready, ...props }) {
+  const [designExtractEnabled, setDesignExtractEnabled] = useState(false);
+
+  useEffect(() => {
+    if (!ready) return;
+    const controller = new AbortController();
+    fetch("/api/design-extract?scope=availability", { signal: controller.signal })
+      .then(response => response.ok ? response.json() : null)
+      .then(availability => {
+        if (!controller.signal.aborted) setDesignExtractEnabled(availability?.enabled === true);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setDesignExtractEnabled(false);
+      });
+    return () => controller.abort();
+  }, [ready]);
+
+  return <DesktopToolsShelf {...props} designExtractEnabled={designExtractEnabled} />;
 }
 
 function HowItWorksSection() {
@@ -458,7 +477,7 @@ export default function StartScreen() {
   const heroLogoRef = useRef(null);
   const publicStatsFetchRef = useRef({ inFlight: false, lastFetchAt: 0 });
   const projectLoadRef = useRef({ generation: 0, owner: null });
-  const dodoReturnHandledRef = useRef(false);
+  const paymentReturnHandledRef = useRef(false);
 
   const [syncSessionId, setSyncSessionId] = useState("");
   const [showQrModal, setShowQrModal] = useState(false);
@@ -553,7 +572,6 @@ export default function StartScreen() {
       || showOnboarding || showQrModal || projectToDelete || isUploading || isDraggingGlobal),
   });
 
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") !== "auth-failed") return;
@@ -625,13 +643,14 @@ export default function StartScreen() {
   }, []);
 
   useEffect(() => {
-    if (!user || dodoReturnHandledRef.current) return;
+    if (!user || paymentReturnHandledRef.current) return;
 
     const params = new URLSearchParams(window.location.search);
     const topUpResult = params.get("topup");
-    if (topUpResult !== "dodo-return" && topUpResult !== "dodo-cancelled") return;
+    if (!["dodo-return", "dodo-cancelled", "polar-return"].includes(topUpResult)) return;
+    const provider = topUpResult === "polar-return" ? "polar" : "dodo";
 
-    dodoReturnHandledRef.current = true;
+    paymentReturnHandledRef.current = true;
     let cancelled = false;
 
     const clearReturnParams = () => {
@@ -665,10 +684,10 @@ export default function StartScreen() {
 
         for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
           const response = await fetch(
-            `/api/payments/dodo/status?paymentId=${encodeURIComponent(paymentId)}`,
+            `/api/payments/${provider}/status?paymentId=${encodeURIComponent(paymentId)}`,
             { headers: { Authorization: `Bearer ${session.access_token}` } },
           );
-          const result = await safeJson(response, "Failed to confirm Dodo payment");
+          const result = await safeJson(response, "Failed to confirm payment");
 
           if (response.ok && result.status === "paid") {
             if (Number.isFinite(result.balance)) setCredits(result.balance);
@@ -683,20 +702,20 @@ export default function StartScreen() {
             return;
           }
           if (!response.ok && response.status < 500) {
-            throw new Error(result.error || "Failed to confirm Dodo payment");
+            throw new Error(result.error || "Failed to confirm payment");
           }
 
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
 
         if (!cancelled) {
-          toast.info("Payment is still confirming. Your Claws will be added automatically once Dodo completes it.");
+          toast.info("Payment is still confirming. Your Claws will be added automatically once payment clears.");
           clearReturnParams();
         }
       } catch (error) {
         if (!cancelled) {
-          console.error("Dodo return reconciliation failed:", error);
-          toast.error(error.message || "Could not confirm the Dodo payment yet. Please refresh shortly.");
+          console.error("Payment return reconciliation failed:", error);
+          toast.error(error.message || "Could not confirm the payment yet. Please refresh shortly.");
           clearReturnParams();
         }
       }
@@ -1444,8 +1463,6 @@ export default function StartScreen() {
 
         {user && <HomeTrustMarquee />}
 
-        <MovingArtworkGallery />
-
 {user && (
           <DesktopToolsShelf designExtractEnabled={designExtractEnabled} designRefined={designRefined} onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
             onGarment={(e) => {
@@ -1475,7 +1492,7 @@ export default function StartScreen() {
         )}
 
 {!user && (
-          <DesktopToolsShelf onDesignExtract={() => { if (requireDesktopTool()) return; designFileInputRef.current?.click(); }}
+          <GuestDesktopToolsShelf ready={!isLoadingProjects} onDesignExtract={event => { if (!requireDesktopTool()) handleLogin(event); }}
             onGarment={(e) => {
               e?.stopPropagation?.();
               if (requireDesktopTool()) return;
