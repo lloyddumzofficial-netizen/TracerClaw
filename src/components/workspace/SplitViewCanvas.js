@@ -21,6 +21,7 @@ const WHEEL_ZOOM_SENSITIVITY = 0.00145;
 const WHEEL_ZOOM_EASE_MS = 46;
 const PREVIEW_TRANSITION_MIN_MS = 720;
 const PREVIEW_REVEAL_MS = 320;
+const DETAIL_LENS_SIZE = 192;
 
 function createZoomAnchor(leftPane, rightPane, pointer) {
   const leftRect = leftPane.getBoundingClientRect();
@@ -71,10 +72,37 @@ function WorkspaceOutputLoader({ label = "Loading preview" }) {
   );
 }
 
-function OutputRaster({ proxyUrl, directUrl, onReady }) {
+function OutputRaster({ proxyUrl, directUrl, onReady, magnify }) {
   const [attempt, setAttempt] = useState(0);
   const [retry, setRetry] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const lensRef = useRef(null);
+  const hideLens = () => {
+    if (lensRef.current) lensRef.current.hidden = true;
+  };
+
+  function showLens(event) {
+    const lens = lensRef.current;
+    if (!lens || event.pointerType !== "mouse" || event.buttons) return hideLens();
+    const image = event.currentTarget;
+    const rect = image.getBoundingClientRect();
+    const scale = Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
+    if (!Number.isFinite(scale) || scale <= 0) return hideLens();
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    const x = event.clientX - rect.left - (rect.width - width) / 2;
+    const y = event.clientY - rect.top - (rect.height - height) / 2;
+    if (x < 0 || x > width || y < 0 || y > height) return hideLens();
+    const context = lens.getContext("2d");
+    if (!context) return;
+    const half = lens.width / 2;
+    const detailScale = 3 * lens.width / DETAIL_LENS_SIZE;
+    context.clearRect(0, 0, lens.width, lens.height);
+    context.drawImage(image, half - x * detailScale, half - y * detailScale, width * detailScale, height * detailScale);
+    const parent = image.parentElement.getBoundingClientRect();
+    lens.style.transform = `translate(${event.clientX - parent.left - DETAIL_LENS_SIZE / 2}px, ${event.clientY - parent.top - DETAIL_LENS_SIZE / 2}px)`;
+    lens.hidden = false;
+  }
 
   useEffect(() => {
     if (attempt === 2) onReady?.();
@@ -113,11 +141,17 @@ function OutputRaster({ proxyUrl, directUrl, onReady }) {
           else reveal();
         }}
         onError={() => {
+          hideLens();
           setIsLoaded(false);
           setAttempt(current => current === 0 && directUrl ? 1 : 2);
         }}
-        style={{ opacity: isLoaded ? 1 : 0 }}
+        onPointerMove={magnify && isLoaded ? showLens : undefined}
+        onPointerLeave={hideLens}
+        onPointerDown={hideLens}
+        onWheel={hideLens}
+        style={{ opacity: isLoaded ? 1 : 0, cursor: magnify && isLoaded ? "zoom-in" : undefined }}
       />
+      {magnify && isLoaded && <canvas ref={lensRef} className="workspace-detail-lens" width={DETAIL_LENS_SIZE * 2} height={DETAIL_LENS_SIZE * 2} style={{ width: DETAIL_LENS_SIZE, height: DETAIL_LENS_SIZE }} hidden aria-hidden="true" />}
     </div>
   );
 }
@@ -829,6 +863,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
                   ) : (
                     <OutputRaster
                       key={activeUrl}
+                      magnify={isGarmentWorkspace && activeTab === "upscaled"}
                       proxyUrl={activeUrl}
                       directUrl={activeTab === "generated" ? project?.generated_image_url : project?.upscaled_image_url}
                       onReady={handlePreviewReady}
