@@ -4,7 +4,7 @@ import {
   isSupportedBillingCurrency,
   normalizeBillingCurrency,
 } from "@/lib/localCurrency";
-import { POLAR_CREDIT_PLANS, PAYMONGO_CREDIT_PLANS } from "@/lib/paymentPlans";
+import { DODO_CREDIT_PLANS, PAYMONGO_CREDIT_PLANS } from "@/lib/paymentPlans";
 
 export const runtime = "nodejs";
 
@@ -79,17 +79,17 @@ export async function GET(request) {
   const detectedCurrency = currencyForCountry(country);
   const currency = requested || (isPhilippines ? "PHP" : detectedCurrency === "PHP" ? "USD" : detectedCurrency);
   // PHP is the local PayMongo catalog. Every other display currency follows
-  // the international Polar catalog so the plan card and hosted checkout share
+  // the international Dodo catalog so the plan card and hosted checkout share
   // the same source price. This prevents a converted PHP price from being
-  // shown before opening a higher-priced Polar product.
-  const primaryProvider = isPhilippines && currency === "PHP" ? "paymongo" : "polar";
+  // shown before opening a higher-priced Dodo product.
+  const primaryProvider = isPhilippines && currency === "PHP" ? "paymongo" : "dodo";
 
   try {
-    const [paymongo, polar] = await Promise.all([
+    const [paymongo, dodo] = await Promise.all([
       isPhilippines ? localizedCatalogWithFallback("PHP", currency, PAYMONGO_CREDIT_PLANS) : null,
-      localizedCatalogWithFallback("USD", currency, POLAR_CREDIT_PLANS),
+      localizedCatalogWithFallback("USD", currency, DODO_CREDIT_PLANS),
     ]);
-    const providers = { ...(paymongo ? { paymongo } : {}), polar };
+    const providers = { ...(paymongo ? { paymongo } : {}), dodo };
     const primary = providers[primaryProvider];
 
     return response({
@@ -106,7 +106,7 @@ export async function GET(request) {
   } catch (error) {
     const fallbackProvider = primaryProvider;
     const fallbackCurrency = fallbackProvider === "paymongo" ? "PHP" : "USD";
-    const fallbackPlans = fallbackProvider === "paymongo" ? PAYMONGO_CREDIT_PLANS : POLAR_CREDIT_PLANS;
+    const fallbackPlans = fallbackProvider === "paymongo" ? PAYMONGO_CREDIT_PLANS : DODO_CREDIT_PLANS;
     console.warn(`[Localized Pricing] Falling back to ${fallbackCurrency}:`, error);
     return response({
       country,

@@ -2,7 +2,7 @@
 
 import { ArrowUpRight, Check, CreditCard, ExternalLink } from "lucide-react";
 import Image from "next/image";
-import { POLAR_CREDIT_PLANS } from "@/lib/paymentPlans";
+import { DODO_CREDIT_PLANS } from "@/lib/paymentPlans";
 import styles from "./GuestPricingSection.module.css";
 
 const PLAN_DETAILS = {
@@ -24,7 +24,7 @@ const PLAN_DETAILS = {
   },
 };
 
-const PRICING_PLANS = Object.values(POLAR_CREDIT_PLANS).map((plan) => ({
+const PRICING_PLANS = Object.values(DODO_CREDIT_PLANS).map((plan) => ({
   ...plan,
   ...PLAN_DETAILS[plan.key],
   pricePerClaw: (plan.amount / 100 / plan.credits).toFixed(2),
