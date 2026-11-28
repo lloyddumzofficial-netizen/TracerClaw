@@ -1,4 +1,4 @@
-import { Code2, Monitor, ShieldCheck, Trash2 } from "lucide-react";
+import { CodeIcon as Code2, MonitorIcon as Monitor, ShieldCheckIcon as ShieldCheck, TrashIcon as Trash2 } from "@phosphor-icons/react/ssr";
 
 const trustItems = [
   { icon: ShieldCheck, label: "100% Private & Secure" },

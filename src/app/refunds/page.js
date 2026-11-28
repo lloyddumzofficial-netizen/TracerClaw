@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, ArrowUpRight, Check, CheckCircle2, Clock3, CreditCard, FileText, MessageCircle, RotateCcw, XCircle } from "lucide-react";
+import { WarningCircleIcon as AlertCircle, ArrowLeftIcon as ArrowLeft, ArrowUpRightIcon as ArrowUpRight, CheckIcon as Check, CheckCircleIcon as CheckCircle2, ClockIcon as Clock3, CreditCardIcon as CreditCard, FileTextIcon as FileText, ChatCircleIcon as MessageCircle, ArrowCounterClockwiseIcon as RotateCcw, XCircleIcon as XCircle } from "@phosphor-icons/react/ssr";
 import PolicyNavigation, { PolicyContents } from "@/components/shared/PolicyNavigation";
 import "../policy-pages.css";
 

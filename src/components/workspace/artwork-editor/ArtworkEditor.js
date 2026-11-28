@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Brush, Check, Eraser, Hand, ImagePlus, Loader2, LockKeyhole, Minus, Plus, Scan, Square, Trash2, Undo2, X } from "lucide-react";
+import { WarningCircleIcon as AlertCircle, PaintBrushIcon as Brush, CheckIcon as Check, EraserIcon as Eraser, HandIcon as Hand, ImageSquareIcon as ImagePlus, CircleNotchIcon as Loader2, LockKeyIcon as LockKeyhole, MinusIcon as Minus, PlusIcon as Plus, ScanIcon as Scan, SquareIcon as Square, TrashIcon as Trash2, ArrowUUpLeftIcon as Undo2, XIcon as X } from "@phosphor-icons/react/ssr";
 import { MAX_SELECTION_SHAPES, validateEditInstructions } from "@/lib/artworkEdits";
 import ArtworkEditCanvas from "./ArtworkEditCanvas";
 import ArtworkInstructionEditor from "./ArtworkInstructionEditor";

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircleIcon as CheckCircle2 } from "@phosphor-icons/react/ssr";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 import LogoLoader from "@/components/ui/LogoLoader";
 import { ArtworkProgressOverlay } from "@/features/design-extract/ExtractionProgress";

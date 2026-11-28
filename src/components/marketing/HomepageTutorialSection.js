@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Clock3, Play } from "lucide-react";
+import { ClockIcon as Clock3, PlayIcon as Play } from "@phosphor-icons/react/ssr";
 
 const DEMO_VIDEO_URL =
   "https://pub-f2ce547db5ec43259557b815b0c02ae8.r2.dev/MARKETING%20VIDEO%202.mp4";
@@ -53,7 +53,7 @@ export default function HomepageTutorialSection() {
           </video>
           {!isPlaying && (
             <button className="homepage-tutorial-play" type="button" onClick={handlePlay} aria-label="Play the DesaynClaw artwork demo">
-              <Play size={28} fill="currentColor" aria-hidden="true" />
+              <Play size={28} weight="fill" aria-hidden="true" />
             </button>
           )}
         </div>

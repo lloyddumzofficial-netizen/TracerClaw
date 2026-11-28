@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
-import { AlertCircle, Sparkles } from "lucide-react";
+import { WarningCircleIcon as AlertCircle, SparkleIcon as Sparkles } from "@phosphor-icons/react/ssr";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 import LogoLoader from "@/components/ui/LogoLoader";
 import WorkspaceProcessingLoader from "./WorkspaceProcessingLoader";
@@ -691,7 +691,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
             pointerEvents: 'none', userSelect: 'none',
           }}
         >
-          <Sparkles size={30} color="#3a3a3a" strokeWidth={1.3} />
+          <Sparkles size={30} color="#3a3a3a" weight="light" />
           <div>
             <p style={{ margin: '0 0 6px', fontSize: '12px', fontWeight: 600, color: '#5a5a5a', letterSpacing: '0.3px' }}>
               Your {rightLabel.toLowerCase()} will appear here
@@ -781,10 +781,9 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
         onLostPointerCapture={handlePointerUp}
       >
         {/* LEFT PANEL: Original Image */}
-        <div className="garment-canvas-pane is-original" style={{ minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid #2a2a2a" }}>
+        <div className="garment-canvas-pane is-original" style={{ position: "relative", minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid #2a2a2a" }}>
+          <div className="garment-canvas-label" style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>ORIGINAL</div>
           <div ref={leftScrollRef} onScroll={handleLeftScroll} className="no-scrollbar workspace-canvas-surface" style={{ width: "100%", minWidth: 0, flex: 1, overflow: "auto", backgroundColor: "#1a1a1a", position: "relative" }}>
-            {/* Canvas label */}
-            <div className="garment-canvas-label" style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>ORIGINAL</div>
             {proxyOriginal ? (
               <div ref={leftZoomSpaceRef} className="workspace-canvas-zoom-space" style={{ position: "relative", width: surfaceWidth, height: surfaceHeight, minWidth: "100%", minHeight: "100%" }}>
                 <div ref={leftArtworkRef} className="workspace-canvas-artwork" style={{ position: "absolute", top: "50%", left: "50%", width: artworkWidth, height: artworkHeight, transform: "translate3d(-50%, -50%, 0)", padding: artworkPadding, boxSizing: "border-box", display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -810,10 +809,9 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
         </div>
 
         {/* RIGHT PANEL: Outputs */}
-        <div className="garment-canvas-pane is-output" style={{ minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div className="garment-canvas-pane is-output" style={{ position: "relative", minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div className="garment-canvas-label" style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: activeTab === "svg" ? "rgba(255,215,0,0.35)" : "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>{rightLabel}</div>
           <div ref={rightScrollRef} onScroll={handleRightScroll} className="no-scrollbar workspace-canvas-surface" style={{ width: "100%", minWidth: 0, flex: 1, overflow: "auto", backgroundColor: "#1c1c1c", position: "relative" }}>
-            {/* Canvas label */}
-            <div className="garment-canvas-label" style={{ position: "absolute", top: "14px", left: "14px", zIndex: 5, fontSize: "10px", fontWeight: "700", color: activeTab === "svg" ? "rgba(255,215,0,0.35)" : "#444", letterSpacing: "1.5px", textTransform: "uppercase", pointerEvents: "none" }}>{rightLabel}</div>
             {activeUrl && traceState === "idle" ? (
               <div
                 ref={rightZoomSpaceRef}

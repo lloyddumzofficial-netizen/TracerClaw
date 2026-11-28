@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Check, FileText, Scale, ShieldCheck, UserRoundCheck } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ArrowUpRightIcon as ArrowUpRight, CheckIcon as Check, FileTextIcon as FileText, ScalesIcon as Scale, ShieldCheckIcon as ShieldCheck, UserCheckIcon as UserRoundCheck } from "@phosphor-icons/react/ssr";
 import PolicyNavigation, { PolicyContents } from "@/components/shared/PolicyNavigation";
 import "../policy-pages.css";
 

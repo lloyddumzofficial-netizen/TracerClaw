@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, CircleCheck, Timer, X } from "lucide-react";
+import { ArrowRightIcon as ArrowRight, CheckCircleIcon as CircleCheck, TimerIcon as Timer, XIcon as X } from "@phosphor-icons/react/ssr";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import LogoCropGuide from "./LogoCropGuide";
 import styles from "./CropGuideIntro.module.css";

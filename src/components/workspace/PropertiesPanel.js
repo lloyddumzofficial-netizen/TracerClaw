@@ -3,18 +3,19 @@
 import Image from "next/image";
 import { memo, useState, useEffect } from "react";
 import {
-  Loader2,
-  Sparkles,
-  X,
-  ChevronDown,
-  AlertCircle,
-  Download,
-  ImagePlus,
-  ListChecks,
-  Palette,
-  SplitSquareHorizontal,
-  CheckCircle2
-} from "lucide-react";
+  CircleNotchIcon as Loader2,
+  SparkleIcon as Sparkles,
+  XIcon as X,
+  CaretDownIcon as ChevronDown,
+  WarningCircleIcon as AlertCircle,
+  DownloadIcon as Download,
+  CheckIcon,
+  ImageSquareIcon as ImagePlus,
+  ListChecksIcon as ListChecks,
+  PaletteIcon as Palette,
+  ColumnsIcon as SplitSquareHorizontal,
+  CheckCircleIcon as CheckCircle2
+} from "@phosphor-icons/react/ssr";
 import GoogleDriveMark from "./integrations/GoogleDriveMark";
 import { getGoogleDriveConnectUrl, getIntegrationStatus } from "@/lib/integrations/clientApi";
 import { getTraceResumePlan } from "@/lib/traceResume";
@@ -124,7 +125,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
   const isBusy = traceState !== "idle" || isSavingCrop || isEditingArtwork;
   const hasSvg = Boolean(project?.svg_url);          // ← permanent gate: SVG already exists
   const canUsePaletteStudio = hasSvg;
-  const zipContents = !agent && [
+  const zipSummary = [
     project?.original_image_url && "Reference",
     project?.generated_image_url && project.generated_image_url !== "REFUNDED" && "Flat extract",
     project?.upscaled_image_url && "HD upscale",
@@ -570,8 +571,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
         </button>
         </div>
 
-        {/* 2×2 grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "6px" }}>
+        <div className={panelStyles.exportGrid}>
           <button className="pp-sec"
             aria-label="Download all (ZIP)" title="Download all (ZIP)"
             onClick={() => handleDownloadClick("all", onDownloadAll)}
@@ -606,12 +606,6 @@ const PropertiesPanel = memo(function PropertiesPanel({
             <span>Compare results</span>
           </button>
         </div>
-        {zipContents && (
-          <dl className={panelStyles.zipContents}>
-            <dt>ZIP contents</dt>
-            <dd>{zipContents}</dd>
-          </dl>
-        )}
         {actionMessage && (
           <div className="pp-action-message" role="status">{actionMessage}</div>
         )}
@@ -619,13 +613,20 @@ const PropertiesPanel = memo(function PropertiesPanel({
 
       {!agent && (
         <div className={panelStyles.printChecklistSlot}>
+          {zipSummary && (
+            <dl className={panelStyles.zipSummary}>
+              <dt>ZIP contents</dt>
+              <dd>{zipSummary}</dd>
+            </dl>
+          )}
           <aside className={panelStyles.printChecklist} aria-label={checklistTitle}>
             <h3><ListChecks size={15} aria-hidden="true" /> {checklistTitle}</h3>
-            <ul>
-              <li>{hasSvg ? "Check fine details at print size." : completeDesign ? "Keep the full design inside the crop." : "Keep the entire design inside the crop."}</li>
-              <li>{hasSvg ? "Check fit against your panel template." : completeDesign ? "Leave room around fine details." : "Leave room around small text and thin lines."}</li>
+            <ul role="list">
+              <li><CheckIcon size={13} aria-hidden="true" /><span>{hasSvg ? "Check details at print size." : "Keep the full design inside the crop."}</span></li>
+              <li><CheckIcon size={13} aria-hidden="true" /><span>{hasSvg ? "Check fit on your panel template." : completeDesign ? "Leave room around fine details." : "Leave room around small text and thin lines."}</span></li>
             </ul>
           </aside>
+          {hasSvg && <p className={panelStyles.printNote}>Confirm the final dimensions with your print shop.</p>}
         </div>
       )}
       {agent && <aside className="pp-agent-card" aria-label={agent.label}>

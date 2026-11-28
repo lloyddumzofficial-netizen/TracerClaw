@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { ArrowUpRight, Check, X } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight, CheckIcon as Check, XIcon as X } from "@phosphor-icons/react/ssr";
 import { safeJson } from "@/lib/safeJson";
 import styles from "./ClawRewardNotice.module.css";
 
@@ -179,7 +179,7 @@ export default function ClawRewardNotice({
 
       <div className={styles.icon} aria-hidden="true">
         <Image src="/Claws/Claws.webp" alt="" width={42} height={42} />
-        <span><Check size={11} strokeWidth={3} /></span>
+        <span><Check size={11} weight="bold" /></span>
       </div>
 
       <div className={styles.content}>

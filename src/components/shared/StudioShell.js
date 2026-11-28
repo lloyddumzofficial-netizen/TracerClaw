@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import Image from "next/image";
-import { CheckCircle2, Home, Keyboard, Pencil } from "lucide-react";
+import { CheckCircleIcon as CheckCircle2, HouseIcon as Home, KeyboardIcon as Keyboard, PencilIcon as Pencil } from "@phosphor-icons/react/ssr";
 
 const StudioShell = memo(function StudioShell({
   className,

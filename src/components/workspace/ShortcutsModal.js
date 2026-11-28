@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Keyboard, Mouse, Move, RotateCcw, Scan, X } from "lucide-react";
+import { KeyboardIcon as Keyboard, MouseIcon as Mouse, ArrowsOutCardinalIcon as Move, ArrowCounterClockwiseIcon as RotateCcw, ScanIcon as Scan, XIcon as X } from "@phosphor-icons/react/ssr";
 import styles from "./ShortcutsModal.module.css";
 
 const SHORTCUTS = [

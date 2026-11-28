@@ -1,22 +1,31 @@
 /* Scoped panel polish overrides the shared workspace's legacy control styles. */
-.zipContents {
+.exportGrid {
   display: grid;
-  gap: 3px;
-  margin: 8px 0 0;
-  padding: 7px 0 0;
-  border-top: 1px solid #333333;
-  font-size: 11px;
-  line-height: 1.4;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
-.zipContents dt {
-  color: #F4F4F1;
-  font-weight: 600;
+@container (min-height: 821px) {
+  .panel :global(.pp-actions-section):has(+ .printChecklistSlot) .exportGrid {
+    grid-auto-rows: minmax(54px, auto);
+  }
 }
 
-.zipContents dd {
+.printChecklist ul {
   margin: 0;
-  color: #929591;
+  padding: 0;
+  list-style: none;
+}
+
+.printChecklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.printChecklist li svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .artworkActions {
@@ -37,18 +46,39 @@
 .artworkActions svg { flex-shrink: 0; }
 
 .printChecklistSlot {
-  flex: 1 0 auto;
-  display: grid;
-  align-items: center;
+  flex: 0 0 auto;
   padding: 8px 16px;
+}
+
+.zipSummary {
+  margin: 0 0 6px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.zipSummary dt {
+  color: #F4F4F1;
+  font-weight: 600;
+}
+
+.zipSummary dd {
+  margin: 1px 0 0;
+  color: #929591;
 }
 
 .printChecklist {
   min-width: 0;
-  padding: 8px 10px;
+  padding: 7px 9px;
   background: #1A1C1E;
   border: 2px solid #333333;
   border-radius: 8px;
+}
+
+.printNote {
+  margin: 6px 0 0;
+  color: #929591;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .printChecklist h3 {
@@ -64,9 +94,7 @@
 .printChecklist ul {
   display: grid;
   gap: 4px;
-  margin: 7px 0 0;
-  padding-inline-start: 17px;
-  list-style: disc;
+  margin-top: 5px;
   color: #929591;
   font-size: 11px;
   line-height: 1.4;
@@ -207,7 +235,7 @@
 }
 
 .panel.panel.panel.panel :global(.pp-warn span) {
-  color: #929591 !important;
+  color: var(--dc-warning, #D98484) !important;
   font-size: 10.5px !important;
   line-height: 1.5 !important;
 }
@@ -315,7 +343,6 @@
   .panel.panel.panel.panel :global(.pp-agent-identity > span) { width:20px; height:20px; }
   .panel.panel.panel.panel :global(.pp-agent-portrait) { width: 100px; height: 110px; }
   .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-sec) { min-height: 38px !important; padding: 3px !important; }
-  :global(.has-artwork-editor) .zipContents { margin-top: 5px; padding-top: 4px; gap: 2px; }
   :global(.has-artwork-editor) .printChecklistSlot { padding-block: 5px; }
 }
 
@@ -341,7 +368,6 @@
   .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-sec) { min-height: 34px !important; }
   :global(.has-artwork-editor) .printChecklistSlot { padding-block: 2px; }
   :global(.has-artwork-editor) .printChecklist ul { font-size: 10px; }
-  :global(.has-artwork-editor) .zipContents { display: flex; flex-wrap: wrap; column-gap: 6px; }
   .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-mode-options .pp-card) { min-height: 40px !important; }
   .panel.panel.panel.panel:global(.has-artwork-editor) :global(.pp-warn) { padding: 3px 7px !important; }
 }

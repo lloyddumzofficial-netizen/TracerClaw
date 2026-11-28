@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { XIcon as X } from "@phosphor-icons/react/ssr";
 import PaletteCanvas from "./PaletteCanvas";
 import PaletteColorMapPanel from "./PaletteColorMapPanel";
 import PaletteFooter from "./PaletteFooter";

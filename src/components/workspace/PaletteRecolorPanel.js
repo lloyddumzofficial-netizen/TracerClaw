@@ -1,4 +1,4 @@
-import { Pipette } from "lucide-react";
+import { EyedropperIcon as Pipette } from "@phosphor-icons/react/ssr";
 import { QUICK_COLORS } from "./PalettePreviewModal.utils";
 
 export default function PaletteRecolorPanel({

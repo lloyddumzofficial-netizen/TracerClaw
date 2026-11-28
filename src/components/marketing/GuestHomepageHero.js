@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Play, Star } from "lucide-react";
+import { PlayIcon as Play, StarIcon as Star } from "@phosphor-icons/react/ssr";
 import GuestDemoMonitor from "@/components/marketing/GuestDemoMonitor";
 import GuestPricingSection from "@/components/marketing/GuestPricingSection";
 import HomeTrustMarquee from "@/components/marketing/HomeTrustMarquee";
@@ -92,7 +92,7 @@ export default function GuestHomepageHero({ onStart, publicStats }) {
               <span className="guest-landing-review-summary">
                 <span className="guest-landing-review-stars" aria-label="5 out of 5 stars">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} size={11} fill="currentColor" aria-hidden="true" />
+                    <Star key={index} size={11} weight="fill" aria-hidden="true" />
                   ))}
                 </span>
                 <span>{reviewCount.toLocaleString()} project reviews</span>

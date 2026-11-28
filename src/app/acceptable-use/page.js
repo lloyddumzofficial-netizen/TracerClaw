@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppRouter } from "@/hooks/useAppRouter";
-import { ArrowLeft, ShieldAlert } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ShieldWarningIcon as ShieldAlert } from "@phosphor-icons/react/ssr";
 
 export default function AcceptableUsePolicy() {
   const router = useAppRouter();

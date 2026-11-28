@@ -1,4 +1,4 @@
-import { GitCompareArrows, GitMerge, Layers3, Loader2, Pencil, Redo2, Undo2 } from "lucide-react";
+import { ArrowsLeftRightIcon as GitCompareArrows, GitMergeIcon as GitMerge, StackIcon as Layers3, CircleNotchIcon as Loader2, PencilIcon as Pencil, ArrowUUpRightIcon as Redo2, ArrowUUpLeftIcon as Undo2 } from "@phosphor-icons/react/ssr";
 import PaletteRecolorPanel from "./PaletteRecolorPanel";
 import {
   DEFAULT_BUBBLE_LAYOUT,

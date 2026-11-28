@@ -1,5 +1,5 @@
 "use client";
-import { Layers3, Loader2, MousePointer2, Sparkles } from "lucide-react";
+import { StackIcon as Layers3, CircleNotchIcon as Loader2, CursorIcon as MousePointer2, SparkleIcon as Sparkles } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 
 export default function ExtractionActions({ disabled, processing, paused, progressLabel, reviewing, extractionComplete, pricing, sourceSelected, guided, onSource, onExtract }) {

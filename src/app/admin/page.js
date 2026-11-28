@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppRouter } from "@/hooks/useAppRouter";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "@/components/ui/Toast";
-import { Check, Clock, ExternalLink, LogOut, RefreshCw } from "lucide-react";
+import { CheckIcon as Check, ClockIcon as Clock, ArrowSquareOutIcon as ExternalLink, SignOutIcon as LogOut, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react/ssr";
 import { CREDIT_PLANS } from "@/lib/paymentPlans";
 import { safeJson } from "@/lib/safeJson";
 import { logger } from "@/lib/logger";
@@ -375,7 +375,7 @@ export default function AdminDashboard() {
                         opacity: processingId === req.id ? 0.7 : 1
                       }}
                     >
-                      {processingId === req.id ? 'Approving...' : <><Check size={12} strokeWidth={3} /> Approve & Add</>}
+                      {processingId === req.id ? 'Approving...' : <><Check size={12} weight="bold" /> Approve & Add</>}
                     </button>
                   </div>
 
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div style={{ color: '#4ade80', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Check size={16} strokeWidth={3} /> PAID
+                    <Check size={16} weight="bold" /> PAID
                   </div>
 
                 </div>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Check, Clock3, Copy, Gift, Link2, LoaderCircle, ShieldCheck, Users, X } from "lucide-react";
+import { CheckIcon as Check, ClockIcon as Clock3, CopyIcon as Copy, GiftIcon as Gift, LinkIcon as Link2, CircleNotchIcon as LoaderCircle, ShieldCheckIcon as ShieldCheck, UsersIcon as Users, XIcon as X } from "@phosphor-icons/react/ssr";
 import { safeJson } from "@/lib/safeJson";
 import { toast } from "@/components/ui/Toast";
 import styles from "./ReferralModal.module.css";

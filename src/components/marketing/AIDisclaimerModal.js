@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Clock3, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRightIcon as ArrowRight, ClockIcon as Clock3, LockKeyIcon as LockKeyhole, ShieldCheckIcon as ShieldCheck } from "@phosphor-icons/react/ssr";
 import "../shared/consent-surfaces.css";
 
 const privacyPoints = [
@@ -56,7 +56,7 @@ export default function AIDisclaimerModal() {
       >
         <header className="privacy-consent-header">
           <div className="privacy-consent-mark" aria-hidden="true">
-            <ShieldCheck size={20} strokeWidth={1.8} />
+            <ShieldCheck size={20} />
           </div>
           <div>
             <p className="privacy-consent-kicker">Before you continue</p>
@@ -71,7 +71,7 @@ export default function AIDisclaimerModal() {
           {privacyPoints.map(({ icon: Icon, label, text }, index) => (
             <article className="privacy-consent-point" key={label}>
               <div className="privacy-consent-point-icon" aria-hidden="true">
-                <Icon size={17} strokeWidth={1.8} />
+                <Icon size={17} />
               </div>
               <div>
                 <div className="privacy-consent-point-heading">
@@ -95,7 +95,7 @@ export default function AIDisclaimerModal() {
             disabled={timeLeft > 0}
           >
             <span>{timeLeft > 0 ? `Please read (${timeLeft}s)` : "I understand — continue"}</span>
-            {timeLeft <= 0 && <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />}
+            {timeLeft <= 0 && <ArrowRight size={16} aria-hidden="true" />}
           </button>
         </div>
       </section>

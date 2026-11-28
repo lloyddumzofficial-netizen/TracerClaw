@@ -22,7 +22,7 @@ import { useIsMobileDevice } from "@/hooks/useIsMobileDevice";
 import { safeJson } from "@/lib/safeJson";
 import { getProjectWorkspacePath } from "@/lib/projectNavigation";
 
-import { ImageIcon, Monitor, LogIn, FilePlus, User, Trash2, LogOut, CheckCircle2, X, Scan, Scissors, Play, Search, Layers, Zap, ArrowUpRight, ChevronLeft, ChevronRight, Gift } from "lucide-react";
+import { ImageIcon as ImageIcon, MonitorIcon as Monitor, SignInIcon as LogIn, FilePlusIcon as FilePlus, UserIcon as User, TrashIcon as Trash2, SignOutIcon as LogOut, CheckCircleIcon as CheckCircle2, XIcon as X, ScanIcon as Scan, ScissorsIcon as Scissors, PlayIcon as Play, MagnifyingGlassIcon as Search, StackIcon as Layers, LightningIcon as Zap, ArrowUpRightIcon as ArrowUpRight, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, GiftIcon as Gift } from "@phosphor-icons/react/ssr";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 import "./home.css";
@@ -175,10 +175,10 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesign
         </div>
         <div className="desktop-tools-controls" aria-label="Browse tools">
           <button type="button" onClick={() => scrollTools(-1)} aria-label="Previous tools">
-            <ChevronLeft size={19} strokeWidth={1.8} />
+            <ChevronLeft size={19} />
           </button>
           <button type="button" onClick={() => scrollTools(1)} aria-label="Next tools">
-            <ChevronRight size={19} strokeWidth={1.8} />
+            <ChevronRight size={19} />
           </button>
         </div>
       </header>
@@ -192,7 +192,7 @@ function DesktopToolsShelf({ onGarment, onLogo, onPattern, onBgRemover, onDesign
               <p>{tool.description}</p>
               <button className={`${actionStyles.action} ${actionStyles.compact}`} type="button" onClick={tool.onClick}>
                 Open workspace
-                <ArrowUpRight size={15} strokeWidth={1.8} />
+                <ArrowUpRight size={15} />
               </button>
             </div>
           </article>
@@ -1289,7 +1289,7 @@ export default function StartScreen() {
                   onClick={() => scrollToHomeSection("how-desaynclaw-works")}
                   aria-label="Scroll to the DesaynClaw tutorial"
                 >
-                  <Play size={13} fill="currentColor" aria-hidden="true" /> Tutorial <span>5 min</span>
+                  <Play size={13} weight="fill" aria-hidden="true" /> Tutorial <span>5 min</span>
                 </button>
                 {isReferralProgramEnabled && (
                   <button
@@ -1430,21 +1430,21 @@ export default function StartScreen() {
                 </p>
               </div>
 
-              <div className="hero-action-bar" style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "20px", width: "100%", overflow: "visible", paddingBottom: "2px" }}>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory(null); setShowModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
-                  {isUploading ? <><Monitor size={13} className="animate-pulse" /> Creating...</> : <><FilePlus size={13} /> New Project</>}
+              <div className="hero-action-bar">
+                <button type="button" className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setInitialProjectCategory(null); setShowModal(true); }} disabled={isUploading}>
+                  {isUploading ? <><Monitor size={15} className="animate-pulse" /> Creating...</> : <><FilePlus size={15} /> New Project</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
-                  {isUploading ? <><Monitor size={13} className="animate-pulse" /> Uploading...</> : <><Monitor size={13} /> Open PC</>}
+                <button type="button" className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } fileInputRef.current.click(); }} disabled={isUploading}>
+                  {isUploading ? <><Monitor size={15} className="animate-pulse" /> Uploading...</> : <><Monitor size={15} /> Open PC</>}
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
-                  <Scan size={13} /> Scan Phone
+                <button type="button" className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } setShowQrModal(true); }} disabled={isUploading}>
+                  <Scan size={15} /> Scan Phone
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#d5d5d5", border: "1px solid #444", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "500", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px" }}>
-                  <ImageIcon size={13} /> Image Upscale
+                <button type="button" className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push('/upscale'); }} disabled={isUploading}>
+                  <ImageIcon size={15} /> Image Upscale
                 </button>
-                <button className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push("/bg-remover"); }} disabled={isUploading} style={{ flex: "0 0 auto", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "transparent", color: "#FFD700", border: "1px solid rgba(255, 215, 0, 0.4)", padding: "0 11px", borderRadius: "5px", fontSize: "11px", fontWeight: "700", transition: "all 0.2s", whiteSpace: "nowrap", letterSpacing: "0.6px", boxShadow: "0 0 10px rgba(255,215,0,0.1)" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,215,0,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <Scissors size={13} color="#FFD700" /> BG Remover
+                <button type="button" className="start-btn" onClick={(e) => { e.stopPropagation(); if (requireDesktopTool()) return; if (!user) { setShowLoginModal(true); return; } router.push("/bg-remover"); }} disabled={isUploading}>
+                  <Scissors size={15} /> BG Remover
                 </button>
               </div>
 
@@ -1929,7 +1929,7 @@ export default function StartScreen() {
           <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: "400px", textAlign: "center" }}>
               <div className="modal-icon text-danger" style={{ marginBottom: "15px" }}>
-                <Trash2 size={48} strokeWidth={1} color="#ff4444" />
+                <Trash2 size={48} weight="light" color="#ff4444" />
               </div>
               <h3 style={{ marginBottom: "10px" }}>Delete Project?</h3>
               <p style={{ color: "#888", marginBottom: "25px", fontSize: "13px" }}>

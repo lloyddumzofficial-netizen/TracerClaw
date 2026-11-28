@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { PlusIcon as Plus } from "@phosphor-icons/react/ssr";
 import styles from "./FAQSection.module.css";
 
 const FAQ_DATA = [

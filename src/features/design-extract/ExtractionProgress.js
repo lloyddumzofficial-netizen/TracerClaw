@@ -1,5 +1,5 @@
 "use client";
-import { Layers3, Loader2 } from "lucide-react";
+import { StackIcon as Layers3, CircleNotchIcon as Loader2 } from "@phosphor-icons/react/ssr";
 import useElapsedTime, { formatElapsedTime } from "@/hooks/useElapsedTime";
 import styles from "./designExtract.module.css";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { ArrowsOutSimpleIcon as Maximize2, MinusIcon as Minus, PlusIcon as Plus } from "@phosphor-icons/react/ssr";
 
 export default function WorkspaceZoomControls({
   zoom,
@@ -23,7 +23,7 @@ export default function WorkspaceZoomControls({
         aria-label="Zoom out"
         title="Zoom out"
       >
-        <Minus size={14} strokeWidth={1.9} aria-hidden="true" />
+        <Minus size={14} aria-hidden="true" />
       </button>
 
       <output ref={outputRef} className="workspace-zoom-value" aria-live="polite" aria-label={`Zoom ${percentage} percent`}>
@@ -38,7 +38,7 @@ export default function WorkspaceZoomControls({
         aria-label="Zoom in"
         title="Zoom in"
       >
-        <Plus size={14} strokeWidth={1.9} aria-hidden="true" />
+        <Plus size={14} aria-hidden="true" />
       </button>
 
       <span className="workspace-zoom-divider" aria-hidden="true" />
@@ -50,7 +50,7 @@ export default function WorkspaceZoomControls({
         aria-label="Fit artwork to canvas"
         title="Fit artwork to canvas"
       >
-        <Maximize2 size={13} strokeWidth={1.8} aria-hidden="true" />
+        <Maximize2 size={13} aria-hidden="true" />
         <span>Fit</span>
       </button>
     </div>

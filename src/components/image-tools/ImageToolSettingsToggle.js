@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelRightOpen } from "lucide-react";
+import { SidebarSimpleIcon as PanelRightOpen } from "@phosphor-icons/react/ssr";
 import styles from "./image-tool.module.css";
 
 export default function ImageToolSettingsToggle({ title, onOpen }) {

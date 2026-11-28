@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { CheckCircle2, Layers3 } from "lucide-react";
+import { CheckCircleIcon as CheckCircle2, StackIcon as Layers3 } from "@phosphor-icons/react/ssr";
 import useLayerPagination from "./useLayerPagination";
 import LayerPagination from "./LayerPagination";
 import styles from "./designExtract.module.css";

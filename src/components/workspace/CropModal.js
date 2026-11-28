@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
-import { ArrowRight, CheckCircle2, Crosshair, Hand, Info, Loader2, Maximize, Minus, Plus, RotateCcw, ScanLine, X, XCircle } from "lucide-react";
+import { ArrowRightIcon as ArrowRight, CheckCircleIcon as CheckCircle2, CrosshairIcon as Crosshair, HandIcon as Hand, InfoIcon as Info, CircleNotchIcon as Loader2, CornersOutIcon as Maximize, MinusIcon as Minus, PlusIcon as Plus, ArrowCounterClockwiseIcon as RotateCcw, ScanIcon as ScanLine, XIcon as X, XCircleIcon as XCircle } from "@phosphor-icons/react/ssr";
 import { convertToPixelCrop } from "react-image-crop";
 import CropSelectionCanvas from "./CropSelectionCanvas";
 import LogoCropGuide from "./LogoCropGuide";

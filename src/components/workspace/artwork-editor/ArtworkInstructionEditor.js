@@ -1,6 +1,6 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
+import { CheckIcon as Check, XIcon as X } from "@phosphor-icons/react/ssr";
 import styles from "./ArtworkEditor.module.css";
 import aiOutlineStyles from "@/components/ui/AiOutlineButton.module.css";
 import { selectionBounds } from "./selectionGeometry";

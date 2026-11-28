@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { SlidersHorizontal, X, LockKeyhole, ArrowUp, ArrowDown, Trash2, Sparkles, Layers3, MousePointer2, Download, PenTool, Loader2, Scan, CheckCircle2, Scissors } from "lucide-react";
+import { SlidersHorizontalIcon as SlidersHorizontal, XIcon as X, LockKeyIcon as LockKeyhole, ArrowUpIcon as ArrowUp, ArrowDownIcon as ArrowDown, TrashIcon as Trash2, SparkleIcon as Sparkles, StackIcon as Layers3, CursorIcon as MousePointer2, DownloadIcon as Download, PenNibIcon as PenTool, CircleNotchIcon as Loader2, ScanIcon as Scan, CheckCircleIcon as CheckCircle2, ScissorsIcon as Scissors } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 import FeatureBadges from "./FeatureBadges";
 import { layerUpscaleAvailability } from "@/lib/designExtractUpscalePolicy";

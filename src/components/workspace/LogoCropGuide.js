@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { CheckIcon as Check, XIcon as X } from "@phosphor-icons/react/ssr";
 import Image from "next/image";
 import styles from "./LogoCropGuide.module.css";
 

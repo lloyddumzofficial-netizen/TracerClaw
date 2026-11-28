@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ImageIcon, Sparkles } from "lucide-react";
+import { ImageIcon as ImageIcon, SparkleIcon as Sparkles } from "@phosphor-icons/react/ssr";
 import WorkspaceZoomControls from "@/components/workspace/WorkspaceZoomControls";
 import WorkspaceProcessingLoader from "@/components/workspace/WorkspaceProcessingLoader";
 import styles from "./image-tool.module.css";

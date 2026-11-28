@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Shirt, Sparkles, X, ChevronLeft, ArrowRight } from "lucide-react";
+import { TShirtIcon as Shirt, SparkleIcon as Sparkles, XIcon as X, CaretLeftIcon as ChevronLeft, ArrowRightIcon as ArrowRight } from "@phosphor-icons/react/ssr";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import modalStyles from "./NewProjectModal.module.css";
 import WorkspaceToolThumbnail from "./WorkspaceToolThumbnail";
@@ -105,7 +105,7 @@ function CategoryCard({ onClick, artwork, title, description, badge }) {
         <p className={modalStyles.cardDescription}>{description}</p>
       </div>
       <span className={modalStyles.cardAction} aria-hidden="true">
-        Open workspace <ArrowRight size={13} strokeWidth={2} />
+        Open workspace <ArrowRight size={13} />
       </span>
     </div>
   );
@@ -308,7 +308,7 @@ const NewProjectModal = memo(function NewProjectModal({
               onMouseEnter={(e) => e.currentTarget.style.color = "#bbb"}
               onMouseLeave={(e) => e.currentTarget.style.color = "#555"}
             >
-              <ChevronLeft size={13} strokeWidth={2.5} />
+              <ChevronLeft size={13} weight="bold" />
               Back
             </button>
 
@@ -323,7 +323,7 @@ const NewProjectModal = memo(function NewProjectModal({
                   ? <LogoIcon size={17} />
                   : category === "pattern"
                     ? <PatternIcon size={17} />
-                    : <Shirt size={17} strokeWidth={1.5} />}
+                    : <Shirt size={17} weight="light" />}
               </div>
               <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "#fff" }}>
                 {category === "logo" ? "Logo Vectorizer" : category === "pattern" ? "Pattern Rebuilder" : "Garment Extract"}

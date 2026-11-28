@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { Play } from "lucide-react";
+import { PlayIcon as Play } from "@phosphor-icons/react/ssr";
 import tutorialThumbnail from "../../../public/EMAIL-VIDEO-THUMBNAIL-TUTOORIAL.jpg";
 import styles from "./GuestDemoMonitor.module.css";
 import { HeroGlow } from "./HeroHorizon";
@@ -55,7 +55,7 @@ export default function GuestDemoMonitor() {
             )}
             {!isPlaying && (
               <button className="guest-demo-play" type="button" onClick={handlePlay} aria-label="Play the DesaynClaw product walkthrough">
-                <Play size={27} fill="currentColor" aria-hidden="true" />
+                <Play size={27} weight="fill" aria-hidden="true" />
               </button>
             )}
           </div>

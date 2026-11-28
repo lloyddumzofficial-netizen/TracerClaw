@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, Code2, ImageIcon, Palette, Scissors, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight, CodeIcon as Code2, ImageIcon as ImageIcon, PaletteIcon as Palette, ScissorsIcon as Scissors, ShieldCheckIcon as ShieldCheck, SparkleIcon as Sparkles } from "@phosphor-icons/react/ssr";
 import "./team-refined.css";
 
 export const metadata = {

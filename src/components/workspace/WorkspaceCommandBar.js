@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Columns2, Palette, Scissors } from "lucide-react";
+import { ColumnsIcon as Columns2, PaletteIcon as Palette, ScissorsIcon as Scissors } from "@phosphor-icons/react/ssr";
 
 const WorkspaceCommandBar = memo(function WorkspaceCommandBar({
   activeTool,

@@ -2,7 +2,7 @@
 
 import { memo, useRef, useState } from "react";
 import Image from "next/image";
-import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock, Loader2, Layers3, Shirt, PenTool, Grid2X2, Scan, Scissors, Maximize2 } from "lucide-react";
+import { ImageIcon as ImageIcon, DotsThreeVerticalIcon as MoreVertical, PencilSimpleIcon as Edit3, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, MagnifyingGlassIcon as Search, ShieldWarningIcon as ShieldAlert, ClockIcon as Clock, CircleNotchIcon as Loader2, StackIcon as Layers3, TShirtIcon as Shirt, PenNibIcon as PenTool, GridFourIcon as Grid2X2, ScanIcon as Scan, ScissorsIcon as Scissors, ArrowsOutSimpleIcon as Maximize2 } from "@phosphor-icons/react/ssr";
 
 const PROJECT_TOOLS = {
   design_extract: { label: "Design Extract", Icon: Layers3 },

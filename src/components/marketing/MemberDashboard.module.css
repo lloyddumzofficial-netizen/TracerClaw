@@ -142,14 +142,28 @@
 .root.root :global(.recent-projects-search input):focus-visible { outline-color: #ffd700; }
 /* Upload entry: shared brand surfaces and a clear primary action. */
 .root.root :global(.hero-copy) { color: #929591 !important; max-width: 460px !important; line-height: 1.65 !important; }
-.root.root :global(.hero-action-bar) { gap: 8px !important; margin-bottom: 14px !important; }
-.root.root :global(.hero-action-bar .start-btn) {
-  flex: 1 1 auto !important; min-height: 38px; padding: 9px 10px !important;
-  border: 2px solid #333333 !important; border-radius: 7px !important;
-  background: #111315 !important; color: #F4F4F1 !important;
+.root.root :global(.hero-action-bar) {
+  display: flex;
+  width: 100%;
+  gap: 6px !important;
+  margin-bottom: 14px !important;
 }
-.root.root :global(.hero-action-bar .start-btn svg) { color: #929591 !important; }
+.root.root :global(.hero-action-bar .start-btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex: 1 1 auto !important; min-height: 42px; padding: 8px !important;
+  border: 2px solid #333333 !important; border-radius: 8px !important;
+  background: #111315 !important; color: #F4F4F1 !important;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.root.root :global(.hero-action-bar .start-btn svg) { flex: none; color: #929591 !important; }
+.root.root :global(.hero-action-bar .start-btn:first-child) { background: #1A1C1E !important; }
+.root.root :global(.hero-action-bar .start-btn:first-child svg) { color: #FFD700 !important; }
 .root.root :global(.hero-action-bar .start-btn:hover:not(:disabled)) { background: #1A1C1E !important; border-color: #929591 !important; }
+.root.root :global(.hero-action-bar .start-btn:focus-visible) { outline: 2px solid #FFD700; outline-offset: 2px; }
 .root.root :global(.hero-upload-box) {
   flex: 0 0 auto !important; padding: 26px !important; background: #111315 !important;
   border: 2px dashed #333333 !important; border-radius: 12px !important;
@@ -170,6 +184,12 @@
 .root.root :global(.hero-upload-box .start-btn:hover:not(:disabled)) { background: #F4F4F1 !important; opacity: .92; }
 .root.root :global(.hero-upload-box > div:last-child span) { color: #929591 !important; font-size: 12px !important; }
 .root.root :global(.hero-upload-box > div:last-child span:last-child) { font-size: 11px !important; }
+
+@media (min-width: 981px) {
+  .root.root :global(.hero-section > .hero-left) { align-self: stretch; }
+  .root.root :global(.hero-section > .hero-left > .hero-upload-box) { flex: 1 0 auto !important; }
+}
+
 @media (max-width: 600px) {
   .root.root :global(.hero-action-bar .start-btn) { flex-basis: 30% !important; }
   .root.root :global(.hero-upload-box) { padding: 18px !important; }

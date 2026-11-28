@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 export default function LayerPagination({ pagination, review = false }) {
   return <nav className={styles.layerPagination} aria-label={review ? "Review layer pages" : "Layer pages"}>

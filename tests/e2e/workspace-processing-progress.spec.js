@@ -45,8 +45,7 @@ test("garment loading percentage advances within real stages and never completes
   await page.getByRole('button', { name: 'Continue to crop', exact: true }).click();
   await page.getByRole("button", { name: "Close crop modal" }).click();
   await expect(page.getByLabel("Maya, your garment panel agent")).toHaveCount(0);
-  await expect(page.getByText("ZIP contents", { exact: true })).toBeVisible();
-  await expect(page.getByText("Reference", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Download all (ZIP)" })).toBeVisible();
   const beforeTracing = page.getByRole("complementary", { name: "Before tracing" });
   await expect(beforeTracing).toBeInViewport({ ratio: 1 });
   const settings = page.locator(".workspace-properties-panel");

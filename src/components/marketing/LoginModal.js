@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import LocalLoginArtwork, { preloadLoginArtwork } from "./LocalLoginArtwork";
-import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
+import { XIcon as X, ShieldCheckIcon as ShieldCheck, CircleNotchIcon as Loader2, EnvelopeIcon as Mail } from "@phosphor-icons/react/ssr";
 import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
 import { analytics } from "@/lib/analytics";
@@ -228,7 +228,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
         onClick={(e) => e.stopPropagation()}
       >
         <button className="login-close-button" type="button" onClick={requestClose} aria-label="Close login">
-          <X size={18} strokeWidth={2} />
+          <X size={18} />
         </button>
 
         <div className="login-image-side">
@@ -262,7 +262,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
 
               {emailSent ? (
                 <div className="login-success-panel">
-                  <span className="login-success-icon"><ShieldCheck size={24} strokeWidth={1.8} /></span>
+                  <span className="login-success-icon"><ShieldCheck size={24} /></span>
                   <strong>Check your email</strong>
                   <p>We sent a secure login link to<br /><b>{email}</b></p>
                   <button type="button" onClick={() => setEmailSent(false)}>Use a different email</button>

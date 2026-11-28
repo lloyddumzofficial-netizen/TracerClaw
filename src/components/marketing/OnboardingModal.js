@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Check, Crop, FileDown, Layers3, Upload, X } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, CheckIcon as Check, CropIcon as Crop, FileArrowDownIcon as FileDown, StackIcon as Layers3, UploadIcon as Upload, XIcon as X } from "@phosphor-icons/react/ssr";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import styles from "./OnboardingModal.module.css";
 
@@ -31,7 +31,7 @@ const OnboardingModal = memo(function OnboardingModal({ show, onClose }) {
       <section className={styles.card} ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-description" tabIndex={-1} onClick={event => event.stopPropagation()}>
         <div className={styles.preview} aria-hidden="true" data-step={step}>
           <div className={styles.previewGrid} />
-          <div className={styles.previewMark} key={step}><Icon size={46} strokeWidth={1.25} /></div>
+          <div className={styles.previewMark} key={step}><Icon size={46} weight="light" /></div>
           <span className={styles.previewCaption}>{["DESAYNCLAW WORKSPACE", "YOUR NEXT PROJECT", "FRAME WHAT MATTERS", "READY FOR PRODUCTION"][step]}</span>
           {step === 1 && <div className={styles.fileHint}>PNG <span>·</span> JPG <span>·</span> WEBP</div>}
           {step === 2 && <div className={styles.cropFrame}><i /><i /><i /><i /></div>}

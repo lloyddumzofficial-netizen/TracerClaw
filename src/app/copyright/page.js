@@ -1,13 +1,13 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
-  ArrowUpRight,
-  Copyright,
-  FileCheck2,
-  FileText,
-  Scale,
-  ShieldCheck,
-} from "lucide-react";
+  ArrowLeftIcon as ArrowLeft,
+  ArrowUpRightIcon as ArrowUpRight,
+  CopyrightIcon as Copyright,
+  FileTextIcon as FileCheck2,
+  FileTextIcon as FileText,
+  ScalesIcon as Scale,
+  ShieldCheckIcon as ShieldCheck,
+} from "@phosphor-icons/react/ssr";
 import "../legal-policy.css";
 
 const SUMMARY = [

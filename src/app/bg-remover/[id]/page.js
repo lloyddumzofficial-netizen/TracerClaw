@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircleIcon as CheckCircle2 } from "@phosphor-icons/react/ssr";
 import { useAppRouter } from "@/hooks/useAppRouter";
 import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";

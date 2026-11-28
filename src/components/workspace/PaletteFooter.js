@@ -1,4 +1,4 @@
-import { Loader2, Maximize2, RotateCcw, Save } from "lucide-react";
+import { CircleNotchIcon as Loader2, ArrowsOutSimpleIcon as Maximize2, ArrowCounterClockwiseIcon as RotateCcw, FloppyDiskIcon as Save } from "@phosphor-icons/react/ssr";
 
 export default function PaletteFooter({
   hasEdits,

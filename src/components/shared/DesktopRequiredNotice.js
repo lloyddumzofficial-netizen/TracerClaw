@@ -1,6 +1,6 @@
 "use client";
 
-import { MonitorX, ArrowLeft, Monitor } from "lucide-react";
+import { MonitorIcon as MonitorX, ArrowLeftIcon as ArrowLeft, MonitorIcon as Monitor } from "@phosphor-icons/react/ssr";
 import { useAppRouter } from "@/hooks/useAppRouter";
 
 export default function DesktopRequiredNotice() {

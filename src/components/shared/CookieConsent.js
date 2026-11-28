@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Cookie, X } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight, CookieIcon as Cookie, XIcon as X } from "@phosphor-icons/react/ssr";
 import "./consent-surfaces.css";
 
 export default function CookieConsent() {
@@ -43,7 +43,7 @@ export default function CookieConsent() {
         aria-label="Cookie preferences"
       >
         <div className="cookie-consent-icon" aria-hidden="true">
-          <Cookie size={17} strokeWidth={1.8} />
+          <Cookie size={17} />
         </div>
 
         <div className="cookie-consent-copy">
@@ -52,7 +52,7 @@ export default function CookieConsent() {
             We use essential cookies and local storage to keep your session secure and remember your preferences.
             {" "}
             <Link href="/privacy">
-              Privacy Policy <ArrowUpRight size={12} strokeWidth={2} aria-hidden="true" />
+              Privacy Policy <ArrowUpRight size={12} aria-hidden="true" />
             </Link>
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function CookieConsent() {
             onClick={dismiss}
             aria-label="Dismiss cookie banner"
           >
-            <X size={17} strokeWidth={1.8} />
+            <X size={17} />
           </button>
         </div>
       </aside>

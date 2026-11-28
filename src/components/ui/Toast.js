@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, Info } from "lucide-react";
+import { CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, InfoIcon as Info } from "@phosphor-icons/react/ssr";
 
 let toastEmitter = null;
 

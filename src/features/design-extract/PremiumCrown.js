@@ -1,4 +1,4 @@
-import { Crown } from "lucide-react";
+import { CrownIcon as Crown } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 
 // Visual emphasis only: this badge never controls access or billing.

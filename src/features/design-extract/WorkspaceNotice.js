@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CircleAlert, X } from "lucide-react";
+import { WarningCircleIcon as CircleAlert, XIcon as X } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 export default function WorkspaceNotice({ message, onDismiss, onRetry }) {
   const [closing,setClosing]=useState(false),[paused,setPaused]=useState(false);

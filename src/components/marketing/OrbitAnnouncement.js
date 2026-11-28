@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRightIcon as ArrowRight, XIcon as X } from "@phosphor-icons/react/ssr";
 import styles from "./OrbitAnnouncement.module.css";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

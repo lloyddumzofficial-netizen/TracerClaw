@@ -1,7 +1,7 @@
 "use client";
 import { seedDesignPreview, cacheDesignProject } from "@/features/design-extract/projectClient";
 
-import { Layers3 } from "lucide-react";
+import { StackIcon as Layers3 } from "@phosphor-icons/react/ssr";
 import { useRouter } from "next/navigation";
 import useDesignExtractAccess from "@/hooks/useDesignExtractAccess";
 import { useState } from "react";

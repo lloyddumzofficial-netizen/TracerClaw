@@ -1,6 +1,6 @@
 "use client";
 
-import { Quote, Star, ArrowUpRight } from "lucide-react";
+import { QuotesIcon as Quote, StarIcon as Star, ArrowUpRightIcon as ArrowUpRight } from "@phosphor-icons/react/ssr";
 import styles from "./TestimonialSection.module.css";
 
 const SAMPLE_FEEDBACK = [
@@ -58,10 +58,10 @@ const SAMPLE_FEEDBACK = [
 function ReviewCard({ review, featured = false }) {
   return (
     <article className={featured ? styles.featured : styles.card}>
-      <Quote className={styles.quote} size={32} fill="currentColor" aria-hidden="true" />
+      <Quote className={styles.quote} size={32} weight="fill" aria-hidden="true" />
       <blockquote>{review.feedback_text}</blockquote>
       <div className={styles.stars} aria-label={review.rating + " out of 5 stars"}>
-        {Array.from({ length: 5 }, (_, index) => <Star key={index} size={13} fill={index < review.rating ? "currentColor" : "none"} aria-hidden="true" />)}
+        {Array.from({ length: 5 }, (_, index) => <Star key={index} size={13} weight={index < review.rating ? "fill" : "regular"} aria-hidden="true" />)}
       </div>
       <footer className={styles.author}>
         <span className={styles.avatar} aria-hidden="true">{review.initials}</span>

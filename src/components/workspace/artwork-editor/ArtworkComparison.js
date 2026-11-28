@@ -1,6 +1,6 @@
 "use client";
 import { useId, useLayoutEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight } from "@phosphor-icons/react/ssr";
 import styles from "./ArtworkEditor.module.css";
 
 export default function ArtworkComparison({ result, compare }) {

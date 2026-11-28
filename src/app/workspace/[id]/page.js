@@ -11,7 +11,7 @@ import { createClient } from "@/utils/supabase/client";
 import { analytics } from "@/lib/analytics";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-import { ArrowUpRight, CheckCircle2, Palette, X } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight, CheckCircleIcon as CheckCircle2, PaletteIcon as Palette, XIcon as X } from "@phosphor-icons/react/ssr";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 import { useTraceExecution } from "@/hooks/useTraceExecution";

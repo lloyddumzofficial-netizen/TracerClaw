@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Check, CheckCheck, Clock3, Crop, Download, FileImage, FileType2, FolderOpen, Layers3, Package, ScanLine, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckIcon as Check, ChecksIcon as CheckCheck, ClockIcon as Clock3, CropIcon as Crop, DownloadIcon as Download, FileImageIcon as FileImage, FileCodeIcon as FileType2, FolderOpenIcon as FolderOpen, StackIcon as Layers3, PackageIcon as Package, ScanIcon as ScanLine, ShieldCheckIcon as ShieldCheck, SparkleIcon as Sparkles } from "@phosphor-icons/react/ssr";
 import styles from "./ProductionOverview.module.css";
 
 const steps = [[Crop, "Select your artwork"], [ScanLine, "Extract the design"], [Layers3, "Review the details"], [Download, "Export your files"]];

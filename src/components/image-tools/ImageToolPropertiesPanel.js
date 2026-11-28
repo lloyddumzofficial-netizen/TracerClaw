@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { CheckCircle2, Download, ImageIcon, Loader2, Plus, RefreshCw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { CheckCircleIcon as CheckCircle2, DownloadIcon as Download, ImageIcon as ImageIcon, CircleNotchIcon as Loader2, PlusIcon as Plus, ArrowsClockwiseIcon as RefreshCw, ShieldCheckIcon as ShieldCheck, SparkleIcon as Sparkles, XIcon as X } from "@phosphor-icons/react/ssr";
 import styles from "./image-tool.module.css";
 import useElapsedTime, { formatElapsedTime } from "@/hooks/useElapsedTime";
 

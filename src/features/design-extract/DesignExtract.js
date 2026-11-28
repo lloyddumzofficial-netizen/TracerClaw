@@ -19,11 +19,11 @@ import useOpeningFrame from "./useOpeningFrame";
 import { arrangeOverview } from "@/lib/designExtractLayout";
 import { designPsdLimit } from "@/lib/designExtractExportPolicy";
 import { editorSeed, fetchDesignProject, designRequest, cacheDesignProject, forgetDesignProject } from "./projectClient";
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon as Loader2 } from "@phosphor-icons/react/ssr";
 
 
 
-import { Layers3, LayoutGrid, Combine, Undo2, Redo2, Save, Minus, Plus, Scan, RotateCcw, Download, Eye, EyeOff, Search, Focus, Keyboard, Sparkles } from "lucide-react";
+import { StackIcon as Layers3, SquaresFourIcon as LayoutGrid, SquaresFourIcon as Combine, ArrowUUpLeftIcon as Undo2, ArrowUUpRightIcon as Redo2, FloppyDiskIcon as Save, MinusIcon as Minus, PlusIcon as Plus, ScanIcon as Scan, ArrowCounterClockwiseIcon as RotateCcw, DownloadIcon as Download, EyeIcon as Eye, EyeSlashIcon as EyeOff, MagnifyingGlassIcon as Search, CrosshairSimpleIcon as Focus, KeyboardIcon as Keyboard, SparkleIcon as Sparkles } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 import { layerVisible, alreadyUpscaled } from "@/lib/designLayerTypes";
 import { layerUpscaleAvailability } from "@/lib/designExtractUpscalePolicy";

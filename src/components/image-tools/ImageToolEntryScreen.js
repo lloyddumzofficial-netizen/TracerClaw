@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowUpRight, Columns2, Loader2, ShieldCheck, UploadCloud } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight, ColumnsIcon as Columns2, CircleNotchIcon as Loader2, ShieldCheckIcon as ShieldCheck, CloudArrowUpIcon as UploadCloud } from "@phosphor-icons/react/ssr";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
 import styles from "./image-tool.module.css";
 

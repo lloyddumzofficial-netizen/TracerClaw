@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Package, Check, ArrowRight, History, Clock } from "lucide-react";
+import { XIcon as X, PackageIcon as Package, CheckIcon as Check, ArrowRightIcon as ArrowRight, ClockCounterClockwiseIcon as History, ClockIcon as Clock } from "@phosphor-icons/react/ssr";
 import Image from "next/image";
 import { toast } from "./Toast";
 import { createClient } from "@/utils/supabase/client";
@@ -28,6 +28,7 @@ const PAYMENT_LOGOS = {
   qrph: "/Payments-logo/qr-ph-logo_svgstack_com_74171786789082.png",
   gcash: "/Payments-logo/gcash-logo.png",
   maya: "/Payments-logo/Maya_logo.svg.webp",
+  dodo: "/Payments-logo/dodo-payments.png",
 };
 
 const CURRENCY_LABELS = {
@@ -593,7 +594,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
                   style={{ cursor: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 'not-allowed' : 'pointer', opacity: (isStartingDodo || isStartingPayMongo || form.plan === 'tingi') ? 0.58 : 1 }}
                 >
                   <span className="top-up-payment-option-head">
-                    <strong>Dodo</strong>
+                    <span className="top-up-payment-logo-tile">
+                      <Image src={PAYMENT_LOGOS.dodo} alt="Dodo Payments" width={172} height={42}
+                        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+                    </span>
                     <span className="top-up-payment-option-tag">Cards worldwide</span>
                   </span>
                   <span className="top-up-payment-copy">

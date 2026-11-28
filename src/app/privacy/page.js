@@ -1,15 +1,15 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
-  ArrowUpRight,
-  Check,
-  Clock3,
-  FileText,
-  LockKeyhole,
-  MessageCircle,
-  ShieldCheck,
-  UserRoundCheck,
-} from "lucide-react";
+  ArrowLeftIcon as ArrowLeft,
+  ArrowUpRightIcon as ArrowUpRight,
+  CheckIcon as Check,
+  ClockIcon as Clock3,
+  FileTextIcon as FileText,
+  LockKeyIcon as LockKeyhole,
+  ChatCircleIcon as MessageCircle,
+  ShieldCheckIcon as ShieldCheck,
+  UserCheckIcon as UserRoundCheck,
+} from "@phosphor-icons/react/ssr";
 import PolicyNavigation, { PolicyContents } from "@/components/shared/PolicyNavigation";
 import "../policy-pages.css";
 

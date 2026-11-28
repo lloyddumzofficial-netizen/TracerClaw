@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef } from "react";
-import { CheckCircle, X, FolderDown, Download } from "lucide-react";
+import { CheckCircleIcon as CheckCircle, XIcon as X, FolderOpenIcon as FolderDown, DownloadIcon as Download } from "@phosphor-icons/react/ssr";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
 
 /**

@@ -5077,7 +5077,7 @@
   margin: 26px auto 8px !important;
   padding: 0 !important;
   overflow: hidden !important;
-  border-top: 1px solid rgba(255, 255, 255, .055) !important;
+  border-top: 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, .055) !important;
   background: var(--dc-bg) !important;
   opacity: .88;
@@ -8087,6 +8087,7 @@
   position: relative !important;
   isolation: isolate;
   overflow: hidden;
+  border-bottom: 0;
   background: var(--dc-bg) !important;
 }
 

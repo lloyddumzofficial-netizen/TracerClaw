@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Camera, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { CameraIcon as Camera, CheckCircleIcon as CheckCircle2, ImageIcon as ImageIcon } from "@phosphor-icons/react/ssr";
 import LogoLoader from "@/components/ui/LogoLoader";
 import { compressImageClientSide } from "@/utils/imageUtils";
 import { formatUploadLimit, resolveImageUploadLimit } from "@/lib/uploadLimits";
@@ -146,7 +146,7 @@ function MobileUploadContent() {
               <div style={{ position: "absolute", bottom: -1, left: -1, width: "15px", height: "15px", borderBottom: "2px solid #FFD700", borderLeft: "2px solid #FFD700" }} />
               <div style={{ position: "absolute", bottom: -1, right: -1, width: "15px", height: "15px", borderBottom: "2px solid #FFD700", borderRight: "2px solid #FFD700" }} />
 
-              <Camera size={48} strokeWidth={1} color="#FFD700" />
+              <Camera size={48} weight="light" color="#FFD700" />
               <span style={{ fontWeight: "bold", fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase" }}>INITIATE SCAN</span>
             </button>
 
@@ -190,7 +190,7 @@ function MobileUploadContent() {
         {status === "success" && (
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
             <div style={{ background: "#1a1a1a", border: "1px solid #444", padding: "20px", borderRadius: "0", marginBottom: "10px" }}>
-              <CheckCircle2 size={48} color="#FFD700" strokeWidth={1} />
+              <CheckCircle2 size={48} color="#FFD700" weight="light" />
             </div>
             <h2 style={{ margin: 0, fontSize: "16px", fontWeight: "bold", color: "#fff", textTransform: "uppercase", letterSpacing: "2px" }}>UPLINK COMPLETE</h2>
             <p style={{ color: "#888", fontSize: "11px", maxWidth: "280px", lineHeight: "1.5", textTransform: "uppercase", letterSpacing: "1px" }}>

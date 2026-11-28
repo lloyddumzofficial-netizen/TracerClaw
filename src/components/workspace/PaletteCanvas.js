@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Maximize2, Minus, Plus } from "lucide-react";
+import { CircleNotchIcon as Loader2, ArrowsOutSimpleIcon as Maximize2, MinusIcon as Minus, PlusIcon as Plus } from "@phosphor-icons/react/ssr";
 import { normalizeColor } from "./PalettePreviewModal.utils";
 
 function getRenderedPaintColors(element) {

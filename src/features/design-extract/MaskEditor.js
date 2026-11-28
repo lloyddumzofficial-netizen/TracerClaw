@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { maskAsset } from "@/lib/designExtractVariants";
 import { edgeCleanupSettings } from "@/lib/designEdgeCleanup";
 import { packMaskCoverage, unpackMaskCoverage, maskHistoryLimit } from './maskHistory';
-import { Loader2 } from "lucide-react";
+import { CircleNotchIcon as Loader2 } from "@phosphor-icons/react/ssr";
 import styles from "./designExtract.module.css";
 
 export default function MaskEditor({ layer, view, camera, fetchAsset, onApply, onDiscard, busy }) {

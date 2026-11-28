@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Check, CreditCard, ExternalLink } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight, CheckIcon as Check, CreditCardIcon as CreditCard, ArrowSquareOutIcon as ExternalLink } from "@phosphor-icons/react/ssr";
 import Image from "next/image";
 import { DODO_CREDIT_PLANS } from "@/lib/paymentPlans";
 import styles from "./GuestPricingSection.module.css";
