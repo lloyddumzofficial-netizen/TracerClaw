@@ -999,10 +999,8 @@ export default function StartScreen() {
         const projects = [];
         for (let offset = 0; isCurrent(); offset += 50) {
           const response = await request(`/api/design-extract?offset=${offset}`);
-          if ([401, 403, 404].includes(response.status)) {
-            if (isCurrent()) setDesignExtractAccess(false);
-            return [];
-          }
+          // The access endpoint controls tool visibility. Failure to list
+          // recent projects must not hide an already authorized tool.
           if (!response.ok) return null;
           const { projects: page = [] } = await response.json();
           projects.push(...page);
