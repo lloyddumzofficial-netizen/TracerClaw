@@ -10,7 +10,7 @@ import {
   calculateFittedArtworkLayout,
   calculateSynchronizedPan,
   calculateZoomLayerSize,
-} from "@/lib/workspaceCanvasNavigation";
+} from "./workspaceCanvasNavigation";
 import WorkspaceZoomControls from "./WorkspaceZoomControls";
 
 const STAGE_LABELS = ["Artwork cleanup", "Detail pass", "Vector output"];

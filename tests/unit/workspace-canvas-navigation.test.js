@@ -3,7 +3,7 @@ import {
   calculateFittedArtworkLayout,
   calculateSynchronizedPan,
   calculateZoomLayerSize,
-} from "@/lib/workspaceCanvasNavigation";
+} from "@/components/workspace/workspaceCanvasNavigation";
 
 describe("calculateSynchronizedPan", () => {
   it("moves both equal canvases by the drag distance", () => {
