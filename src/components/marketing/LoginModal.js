@@ -41,7 +41,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") void preloadLoginArtwork();
+    void preloadLoginArtwork();
   }, []);
 
   useEffect(() => {
@@ -233,7 +233,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
 
         <div className="login-image-side">
           <div className="login-banner-scene" aria-hidden="true">
-            {process.env.NODE_ENV === "development" && <LocalLoginArtwork />}
+            <LocalLoginArtwork />
           </div>
           <div className="login-visual-copy">
             <p>
