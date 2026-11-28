@@ -626,7 +626,7 @@ const PropertiesPanel = memo(function PropertiesPanel({
               <li><CheckIcon size={13} aria-hidden="true" /><span>{hasSvg ? "Check fit on your panel template." : completeDesign ? "Leave room around fine details." : "Leave room around small text and thin lines."}</span></li>
             </ul>
           </aside>
-          {hasSvg && <p className={panelStyles.printNote}>Confirm the final dimensions with your print shop.</p>}
+          <p className={panelStyles.printNote}>Confirm the final dimensions with your print shop.</p>
         </div>
       )}
       {agent && <aside className="pp-agent-card" aria-label={agent.label}>

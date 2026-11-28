@@ -5,6 +5,13 @@
   gap: 6px;
 }
 
+@container (min-height: 741px) {
+  .panel :global(.pp-actions-section):has(+ .printChecklistSlot) .exportGrid {
+    gap: 10px;
+    margin-top: 4px;
+  }
+}
+
 @container (min-height: 821px) {
   .panel :global(.pp-actions-section):has(+ .printChecklistSlot) .exportGrid {
     grid-auto-rows: minmax(54px, auto);

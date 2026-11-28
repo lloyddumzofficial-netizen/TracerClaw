@@ -61,7 +61,7 @@
   text-decoration: none;
 }
 
-.action:hover { border-color: #FFD700; }
+.action:hover { background: #E8E8E5; border-color: #E8E8E5; }
 .secondary {
   display: table;
   margin: 12px auto 0;
@@ -72,4 +72,4 @@
   text-decoration: none;
 }
 .secondary:hover { color: #F4F4F1; }
-.action:focus-visible, .secondary:focus-visible, .close:focus-visible { outline: 2px solid #FFD700; outline-offset: 2px; }
+.action:focus-visible, .secondary:focus-visible, .close:focus-visible { outline: 2px solid #F4F4F1; outline-offset: 2px; }
