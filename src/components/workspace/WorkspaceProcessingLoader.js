@@ -2,6 +2,8 @@
 
 import { CheckCircle2 } from "lucide-react";
 import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
+import LogoLoader from "@/components/ui/LogoLoader";
+import { ArtworkProgressOverlay } from "@/features/design-extract/ExtractionProgress";
 import useElapsedTime, { formatElapsedTime } from "@/hooks/useElapsedTime";
 import { estimateProcessingProgress } from "@/lib/processingProgress";
 import styles from "./WorkspaceProcessingLoader.module.css";
@@ -15,9 +17,22 @@ export default function WorkspaceProcessingLoader({
   stageLabels = [],
   showEstimatedProgress = false,
   className = "",
+  scannerSize,
 }) {
   const elapsed = useElapsedTime(true, stageIndex);
   const estimatedProgress = estimateProcessingProgress(elapsed, stageIndex);
+
+  if (scannerSize) {
+    return (
+      <div className={styles.scanner}>
+        <div className={styles.scannerFrame} style={scannerSize}>
+          {previewUrl && <img src={previewUrl} alt="" referrerPolicy="no-referrer" decoding="async" />}
+          <ArtworkProgressOverlay title={`${label}…`} detail={detail} elapsed={elapsed} label={`${label} progress`}
+            outlineLogo={<LogoLoader size={80} color="#F4F4F1" decorative animated={false} sweep />} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`processing-blueprint-stage ${className}`.trim()} role="status" aria-live="polite">

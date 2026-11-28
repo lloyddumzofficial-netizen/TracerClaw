@@ -36,6 +36,7 @@ import WorkspaceToolThumbnail from "@/components/marketing/WorkspaceToolThumbnai
 import toolsShelfStyles from "@/components/marketing/DesktopToolsShelf.module.css";
 import OnboardingModal from "@/components/marketing/OnboardingModal";
 import RecentProjects from "@/components/marketing/RecentProjects";
+import OrbitAnnouncement from "@/components/marketing/OrbitAnnouncement";
 import EduSection from "@/components/marketing/EduSection";
 import BeforeAfterSlider from "@/components/marketing/BeforeAfterSlider";
 import FAQSection from "@/components/marketing/FAQSection";
@@ -995,14 +996,19 @@ export default function StartScreen() {
         setDesignRefined(Boolean(capability.refinement));
 
         setDesignExtractAccess(true);
-        const response = await request("/api/design-extract");
-        if ([401, 403, 404].includes(response.status)) {
-          if (isCurrent()) setDesignExtractAccess(false);
-          return [];
+        const projects = [];
+        for (let offset = 0; isCurrent(); offset += 50) {
+          const response = await request(`/api/design-extract?offset=${offset}`);
+          if ([401, 403, 404].includes(response.status)) {
+            if (isCurrent()) setDesignExtractAccess(false);
+            return [];
+          }
+          if (!response.ok) return null;
+          const { projects: page = [] } = await response.json();
+          projects.push(...page);
+          if (page.length < 50) return projects;
         }
-        if (!response.ok) return null;
-        const snapshot = await response.json();
-        return snapshot.projects || [];
+        return null;
       } catch (err) {
         console.warn("Could not check Design Extract projects", err);
         return null;
@@ -1014,20 +1020,30 @@ export default function StartScreen() {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    const loadingProjects = supabase
-      .from("projects")
-      .select("*")
-      .eq("user_id", userId)
-      .gte("created_at", threeDaysAgo.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(50);
-    const [{ data, error }, designProjects] = await Promise.all([loadingProjects, loadingDesign]);
+    const loadStandardProjects = async () => {
+      const projects = [];
+      for (let offset = 0; isCurrent(); offset += 50) {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("user_id", userId)
+          .gte("created_at", threeDaysAgo.toISOString())
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 49);
+        if (error || !data) return null;
+        projects.push(...data);
+        if (data.length < 50) return projects;
+      }
+      return null;
+    };
+    const [data, designProjects] = await Promise.all([loadStandardProjects(), loadingDesign]);
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     if (!isCurrent() || currentSession?.user?.id !== userId) return;
     setRecentProjects(previous => {
-      const ordinary = !error && data ? data : previous.filter(project => project.trace_type !== "design_extract");
+      const ordinary = data ?? previous.filter(project => project.trace_type !== "design_extract");
       const designs = designProjects ?? previous.filter(project => project.trace_type === "design_extract");
-      return [...ordinary, ...designs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50);
+      return [...ordinary, ...designs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
     });
     setIsLoadingProjects(false);
   };
@@ -1899,6 +1915,10 @@ export default function StartScreen() {
             setShowTopUpModal(true);
           }}
         />
+
+        {user && <OrbitAnnouncement key={user.id} userId={user.id}
+          blocked={Boolean(showReferralModal || showModal || showTopUpModal || showLoginModal || showOnboarding
+            || showQrModal || isUploading || projectToDelete || isLoadingProjects)} />}
 
         <WelcomeTrialNotice user={user} supabase={supabase} onBalanceChange={setCredits}
           onGoogleSignIn={() => setShowLoginModal(true)}

@@ -410,6 +410,7 @@ export default function Workspace() {
   const isBusy = traceState !== "idle" || isSavingCrop || artworkEditing.busy;
   const hasProject = !!project;
   const hasSvg = !!project?.svg_url;
+  const settingsRetracted = traceState !== "idle";
   const workspaceTitle = getWorkspaceTitle(project?.trace_type);
   const workspaceCommandBar = project ? (
     <WorkspaceCommandBar
@@ -475,7 +476,12 @@ export default function Workspace() {
         </div>
 
         {/* Right Properties Panel */}
-        <div style={{ display: settingsOpen ? "contents" : "none" }}>
+        <div
+          className="garment-settings-dock"
+          data-retracted={settingsRetracted ? "true" : undefined}
+          inert={settingsRetracted}
+          hidden={!settingsOpen}
+        >
         <PropertiesPanel
           project={project}
           traceState={traceState}

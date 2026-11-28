@@ -73,6 +73,10 @@ const nextConfig = {
         source: '/(.*)',
         headers: getSecurityHeaders({ isDevelopment }),
       },
+      ...(isDevelopment ? [{
+        source: '/paddle-sandbox',
+        headers: getSecurityHeaders({ isDevelopment, paddleSandbox: true }),
+      }] : []),
       {
         // Auth-sensitive API responses must never be cached or framed.
         source: '/api/(.*)',

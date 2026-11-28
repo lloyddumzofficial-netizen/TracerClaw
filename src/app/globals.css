@@ -6254,14 +6254,24 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   overflow: hidden;
 }
 
+.login-modal-overlay { animation: loginBackdropEnter 320ms ease-out both !important; }
+
 @media (prefers-reduced-motion: no-preference) {
-  .login-modal-overlay { animation: loginBackdropEnter .22s ease-out; }
   .login-modal-panel { animation: loginPanelEnter .36s cubic-bezier(.22, 1, .36, 1); }
 }
 
 @keyframes loginBackdropEnter {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.login-modal-overlay[data-closing="true"] {
+  animation: loginBackdropExit 320ms ease-in both !important;
+}
+
+@keyframes loginBackdropExit {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 @keyframes loginPanelEnter {
@@ -6308,67 +6318,142 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   position: relative;
   isolation: isolate;
   display: grid;
-  align-items: center;
+  align-content: end;
+  row-gap: 14px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   padding: clamp(24px, 4vw, 56px);
-  border-right: 1px solid #333333;
-  background: radial-gradient(ellipse at 88% 76%, #111315, #0B0B0B 72%);
+  padding-bottom: 28px;
+  background: #111315;
 }
 
-.login-banner-grid {
+.login-banner-scene {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(circle, #92959132 .75px, transparent 1px) center / 16px 16px;
-  mask-image: linear-gradient(118deg, #F4F4F13D 8%, #F4F4F1 82%);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 68% 44%, #FFD70022, transparent 50%),
+    radial-gradient(ellipse at 36% 38%, #92959129, transparent 58%),
+    radial-gradient(ellipse at 53% 0%, #1A1C1E 8%, transparent 70%),
+    linear-gradient(180deg, #1A1C1E, #111315 82%);
   pointer-events: none;
 }
 
-.login-banner-outline {
-  position: absolute;
-  right: -17%;
-  bottom: -9%;
-  width: 112%;
-  aspect-ratio: 478.95 / 419.48;
-  mask-image: linear-gradient(125deg, transparent 8%, #F4F4F1 72%);
-}
-
-.login-banner-outline svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.login-banner-outline path {
-  fill: none !important;
-  stroke: #929591 !important;
-  stroke-width: 1.25 !important;
-  stroke-linejoin: round;
-  opacity: .32;
-}
-
-.login-banner-grid::after {
+.login-banner-scene::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(118deg, transparent 34%, #F4F4F112 50%, transparent 66%);
-  opacity: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 42%, transparent 40%, #0B0B0B66 100%),
+    radial-gradient(circle, #92959117 .7px, transparent 1px) center / 18px 18px;
+  mask-image: linear-gradient(#F4F4F1 25%, transparent 76%);
+}
+
+.login-banner-scene::after {
+  content: "";
+  position: absolute;
+  inset: -24% -44% 13%;
+  background:
+    radial-gradient(ellipse 42% 18% at 50% 58%, #FFD7005C, #FFD7001C 51%, transparent 100%),
+    radial-gradient(ellipse 53% 30% at 51% 47%, #F4F4F13D, #9295911F 56%, transparent 100%);
+  mask-image: linear-gradient(transparent 8%, #F4F4F1 36%, #F4F4F1 61%, transparent 90%);
+  animation: loginLightSweep 4.6s ease-in-out -1.2s infinite alternate;
+}
+
+@keyframes loginLightSweep {
+  from { transform: translate(-17%, -5%) rotate(-22deg); }
+  to { transform: translate(17%, 9%) rotate(-9deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-banner-scene::after {
+    transform: rotate(-15deg);
+    animation: loginLightPulse 6s ease-in-out infinite alternate !important;
+  }
+}
+
+@keyframes loginLightPulse {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+
+.login-banner-scene:has(.login-artwork-grid) {
+  background: #111315;
+}
+
+.login-banner-scene:has(.login-artwork-grid)::before {
+  display: none;
+}
+
+.login-banner-scene:has(.login-artwork-grid)::after {
+  inset: 0;
+  background:
+    linear-gradient(180deg, #11131580 0%, #11131526 10%, transparent 23%, transparent 55%, #111315A8 71%, #111315CC 87%, #111315D9 100%);
+  mask-image: none;
+  animation: none !important;
+  transform: none;
+}
+
+.login-artwork-grid {
+  --login-artwork-gap: 4px;
+  position: absolute;
+  inset: -100px -90px;
+  display: grid;
+  align-content: center;
+  gap: var(--login-artwork-gap);
+  transform: rotate(-13deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login-artwork-grid { animation: loginArtworkReveal .24s ease-out both; }
+}
+@keyframes loginArtworkReveal { from { opacity: .55; } to { opacity: 1; } }
+
+.login-artwork-row {
+  display: flex;
+  width: max-content;
+  animation: loginArtworkDrift 64s linear -12s infinite;
+}
+
+.login-artwork-row:nth-child(2n) {
+  animation-direction: reverse;
+  animation-duration: 70s;
+  animation-delay: -19s;
+}
+
+.login-artwork-row:nth-child(3) { animation-delay: -27s; }
+
+.login-artwork-strip {
+  display: flex;
+  gap: var(--login-artwork-gap);
+  padding-right: var(--login-artwork-gap);
+}
+
+.login-artwork-strip img {
+  display: block;
+  width: 112px;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+@keyframes loginArtworkDrift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-artwork-row {
+    animation-duration: 100s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 .login-visual-copy {
-  padding-block: 28px 44px;
-}
-
-.login-banner-logo {
-  position: absolute;
-  top: calc(var(--login-content-top) + var(--login-kicker-height) + var(--login-heading-gap));
-  display: block;
-  width: 168px;
-  height: var(--login-heading-height);
-  object-fit: contain;
-  object-position: left center;
+  text-align: left;
 }
 
 .login-auth-kicker {
@@ -6387,26 +6472,26 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   margin: 0;
   color: #F4F4F1;
   font-family: var(--font-manrope), "Segoe UI", Arial, sans-serif;
-  font-size: clamp(26px, 3.2vw, 43px);
-  font-weight: 620;
-  line-height: 1.18;
-  letter-spacing: -.035em;
+  font-size: clamp(14px, 1.35vw, 18px);
+  font-weight: 550;
+  line-height: 1.45;
+  letter-spacing: -.015em;
+  text-shadow: 0 1px 6px #0B0B0BC7;
 }
 
 .login-visual-copy :is(span, strong) { display: block; }
-.login-visual-copy strong { margin-top: 4px; color: #FFD700; font-weight: 750; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .login-banner-grid::after { animation: loginBannerSweep 1.65s .12s both; }
-  .login-visual-copy :is(span, strong) { animation: loginBannerReveal .5s cubic-bezier(.22, 1, .36, 1) both; }
-  .login-visual-copy span + span { animation-delay: .08s; }
-  .login-visual-copy strong { animation-delay: .16s; }
+.login-visual-copy strong {
+  margin-top: 7px;
+  color: #F4F4F1;
+  font-size: clamp(29px, 3.5vw, 48px);
+  font-weight: 750;
+  line-height: 1.08;
+  letter-spacing: -.045em;
 }
 
-@keyframes loginBannerSweep {
-  0% { opacity: 0; transform: translateX(-65%); }
-  30%, 64% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(65%); }
+@media (prefers-reduced-motion: no-preference) {
+  .login-visual-copy :is(span, strong) { animation: loginBannerReveal .5s cubic-bezier(.22, 1, .36, 1) both; }
+  .login-visual-copy strong { animation-delay: .08s; }
 }
 
 @keyframes loginBannerReveal {
@@ -6415,9 +6500,6 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
 }
 
 .login-visual-proof {
-  position: absolute;
-  inset-inline: clamp(24px, 4vw, 56px);
-  bottom: 28px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -6448,7 +6530,7 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   max-width: 368px;
   margin: 0 auto;
   padding-bottom: 22px;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: flex-start;
 }
@@ -6672,7 +6754,6 @@ body .main-workspace.upscale-studio:not(.is-empty-state) .upscale-deck-actions .
   .login-split-container { display: block; }
   .login-image-side { display: none; }
   .login-form-side { height: 100%; min-height: 0; }
-  .login-form-header { display: flex; }
 }
 
 @media (max-height: 720px) and (min-width: 821px) {

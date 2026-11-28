@@ -5,6 +5,7 @@ import { ArrowRight, CircleCheck, Timer, X } from "lucide-react";
 import useDialogFocus from "@/hooks/useDialogFocus";
 import LogoCropGuide from "./LogoCropGuide";
 import styles from "./CropGuideIntro.module.css";
+import orbit from "../marketing/OrbitAnnouncement.module.css";
 
 const REVIEW_SECONDS = 5;
 
@@ -42,7 +43,7 @@ export default function CropGuideIntro({ mode, onContinue }) {
   return (
     <div className={styles.overlay}>
       <section className={styles.card} ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="crop-guide-title" aria-describedby="crop-guide-description" tabIndex={-1}>
-        <button type="button" className={styles.close} onClick={continueToCrop} disabled={remaining > 0} aria-label="Close crop guide and continue to crop"><X size={17} /></button>
+        <button type="button" className={`${orbit.close} ${styles.close}`} onClick={continueToCrop} disabled={!canContinue} aria-label="Close crop guide and continue to crop"><X size={17} aria-hidden="true" /></button>
         <div className={styles.body}>
           {mode === "garment" && !imageFailed && (
             <figure className={styles.visual}>
@@ -50,21 +51,20 @@ export default function CropGuideIntro({ mode, onContinue }) {
             </figure>
           )}
           {mode === "logo" && <div className={styles.logoGuide}><LogoCropGuide /></div>}
-          <div className={styles.copy}>
-            <span className={styles.eyebrow}>Before you crop</span>
+          <div className={orbit.content}>
             <h2 id="crop-guide-title">{title}</h2>
-            <p id="crop-guide-description">{description}</p>
+            <p className={orbit.lead} id="crop-guide-description">{description}</p>
             {(mode === "pattern" || imageFailed) && <p>Keep the original proportions and check all four edges before applying your crop.</p>}
           </div>
         </div>
         <footer className={styles.footer}>
+          <button type="button" className={`${orbit.action} ${styles.continue}`} disabled={!canContinue} onClick={continueToCrop}>
+            {remaining > 0 ? `Continue in ${remaining}s` : "Continue to crop"}<ArrowRight size={15} aria-hidden="true" />
+          </button>
           <span className={styles.status} data-ready={canContinue} role="status">
             <StatusIcon size={14} aria-hidden="true" />
             {!ready ? "Loading guide…" : canContinue ? "Ready to crop" : "Review the crop guide"}
           </span>
-          <button type="button" className={styles.continue} disabled={remaining > 0} onClick={continueToCrop}>
-            {remaining > 0 ? `Continue in ${remaining}s` : "Continue to crop"}<ArrowRight size={15} aria-hidden="true" />
-          </button>
         </footer>
       </section>
     </div>

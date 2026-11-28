@@ -1524,3 +1524,11 @@
 }
 .modal-overlay .top-up-modal .top-up-plan-card-featured .top-up-plan-name > span { background: #fbe750 !important; color: #111 !important; border-color: transparent !important; }
 .modal-overlay .top-up-modal .top-up-plan-card-featured .top-up-plan-topline small { background: transparent !important; color: #a0a0a0 !important; }
+.modal-overlay.top-up-overlay-closing {
+  animation: topUpCloseFade 320ms cubic-bezier(.4, 0, 1, 1) both !important;
+}
+
+@keyframes topUpCloseFade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}

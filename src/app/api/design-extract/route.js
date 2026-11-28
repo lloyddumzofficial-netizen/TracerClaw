@@ -9,7 +9,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function GET(request) {
   try {
-    const scope = new URL(request.url).searchParams.get("scope");
+    const params = new URL(request.url).searchParams;
+    const scope = params.get("scope");
     if (scope === "availability") {
       const enabled = process.env.DESIGN_EXTRACT_ENABLED === "true" && designBillingMode() === "paid";
       return Response.json({ enabled }, { headers: { "Cache-Control": "no-store" } });
@@ -19,7 +20,11 @@ export async function GET(request) {
       const refinement = await designRefineAvailable();
       return await designResponse(refinement ? { enabled: true, refinement } : { enabled: true });
     }
-    const { data, error } = await db.from("design_extract_projects").select("id,created_at,source_url,manifest").eq("user_id", user.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(50);
+    const offset = Number(params.get("offset") ?? 0);
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > Number.MAX_SAFE_INTEGER - 49) {
+      return Response.json({ error: "Invalid project offset" }, { status: 400 });
+    }
+    const { data, error } = await db.from("design_extract_projects").select("id,created_at,source_url,manifest").eq("user_id", user.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + 49);
     if (error) throw error;
     const refinement = await designRefineAvailable();
     return await designResponse({ enabled: true, ...(refinement && { refinement }), projects: data.map(project => ({ id: project.id, created_at: project.created_at, original_image_url: project.source_url, width: project.manifest.width, height: project.manifest.height, trace_type: "design_extract", ...(isRefinementProject(project) && { workspaceMode: "refine" }), name: project.manifest?.name || "Untitled Design" })) });

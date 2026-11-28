@@ -8,19 +8,21 @@ const STATIC_SCRIPT_ORIGINS = [
   "https://browser.sentry-cdn.com",
 ];
 
-export function buildContentSecurityPolicy({ isDevelopment = false } = {}) {
+export function buildContentSecurityPolicy({ isDevelopment = false, paddleSandbox = false } = {}) {
+  const allowPaddle = isDevelopment && paddleSandbox;
   const scriptSources = [
     "'self'",
     "'unsafe-inline'",
     ...(isDevelopment ? ["'unsafe-eval'"] : []),
     ...STATIC_SCRIPT_ORIGINS,
+    ...(allowPaddle ? ["https://cdn.paddle.com"] : []),
   ];
 
   const directives = [
     ["default-src", "'self'"],
     ["script-src", ...scriptSources],
     ["script-src-attr", "'none'"],
-    ["frame-src", "'self'", "https://challenges.cloudflare.com"],
+    ["frame-src", "'self'", "https://challenges.cloudflare.com", ...(allowPaddle ? ["https://sandbox-buy.paddle.com"] : [])],
     ["style-src", "'self'", "'unsafe-inline'"],
     ["font-src", "'self'", "data:"],
     ["img-src", "'self'", "data:", "blob:", "https:"],

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useCallback, useEffect, useMemo } from "react";
+import { memo, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, Package, Check, ArrowRight, History, Clock } from "lucide-react";
 import Image from "next/image";
@@ -11,6 +11,8 @@ import { SUPPORTED_BILLING_CURRENCIES } from "@/lib/localCurrency";
 import { safeJson } from "@/lib/safeJson";
 import { analytics } from "@/lib/analytics";
 import "./TopUpModal.css";
+
+const CLOSE_FADE_FALLBACK_MS = 420;
 
 // Derived from CREDIT_PLANS — single source of truth.
 // To change prices, edit src/lib/paymentPlans.js only.
@@ -97,6 +99,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
   const [logs, setLogs] = useState([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
   const [localizedPricing, setLocalizedPricing] = useState({
     country: "",
     currency: "PHP",
@@ -220,7 +226,10 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     };
   }, [qrphPayment?.localPaymentId, qrphPayment?.status, show, step, supabase, user]);
 
-  const handleClose = useCallback(() => {
+  const finishClose = useCallback(() => {
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+    setClosing(false);
     onClose();
     setStep(1);
     setIsStartingPolar(false);
@@ -229,6 +238,12 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
     setActiveTab("plans");
     setForm({ plan: "pro" });
   }, [onClose]);
+
+  const handleClose = useCallback(() => {
+    if (closeTimer.current !== null) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(finishClose, CLOSE_FADE_FALLBACK_MS);
+  }, [finishClose]);
 
   const handleStartPolarCheckout = useCallback(async () => {
     if (!user) {
@@ -341,7 +356,13 @@ const TopUpModal = memo(function TopUpModal({ show = true, user, supabase: supab
 
   return createPortal(
     <div
-      className="modal-overlay"
+      className={`modal-overlay${closing ? " top-up-overlay-closing" : ""}`}
+      inert={closing}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && event.animationName === "topUpCloseFade" && closeTimer.current !== null) {
+          finishClose();
+        }
+      }}
       onClick={handleClose}
       style={{
         position: 'fixed',

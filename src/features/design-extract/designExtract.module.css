@@ -113,7 +113,40 @@
 .artworkProgress[data-compact="true"] .artworkProgressBody h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .artworkProgress[data-compact="true"] .artworkProgressBody .generatingText { position:static; width:auto; height:auto; overflow:visible; clip-path:none; font-size:12px; text-align:center; }
 .generatingText { color:#F4F4F1; }
-.shell:not(.reducedMotion) .artworkProgress:not([data-paused="true"]) .generatingText { background:linear-gradient(105deg,#929591 25%,#F4F4F1 45%,#F4F4F1 50%,#929591 70%); background-size:250% 100%; background-clip:text; -webkit-background-clip:text; color:transparent; animation:svgTextSweep 2.4s linear infinite !important; }
+.shell:not(.reducedMotion) .artworkProgress:not([data-paused="true"]) .generatingText,
+.artworkProgress[data-outline="true"] .generatingText,
+.artworkProgress[data-outline="true"] .artworkProgressBody p { background:linear-gradient(105deg,#929591 25%,#F4F4F1 45%,#F4F4F1 50%,#929591 70%); background-size:250% 100%; background-clip:text; -webkit-background-clip:text; color:transparent; animation:svgTextSweep 2.4s linear infinite !important; }
+.artworkProgress[data-outline="true"] { background: rgba(11, 11, 11, .78); }
+.artworkProgress[data-outline="true"] .artworkProgressIcon {
+  width: auto;
+  height: auto;
+  margin-bottom: 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.artworkProgress[data-outline="true"] .artworkProgressIcon svg {
+  display: block;
+  width: clamp(48px, 28cqw, 144px);
+  height: auto;
+  filter: drop-shadow(0 0 3px #F4F4F166) drop-shadow(0 0 8px #F4F4F133);
+}
+.artworkProgress[data-outline="true"] .generatingText { font-size: clamp(17px, 7.2cqw, 36px); font-weight: 650; }
+.artworkProgress[data-outline="true"] .artworkProgressBody p { font-size: clamp(11px, 4.3cqw, 21px); font-weight: 600; text-wrap: balance; }
+.artworkProgress[data-outline="true"] .artworkSweep {
+  background: linear-gradient(180deg, transparent 37%, #F4F4F126 49%, #F4F4F1B3 50%, #F4F4F133 51%, transparent 63%);
+  animation: artworkScan 3s linear infinite !important;
+}
+.artworkProgress[data-outline="true"] .loadingTrack {
+  height: 3px;
+  overflow: visible;
+}
+.artworkProgress[data-outline="true"] .loadingTrack > span {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #FFD70000, #FFD700 58%, #F4F4F1 96%, #FFD700);
+  box-shadow: 0 -2px 7px #FFD700B3, 0 -4px 16px #FFD70066;
+  animation: extractionLoading 1.7s ease-in-out infinite !important;
+}
 @keyframes svgTextSweep { from { background-position:150% 0; } to { background-position:-100% 0; } }
 .artworkProgress[data-compact="true"] .artworkProgressIcon { width: 26px; height: 26px; border-radius: 6px; }
 .artworkProgress[data-compact="true"] .artworkProgressFooter { bottom: 5px; left: 4px; right: 4px; font-size: 8px; justify-content: center; }

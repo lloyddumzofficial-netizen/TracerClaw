@@ -648,6 +648,7 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
           stageIndex={layerState}
           stageLabels={stageLabels}
           showEstimatedProgress
+          scannerSize={isGarmentWorkspace ? scannerSize : undefined}
         />
       );
     }
@@ -725,6 +726,9 @@ const SplitViewCanvas = memo(function SplitViewCanvas({
   const artworkWidth = fittedArtworkLayout ? `${fittedArtworkLayout.artworkWidth}px` : `${zoomLayerSize.artworkPercent}%`;
   const artworkHeight = fittedArtworkLayout ? `${fittedArtworkLayout.artworkHeight}px` : `${zoomLayerSize.artworkPercent}%`;
   const artworkPadding = fittedArtworkLayout ? 0 : "24px";
+  const scannerSize = fittedArtworkLayout
+    ? { width: fittedArtworkLayout.artworkWidth / zoomLevel, height: fittedArtworkLayout.artworkHeight / zoomLevel }
+    : { width: "calc(100% - 48px)", height: "calc(100% - 48px)" };
 
   return (
     <div ref={containerRef} className="garment-split-view workspace-refined-chrome" style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", backgroundColor: "#1a1a1a", position: "relative" }}>

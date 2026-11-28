@@ -53,6 +53,8 @@ Use this approved DesaynClaw palette for all new and updated UI. These are the b
 - Preserve original colors in user artwork, images, logos, and supplied assets. The UI palette must not recolor their content.
 - Preserve the connected, screen-filling workspace layout. Do not add floating main panels, outer gaps, or a new layout without an explicit request.
 - Keep UI changes within the requested scope; do not redesign unrelated components when adjusting colors or spacing.
+- Use the DesaynClaw Orbit announcement as the visual reference for compact announcement and guide dialogs. Center a Neutral Black card on a dim backdrop, with a 2px neutral outline, rounded corners, and inset media at the top. Keep instructional artwork fully visible and place a small dark close button in the upper-right corner.
+- Give guide dialogs a clear Soft White title, a short semibold instruction, and Silver Gray supporting text when needed. Use one full-width Soft White primary action and a quiet centered secondary action or status below it. Keep content scrollable on short screens and preserve keyboard access and any existing review requirements.
 
 - Use a consistent 2px border weight for bordered UI controls and cards across DesaynClaw. Keep structural dividers thin and preserve intentionally borderless controls and artwork boundaries.
 - Premium crowns are visual-only indicators for included advanced actions. Use a small 12px outline crown after the label: Brand Yellow on dark buttons; on Soft White buttons, keep the crown Brand Yellow on a small Carbon backing for contrast. No glow, additional charge, or access restriction. Hide crowns during processing and on routine saved-file downloads; use the tooltip “Advanced feature · Included”.

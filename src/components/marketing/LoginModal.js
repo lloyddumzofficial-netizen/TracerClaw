@@ -4,7 +4,7 @@ import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
-import SafeInlineSVG from "@/components/shared/SafeInlineSVG";
+import LocalLoginArtwork, { preloadLoginArtwork } from "./LocalLoginArtwork";
 import { X, ShieldCheck, Loader2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -21,6 +21,28 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
   const onCloseRef = useRef(onClose);
+  const closeTimer = useRef(null);
+  const [closing, setClosing] = useState(false);
+
+  const finishClose = useCallback(() => {
+    if (closeTimer.current === null) return;
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+    setClosing(false);
+    onCloseRef.current();
+  }, []);
+
+  const requestClose = useCallback(() => {
+    if (closeTimer.current !== null) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(finishClose, 420);
+  }, [finishClose]);
+
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") void preloadLoginArtwork();
+  }, []);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -78,7 +100,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCloseRef.current();
+        requestClose();
         return;
       }
       if (event.key !== "Tab") return;
@@ -115,7 +137,7 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
         }
       });
     };
-  }, [show, returnFocusRef]);
+  }, [show, returnFocusRef, requestClose]);
 
   if (!show || typeof document === "undefined") return null;
 
@@ -191,7 +213,10 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
   };
 
   return createPortal(
-    <div className="login-modal-overlay" onClick={onClose}>
+    <div className="login-modal-overlay" data-closing={closing} onClick={requestClose}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && event.animationName === "loginBackdropExit") finishClose();
+      }}>
       <div
         ref={dialogRef}
         className="login-modal-panel login-split-container"
@@ -202,19 +227,17 @@ const LoginModal = memo(function LoginModal({ show, onClose, supabase, returnFoc
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="login-close-button" type="button" onClick={onClose} aria-label="Close login">
+        <button className="login-close-button" type="button" onClick={requestClose} aria-label="Close login">
           <X size={18} strokeWidth={2} />
         </button>
 
         <div className="login-image-side">
-          <div className="login-banner-grid" aria-hidden="true">
-            <SafeInlineSVG className="login-banner-outline" url="/SVG/LOGO%20OUTLINE.svg" />
+          <div className="login-banner-scene" aria-hidden="true">
+            {process.env.NODE_ENV === "development" && <LocalLoginArtwork />}
           </div>
           <div className="login-visual-copy">
-            <Image className="login-banner-logo" src="/nav bar logo.png" alt="DesaynClaw" width={188} height={40} />
             <p>
-              <span>Extract artwork.</span>
-              <span>Refine the details.</span>
+              <span>Extract artwork. Refine the details.</span>
               <strong>Ready for print.</strong>
             </p>
           </div>

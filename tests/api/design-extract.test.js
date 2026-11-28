@@ -27,7 +27,7 @@ import { findAutomaticTargets, prepareAutomaticMask } from "@/server/designExtra
 import { nanoColumnGuide, splitNanoElements } from "@/server/designExtract/nanoElements";
 function query(data, error = null) {
   const q = {};
-  for (const key of ["select", "eq", "neq", "is", "gt", "lt", "in", "contains", "order", "limit", "insert", "update", "delete"]) q[key] = vi.fn(() => q);
+  for (const key of ["select", "eq", "neq", "is", "gt", "lt", "in", "contains", "order", "limit", "range", "insert", "update", "delete"]) q[key] = vi.fn(() => q);
   q.single = q.maybeSingle = vi.fn(async () => ({ data, error }));
   q.then = (resolve, reject) => Promise.resolve({ data, error }).then(resolve, reject);
   return q;
@@ -492,6 +492,7 @@ describe("Design Extract admin gate", () => {
     mocks.from.mockReturnValueOnce(list).mockReturnValueOnce(query(null));
     expect(await (await GET(jsonRequest({}))).json()).toMatchObject({ enabled: true, projects: [] });
     expect(list.eq).toHaveBeenCalledWith("user_id", "other");
+    expect(list.range).toHaveBeenCalledWith(0, 49);
     expect((await getDocument(jsonRequest({}), { params: { id: project.id } })).status).toBe(404);
   });
   it("advertises the paid workspace to guests without exposing projects or authenticating", async () => {

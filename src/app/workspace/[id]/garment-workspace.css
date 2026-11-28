@@ -343,6 +343,20 @@
 }
 
 /* Settings panel */
+.garment-workspace-ui .garment-settings-dock {
+  --settings-slide-duration: 560ms;
+  flex: 0 0 auto;
+  width: 280px;
+  min-width: 0;
+  height: 100%;
+  overflow: clip;
+  transition: width var(--settings-slide-duration) cubic-bezier(.55, .05, .45, .95);
+}
+
+.garment-workspace-ui .garment-settings-dock[data-retracted="true"] {
+  width: 0;
+}
+
 .garment-workspace-ui .workspace-properties-panel {
   width: 280px !important;
   background: #0c0d0e !important;
@@ -749,6 +763,10 @@
 
   /* Generation motion is functional feedback. Keep the active processing
      indicators alive even when decorative page motion is reduced. */
+  .garment-workspace-ui .garment-settings-dock {
+    transition-duration: var(--settings-slide-duration) !important;
+  }
+
   .garment-workspace-ui .processing-logo-outline {
     animation: processingLogoFloat 3.2s cubic-bezier(.4, 0, .2, 1) infinite !important;
   }

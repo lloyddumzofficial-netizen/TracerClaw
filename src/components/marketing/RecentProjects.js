@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useState } from "react";
-import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock, Loader2, Layers3, Shirt, PenTool, Grid2X2, Scan, Scissors } from "lucide-react";
+import { memo, useRef, useState } from "react";
+import Image from "next/image";
+import { ImageIcon, MoreVertical, Edit3, Trash2, Check, X, Search, ShieldAlert, Clock, Loader2, Layers3, Shirt, PenTool, Grid2X2, Scan, Scissors, Maximize2 } from "lucide-react";
 
 const PROJECT_TOOLS = {
   design_extract: { label: "Design Extract", Icon: Layers3 },
@@ -37,6 +38,8 @@ const RecentProjects = memo(function RecentProjects({
   onConfirmDelete,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const projectsDialog = useRef(null);
   // The workspace is a heavy client route, so router.push takes a beat to
   // resolve. Without this the card's only visual state is border-color on
   // :hover — already applied while the cursor is on it — so a click changed
@@ -70,45 +73,30 @@ const RecentProjects = memo(function RecentProjects({
   }
 
   if (recentProjects.length > 0) {
-    const filteredProjects = recentProjects.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const query = searchQuery.trim().toLowerCase();
+    const filteredProjects = recentProjects.filter(p => (p.name || "Untitled Design").toLowerCase().includes(query));
+    const recentMatches = query ? filteredProjects : filteredProjects.slice(0, 6);
+    const renderSearch = (label) => (
+      <div className="recent-projects-search">
+        <Search size={14} aria-hidden="true" />
+        <input
+          type="search"
+          aria-label={label}
+          placeholder="Search projects..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+    );
 
-    return (
-      <div className="recent-projects">
-        <div className="recent-projects-head">
-          <div className="recent-projects-title">
-            <h3>Recent Projects</h3>
-            <div className="recent-projects-retention">
-              <Clock size={10} /> Auto-deleted after 3 days
-            </div>
-          </div>
-          <div className="recent-projects-search">
-            <Search size={14} aria-hidden="true" />
-            <input 
-              type="search"
-              aria-label="Search recent projects"
-              placeholder="Search projects..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Privacy Notice for main projects */}
-        <div className="recent-privacy-note">
-          <ShieldAlert size={14} aria-hidden="true" />
-          <div>
-            <strong>Privacy first</strong>
-            <p>Uploaded and generated projects are permanently deleted after 3 days.</p>
-          </div>
-        </div>
-
-        {filteredProjects.length === 0 ? (
+    const renderGrid = (projects, inDialog = false) => (
+        projects.length === 0 ? (
           <div className="recent-projects-empty">
             No projects found matching "{searchQuery}"
           </div>
         ) : (
           <div className="recent-grid">
-            {filteredProjects.map(proj => (
+            {projects.map(proj => (
               <div
                 key={proj.id}
                 className={`recent-card${navigatingId === proj.id ? " is-navigating" : ""}${navigatingId ? " is-locked" : ""}`}
@@ -118,15 +106,19 @@ const RecentProjects = memo(function RecentProjects({
                 role="button"
                 tabIndex={0}
                 aria-busy={navigatingId === proj.id}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleCardClick(proj); } }}
+                onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); handleCardClick(proj); } }}
               >
-              <div className="recent-thumb" style={{
-                  backgroundImage: proj.original_image_url
-                    ? proj.trace_type === "design_extract" ? `url("${proj.original_image_url}")` : `url(/api/proxy?url=${encodeURIComponent(proj.original_image_url)})`
-                    : 'none',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}>
+                <div className="recent-thumb">
+                  {proj.original_image_url && (
+                    <Image
+                      alt=""
+                      fill
+                      unoptimized
+                      sizes={inDialog ? "(max-width: 600px) 50vw, (max-width: 1000px) 25vw, 240px" : "180px"}
+                      src={proj.trace_type === "design_extract" ? proj.original_image_url : `/api/proxy?url=${encodeURIComponent(proj.original_image_url)}`}
+                      className="recent-thumb-image"
+                    />
+                  )}
                   {navigatingId === proj.id && (
                     <div className="recent-opening">
                       <Loader2 size={18} className="animate-spin" />
@@ -136,7 +128,7 @@ const RecentProjects = memo(function RecentProjects({
                 </div>
                 <div className="recent-info">
                   
-                  {editingId === proj.id ? (
+                  {editingId === proj.id && expanded === inDialog ? (
                     <div className="inline-edit" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="text" 
@@ -156,10 +148,13 @@ const RecentProjects = memo(function RecentProjects({
                       </div>
                       <div className="menu-container" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === proj.id ? null : proj.id); }}>
                         <button className="dots-btn"><MoreVertical size={16} /></button>
-                        {openMenuId === proj.id && (
+                        {openMenuId === proj.id && expanded === inDialog && (
                           <div className="dropdown-menu">
                             <button onClick={(e) => onStartEditing(e, proj)}><Edit3 size={14} /> Rename</button>
-                            <button onClick={(e) => onConfirmDelete(e, proj)} className="delete-option"><Trash2 size={14} /> Delete</button>
+                            <button onClick={(e) => {
+                              if (inDialog) projectsDialog.current.close();
+                              onConfirmDelete(e, proj);
+                            }} className="delete-option"><Trash2 size={14} /> Delete</button>
                           </div>
                         )}
                       </div>
@@ -170,7 +165,66 @@ const RecentProjects = memo(function RecentProjects({
               </div>
             ))}
           </div>
-        )}
+        )
+    );
+
+    return (
+      <div className="recent-projects">
+        <div className="recent-projects-head">
+          <div className="recent-projects-title">
+            <h3>Recent Projects</h3>
+            <div className="recent-projects-retention">
+              <Clock size={10} /> Auto-deleted after 3 days
+            </div>
+          </div>
+          {renderSearch("Search recent projects")}
+        </div>
+        <div className="recent-privacy-note">
+          <ShieldAlert size={14} aria-hidden="true" />
+          <div>
+            <strong>Privacy first</strong>
+            <p>Uploaded and generated projects are permanently deleted after 3 days.</p>
+          </div>
+        </div>
+        <div className="recent-projects-view-controls">
+          <span>{filteredProjects.length} {filteredProjects.length === 1 ? "project" : "projects"}</span>
+          <button
+            type="button"
+            className="recent-projects-view-button"
+            aria-haspopup="dialog"
+            aria-controls="all-projects-dialog"
+            onClick={() => {
+              setOpenMenuId(null);
+              projectsDialog.current.showModal();
+              setExpanded(true);
+            }}
+          >
+            View all projects <Maximize2 size={13} aria-hidden="true" />
+          </button>
+        </div>
+        {renderGrid(recentMatches)}
+        <dialog
+          id="all-projects-dialog"
+          ref={projectsDialog}
+          className="all-projects-dialog"
+          aria-labelledby="all-projects-title"
+          onClose={() => { setExpanded(false); setOpenMenuId(null); }}
+        >
+          <header className="all-projects-header">
+            <h3 id="all-projects-title">All Projects</h3>
+            {renderSearch("Search all projects")}
+            <button
+              type="button"
+              className="recent-projects-view-button"
+              aria-label="Close all projects"
+              autoFocus
+              onClick={() => projectsDialog.current.close()}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </header>
+          {expanded && <div className="all-projects-body" data-home-native-scroll>{renderGrid(filteredProjects, true)}</div>}
+        </dialog>
       </div>
     );
   }
