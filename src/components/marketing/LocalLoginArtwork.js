@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 
 const endpoint = "/api/local-login-artwork";
 const rowCount = 6;
-const publicSamples = ["flat-garment", "esports", "festival", "pattern", "polo", "upscale"]
-  .map(name => `/marketing/login-artwork/${name}.webp`);
+// Approved artwork from the local banner screenshots, exported as public thumbnails.
+const publicSamples = Array.from({ length: 22 }, (_, index) =>
+  `/marketing/login-artwork/artwork-${String(index + 1).padStart(2, "0")}.webp`);
 const sourceImages = process.env.NODE_ENV === "development"
   ? () => fetch(endpoint).then(response => response.ok ? response.json() : [])
     .then(images => Array.isArray(images) && images.length
@@ -47,14 +48,17 @@ export default function LocalLoginArtwork() {
     return () => { active = false; };
   }, []);
 
-  const sources = images.length ? images.map(image => image.src) : publicSamples;
+  const sources = images.length ? images.map(image => image.getAttribute("src")) : publicSamples;
+  const publicGrid = sources[0].startsWith("/marketing/login-artwork/");
 
   return (
     <div className="login-artwork-grid">
       {Array.from({ length: rowCount }, (_, row) => {
         const tiles = sources.filter((_, index) => index % rowCount === row);
-        const strip = tiles.length >= 6 ? tiles : Array.from({ length: 6 }, (_, index) =>
-          tiles.length > 1 ? tiles[index % tiles.length] : sources[(row + index) % sources.length]);
+        const strip = publicGrid
+          ? Array.from({ length: 6 }, (_, index) => sources[(row * 5 + index) % sources.length])
+          : tiles.length >= 6 ? tiles : Array.from({ length: 6 }, (_, index) =>
+            tiles.length > 1 ? tiles[index % tiles.length] : sources[(row + index) % sources.length]);
         return (
           <div key={row} className="login-artwork-row">
             {[0, 1].map(copy => (
